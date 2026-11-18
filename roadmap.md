@@ -5,5 +5,6 @@
 - [ ] Phase 4–5: WhatsApp, Google Calendar, disputes, team members, Arabic RTL, data export
 - [x] Brand name: Dealmaker
 - [x] Phase 3b: AI-drafted booking → artist approval page (approve / revise) before client pays
-- [ ] Phase 3b: Email + WhatsApp delivery — built and logged; waits on user: email sender domain + WhatsApp Business connection
+- [ ] Phase 3b: WhatsApp booking links — connected; waits on Meta approving the message template (up to 48h) and choosing this project for incoming WhatsApp updates
+- [ ] Phase 3b: Email booking links — waits on the user setting up a sender domain
 - [x] Phase 3b: Admin escrow monitor & dispute handling

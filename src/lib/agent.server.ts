@@ -106,5 +106,5 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   const c = await artistContact(artistId);
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
   await notifyBooking(b.id, "artist", "approval_request", c, `New booking to approve: ${d.title} on ${d.date}`,
-    `Client: ${q?.name ?? "Client"}\nPrice: AED ${p.subtotal.toLocaleString("en-US")} + VAT\n${d.notes}\n\nApprove or edit: ${link}`);
+    `Client ${q?.name ?? "Client"}, AED ${p.subtotal.toLocaleString("en-US")} + VAT, ${d.notes}`, link);
 }

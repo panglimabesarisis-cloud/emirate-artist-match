@@ -156,7 +156,7 @@ async function sendClientLink(bookingId: string) {
   const link = `${siteOrigin(getRequest())}/booking/${b.id}?k=${b.access_key}`;
   await notifyBooking(b.id, "client", "booking_link", { email: b.client_email, phone },
     `${b.artists?.stage_name} approved your booking`,
-    `${b.package_title} on ${b.event_date} — AED ${Number(b.total).toLocaleString("en-US")} incl. VAT.\nReview the contract and pay securely: ${link}`);
+    `${b.package_title} on ${b.event_date}, AED ${Number(b.total).toLocaleString("en-US")} incl. VAT`, link);
 }
 
 async function bookingByArtistKey(id: string, key: string) {
