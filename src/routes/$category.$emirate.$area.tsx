@@ -20,7 +20,7 @@ export const Route = createFileRoute("/$category/$emirate/$area")({
     const t = loaderData ? `${loaderData.cat.name} in ${loaderData.area.name}, ${loaderData.em.name}` : "Talent";
     return {
       meta: [
-        { title: `${t} | Sahra` },
+        { title: `${t} | Dealmaker` },
         { name: "description", content: `Hire ${t.toLowerCase()} and nearby areas. Verified talent with AED pricing.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} and nearby.` },

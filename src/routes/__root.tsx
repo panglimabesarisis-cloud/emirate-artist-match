@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sahra — Book Dubai's best event talent" },
+      { title: "Dealmaker — Book Dubai's best event talent" },
       { name: "description", content: "AI-powered talent marketplace for Dubai and the UAE." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

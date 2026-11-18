@@ -17,7 +17,7 @@ export const Route = createFileRoute("/$category/$emirate/")({
     const t = loaderData ? `${loaderData.cat.name} in ${loaderData.em.name}` : "Talent";
     return {
       meta: [
-        { title: `${t} | Sahra` },
+        { title: `${t} | Dealmaker` },
         { name: "description", content: `Book ${t.toLowerCase()}: verified profiles, AED pricing and instant quotes.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} with real reviews.` },

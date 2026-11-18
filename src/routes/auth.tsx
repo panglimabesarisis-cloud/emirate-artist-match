@@ -19,9 +19,9 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Sign in or join | Sahra" },
+      { title: "Sign in or join | Dealmaker" },
       { name: "description", content: "Sign in or create your artist or client account." },
-      { property: "og:title", content: "Sign in to Sahra" },
+      { property: "og:title", content: "Sign in to Dealmaker" },
       { property: "og:description", content: "Artists and clients sign in here." },
     ],
   }),

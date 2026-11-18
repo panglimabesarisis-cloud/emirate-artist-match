@@ -11,9 +11,9 @@ import hero from "@/assets/hero-dubai-night.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sahra — Book singers, DJs & entertainers in Dubai" },
+      { title: "Dealmaker — Book singers, DJs & entertainers in Dubai" },
       { name: "description", content: "Find verified event talent in Dubai and the UAE. Free quick quotes answered instantly by each artist's AI booking agent." },
-      { property: "og:title", content: "Sahra — Book event talent in Dubai" },
+      { property: "og:title", content: "Dealmaker — Book event talent in Dubai" },
       { property: "og:description", content: "Verified singers, DJs, cultural acts and entertainers across the UAE with instant AI quotes." },
     ],
   }),

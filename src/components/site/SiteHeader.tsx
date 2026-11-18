@@ -21,8 +21,8 @@ export function SiteHeader() {
       <div className="bg-night text-night-foreground">
         <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2">
-            <span className="h-8 w-8 rounded-full bg-gradient-gold grid place-items-center font-display font-bold text-gold-foreground">S</span>
-            <span className="font-display text-xl font-semibold">Sahra<span className="text-gold">.</span></span>
+            <span className="h-8 w-8 rounded-full bg-gradient-gold grid place-items-center font-display font-bold text-gold-foreground">D</span>
+            <span className="font-display text-xl font-semibold">Dealmaker<span className="text-gold">.</span></span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm opacity-90">
             <Link to="/$category" params={{ category: "musicians" }} className="hover:text-gold">Musicians</Link>

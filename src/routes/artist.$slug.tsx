@@ -21,11 +21,11 @@ export const Route = createFileRoute("/artist/$slug")({
   },
   head: ({ loaderData }) => {
     const a = loaderData?.artist;
-    if (!a) return { meta: [{ title: "Artist unavailable | Sahra" }, { name: "robots", content: "noindex" }] };
+    if (!a) return { meta: [{ title: "Artist unavailable | Dealmaker" }, { name: "robots", content: "noindex" }] };
     const t = `${a.stage_name} — ${a.subcategory?.name ?? "Talent"} in ${a.area?.name ?? "Dubai"}`;
     return {
       meta: [
-        { title: `${t} | Sahra` },
+        { title: `${t} | Dealmaker` },
         { name: "description", content: a.tagline ?? t },
         { property: "og:title", content: t },
         { property: "og:description", content: a.tagline ?? t },

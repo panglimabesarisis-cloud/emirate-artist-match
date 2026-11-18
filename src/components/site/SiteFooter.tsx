@@ -5,7 +5,7 @@ export function SiteFooter() {
     <footer className="bg-night text-night-foreground mt-24">
       <div className="mx-auto max-w-7xl px-4 py-12 grid gap-8 md:grid-cols-4 text-sm">
         <div>
-          <div className="font-display text-2xl">Sahra<span className="text-gold">.</span></div>
+          <div className="font-display text-2xl">Dealmaker<span className="text-gold">.</span></div>
           <p className="mt-2 opacity-70">Dubai's AI-powered talent marketplace. Every artist deserves an AI manager.</p>
         </div>
         <div>
