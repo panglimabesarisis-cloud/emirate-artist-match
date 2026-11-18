@@ -50,3 +50,4 @@ use the editor.
 - Artist Google Calendar uses the per-user App User Connector (`src/lib/calendar.functions.ts`); connection keys are stored encrypted in server-only `app_user_connections`, never sent to the browser.
 - Artist wallet numbers come only from the `artist_wallet()` SQL function (completed bookings minus plan commission minus payouts); withdrawals are `payout_requests` rows guarded by a trigger (amount ≤ available, only admins change status).
 - Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.
+- Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.

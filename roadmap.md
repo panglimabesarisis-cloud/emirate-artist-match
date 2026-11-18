@@ -19,3 +19,10 @@
 - [x] Artist media: photo slider, videos, YouTube links + upload page
 - [x] Packages as sidebar checkboxes, "Book Artist" opens full-width AI chat
 - [x] AI reply instructions + AI knowledge in artist dashboard
+- [ ] Payments catalog: Medium AED 199/month or 1,990/year; Pro AED 499/month or 4,990/year — blocked because the unclaimed payment test account only supports IDR; Medium product created but no prices.
+- [ ] Test checkout for artist plans and bookings — blocked by AED support in the payment account.
+- [ ] Successful booking payment: confirm booking, record held funds, notify client, artist, and manager (only after verified settlement).
+- [ ] Successful subscription: activate selected plan's configured benefits, limits, AI credits, and commission.
+- [ ] Subscription cancellation: retain paid benefits until period end, then return to Free; connect after AED checkout is available.
+- [ ] Subscription upgrades: immediate, prorated; downgrades: next renewal — connect after AED checkout is available.
+- [x] Tested pure settlement and subscription benefit predicates; not yet connected to payment processing.
