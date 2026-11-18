@@ -275,6 +275,7 @@ export type Database = {
           bio: string | null
           calendar_token: string
           category_id: string | null
+          contract_accepted_at: string | null
           created_at: string
           emirate_id: string | null
           event_type_slugs: string[] | null
@@ -301,6 +302,7 @@ export type Database = {
           bio?: string | null
           calendar_token?: string
           category_id?: string | null
+          contract_accepted_at?: string | null
           created_at?: string
           emirate_id?: string | null
           event_type_slugs?: string[] | null
@@ -327,6 +329,7 @@ export type Database = {
           bio?: string | null
           calendar_token?: string
           category_id?: string | null
+          contract_accepted_at?: string | null
           created_at?: string
           emirate_id?: string | null
           event_type_slugs?: string[] | null
@@ -1370,6 +1373,7 @@ export type Database = {
           review_count: number
         }[]
       }
+      become_artist: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

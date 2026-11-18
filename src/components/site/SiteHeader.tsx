@@ -56,7 +56,7 @@ export function SiteHeader() {
                   <Link to="/auth">{t("Sign in")}</Link>
                 </Button>
                 <Button asChild size="sm" className="bg-gradient-gold text-gold-foreground hover:opacity-90">
-                  <Link to="/auth" search={{ mode: "signup" }}>{t("Join as talent")}</Link>
+                  <Link to="/join">{t("Join as talent")}</Link>
                 </Button>
               </>
             )}

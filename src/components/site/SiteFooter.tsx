@@ -24,7 +24,7 @@ export function SiteFooter() {
         <div>
           <div className="font-semibold mb-3 text-gold">{t("For talent")}</div>
           <ul className="space-y-2 opacity-80">
-            <li><Link to="/auth" search={{ mode: "signup" }}>{t("Create a profile")}</Link></li>
+            <li><Link to="/join">{t("Create a profile")}</Link></li>
             <li><Link to="/how-it-works">{t("How it works")}</Link></li>
             {pages.map((p) => <li key={p.slug}><Link to="/p/$slug" params={{ slug: p.slug }}>{p.title}</Link></li>)}
           </ul>

@@ -118,7 +118,7 @@ function ArtistDash({ userId }: { userId: string }) {
   });
   const { t: tr } = useI18n();
   if (isLoading) return null;
-  if (!artist) return <Onboarding userId={userId} onDone={refetch} />;
+  if (!artist) return <div className="py-16 text-center"><h1 className="text-3xl font-semibold">Finish your talent register</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">Continue registration</Link></Button></div>;
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">

@@ -46,3 +46,4 @@ use the editor.
 - Agent integrations (MCP) live in `src/lib/mcp/` with OAuth via the managed auth issuer; tools query as the caller (RLS applies), never with admin keys. Approval page is `/.lovable/oauth/consent`.
 - Admin-editable site config lives in `site_settings` (public read, admin write) and `plan_tiers`; admin-entered API keys go in admin-only `admin_secrets` — never put keys in `site_settings`, which is publicly readable.
 - AI chat flow: master flow is the `ai_flows` row with null artist_id; an artist row with enabled=true overrides it. `flowToPrompt` in `src/lib/ai-flow.ts` turns the flow into numbered steps inside the agent prompt, below pricing/safety rules so those always win.
+- Talent signup goes through the `/join` wizard; Google sign-ups get the artist role via the `become_artist()` RPC (self-only, never admin) since OAuth can't carry signup metadata.
