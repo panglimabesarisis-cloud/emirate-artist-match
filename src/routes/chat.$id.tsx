@@ -25,13 +25,13 @@ function ChatPage() {
   const send$ = useServerFn(sendClientMessage);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const bottom = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const { data, error } = useQuery({
     queryKey: ["chat", id],
     queryFn: () => get$({ data: { id, key: k } }),
     refetchInterval: 5000,
   });
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [data?.messages.length, busy]);
+  useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [data?.messages.length, busy]);
 
   const send = async () => {
     if (!text.trim()) return;
@@ -62,7 +62,7 @@ function ChatPage() {
             </div>
             {a && <Link to="/artist/$slug" params={{ slug: a.slug }} className="text-xs text-gold underline">View profile</Link>}
           </div>
-          <div className="p-4 space-y-3 min-h-[420px] max-h-[60vh] overflow-y-auto">
+          <div ref={box} className="p-4 space-y-3 min-h-[320px] max-h-[60vh] overflow-y-auto">
             {data?.messages.map((m) =>
               m.sender === "system" ? (
                 <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>
@@ -76,7 +76,6 @@ function ChatPage() {
               ),
             )}
             {busy && <div className="text-xs text-muted-foreground">Typing…</div>}
-            <div ref={bottom} />
           </div>
           <div className="border-t p-3 flex gap-2">
             <Textarea rows={2} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder="Type your message…"
