@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _flow_test_backup: {
-        Row: {
-          id: string | null
-          nodes: Json | null
-        }
-        Insert: {
-          id?: string | null
-          nodes?: Json | null
-        }
-        Update: {
-          id?: string | null
-          nodes?: Json | null
-        }
-        Relationships: []
-      }
       admin_secrets: {
         Row: {
           key: string
