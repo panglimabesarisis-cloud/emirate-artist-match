@@ -642,8 +642,10 @@ export type Database = {
           error: string | null
           id: string
           kind: string
+          provider_message_id: string | null
           recipient: string | null
           status: string
+          status_at: string | null
         }
         Insert: {
           audience: string
@@ -653,8 +655,10 @@ export type Database = {
           error?: string | null
           id?: string
           kind: string
+          provider_message_id?: string | null
           recipient?: string | null
           status?: string
+          status_at?: string | null
         }
         Update: {
           audience?: string
@@ -664,8 +668,10 @@ export type Database = {
           error?: string | null
           id?: string
           kind?: string
+          provider_message_id?: string | null
           recipient?: string | null
           status?: string
+          status_at?: string | null
         }
         Relationships: [
           {
@@ -991,6 +997,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_webhook_events: {
+        Row: {
+          delivery_id: string
+          event: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          processing_error: string | null
+          received_at: string
+        }
+        Insert: {
+          delivery_id: string
+          event: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          processing_error?: string | null
+          received_at?: string
+        }
+        Update: {
+          delivery_id?: string
+          event?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_error?: string | null
+          received_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
