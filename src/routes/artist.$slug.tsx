@@ -202,24 +202,6 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
-          {packages.length > 0 && (
-            <div className="space-y-2">
-              <div className="font-semibold">{t("Packages")}</div>
-              {packages.map((p) => {
-                const on = picked.includes(p.id);
-                return (
-                  <label key={p.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${on ? "border-gold bg-gold/10" : "hover:border-gold/50"}`}>
-                    <input type="checkbox" className="mt-1 accent-gold" checked={on} onChange={(e) => setPicked(e.target.checked ? [...picked, p.id] : picked.filter((x) => x !== p.id))} />
-                    <span className="flex-1">
-                      <span className="flex justify-between gap-2 text-sm font-semibold"><span>{p.title}</span><span dir="ltr">{aed(Number(p.price))}</span></span>
-                      <span className="block text-xs text-muted-foreground"><Clock className="me-1 inline h-3 w-3" />{p.duration_minutes} {t("min")}{p.description ? ` · ${p.description}` : ""}</span>
-                    </span>
-                  </label>
-                );
-              })}
-              {pickedPkgs.length > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("Estimated total (excl. VAT)")}</span><b dir="ltr">{aed(pickedPkgs.reduce((n, p) => n + Number(p.price), 0))}</b></div>}
-            </div>
-          )}
           <div className="font-semibold">{t("Job Detail")}</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
             <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
@@ -254,6 +236,24 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
                   <span className="text-xs text-muted-foreground">{t("from")} {aed(s.base_price)}</span>
                 </label>
               ))}
+            </div>
+          )}
+          {packages.length > 0 && (
+            <div className="space-y-2">
+              <div className="font-semibold">{t("Packages")}</div>
+              {packages.map((p) => {
+                const on = picked.includes(p.id);
+                return (
+                  <label key={p.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${on ? "border-gold bg-gold/10" : "hover:border-gold/50"}`}>
+                    <input type="checkbox" className="mt-1 accent-gold" checked={on} onChange={(e) => setPicked(e.target.checked ? [...picked, p.id] : picked.filter((x) => x !== p.id))} />
+                    <span className="flex-1">
+                      <span className="flex justify-between gap-2 text-sm font-semibold"><span>{p.title}</span><span dir="ltr">{aed(Number(p.price))}</span></span>
+                      <span className="block text-xs text-muted-foreground"><Clock className="me-1 inline h-3 w-3" />{p.duration_minutes} {t("min")}{p.description ? ` · ${p.description}` : ""}</span>
+                    </span>
+                  </label>
+                );
+              })}
+              {pickedPkgs.length > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("Estimated total (excl. VAT)")}</span><b dir="ltr">{aed(pickedPkgs.reduce((n, p) => n + Number(p.price), 0))}</b></div>}
             </div>
           )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
