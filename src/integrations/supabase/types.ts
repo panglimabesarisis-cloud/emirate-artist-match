@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_settings: {
+        Row: {
+          artist_id: string
+          enabled: boolean
+          extra_instructions: string | null
+          max_discount_pct: number
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          enabled?: boolean
+          extra_instructions?: string | null
+          max_discount_pct?: number
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          enabled?: boolean
+          extra_instructions?: string | null
+          max_discount_pct?: number
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_settings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       areas: {
         Row: {
           emirate_id: string
@@ -286,6 +321,115 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          access_key: string
+          ai_replies: number
+          artist_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          mode: string
+          quote_request_id: string | null
+        }
+        Insert: {
+          access_key?: string
+          ai_replies?: number
+          artist_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          mode?: string
+          quote_request_id?: string | null
+        }
+        Update: {
+          access_key?: string
+          ai_replies?: number
+          artist_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          mode?: string
+          quote_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: true
+            referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_ledger: {
+        Row: {
+          artist_id: string
+          created_at: string
+          delta: number
+          id: string
+          reason: string
+          ref: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          ref?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          artist_id: string
+          balance: number
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          balance?: number
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          balance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emirates: {
         Row: {
           id: string
@@ -330,6 +474,38 @@ export type Database = {
           sort?: number | null
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

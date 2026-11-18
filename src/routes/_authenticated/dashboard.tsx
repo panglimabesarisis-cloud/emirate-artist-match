@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
+import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,8 +82,11 @@ function ArtistDash({ userId }: { userId: string }) {
         </div>
         {artist.status === "approved" && <Button asChild variant="outline"><Link to="/artist/$slug" params={{ slug: artist.slug }}>View public profile</Link></Button>}
       </div>
-      <Tabs defaultValue="quotes" className="mt-8">
+      <Tabs defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="inbox">Inbox</TabsTrigger>
+          <TabsTrigger value="agent">AI agent</TabsTrigger>
+          <TabsTrigger value="credits">Credits</TabsTrigger>
           <TabsTrigger value="quotes">Quote requests</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
@@ -91,6 +95,9 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="verify">Verification</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
+        <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
+        <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
+        <TabsContent value="credits"><Credits artistId={artist.id} /></TabsContent>
         <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>
         <TabsContent value="profile"><ProfileEditor artist={artist} onSaved={refetch} /></TabsContent>
         <TabsContent value="packages"><Packages artistId={artist.id} /></TabsContent>

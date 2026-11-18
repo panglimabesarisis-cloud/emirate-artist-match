@@ -15,6 +15,20 @@
       "when": 1795014808333,
       "tag": "0001_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795016048145,
+      "tag": "0002_ai_agent_and_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795016070147,
+      "tag": "0003_artist_starter_credits",
+      "breakpoints": true
     }
   ]
 }

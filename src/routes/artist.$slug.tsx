@@ -1,4 +1,6 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { submitQuote } from "@/lib/chat.functions";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock } from "lucide-react";
@@ -6,7 +8,6 @@ import { getArtist, getCatalog } from "@/lib/public.functions";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { aed, BADGE_LABELS } from "@/lib/format";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -135,7 +136,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
 }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "" });
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
+  const submit$ = useServerFn(submitQuote);
+  const navigate = useNavigate();
   const up = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
   const submit = async (e: React.FormEvent) => {
@@ -143,35 +145,26 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error("Please enter your name and a valid email."); return; }
     if (f.date && blocked.includes(f.date)) { toast.error("The artist is unavailable on that date."); return; }
     setSending(true);
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("quote_requests").insert({
-      artist_id: artistId,
-      client_user_id: u.user?.id ?? null,
-      name: f.name.trim().slice(0, 120),
-      email: f.email.trim().slice(0, 255),
-      phone: f.phone.trim().slice(0, 30) || null,
-      event_type_id: f.event || null,
-      event_date: f.date || null,
-      area_id: f.area || null,
-      guests: f.guests ? Number(f.guests) : null,
-      budget: f.budget ? Number(f.budget) : null,
-      message: f.message.slice(0, 2000) || null,
-    });
-    setSending(false);
-    if (error) { toast.error("Could not send your request. Please try again."); return; }
-    setDone(true);
+    try {
+      const r = await submit$({ data: {
+        artistId, clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
+        eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
+        guests: f.guests ? Number(f.guests) : null, budget: f.budget ? Number(f.budget) : null, message: f.message || null,
+      } });
+      if ("error" in r) { toast.error(r.error); return; }
+      navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } });
+    } catch {
+      toast.error("Could not send your request. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <aside className="lg:sticky lg:top-32 self-start rounded-2xl bg-card shadow-card p-6">
       <div className="text-sm text-muted-foreground">Starting from</div>
       <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
-      {done ? (
-        <div className="mt-6 rounded-xl bg-accent p-4 text-sm text-accent-foreground">
-          <div className="font-semibold">Request sent to {artistName}!</div>
-          <p className="mt-1">The artist has your event details. AI instant replies are coming in the next release.</p>
-        </div>
-      ) : (
+      {(
         <form onSubmit={submit} className="mt-5 space-y-3">
           <div className="font-semibold">Free Quick Quote</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
@@ -192,9 +185,9 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
           <Input placeholder="Phone (+971…)" value={f.phone} onChange={up("phone")} maxLength={30} />
           <Textarea placeholder="Tell the artist about your event" value={f.message} onChange={up("message")} maxLength={2000} />
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
-            {sending ? "Sending…" : "Get my free quote"}
+            {sending ? `${artistName.split(" ")[0]}\u2019s assistant is replying…` : "Get my free quote"}
           </Button>
-          <p className="text-[11px] text-muted-foreground">Contact details are shared only with this artist.</p>
+          <p className="text-[11px] text-muted-foreground">An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.</p>
         </form>
       )}
     </aside>

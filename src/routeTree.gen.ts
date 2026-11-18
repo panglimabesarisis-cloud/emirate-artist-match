@@ -17,6 +17,7 @@ import { Route as CategoryIndexRouteImport } from './routes/$category.index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
+import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 
@@ -59,6 +60,11 @@ const ArtistSlugRoute = ArtistSlugRouteImport.update({
   path: '/artist/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIdRoute = ChatIdRouteImport.update({
+  id: '/chat/$id',
+  path: '/chat/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryEmirateIndexRoute = CategoryEmirateIndexRouteImport.update({
   id: '/$category/$emirate/',
   path: '/$category/$emirate/',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/chat/$id': typeof ChatIdRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/artist/$slug'
+    | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/$category/$emirate/'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/artist/$slug'
+    | '/chat/$id'
     | '/$category'
     | '/$category/$emirate/$area'
     | '/$category/$emirate'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/artist/$slug'
+    | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/$category/$emirate/'
@@ -148,6 +160,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   HowItWorksRoute: typeof HowItWorksRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
+  ChatIdRoute: typeof ChatIdRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/$id': {
+      id: '/chat/$id'
+      path: '/chat/$id'
+      fullPath: '/chat/$id'
+      preLoaderRoute: typeof ChatIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$category/$emirate/': {
       id: '/$category/$emirate/'
       path: '/$category/$emirate'
@@ -247,6 +267,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   HowItWorksRoute: HowItWorksRoute,
   ArtistSlugRoute: ArtistSlugRoute,
+  ChatIdRoute: ChatIdRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
