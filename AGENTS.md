@@ -45,3 +45,4 @@ use the editor.
 - Artist photos/videos live in the private `artist-media` bucket (public buckets are blocked by workspace policy); public pages show them via short-lived signed URLs created in `getArtist`.
 - Agent integrations (MCP) live in `src/lib/mcp/` with OAuth via the managed auth issuer; tools query as the caller (RLS applies), never with admin keys. Approval page is `/.lovable/oauth/consent`.
 - Admin-editable site config lives in `site_settings` (public read, admin write) and `plan_tiers`; admin-entered API keys go in admin-only `admin_secrets` — never put keys in `site_settings`, which is publicly readable.
+- AI chat flow: master flow is the `ai_flows` row with null artist_id; an artist row with enabled=true overrides it. `flowToPrompt` in `src/lib/ai-flow.ts` turns the flow into numbered steps inside the agent prompt, below pricing/safety rules so those always win.

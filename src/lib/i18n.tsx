@@ -17,7 +17,7 @@ const AR: Record<string, string> = {
   "AI assistant": "المساعد الذكي", "Type your message…": "اكتب رسالتك…", "Message failed. Please try again.": "فشل إرسال الرسالة. حاول مرة أخرى.",
   "DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.": "وضع تجريبي · يتم إخفاء أرقام الهواتف والبريد الإلكتروني وحسابات التواصل تلقائيًا لحمايتك.",
   Inbox: "صندوق الوارد", Bookings: "الحجوزات", "Quote requests": "طلبات عروض الأسعار", Availability: "التوفر", "My requests": "طلباتي",
-  "AI agent": "الوكيل الذكي", Credits: "الأرصدة", Profile: "الملف الشخصي", "Public stats": "الإحصاءات العامة",
+  "AI agent": "الوكيل الذكي", "AI flow": "مسار الذكاء الاصطناعي", Credits: "الأرصدة", Profile: "الملف الشخصي", "Public stats": "الإحصاءات العامة",
   Verification: "التوثيق", Team: "الفريق", "Export data": "تصدير البيانات", "View public profile": "عرض الملف العام", "Plan:": "الخطة:",
   "DEMO MODE — no real payments are processed.": "وضع تجريبي — لا تتم معالجة أي مدفوعات حقيقية.",
   Musicians: "موسيقيون", DJs: "منسقو أغاني", "Cultural Acts": "عروض ثقافية", "How it works": "كيف يعمل",

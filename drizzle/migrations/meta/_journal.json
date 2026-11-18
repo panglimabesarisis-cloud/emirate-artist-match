@@ -99,6 +99,13 @@
       "when": 1795025536789,
       "tag": "0013_admin_crm_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795028586294,
+      "tag": "0014_ai_flows",
+      "breakpoints": true
     }
   ]
 }

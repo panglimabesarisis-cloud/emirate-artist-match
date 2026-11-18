@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
+import { flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-6-astra" as const;
@@ -40,6 +41,12 @@ export async function runAgent(conversationId: string) {
   if ((wallet?.balance ?? 0) < AI_CREDIT_COST) return handover(`${artist.stage_name} will reply to you personally shortly.`);
   if (convo.ai_replies >= MAX_AI_REPLIES_PER_CONVERSATION) return handover(`I've passed this conversation to ${artist.stage_name} directly.`);
 
+  const { data: flows } = await supabaseAdmin.from("ai_flows").select("artist_id, enabled, nodes, edges").or(`artist_id.is.null,artist_id.eq.${convo.artist_id}`);
+  const own = flows?.find((f) => f.artist_id === convo.artist_id && f.enabled && Array.isArray(f.nodes) && f.nodes.length);
+  const master = flows?.find((f) => f.artist_id === null && Array.isArray(f.nodes) && f.nodes.length);
+  const flow = own ?? master;
+  const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
+
   const maxDiscount = settings?.max_discount_pct ?? 10;
   const packages = (rates ?? []).map((r) => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} (${r.duration_minutes} min) — ${r.description ?? ""}`).join("\n");
   const floor = Math.min(...(rates ?? []).map((r) => Number(r.price)), Number(artist.base_price)) * (1 - maxDiscount / 100);
@@ -60,6 +67,8 @@ Use this token only once per conversation.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
+CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
+${flowSteps}
 Original request: ${JSON.stringify(quote ?? {})}`;
 
   const input = (history ?? [])

@@ -70,6 +70,41 @@ export type Database = {
           },
         ]
       }
+      ai_flows: {
+        Row: {
+          artist_id: string | null
+          edges: Json
+          enabled: boolean
+          id: string
+          nodes: Json
+          updated_at: string
+        }
+        Insert: {
+          artist_id?: string | null
+          edges?: Json
+          enabled?: boolean
+          id?: string
+          nodes?: Json
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string | null
+          edges?: Json
+          enabled?: boolean
+          id?: string
+          nodes?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_flows_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       areas: {
         Row: {
           emirate_id: string

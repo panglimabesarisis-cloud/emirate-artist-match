@@ -14,6 +14,7 @@ import { AdminOverview } from "@/components/admin/AdminOverview";
 import { ArtistDirectory, ArtistRequests, CategoryManager, EventTypeManager } from "@/components/admin/AdminArtists";
 import { AdminPlans } from "@/components/admin/AdminPlans";
 import { AdminSettings } from "@/components/admin/AdminSettings";
+import { FlowBuilder } from "@/components/flow/FlowBuilder";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin | Dealmaker" }, { name: "robots", content: "noindex" }] }),
@@ -30,6 +31,7 @@ const NAV = [
   { id: "escrow", label: "Escrow & disputes", group: "Business" },
   { id: "reviews", label: "Review moderation", group: "Business" },
   { id: "catalog", label: "Event types", group: "Business" },
+  { id: "flow", label: "AI flow builder", group: "System" },
   { id: "settings", label: "Settings", group: "System" },
 ] as const;
 type Section = (typeof NAV)[number]["id"];
@@ -83,6 +85,7 @@ function Admin() {
           {section === "reviews" && <ReviewQueue />}
           {section === "catalog" && <EventTypeManager />}
           {section === "settings" && <AdminSettings />}
+          {section === "flow" && <FlowBuilder artistId={null} />}
         </main>
       </div>
     </div>

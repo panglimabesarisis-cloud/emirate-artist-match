@@ -9,6 +9,7 @@ import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs"
 import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
 import { MediaTab } from "@/components/dashboard/MediaTab";
+import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { CalendarSync, TeamTab } from "@/components/dashboard/TeamTabs";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,7 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>
           <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
           <TabsTrigger value="agent">{tr("AI agent")}</TabsTrigger>
+          <TabsTrigger value="flow">{tr("AI flow")}</TabsTrigger>
           <TabsTrigger value="credits">{tr("Credits")}</TabsTrigger>
           <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
           <TabsTrigger value="profile">{tr("Profile")}</TabsTrigger>
@@ -152,6 +154,7 @@ function ArtistDash({ userId }: { userId: string }) {
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} /></TabsContent>
         <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
+        <TabsContent value="flow"><FlowBuilder artistId={artist.id} /></TabsContent>
         <TabsContent value="credits"><Credits artistId={artist.id} /></TabsContent>
         <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>
         <TabsContent value="profile"><ProfileEditor artist={artist} onSaved={refetch} /></TabsContent>
