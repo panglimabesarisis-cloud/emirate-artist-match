@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_FLOW, flowToPrompt, extractButtons } from "./ai-flow";
+import { DEFAULT_FLOW, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
 
 describe("flowToPrompt", () => {
   it("starts with the greeting step", () => {
@@ -28,5 +28,17 @@ describe("buttons", () => {
   it("splits buttons off the reply text", () => {
     expect(extractButtons("Which event?\n[BUTTONS: Wedding | Corporate]")).toEqual({ text: "Which event?", buttons: ["Wedding", "Corporate"] });
     expect(extractButtons("Hello").buttons).toEqual([]);
+  });
+});
+
+describe("form", () => {
+  const nodes = [{ id: "f", type: "form" as const, position: { x: 0, y: 0 }, data: { text: "Fill in", fields: [{ label: "Name", type: "text" as const, saveAs: "client_name" }, { label: "Email", type: "email" as const }] } }];
+  it("tells the AI to show the form fields", () => {
+    const p = flowToPrompt(nodes, []);
+    expect(p).toContain("[FORM: Name:text | Email:email]");
+    expect(p).toContain('remember "Name" as {client_name}');
+  });
+  it("splits the form off the reply text", () => {
+    expect(extractForm("Details please\n[FORM: Name:text | Phone:phone]")).toEqual({ text: "Details please", fields: [{ label: "Name", type: "text" }, { label: "Phone", type: "phone" }] });
   });
 });

@@ -1,7 +1,10 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
-export type FlowKind = "start" | "message" | "question" | "buttons" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking";
+export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking";
 export type UrlButton = { label: string; url: string };
-export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string };
+export type FieldType = "text" | "email" | "phone" | "number" | "date" | "time";
+export type FormField = { label: string; type: FieldType; saveAs?: string | undefined };
+export const FIELD_TYPES: FieldType[] = ["text", "email", "phone", "number", "date", "time"];
+export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string; fields?: FormField[] };
 /** Variables a step can save the client's answer into; usable later as {name} in any step. */
 export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package"];
 export type FlowNode = { id: string; type: FlowKind; position: { x: number; y: number }; data: FlowData };
@@ -13,6 +16,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "message", label: "Send message", hint: "Say something", placeholder: "Tell the client the artist performs across all seven emirates.", group: "Send", color: "--chart-1" },
   { kind: "question", label: "Ask question", hint: "Collect a detail", placeholder: "Ask for the event date and start/end time.", group: "Ask", color: "--chart-2" },
   { kind: "buttons", label: "Buttons", hint: "Quick-reply choices", placeholder: "Ask what type of event it is.", group: "Ask", color: "--chart-2" },
+  { kind: "form", label: "Form", hint: "Several fields at once", placeholder: "Please fill in the following details", group: "Ask", color: "--chart-2" },
   { kind: "calendar", label: "Connect calendar", hint: "Check availability", placeholder: "Check the requested date against the artist's calendar and blocked dates.", group: "Actions", color: "--chart-4" },
   { kind: "package", label: "Offer package", hint: "Recommend from rate card", placeholder: "Recommend the best-fitting package with its price.", group: "Actions", color: "--chart-4" },
   { kind: "condition", label: "Condition", hint: "Yes / No branch", placeholder: "Is the client's budget at least the cheapest package?", group: "Logic", color: "--chart-3" },
@@ -29,6 +33,16 @@ export function extractButtons(body: string): { text: string; buttons: string[] 
   if (!m) return { text: body, buttons: [] };
   const buttons = (m[1] ?? "").split("|").map((b) => b.trim()).filter(Boolean).slice(0, 6);
   return { text: body.slice(0, m.index).trimEnd(), buttons };
+}
+/** AI replies may end with [FORM: Name:text | Email:email]; the chat shows a fill-in form. */
+export function extractForm(body: string): { text: string; fields: FormField[] } {
+  const m = body.match(/\[FORM:\s*([^\]]*)\]\s*$/);
+  if (!m) return { text: body, fields: [] };
+  const fields = (m[1] ?? "").split("|").map((f) => {
+    const [label = "", type = "text"] = f.split(":").map((x) => x.trim());
+    return { label, type: (FIELD_TYPES as string[]).includes(type) ? (type as FieldType) : "text" };
+  }).filter((f) => f.label).slice(0, 8);
+  return { text: body.slice(0, m.index).trimEnd(), fields };
 }
 export const kindLabel = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.label ?? k;
 
@@ -78,6 +92,11 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       const routes = bs.map((b, i) => { const e = outs.find((o) => o.sourceHandle === `b${i}`); return e ? `"${b}" go to step ${num.get(e.target)}` : null; }).filter(Boolean);
       const def = outs.find((o) => !o.sourceHandle?.startsWith("b"));
       next = [`end your reply with exactly [BUTTONS: ${bs.join(" | ")}]`, ...routes, def && `otherwise step ${num.get(def.target)}`].filter(Boolean).join("; ");
+    } else if (x.type === "form" && x.data.fields?.length) {
+      const fs = x.data.fields;
+      next = [`end your reply with exactly [FORM: ${fs.map((f) => `${f.label}:${f.type}`).join(" | ")}]`,
+        ...fs.filter((f) => f.saveAs).map((f) => `remember "${f.label}" as {${f.saveAs}}`),
+        outs.length && `then step ${outs.map((e) => num.get(e.target)).join(" or ")}`].filter(Boolean).join("; ");
     } else if (isBranching(x.type)) {
       const y = outs.find((e) => e.sourceHandle === "yes"), no = outs.find((e) => e.sourceHandle === "no");
       next = [y && `if yes go to step ${num.get(y.target)}`, no && `if no go to step ${num.get(no.target)}`].filter(Boolean).join("; ");

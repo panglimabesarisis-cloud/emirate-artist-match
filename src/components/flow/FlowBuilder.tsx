@@ -7,7 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { FIELD_TYPES, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type Data = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined };
+type Data = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[] };
 const EMOJI = ["😊", "👋", "🎉", "🎤", "🎶", "💃", "📅", "⏰", "📍", "💰", "✅", "🙏"];
 
 function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
@@ -33,6 +33,11 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
       </div>
       <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || "Click to edit…"}</div>
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
+      {k === "form" && (
+        <div className="space-y-1 border-t px-3 py-2">
+          {(data.fields ?? []).map((f, i) => <div key={i} className="flex justify-between rounded border bg-background px-2 py-1 text-[11px]"><span className="font-medium">{f.label || "Field"}</span><span className="text-muted-foreground">{f.type}</span></div>)}
+        </div>
+      )}
       {k === "buttons" && (
         <div className="space-y-1 border-t px-3 py-2">
           {(data.buttons ?? []).map((b, i) => (
@@ -124,12 +129,13 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     const def = FLOW_KINDS.find((k) => k.kind === kind)!;
     const id = crypto.randomUUID();
     const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 200, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 120 });
-    setNodes((ns) => [...ns, { id, type: kind, position, data: kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : { text: def.placeholder } }]);
+    setNodes((ns) => [...ns, { id, type: kind, position, data: kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }] } : { text: def.placeholder } }]);
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);
   const patch = (id: string, f: (d: Data) => Data) => setNodes((ns) => ns.map((x) => (x.id === id ? { ...x, data: f(x.data) } : x)));
   const setButtons = (id: string, f: (bs: string[]) => string[]) => patch(id, (d) => ({ ...d, buttons: f(d.buttons ?? []) }));
+  const setFields = (id: string, f: (fs: FormField[]) => FormField[]) => patch(id, (d) => ({ ...d, fields: f(d.fields ?? []) }));
   const setUrls = (id: string, f: (bs: UrlButton[]) => UrlButton[]) => patch(id, (d) => ({ ...d, urlButtons: f(d.urlButtons ?? []) }));
   const save = () => onSave({
     nodes: nodes.map((x) => {
@@ -138,12 +144,14 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
       const urls = (x.data.urlButtons ?? []).filter((u) => u.label.trim() && /^https?:\/\//.test(u.url));
       if (urls.length) d.urlButtons = urls;
       if (x.data.saveAs) d.saveAs = x.data.saveAs;
+      const fields = (x.data.fields ?? []).map((f) => ({ ...f, label: f.label.trim() })).filter((f) => f.label);
+      if (fields.length) d.fields = fields.map((f) => (f.saveAs ? f : { label: f.label, type: f.type }));
       return { id: x.id, type: x.type as FlowKind, position: { x: Math.round(x.position.x), y: Math.round(x.position.y) }, data: d };
     }),
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })),
   });
   const blocks = FLOW_KINDS.filter((k) => (tab === "All" || k.group === tab) && k.label.toLowerCase().includes(q.toLowerCase()));
-  const canSave = selected && !["start", "message", "handover", "booking"].includes(selected.type as string);
+  const canSave = selected && !["start", "message", "handover", "booking", "form"].includes(selected.type as string);
 
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -191,6 +199,31 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
               <Label className="text-xs">Bot asks / does this</Label>
               <RichText disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
             </div>
+            {selected.type === "form" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fields included in the form</Label>
+                {(selected.data.fields ?? []).map((f, i) => (
+                  <div key={i} className="space-y-1 rounded-md border p-2">
+                    <div className="flex gap-1">
+                      <Input className="h-7 text-xs" placeholder="Field label" value={f.label} maxLength={30} disabled={readOnly} onChange={(e) => setFields(selected.id, (fs) => fs.map((v, j) => (j === i ? { ...v, label: e.target.value.replace(/[|:\]\[]/g, "") } : v)))} />
+                      {!readOnly && <Button variant="ghost" size="sm" className="h-7 px-2" title="Remove field" onClick={() => setFields(selected.id, (fs) => fs.filter((_, j) => j !== i))}>✕</Button>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      <Select disabled={!!readOnly} value={f.type} onValueChange={(v) => setFields(selected.id, (fs) => fs.map((x, j) => (j === i ? { ...x, type: v as FieldType } : x)))}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>{FIELD_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Select disabled={!!readOnly} value={f.saveAs ?? "none"} onValueChange={(v) => setFields(selected.id, (fs) => fs.map((x, j) => (j === i ? { ...x, saveAs: v === "none" ? undefined : v } : x)))}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Save to" /></SelectTrigger>
+                        <SelectContent><SelectItem value="none">Don't save</SelectItem>{FLOW_VARIABLES.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+                {!readOnly && <Button variant="outline" size="sm" className="w-full" disabled={(selected.data.fields?.length ?? 0) >= 8} onClick={() => setFields(selected.id, (fs) => [...fs, { label: `Field ${fs.length + 1}`, type: "text" }])}>+ Form field</Button>}
+                <p className="text-[11px] text-muted-foreground">The client sees one form with all fields and sends it in one go.</p>
+              </div>
+            )}
             {selected.type === "buttons" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Display as</Label>
