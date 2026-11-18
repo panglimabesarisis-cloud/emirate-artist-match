@@ -13,6 +13,7 @@ import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
+import { extractButtons } from "@/lib/ai-flow";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
@@ -40,10 +41,11 @@ function ChatPage() {
   const { data: offers } = useQuery({ queryKey: ["chat-offers", id], queryFn: () => offers$({ data: { id, key: k } }), refetchInterval: 10000, enabled: !!k });
   useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [data?.messages.length, busy]);
 
-  const send = async () => {
-    if (!text.trim()) return;
+  const send = async (preset?: string) => {
+    const t = (preset ?? text).trim();
+    if (!t || busy) return;
     setBusy(true);
-    const t = text; setText("");
+    setText("");
     try {
       const r = await send$({ data: { id, key: k, text: t } });
       if ("error" in r && r.error) toast.error(r.error);
@@ -98,7 +100,14 @@ function ChatPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 text-xs font-semibold text-muted-foreground">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>
-                  <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{m.body}</div>
+                  {(() => { const { text: body, buttons } = extractButtons(m.body); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
+                    <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
+                    {buttons.length > 0 && last && data.mode !== "human" && (
+                      <div className="mt-3 flex flex-wrap gap-2">{buttons.map((b) => (
+                        <button key={b} disabled={busy} onClick={() => send(b)} className="rounded-full border border-gold/60 bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:bg-gold hover:text-gold-foreground disabled:opacity-50" dir="auto">{b}</button>
+                      ))}</div>
+                    )}
+                  </>; })()}
                 </div>
               </div>
             ),
@@ -117,7 +126,7 @@ function ChatPage() {
             <Textarea autoFocus rows={1} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder={tr("Type your message…")}
               className="max-h-40 min-h-[44px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-            <Button onClick={send} disabled={busy || !text.trim()} size="icon" aria-label="Send" className="h-10 w-10 shrink-0 rounded-full bg-gradient-gold text-gold-foreground"><Send className="h-4 w-4" /></Button>
+            <Button onClick={() => send()} disabled={busy || !text.trim()} size="icon" aria-label="Send" className="h-10 w-10 shrink-0 rounded-full bg-gradient-gold text-gold-foreground"><Send className="h-4 w-4" /></Button>
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">{tr("DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.")}</p>
         </div>
