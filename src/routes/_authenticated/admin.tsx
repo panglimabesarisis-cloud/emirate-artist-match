@@ -5,13 +5,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
-import { BADGE_LABELS, slugify } from "@/lib/format";
+import { BADGE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
 import { AdminOverview } from "@/components/admin/AdminOverview";
-import { ArtistDirectory, ArtistRequests, CategoryManager } from "@/components/admin/AdminArtists";
+import { ArtistDirectory, ArtistRequests, CategoryManager, EventTypeManager } from "@/components/admin/AdminArtists";
 import { AdminPlans } from "@/components/admin/AdminPlans";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 
@@ -21,16 +21,16 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 const NAV = [
-  { id: "overview", label: "Overview", icon: "📊" },
-  { id: "artists", label: "Artist directory", icon: "🎤", group: "Artists" },
-  { id: "requests", label: "Artist requests", icon: "📥", group: "Artists" },
-  { id: "categories", label: "Categories", icon: "🗂️", group: "Artists" },
-  { id: "verify", label: "Verification", icon: "✅", group: "Artists" },
-  { id: "plans", label: "Artist packages", icon: "💎", group: "Business" },
-  { id: "escrow", label: "Escrow & disputes", icon: "⚖️", group: "Business" },
-  { id: "reviews", label: "Review moderation", icon: "⭐", group: "Business" },
-  { id: "catalog", label: "Event types", icon: "🎉", group: "Business" },
-  { id: "settings", label: "Settings", icon: "⚙️", group: "System" },
+  { id: "overview", label: "Overview" },
+  { id: "artists", label: "Artist directory", group: "Artists" },
+  { id: "requests", label: "Artist requests", group: "Artists" },
+  { id: "categories", label: "Categories", group: "Artists" },
+  { id: "verify", label: "Verification", group: "Artists" },
+  { id: "plans", label: "Artist packages", group: "Business" },
+  { id: "escrow", label: "Escrow & disputes", group: "Business" },
+  { id: "reviews", label: "Review moderation", group: "Business" },
+  { id: "catalog", label: "Event types", group: "Business" },
+  { id: "settings", label: "Settings", group: "System" },
 ] as const;
 type Section = (typeof NAV)[number]["id"];
 
@@ -58,7 +58,7 @@ function Admin() {
               <div key={n.id}>
                 {header}
                 <button onClick={() => { setSection(n.id); setMenu(false); }} className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-start transition-colors ${section === n.id ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium" : "hover:bg-sidebar-accent"}`}>
-                  <span>{n.icon}</span><span className="flex-1">{n.label}</span>
+                  <span className="flex-1">{n.label}</span>
                   {n.id === "requests" && pending > 0 && <span className="rounded-full bg-sidebar-primary px-1.5 text-xs text-sidebar-primary-foreground">{pending}</span>}
                 </button>
               </div>
@@ -81,7 +81,7 @@ function Admin() {
           {section === "plans" && <AdminPlans />}
           {section === "escrow" && <AdminEscrow />}
           {section === "reviews" && <ReviewQueue />}
-          {section === "catalog" && <Catalog />}
+          {section === "catalog" && <EventTypeManager />}
           {section === "settings" && <AdminSettings />}
         </main>
       </div>
@@ -150,34 +150,6 @@ function ReviewQueue() {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function Catalog() {
-  const qc = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["admin-catalog"],
-    queryFn: async () => {
-      const [c, e] = await Promise.all([supabase.from("categories").select("id,name,slug").order("sort"), supabase.from("event_types").select("id,name,slug").order("sort")]);
-      return { categories: c.data ?? [], events: e.data ?? [] };
-    },
-  });
-  const [ev, setEv] = useState("");
-  const addEvent = async () => {
-    if (!ev.trim()) return;
-    const { error } = await supabase.from("event_types").insert({ name: ev.trim(), slug: slugify(ev), sort: 100 });
-    if (error) { toast.error(error.message); return; }
-    setEv(""); qc.invalidateQueries({ queryKey: ["admin-catalog"] });
-  };
-  return (
-    <div className="grid gap-8 md:grid-cols-2">
-      <div><h3 className="font-semibold text-lg">Categories</h3><ul className="mt-2 text-sm space-y-1">{data?.categories.map((c) => <li key={c.id}>{c.name} <span className="text-muted-foreground">/{c.slug}</span></li>)}</ul></div>
-      <div>
-        <h3 className="font-semibold text-lg">Event types</h3>
-        <div className="mt-2 flex gap-2"><Input value={ev} onChange={(e) => setEv(e.target.value)} placeholder="New event type" /><Button onClick={addEvent}>Add</Button></div>
-        <div className="mt-3 flex flex-wrap gap-1.5">{data?.events.map((e) => <Badge key={e.id} variant="secondary">{e.name}</Badge>)}</div>
-      </div>
     </div>
   );
 }

@@ -190,3 +190,63 @@ export function CategoryManager() {
     </div>
   );
 }
+
+type Ev = { id?: string; name: string; slug: string; sort: number | null };
+
+export function EventTypeManager() {
+  const qc = useQueryClient();
+  const evs = useQuery({ queryKey: ["admin-event-types"], queryFn: async () => (await supabase.from("event_types").select("id,name,slug,sort").order("sort")).data ?? [] }).data ?? [];
+  const [edit, setEdit] = useState<Ev | null>(null);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-event-types"] });
+  const save = async () => {
+    if (!edit?.name.trim()) return;
+    const row = { name: edit.name.trim(), slug: edit.slug || slugify(edit.name), sort: edit.sort ?? 100 };
+    const { error } = edit.id ? await supabase.from("event_types").update(row).eq("id", edit.id) : await supabase.from("event_types").insert(row);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Event type saved"); setEdit(null); refresh();
+  };
+  const remove = async (id: string) => {
+    if (!confirm("Delete this event type?")) return;
+    const { error } = await supabase.from("event_types").delete().eq("id", id);
+    if (error) { toast.error(error.message.includes("foreign key") ? "This event type is used by quotes or bookings and can't be deleted." : error.message); return; }
+    refresh();
+  };
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end"><Button onClick={() => setEdit({ name: "", slug: "", sort: 100 })}>+ Add event type</Button></div>
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <Table>
+          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Slug</TableHead><TableHead>Sort</TableHead><TableHead className="text-end">Actions</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {evs.map((e) => (
+              <TableRow key={e.id}>
+                <TableCell className="font-medium">{e.name}</TableCell>
+                <TableCell className="text-muted-foreground">/{e.slug}</TableCell>
+                <TableCell>{e.sort ?? "—"}</TableCell>
+                <TableCell className="text-end space-x-1 whitespace-nowrap">
+                  <Button size="sm" variant="outline" onClick={() => setEdit(e)}>Edit</Button>
+                  <Button size="sm" variant="ghost" onClick={() => remove(e.id)}>Delete</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{edit?.id ? "Edit event type" : "New event type"}</DialogTitle></DialogHeader>
+          {edit && (
+            <div className="grid gap-3">
+              <div><Label>Name</Label><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Slug</Label><Input value={edit.slug} placeholder={slugify(edit.name)} onChange={(e) => setEdit({ ...edit, slug: slugify(e.target.value) })} /></div>
+                <div><Label>Sort</Label><Input type="number" value={edit.sort ?? 100} onChange={(e) => setEdit({ ...edit, sort: Number(e.target.value) })} /></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={save}>Save</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
