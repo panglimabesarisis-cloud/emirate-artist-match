@@ -1,0 +1,170 @@
+import { createServerFn } from "@tanstack/react-start";
+
+export type ArtistCard = {
+  id: string;
+  slug: string;
+  stage_name: string;
+  tagline: string | null;
+  base_price: number;
+  languages: string[];
+  event_type_slugs: string[];
+  featured: boolean;
+  plan: string;
+  hue: number;
+  category: { slug: string; name: string } | null;
+  subcategory: { slug: string; name: string } | null;
+  emirate: { slug: string; name: string } | null;
+  area: { slug: string; name: string } | null;
+  badges: string[];
+  stats: {
+    completed_orders: number | null;
+    rating: number | null;
+    review_count: number;
+    revenue_label: string | null;
+    response_rate: number | null;
+    repeat_clients: number | null;
+    member_since: string | null;
+  };
+};
+
+async function loadCards(filter?: { artistSlug?: string }) {
+  const { publicClient } = await import("./public-client.server");
+  const sb = publicClient();
+  let q = sb
+    .from("artists")
+    .select(
+      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
+    )
+    .eq("status", "approved");
+  if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
+  const [{ data: artists, error }, { data: stats }] = await Promise.all([q, sb.rpc("artist_public_stats")]);
+  if (error) throw new Error(error.message);
+  const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
+  return (artists ?? []).map((a): ArtistCard => {
+    const s = statMap.get(a.id);
+    return {
+      id: a.id,
+      slug: a.slug,
+      stage_name: a.stage_name,
+      tagline: a.tagline,
+      base_price: Number(a.base_price ?? 0),
+      languages: a.languages ?? [],
+      event_type_slugs: a.event_type_slugs ?? [],
+      featured: a.featured,
+      plan: a.plan,
+      hue: a.hue ?? 30,
+      category: a.category,
+      subcategory: a.subcategory,
+      emirate: a.emirate,
+      area: a.area,
+      badges: (a.artist_badges ?? []).map((b) => b.badge),
+      stats: {
+        completed_orders: s?.completed_orders ?? null,
+        rating: s?.rating != null ? Number(s.rating) : null,
+        review_count: s?.review_count ?? 0,
+        revenue_label: s?.revenue_label ?? null,
+        response_rate: s?.response_rate ?? null,
+        repeat_clients: s?.repeat_clients ?? null,
+        member_since: s?.member_since ?? null,
+      },
+    };
+  });
+}
+
+export const getCatalog = createServerFn({ method: "GET" }).handler(async () => {
+  const { publicClient } = await import("./public-client.server");
+  const sb = publicClient();
+  const [c, s, e, a, et] = await Promise.all([
+    sb.from("categories").select("id, slug, name, description, icon, sort").order("sort"),
+    sb.from("subcategories").select("id, slug, name, category_id").order("name"),
+    sb.from("emirates").select("id, slug, name, sort").order("sort"),
+    sb.from("areas").select("id, slug, name, emirate_id").order("name"),
+    sb.from("event_types").select("id, slug, name, sort").order("sort"),
+  ]);
+  return {
+    categories: c.data ?? [],
+    subcategories: s.data ?? [],
+    emirates: e.data ?? [],
+    areas: a.data ?? [],
+    eventTypes: et.data ?? [],
+  };
+});
+
+export const getFeatured = createServerFn({ method: "GET" }).handler(async () => {
+  const cards = await loadCards();
+  return cards
+    .sort((x, y) => Number(y.featured) - Number(x.featured) || (y.stats.rating ?? 0) - (x.stats.rating ?? 0))
+    .slice(0, 8);
+});
+
+export type SearchInput = {
+  category?: string | undefined;
+  sub?: string | undefined;
+  emirate?: string | undefined;
+  area?: string | undefined;
+  event?: string | undefined;
+  lang?: string | undefined;
+  maxPrice?: number | undefined;
+  minRating?: number | undefined;
+  verified?: boolean | undefined;
+  top?: boolean | undefined;
+  sort?: "recommended" | "rating" | "price_asc" | "price_desc" | "bookings" | undefined;
+};
+
+export const searchArtists = createServerFn({ method: "GET" })
+  .inputValidator((i: SearchInput) => i)
+  .handler(async ({ data }) => {
+    let cards = await loadCards();
+    if (data.category) cards = cards.filter((c) => c.category?.slug === data.category);
+    if (data.sub) cards = cards.filter((c) => c.subcategory?.slug === data.sub);
+    if (data.emirate) cards = cards.filter((c) => c.emirate?.slug === data.emirate);
+    if (data.area) cards = cards.filter((c) => c.area?.slug === data.area);
+    if (data.event) cards = cards.filter((c) => c.event_type_slugs.includes(data.event!));
+    if (data.lang) cards = cards.filter((c) => c.languages.includes(data.lang!));
+    if (data.maxPrice) cards = cards.filter((c) => c.base_price <= data.maxPrice!);
+    if (data.minRating) cards = cards.filter((c) => (c.stats.rating ?? 0) >= data.minRating!);
+    if (data.verified) cards = cards.filter((c) => c.badges.some((b) => b.startsWith("verified")));
+    if (data.top) cards = cards.filter((c) => c.badges.includes("top_performer"));
+    const score = (c: ArtistCard) =>
+      (c.stats.rating ?? 3.5) * 20 +
+      Math.min(c.stats.review_count, 30) +
+      (c.stats.response_rate ?? 70) * 0.2 +
+      c.badges.length * 5 +
+      (c.featured ? 15 : 0);
+    const sorters: Record<string, (a: ArtistCard, b: ArtistCard) => number> = {
+      recommended: (a, b) => score(b) - score(a),
+      rating: (a, b) => (b.stats.rating ?? 0) - (a.stats.rating ?? 0),
+      price_asc: (a, b) => a.base_price - b.base_price,
+      price_desc: (a, b) => b.base_price - a.base_price,
+      bookings: (a, b) => (b.stats.completed_orders ?? 0) - (a.stats.completed_orders ?? 0),
+    };
+    return cards.sort(sorters[data.sort ?? "recommended"]);
+  });
+
+export const getArtist = createServerFn({ method: "GET" })
+  .inputValidator((i: { slug: string }) => i)
+  .handler(async ({ data }) => {
+    const [card] = await loadCards({ artistSlug: data.slug });
+    if (!card) return null;
+    const { publicClient } = await import("./public-client.server");
+    const sb = publicClient();
+    const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }] = await Promise.all([
+      sb.from("artists").select("bio, travel_radius_km").eq("id", card.id).single(),
+      sb.from("rate_cards").select("id, title, description, price, duration_minutes").eq("artist_id", card.id).order("sort"),
+      sb
+        .from("reviews")
+        .select("id, client_name, event_label, rating, body, reply, created_at")
+        .eq("artist_id", card.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      sb.from("availability").select("date").eq("artist_id", card.id).gte("date", new Date().toISOString().slice(0, 10)),
+    ]);
+    return {
+      ...card,
+      bio: full?.bio ?? null,
+      travel_radius_km: full?.travel_radius_km ?? null,
+      rateCards: rates ?? [],
+      reviews: reviews ?? [],
+      blockedDates: (blocked ?? []).map((b) => b.date),
+    };
+  });

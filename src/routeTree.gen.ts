@@ -10,33 +10,147 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as CategoryIndexRouteImport } from './routes/$category.index'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
+import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
+import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoryIndexRoute = CategoryIndexRouteImport.update({
+  id: '/$category/',
+  path: '/$category/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ArtistSlugRoute = ArtistSlugRouteImport.update({
+  id: '/artist/$slug',
+  path: '/artist/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoryEmirateIndexRoute = CategoryEmirateIndexRouteImport.update({
+  id: '/$category/$emirate/',
+  path: '/$category/$emirate/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoryEmirateAreaRoute = CategoryEmirateAreaRouteImport.update({
+  id: '/$category/$emirate/$area',
+  path: '/$category/$emirate/$area',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/artist/$slug': typeof ArtistSlugRoute
+  '/$category/': typeof CategoryIndexRoute
+  '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/$category/$emirate/': typeof CategoryEmirateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/artist/$slug': typeof ArtistSlugRoute
+  '/$category': typeof CategoryIndexRoute
+  '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/$category/$emirate': typeof CategoryEmirateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/artist/$slug': typeof ArtistSlugRoute
+  '/$category/': typeof CategoryIndexRoute
+  '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/$category/$emirate/': typeof CategoryEmirateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/how-it-works'
+    | '/admin'
+    | '/dashboard'
+    | '/artist/$slug'
+    | '/$category/'
+    | '/$category/$emirate/$area'
+    | '/$category/$emirate/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/how-it-works'
+    | '/admin'
+    | '/dashboard'
+    | '/artist/$slug'
+    | '/$category'
+    | '/$category/$emirate/$area'
+    | '/$category/$emirate'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/how-it-works'
+    | '/_authenticated/admin'
+    | '/_authenticated/dashboard'
+    | '/artist/$slug'
+    | '/$category/'
+    | '/$category/$emirate/$area'
+    | '/$category/$emirate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  HowItWorksRoute: typeof HowItWorksRoute
+  ArtistSlugRoute: typeof ArtistSlugRoute
+  CategoryIndexRoute: typeof CategoryIndexRoute
+  CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
+  CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +162,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$category/': {
+      id: '/$category/'
+      path: '/$category'
+      fullPath: '/$category/'
+      preLoaderRoute: typeof CategoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/artist/$slug': {
+      id: '/artist/$slug'
+      path: '/artist/$slug'
+      fullPath: '/artist/$slug'
+      preLoaderRoute: typeof ArtistSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$category/$emirate/': {
+      id: '/$category/$emirate/'
+      path: '/$category/$emirate'
+      fullPath: '/$category/$emirate/'
+      preLoaderRoute: typeof CategoryEmirateIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$category/$emirate/$area': {
+      id: '/$category/$emirate/$area'
+      path: '/$category/$emirate/$area'
+      fullPath: '/$category/$emirate/$area'
+      preLoaderRoute: typeof CategoryEmirateAreaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  HowItWorksRoute: HowItWorksRoute,
+  ArtistSlugRoute: ArtistSlugRoute,
+  CategoryIndexRoute: CategoryIndexRoute,
+  CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
+  CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

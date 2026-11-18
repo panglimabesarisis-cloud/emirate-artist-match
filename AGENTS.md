@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Public pages read data through `createServerFn` in `src/lib/public.functions.ts` using a publishable-key client; signed-in dashboards use the browser client under `_authenticated` so RLS enforces ownership.
+- Public artist stats come only from the `artist_public_stats()` SQL function, which computes from bookings/reviews and applies each artist's visibility settings — never store or type stat numbers.
+- Roles live in `user_roles`; signup may only self-assign artist or client, admin is granted manually.
+- Owner-protected columns (artist status/plan/featured, review rating/body) are enforced by DB triggers, not the UI.
