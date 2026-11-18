@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
+import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +86,7 @@ function ArtistDash({ userId }: { userId: string }) {
       <Tabs defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
+          <TabsTrigger value="bookings">Bookings</TabsTrigger>
           <TabsTrigger value="agent">AI agent</TabsTrigger>
           <TabsTrigger value="credits">Credits</TabsTrigger>
           <TabsTrigger value="quotes">Quote requests</TabsTrigger>
@@ -96,6 +98,7 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
+        <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} /></TabsContent>
         <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
         <TabsContent value="credits"><Credits artistId={artist.id} /></TabsContent>
         <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>

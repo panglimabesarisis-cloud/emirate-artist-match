@@ -129,6 +129,7 @@ export type Database = {
           subcategory_id: string | null
           tagline: string | null
           travel_radius_km: number | null
+          trn: string | null
           user_id: string | null
         }
         Insert: {
@@ -152,6 +153,7 @@ export type Database = {
           subcategory_id?: string | null
           tagline?: string | null
           travel_radius_km?: number | null
+          trn?: string | null
           user_id?: string | null
         }
         Update: {
@@ -175,6 +177,7 @@ export type Database = {
           subcategory_id?: string | null
           tagline?: string | null
           travel_radius_km?: number | null
+          trn?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -239,40 +242,91 @@ export type Database = {
       }
       bookings: {
         Row: {
+          access_key: string
           amount: number
           artist_id: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_email: string | null
           client_name: string
           client_user_id: string | null
+          completed_at: string | null
+          contract_accepted_at: string | null
+          conversation_id: string | null
           created_at: string
+          escrow_status: string
           event_date: string
           event_type_id: string | null
           id: string
+          invoice_no: string | null
           is_seed: boolean
+          notes: string | null
+          package_title: string | null
+          paid_amount: number
+          paid_at: string | null
+          refund_amount: number
           status: string
+          total: number
+          vat_amount: number
         }
         Insert: {
+          access_key?: string
           amount: number
           artist_id: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_email?: string | null
           client_name: string
           client_user_id?: string | null
+          completed_at?: string | null
+          contract_accepted_at?: string | null
+          conversation_id?: string | null
           created_at?: string
+          escrow_status?: string
           event_date: string
           event_type_id?: string | null
           id?: string
+          invoice_no?: string | null
           is_seed?: boolean
+          notes?: string | null
+          package_title?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          refund_amount?: number
           status?: string
+          total?: number
+          vat_amount?: number
         }
         Update: {
+          access_key?: string
           amount?: number
           artist_id?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_email?: string | null
           client_name?: string
           client_user_id?: string | null
+          completed_at?: string | null
+          contract_accepted_at?: string | null
+          conversation_id?: string | null
           created_at?: string
+          escrow_status?: string
           event_date?: string
           event_type_id?: string | null
           id?: string
+          invoice_no?: string | null
           is_seed?: boolean
+          notes?: string | null
+          package_title?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          refund_amount?: number
           status?: string
+          total?: number
+          vat_amount?: number
         }
         Relationships: [
           {
@@ -280,6 +334,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
@@ -847,6 +908,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_invoice_no: { Args: never; Returns: string }
+      refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"

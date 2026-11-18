@@ -29,6 +29,13 @@
       "when": 1795016070147,
       "tag": "0003_artist_starter_credits",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795016741835,
+      "tag": "0004_booking_lifecycle",
+      "breakpoints": true
     }
   ]
 }

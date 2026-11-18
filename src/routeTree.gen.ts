@@ -17,6 +17,7 @@ import { Route as CategoryIndexRouteImport } from './routes/$category.index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
+import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
@@ -60,6 +61,11 @@ const ArtistSlugRoute = ArtistSlugRouteImport.update({
   path: '/artist/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookingIdRoute = BookingIdRouteImport.update({
+  id: '/booking/$id',
+  path: '/booking/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatIdRoute = ChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/artist/$slug': typeof ArtistSlugRoute
+  '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/artist/$slug'
+    | '/booking/$id'
     | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/artist/$slug'
+    | '/booking/$id'
     | '/chat/$id'
     | '/$category'
     | '/$category/$emirate/$area'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/artist/$slug'
+    | '/booking/$id'
     | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
@@ -160,6 +172,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   HowItWorksRoute: typeof HowItWorksRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
+  BookingIdRoute: typeof BookingIdRoute
   ChatIdRoute: typeof ChatIdRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/booking/$id': {
+      id: '/booking/$id'
+      path: '/booking/$id'
+      fullPath: '/booking/$id'
+      preLoaderRoute: typeof BookingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/$id': {
       id: '/chat/$id'
       path: '/chat/$id'
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   HowItWorksRoute: HowItWorksRoute,
   ArtistSlugRoute: ArtistSlugRoute,
+  BookingIdRoute: BookingIdRoute,
   ChatIdRoute: ChatIdRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,

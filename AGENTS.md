@@ -36,3 +36,4 @@ use the editor.
 - Owner-protected columns (artist status/plan/featured, review rating/body) are enforced by DB triggers, not the UI.
 - The AI booking agent runs only server-side (`src/lib/agent.server.ts`); clients reach chats through a secret per-conversation link key, and every AI reply is charged via `credit_ledger` (wallet balance is maintained by a DB trigger, never written directly).
 - All chat text passes through `maskContacts` (`src/lib/masking.ts`) before storage.
+- Booking money/policy rules (VAT, refunds, completion) live in `src/lib/booking-rules.ts` with tests; booking state changes go only through `src/lib/bookings.functions.ts` (clients via secret booking link key, artists via auth).

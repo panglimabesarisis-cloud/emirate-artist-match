@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Bot, Send } from "lucide-react";
 import { getChat, sendClientMessage } from "@/lib/chat.functions";
+import { getConversationBookings } from "@/lib/bookings.functions";
+import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,8 @@ function ChatPage() {
     queryFn: () => get$({ data: { id, key: k } }),
     refetchInterval: 5000,
   });
+  const offers$ = useServerFn(getConversationBookings);
+  const { data: offers } = useQuery({ queryKey: ["chat-offers", id], queryFn: () => offers$({ data: { id, key: k } }), refetchInterval: 10000, enabled: !!k });
   useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [data?.messages.length, busy]);
 
   const send = async () => {
@@ -51,6 +55,16 @@ function ChatPage() {
     <PublicLayout>
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="text-sm text-muted-foreground">Save this page's link to come back to your conversation.</div>
+        {offers && offers.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {offers.map((o) => (
+              <Link key={o.id} to="/booking/$id" params={{ id: o.id }} search={{ k: o.access_key }} className="flex items-center justify-between rounded-xl border border-gold/40 bg-card p-4 shadow-card hover:border-gold">
+                <div><div className="font-semibold">Booking offer · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · {aed(Number(o.total))} incl. VAT</div></div>
+                <span className="text-xs font-medium uppercase tracking-wide text-gold">{o.status === "quoted" ? "Review & pay" : o.status}</span>
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="mt-4 rounded-2xl bg-card shadow-card overflow-hidden">
           <div className="bg-night text-night-foreground p-4 flex items-center gap-3">
             {a && <ArtistAvatar name={a.stage_name} hue={a.hue ?? 30} className="h-11 w-11 rounded-full text-sm" />}
