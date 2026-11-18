@@ -2,6 +2,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ArtistCard } from "@/lib/public.functions";
 import { ArtistCardView } from "./ArtistCard";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 import { PublicLayout } from "./PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +39,15 @@ export function SearchPage(props: {
   const { catalog, results, filters, categorySlug, emirateSlug } = props;
   const navigate = useNavigate();
   const [shown, setShown] = useState(12);
+  useWebMCP({
+    name: "list_shown_artists",
+    description: "List the talent currently shown on this search page with their starting price in AED.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    execute: () => runWebMCPTool("list_shown_artists", () => {
+      const list = results.slice(0, shown);
+      return list.length === 0 ? "No artists shown." : list.map((a) => `${a.slug}: ${a.stage_name} — from AED ${a.base_price}`).join("\n");
+    }),
+  });
   const { t, lang } = useI18n();
   const cat = catalog.categories.find((c) => c.slug === categorySlug);
   const subs = catalog.subcategories.filter((s) => s.category_id === cat?.id);

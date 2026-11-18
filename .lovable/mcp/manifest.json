@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "sdk_version": "3.5.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ribfkantjqakstauhclx.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "emirate-artist-match",
+      "version": "0.1.0",
+      "title": "Emirate Artist Match"
+    },
+    "tools": [
+      {
+        "name": "search_artists",
+        "title": "Search artists",
+        "description": "Search approved Dealmaker talent by name, category slug or emirate slug, with starting price in AED.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "Part of the stage name, e.g. 'falcon'.",
+              "type": "string",
+              "maxLength": 100
+            },
+            "category": {
+              "description": "Category slug, e.g. 'djs', 'musicians'.",
+              "type": "string",
+              "maxLength": 60
+            },
+            "emirate": {
+              "description": "Emirate slug, e.g. 'dubai'.",
+              "type": "string",
+              "maxLength": 60
+            },
+            "limit": {
+              "description": "Max results (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_bookings",
+        "title": "List my bookings",
+        "description": "List bookings the signed-in user can see: as a client, or for artists they own or work for.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by booking status.",
+              "type": "string",
+              "enum": [
+                "inquiry",
+                "quoted",
+                "confirmed",
+                "completed",
+                "cancelled"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_quote_requests",
+        "title": "List quote requests",
+        "description": "List booking requests the signed-in user sent, or received for artists they own or work for.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

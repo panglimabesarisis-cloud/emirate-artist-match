@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as CategoryIndexRouteImport } from './routes/$category.index'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ApproveIdRouteImport } from './routes/approve.$id'
@@ -22,6 +24,7 @@ import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -44,11 +47,22 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
   path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryIndexRoute = CategoryIndexRouteImport.update({
   id: '/$category/',
   path: '/$category/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -89,6 +103,11 @@ const CategoryEmirateAreaRoute = CategoryEmirateAreaRouteImport.update({
   path: '/$category/$emirate/$area',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCalendarTokenRoute = ApiPublicCalendarTokenRouteImport.update({
   id: '/api/public/calendar/$token',
   path: '/api/public/calendar/$token',
@@ -105,6 +124,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -113,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -121,6 +143,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -129,6 +153,7 @@ export interface FileRoutesByTo {
   '/chat/$id': typeof ChatIdRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -139,6 +164,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -147,6 +174,7 @@ export interface FileRoutesById {
   '/chat/$id': typeof ChatIdRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -157,6 +185,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/how-it-works'
+    | '/mcp'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/dashboard'
     | '/approve/$id'
@@ -165,6 +195,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
+    | '/.lovable/oauth/consent'
     | '/$category/$emirate/'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
@@ -173,6 +204,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/how-it-works'
+    | '/mcp'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/dashboard'
     | '/approve/$id'
@@ -181,6 +214,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/$category'
     | '/$category/$emirate/$area'
+    | '/.lovable/oauth/consent'
     | '/$category/$emirate'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
@@ -190,6 +224,8 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/how-it-works'
+    | '/mcp'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/approve/$id'
@@ -198,6 +234,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/$category/'
     | '/$category/$emirate/$area'
+    | '/.lovable/oauth/consent'
     | '/$category/$emirate/'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
@@ -208,12 +245,15 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  McpRoute: typeof McpRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApproveIdRoute: typeof ApproveIdRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
   BookingIdRoute: typeof BookingIdRoute
   ChatIdRoute: typeof ChatIdRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -249,11 +289,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$category/': {
       id: '/$category/'
       path: '/$category'
       fullPath: '/$category/'
       preLoaderRoute: typeof CategoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -312,6 +366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoryEmirateAreaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/calendar/$token': {
       id: '/api/public/calendar/$token'
       path: '/api/public/calendar/$token'
@@ -347,12 +408,16 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   HowItWorksRoute: HowItWorksRoute,
+  McpRoute: McpRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApproveIdRoute: ApproveIdRoute,
   ArtistSlugRoute: ArtistSlugRoute,
   BookingIdRoute: BookingIdRoute,
   ChatIdRoute: ChatIdRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

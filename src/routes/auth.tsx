@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { LovableMark } from "@lovable.dev/cloud-auth-js/react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ type S = { mode?: "signin" | "signup" | undefined; redirect?: string | undefined
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>): S => ({
     mode: s["mode"] === "signup" ? "signup" : undefined,
-    redirect: typeof s["redirect"] === "string" && s["redirect"].startsWith("/") && !s["redirect"].startsWith("//") ? s["redirect"] : undefined,
+    redirect: oauthReturnPath(s["redirect"]) !== "/" ? oauthReturnPath(s["redirect"]) : undefined,
   }),
   head: () => ({
     meta: [
@@ -60,7 +61,7 @@ function AuthPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setBusy(false);
       if (error) { toast.error(error.message); return; }
-      navigate({ to: dest });
+      window.location.assign(dest);
     }
   };
 
@@ -69,7 +70,7 @@ function AuthPage() {
     const r = await lovable.auth.signInWithOAuth(p, { redirect_uri: window.location.origin + "/auth" });
     if (r.error) { toast.error("Sign-in failed. Please try again."); return; }
     if (r.redirected) return;
-    navigate({ to: dest });
+    window.location.assign(dest);
   };
 
   return (
@@ -117,7 +118,8 @@ function PostAuthRedirect() {
       const d = sessionStorage.getItem("post_auth");
       if (data.user && d) {
         sessionStorage.removeItem("post_auth");
-        navigate({ to: d.startsWith("/") ? d : "/dashboard" });
+        const p = oauthReturnPath(d);
+        window.location.assign(p === "/" ? "/dashboard" : p);
       }
     });
   }, [navigate]);
