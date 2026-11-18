@@ -10,21 +10,22 @@ export function AdminOverview() {
     queryKey: ["admin-overview"],
     queryFn: async () => {
       const [b, a, q] = await Promise.all([
-        supabase.from("bookings").select("total, amount, status, escrow_status, created_at, event_date"),
+        supabase.from("bookings").select("total, amount, status, escrow_status, created_at, event_date, conversation_id"),
         supabase.from("artists").select("status, plan, categories(name)"),
         supabase.from("quote_requests").select("created_at"),
       ]);
       return { bookings: b.data ?? [], artists: a.data ?? [], quotes: q.data ?? [] };
     },
   });
-  const bookings = data?.bookings ?? [];
+  const bookings = (data?.bookings ?? []).map((b) => ({ ...b, total: Number(b.total) || Number(b.amount) * 1.05 }));
   const artists = data?.artists ?? [];
   const paid = bookings.filter((x) => ["paid", "confirmed", "completed"].includes(x.status) || x.escrow_status === "held" || x.escrow_status === "released");
   const gmv = paid.reduce((s, x) => s + Number(x.total || 0), 0);
   const escrow = bookings.filter((x) => x.escrow_status === "held").reduce((s, x) => s + Number(x.total || 0), 0);
   const active = artists.filter((x) => x.status === "approved").length;
   const pending = artists.filter((x) => x.status === "pending").length;
-  const conv = data?.quotes.length ? Math.round((bookings.length / data.quotes.length) * 100) : 0;
+  const fromQuotes = bookings.filter((b) => b.conversation_id).length;
+  const conv = data?.quotes.length ? Math.min(100, Math.round((fromQuotes / data.quotes.length) * 100)) : 0;
 
   const months: { m: string; bookings: number; revenue: number; quotes: number }[] = [];
   const now = new Date();
