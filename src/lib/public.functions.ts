@@ -167,7 +167,9 @@ export const getArtist = createServerFn({ method: "GET" })
       sb.from("artist_media").select("id, kind, url, storage_path, caption").eq("artist_id", card.id).order("sort").order("created_at"),
     ]);
     const paths = (mediaRows ?? []).filter((m) => m.storage_path).map((m) => m.storage_path!);
-    const signed = paths.length ? (await sb.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
+    // Bucket is private with no public read; sign server-side only for this approved artist's listed files.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const signed = paths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
     const media = (mediaRows ?? []).map((m) => ({
       id: m.id, kind: m.kind as "photo" | "video" | "youtube", caption: m.caption,
       src: m.storage_path ? signed.find((x) => x.path === m.storage_path)?.signedUrl ?? "" : m.url,

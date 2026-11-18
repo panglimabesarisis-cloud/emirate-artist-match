@@ -85,6 +85,13 @@
       "when": 1795021751330,
       "tag": "0011_artist_media_ai_knowledge",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795023612186,
+      "tag": "0012_artist_media_restrict_reads",
+      "breakpoints": true
     }
   ]
 }
