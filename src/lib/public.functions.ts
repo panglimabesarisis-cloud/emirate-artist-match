@@ -185,3 +185,11 @@ export const getArtist = createServerFn({ method: "GET" })
       media,
     };
   });
+
+export const getSitePage = createServerFn({ method: "GET" })
+  .inputValidator((d: { slug: string }) => d)
+  .handler(async ({ data }) => {
+    const { publicClient } = await import("./public-client.server");
+    const { data: page } = await publicClient().from("site_pages").select("title, body, updated_at").eq("slug", data.slug).eq("published", true).maybeSingle();
+    return page;
+  });

@@ -92,6 +92,13 @@
       "when": 1795023612186,
       "tag": "0012_artist_media_restrict_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795025536789,
+      "tag": "0013_admin_crm_settings",
+      "breakpoints": true
     }
   ]
 }

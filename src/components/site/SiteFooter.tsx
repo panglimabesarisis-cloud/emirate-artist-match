@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 export function SiteFooter() {
   const { t } = useI18n();
+  const pages = useQuery({ queryKey: ["footer-pages"], queryFn: async () => (await supabase.from("site_pages").select("slug, title").eq("published", true).eq("in_menu", true).order("sort")).data ?? [] }).data ?? [];
   return (
     <footer className="bg-night text-night-foreground mt-24">
       <div className="mx-auto max-w-7xl px-4 py-12 grid gap-8 md:grid-cols-4 text-sm">
@@ -23,6 +26,7 @@ export function SiteFooter() {
           <ul className="space-y-2 opacity-80">
             <li><Link to="/auth" search={{ mode: "signup" }}>{t("Create a profile")}</Link></li>
             <li><Link to="/how-it-works">{t("How it works")}</Link></li>
+            {pages.map((p) => <li key={p.slug}><Link to="/p/$slug" params={{ slug: p.slug }}>{p.title}</Link></li>)}
           </ul>
         </div>
         <div className="opacity-70">

@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_secrets: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       agent_settings: {
         Row: {
           artist_id: string
@@ -842,6 +860,48 @@ export type Database = {
           },
         ]
       }
+      plan_tiers: {
+        Row: {
+          ai_credits: number
+          code: string
+          commission_pct: number
+          features: Json
+          max_photos: number
+          max_videos: number
+          name: string
+          price_monthly: number
+          price_yearly: number
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          ai_credits?: number
+          code: string
+          commission_pct?: number
+          features?: Json
+          max_photos?: number
+          max_videos?: number
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_credits?: number
+          code?: string
+          commission_pct?: number
+          features?: Json
+          max_photos?: number
+          max_videos?: number
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1045,6 +1105,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_pages: {
+        Row: {
+          body: string
+          id: string
+          in_menu: boolean
+          published: boolean
+          slug: string
+          sort: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          id?: string
+          in_menu?: boolean
+          published?: boolean
+          slug: string
+          sort?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          in_menu?: boolean
+          published?: boolean
+          slug?: string
+          sort?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       stat_visibility: {
         Row: {

@@ -22,6 +22,7 @@ import { Route as ApproveIdRouteImport } from './routes/approve.$id'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -93,6 +94,11 @@ const ChatIdRoute = ChatIdRouteImport.update({
   path: '/chat/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryEmirateIndexRoute = CategoryEmirateIndexRouteImport.update({
   id: '/$category/$emirate/',
   path: '/$category/$emirate/',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/p/$slug': typeof PSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/p/$slug': typeof PSlugRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/p/$slug': typeof PSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/p/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/p/$slug'
     | '/$category'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/p/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   ArtistSlugRoute: typeof ArtistSlugRoute
   BookingIdRoute: typeof BookingIdRoute
   ChatIdRoute: typeof ChatIdRoute
+  PSlugRoute: typeof PSlugRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$category/$emirate/': {
       id: '/$category/$emirate/'
       path: '/$category/$emirate'
@@ -415,6 +435,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistSlugRoute: ArtistSlugRoute,
   BookingIdRoute: BookingIdRoute,
   ChatIdRoute: ChatIdRoute,
+  PSlugRoute: PSlugRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
