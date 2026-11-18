@@ -105,6 +105,33 @@ export type Database = {
           },
         ]
       }
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       areas: {
         Row: {
           emirate_id: string
@@ -284,6 +311,7 @@ export type Database = {
           id: string
           is_seed: boolean
           languages: string[] | null
+          manager_phone: string | null
           notify_phone: string | null
           plan: string
           response_rate: number | null
@@ -311,6 +339,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           languages?: string[] | null
+          manager_phone?: string | null
           notify_phone?: string | null
           plan?: string
           response_rate?: number | null
@@ -338,6 +367,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           languages?: string[] | null
+          manager_phone?: string | null
           notify_phone?: string | null
           plan?: string
           response_rate?: number | null
@@ -898,6 +928,47 @@ export type Database = {
           },
         ]
       }
+      payout_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          artist_id: string
+          bank_details: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          artist_id: string
+          bank_details: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          artist_id?: string
+          bank_details?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_tiers: {
         Row: {
           ai_credits: number
@@ -1371,6 +1442,19 @@ export type Database = {
           response_rate: number
           revenue_label: string
           review_count: number
+        }[]
+      }
+      artist_wallet: {
+        Args: { _artist: string }
+        Returns: {
+          available: number
+          commission_pct: number
+          fee: number
+          gross: number
+          jobs: number
+          net: number
+          paid_out: number
+          pending: number
         }[]
       }
       become_artist: { Args: never; Returns: undefined }

@@ -83,6 +83,7 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     await db.from("bookings").update({ status: "confirmed", contract_accepted_at: now, paid_at: now, paid_amount: b.total, escrow_status: "held", invoice_no: inv as string }).eq("id", b.id).eq("status", "quoted");
     await db.from("availability").upsert({ artist_id: b.artist_id, date: b.event_date, note: "Booked" }, { onConflict: "artist_id,date", ignoreDuplicates: true });
+    await notifyTeamPaid(b.id).catch((e) => console.error("paid notify failed", e));
     return { ok: true };
   });
 
@@ -145,6 +146,26 @@ export const submitBookingReview = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not save review");
     return { ok: true };
   });
+
+/** After payment: send the full booking details to the artist's and manager's WhatsApp. */
+async function notifyTeamPaid(bookingId: string) {
+  const db = await admin();
+  const { notifyBooking, siteOrigin } = await import("./notify.server");
+  const { data: b } = await db.from("bookings").select("id, client_name, client_phone, client_email, guests, package_title, notes, event_date, amount, total, invoice_no, event_types(name), artists(stage_name, notify_phone, manager_phone), conversations(quote_requests(start_time, end_time, perform_minutes, areas(name)))").eq("id", bookingId).single();
+  if (!b) return;
+  const q = b.conversations?.quote_requests;
+  const details = [
+    `Artist: ${b.artists?.stage_name}`, `Event: ${b.event_types?.name ?? "-"} on ${b.event_date}`,
+    q?.start_time ? `Time: ${q.start_time.slice(0, 5)}${q.end_time ? ` - ${q.end_time.slice(0, 5)}` : ""}` : null,
+    q?.areas?.name ? `Venue: ${q.areas.name}` : null, q?.perform_minutes ? `Performance: ${q.perform_minutes} min` : null,
+    b.guests ? `Guests: ${b.guests}` : null, `Package: ${b.package_title ?? "-"}`,
+    `Client: ${b.client_name}${b.client_phone ? ` ${b.client_phone}` : ""}${b.client_email ? ` ${b.client_email}` : ""}`,
+    `Paid: AED ${Number(b.total).toLocaleString("en-US")} (invoice ${b.invoice_no ?? "-"})`, b.notes ? `Notes: ${b.notes}` : null,
+  ].filter(Boolean).join("\n");
+  const link = `${siteOrigin(getRequest())}/dashboard`;
+  const phones = [...new Set([b.artists?.notify_phone, b.artists?.manager_phone].filter((x): x is string => !!x))];
+  for (const phone of phones) await notifyBooking(b.id, "artist", "booking_paid", { phone }, "New paid booking confirmed", details, link);
+}
 
 async function sendClientLink(bookingId: string) {
   const db = await admin();

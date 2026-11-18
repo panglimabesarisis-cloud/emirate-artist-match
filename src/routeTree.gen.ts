@@ -27,6 +27,7 @@ import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -120,6 +121,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOauthGoogle_calendarReturnRoute =
+  ApiOauthGoogle_calendarReturnRouteImport.update({
+    id: '/api/oauth/google_calendar/return',
+    path: '/api/oauth/google_calendar/return',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCalendarTokenRoute = ApiPublicCalendarTokenRouteImport.update({
   id: '/api/public/calendar/$token',
   path: '/api/public/calendar/$token',
@@ -150,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
     | '/$category/$emirate/'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
     | '/$category/$emirate'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   id:
@@ -260,6 +272,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
     | '/$category/$emirate/'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -281,6 +294,7 @@ export interface RootRouteChildren {
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
+  ApiOauthGoogle_calendarReturnRoute: typeof ApiOauthGoogle_calendarReturnRoute
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -413,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/oauth/google_calendar/return': {
+      id: '/api/oauth/google_calendar/return'
+      path: '/api/oauth/google_calendar/return'
+      fullPath: '/api/oauth/google_calendar/return'
+      preLoaderRoute: typeof ApiOauthGoogle_calendarReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/calendar/$token': {
       id: '/api/public/calendar/$token'
       path: '/api/public/calendar/$token'
@@ -461,6 +482,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
+  ApiOauthGoogle_calendarReturnRoute: ApiOauthGoogle_calendarReturnRoute,
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }

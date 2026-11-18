@@ -47,3 +47,6 @@ use the editor.
 - Admin-editable site config lives in `site_settings` (public read, admin write) and `plan_tiers`; admin-entered API keys go in admin-only `admin_secrets` — never put keys in `site_settings`, which is publicly readable.
 - AI chat flow: master flow is the `ai_flows` row with null artist_id; an artist row with enabled=true overrides it. `flowToPrompt` in `src/lib/ai-flow.ts` turns the flow into numbered steps inside the agent prompt, below pricing/safety rules so those always win.
 - Talent signup goes through the `/join` wizard; Google sign-ups get the artist role via the `become_artist()` RPC (self-only, never admin) since OAuth can't carry signup metadata.
+- Artist Google Calendar uses the per-user App User Connector (`src/lib/calendar.functions.ts`); connection keys are stored encrypted in server-only `app_user_connections`, never sent to the browser.
+- Artist wallet numbers come only from the `artist_wallet()` SQL function (completed bookings minus plan commission minus payouts); withdrawals are `payout_requests` rows guarded by a trigger (amount ≤ available, only admins change status).
+- Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.

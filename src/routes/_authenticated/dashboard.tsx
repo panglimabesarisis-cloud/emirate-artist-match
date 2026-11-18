@@ -10,7 +10,8 @@ import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
 import { MediaTab } from "@/components/dashboard/MediaTab";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
-import { CalendarSync, TeamTab } from "@/components/dashboard/TeamTabs";
+import { CalendarSync } from "@/components/dashboard/TeamTabs";
+import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,8 @@ function useCatalog() {
 function Dashboard() {
   const { user, isArtist, loading } = useAuth();
   if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">Loading…</div></PublicLayout>;
-  return <PublicLayout><div className="mx-auto max-w-6xl px-4 py-10">{isArtist ? <ArtistDash userId={user.id} /> : <MemberOrClient userId={user.id} />}</div></PublicLayout>;
+  if (isArtist) return <ArtistDash userId={user.id} email={user.email ?? ""} />;
+  return <PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id} /></div></PublicLayout>;
 }
 
 /** Managers/assistants invited by an artist get a reduced artist workspace. */
@@ -111,60 +113,93 @@ function ClientDash({ userId }: { userId: string }) {
   );
 }
 
-function ArtistDash({ userId }: { userId: string }) {
+const ARTIST_NAV = [
+  { id: "overview", label: "Overview" },
+  { id: "inbox", label: "Inbox", group: "Sales" },
+  { id: "quotes", label: "Quote requests", group: "Sales" },
+  { id: "bookings", label: "Bookings", group: "Sales" },
+  { id: "calendar", label: "Calendar", group: "Sales" },
+  { id: "wallet", label: "Wallet", group: "Money" },
+  { id: "credits", label: "AI credits", group: "Money" },
+  { id: "export", label: "Export data", group: "Money" },
+  { id: "profile", label: "Profile", group: "Profile" },
+  { id: "packages", label: "Packages", group: "Profile" },
+  { id: "media", label: "Photos & videos", group: "Profile" },
+  { id: "reviews", label: "Reviews", group: "Profile" },
+  { id: "visibility", label: "Public stats", group: "Profile" },
+  { id: "verify", label: "Verification", group: "Profile" },
+  { id: "agent", label: "AI agent", group: "AI" },
+  { id: "flow", label: "AI flow", group: "AI" },
+  { id: "team", label: "Team", group: "Settings" },
+] as const;
+type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
+
+function ArtistDash({ userId, email }: { userId: string; email: string }) {
   const { data: artist, refetch, isLoading } = useQuery({
     queryKey: ["my-artist", userId],
     queryFn: async () => (await supabase.from("artists").select("*").eq("user_id", userId).maybeSingle()).data,
   });
   const { t: tr } = useI18n();
+  const [section, setSection] = useState<ArtistSection>("overview");
+  const [menu, setMenu] = useState(false);
   if (isLoading) return null;
-  if (!artist) return <div className="py-16 text-center"><h1 className="text-3xl font-semibold">Finish your talent register</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">Continue registration</Link></Button></div>;
+  if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">Finish your talent register</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">Continue registration</Link></Button></div></PublicLayout>;
+  const current = ARTIST_NAV.find((n) => n.id === section)!;
+  let lastGroup: string | undefined;
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">{artist.stage_name}</h1>
-          <div className="mt-1 flex gap-2 items-center text-sm">
+    <div className="min-h-screen bg-muted/40 md:flex">
+      <aside className={`${menu ? "block" : "hidden"} md:block md:w-60 shrink-0 bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen overflow-y-auto`}>
+        <div className="px-5 py-5">
+          <Link to="/" className="text-lg font-semibold">Dealmaker <span className="text-sidebar-primary">Studio</span></Link>
+          <div className="mt-3 truncate text-sm font-medium">{artist.stage_name}</div>
+          <div className="mt-1 flex items-center gap-2 text-xs opacity-80">
             <Badge variant={artist.status === "approved" ? "default" : "secondary"}>{artist.status === "pending" ? "Awaiting approval" : artist.status}</Badge>
-            <span className="text-muted-foreground">{tr("Plan:")} {artist.plan}</span>
+            <span>{tr("Plan:")} {artist.plan}</span>
           </div>
         </div>
-        {artist.status === "approved" && <Button asChild variant="outline"><Link to="/artist/$slug" params={{ slug: artist.slug }}>{tr("View public profile")}</Link></Button>}
+        <nav className="px-3 pb-6 space-y-0.5">
+          {ARTIST_NAV.map((n) => {
+            const g = "group" in n ? n.group : undefined;
+            const header = g && g !== lastGroup ? <div className="px-3 pt-4 pb-1 text-[11px] uppercase tracking-wider opacity-60">{tr(g)}</div> : null;
+            lastGroup = g;
+            return (
+              <div key={n.id}>
+                {header}
+                <button onClick={() => { setSection(n.id); setMenu(false); }} className={`w-full rounded-md px-3 py-2 text-sm text-start transition-colors ${section === n.id ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium" : "hover:bg-sidebar-accent"}`}>{tr(n.label)}</button>
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+      <div className="flex-1 min-w-0">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/90 backdrop-blur px-4 md:px-8 py-3">
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setMenu(!menu)} aria-label="Menu">☰</Button>
+          <h1 className="text-lg font-semibold whitespace-nowrap">{tr(current.label)}</h1>
+          <div className="ms-auto flex items-center gap-3">
+            {artist.status === "approved" && <Button asChild variant="outline" size="sm"><Link to="/artist/$slug" params={{ slug: artist.slug }}>{tr("View public profile")}</Link></Button>}
+            <span className="hidden lg:block text-sm text-muted-foreground truncate">{email}</span>
+          </div>
+        </header>
+        <main className="p-4 md:p-8">
+          {section === "overview" && <ArtistOverview artistId={artist.id} />}
+          {section === "inbox" && <Inbox artistId={artist.id} />}
+          {section === "quotes" && <Quotes artistId={artist.id} />}
+          {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
+          {section === "calendar" && <><CalendarTab artistId={artist.id} /><CalendarSync artistId={artist.id} /></>}
+          {section === "wallet" && <WalletTab artistId={artist.id} />}
+          {section === "credits" && <Credits artistId={artist.id} />}
+          {section === "export" && <ExportTab artistId={artist.id} slug={artist.slug} />}
+          {section === "profile" && <ProfileEditor artist={artist} onSaved={refetch} />}
+          {section === "packages" && <Packages artistId={artist.id} />}
+          {section === "media" && <MediaTab artistId={artist.id} />}
+          {section === "reviews" && <Reviews artistId={artist.id} />}
+          {section === "visibility" && <Visibility artistId={artist.id} />}
+          {section === "verify" && <Verification artistId={artist.id} userId={userId} />}
+          {section === "agent" && <AgentSettings artistId={artist.id} />}
+          {section === "flow" && <FlowBuilder artistId={artist.id} />}
+          {section === "team" && <TeamPhones artistId={artist.id} />}
+        </main>
       </div>
-      <Tabs defaultValue="inbox" className="mt-8">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>
-          <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
-          <TabsTrigger value="agent">{tr("AI agent")}</TabsTrigger>
-          <TabsTrigger value="flow">{tr("AI flow")}</TabsTrigger>
-          <TabsTrigger value="credits">{tr("Credits")}</TabsTrigger>
-          <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
-          <TabsTrigger value="profile">{tr("Profile")}</TabsTrigger>
-          <TabsTrigger value="packages">{tr("Packages")}</TabsTrigger>
-          <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>
-          <TabsTrigger value="visibility">{tr("Public stats")}</TabsTrigger>
-          <TabsTrigger value="verify">{tr("Verification")}</TabsTrigger>
-          <TabsTrigger value="reviews">{tr("Reviews")}</TabsTrigger>
-          <TabsTrigger value="team">{tr("Team")}</TabsTrigger>
-          <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>
-          <TabsTrigger value="export">{tr("Export data")}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="media"><MediaTab artistId={artist.id} /></TabsContent>
-        <TabsContent value="export"><ExportTab artistId={artist.id} slug={artist.slug} /></TabsContent>
-        <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
-        <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} /></TabsContent>
-        <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
-        <TabsContent value="flow"><FlowBuilder artistId={artist.id} /></TabsContent>
-        <TabsContent value="credits"><Credits artistId={artist.id} /></TabsContent>
-        <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>
-        <TabsContent value="profile"><ProfileEditor artist={artist} onSaved={refetch} /></TabsContent>
-        <TabsContent value="packages"><Packages artistId={artist.id} /></TabsContent>
-        <TabsContent value="calendar"><Availability artistId={artist.id} /><CalendarSync artistId={artist.id} /></TabsContent>
-        <TabsContent value="team"><TeamTab artistId={artist.id} /></TabsContent>
-        <TabsContent value="visibility"><Visibility artistId={artist.id} /></TabsContent>
-        <TabsContent value="verify"><Verification artistId={artist.id} userId={userId} /></TabsContent>
-        <TabsContent value="reviews"><Reviews artistId={artist.id} /></TabsContent>
-      </Tabs>
     </div>
   );
 }
