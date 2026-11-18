@@ -4,6 +4,7 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Job Detail": "تفاصيل العمل", Start: "البداية", End: "النهاية", Duration: "المدة", "Budget (AED)": "الميزانية (درهم)", "Please enter your budget.": "يرجى إدخال ميزانيتك.",
   Performance: "الأداء", Punctuality: "الالتزام بالمواعيد", Communication: "التواصل",
   "Also ask up to 2 similar artists": "اطلب أيضًا من فنانَين مشابهين كحد أقصى", "Your quote requests were sent": "تم إرسال طلبات عرض السعر",
   "Each artist replies in its own chat. Save these links to come back later.": "يرد كل فنان في محادثة منفصلة. احفظ هذه الروابط للعودة لاحقًا.",

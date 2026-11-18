@@ -41,12 +41,14 @@ function ArtistPage() {
   const { artist: a, catalog } = Route.useLoaderData();
   const s = a.stats;
   const { t } = useI18n();
-  const stats = [
-    s.completed_orders != null && { k: "Completed bookings", v: String(s.completed_orders) },
-    s.rating != null && { k: "Rating", v: `${s.rating.toFixed(1)} / 5` },
+  const bars = [
+    s.completed_orders != null && { k: "Completed bookings", v: String(s.completed_orders), pct: (s.completed_orders / Math.max(s.completed_orders, 100)) * 100 },
+    s.rating != null && { k: "Rating", v: `${s.rating.toFixed(1)} / 5`, pct: (s.rating / 5) * 100 },
+    s.response_rate != null && { k: "Response rate", v: `${s.response_rate}%`, pct: s.response_rate },
+    s.repeat_clients != null && { k: "Repeat clients", v: String(s.repeat_clients), pct: s.completed_orders ? Math.min(100, (s.repeat_clients / s.completed_orders) * 100) : Math.min(100, s.repeat_clients) },
+  ].filter(Boolean) as { k: string; v: string; pct: number }[];
+  const facts = [
     s.revenue_label && { k: "Total earned", v: s.revenue_label },
-    s.response_rate != null && { k: "Response rate", v: `${s.response_rate}%` },
-    s.repeat_clients != null && { k: "Repeat clients", v: String(s.repeat_clients) },
     s.member_since && { k: "Member since", v: new Date(s.member_since).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) },
   ].filter(Boolean) as { k: string; v: string }[];
 
@@ -77,20 +79,6 @@ function ArtistPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-10 grid gap-10 lg:grid-cols-[1fr_380px]">
         <div className="space-y-12">
-          {stats.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-semibold">{t("Track record")}</h2>
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                {stats.map((x) => (
-                  <div key={x.k} className="rounded-xl bg-card p-4 shadow-card">
-                    <div className="text-xs text-muted-foreground">{t(x.k)}</div>
-                    <div className="font-display text-2xl font-semibold mt-1" dir="ltr" style={{ textAlign: "inherit" }}>{x.v}</div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
-            </section>
-          )}
           <section>
             <h2 className="text-2xl font-semibold">{t("About")}</h2>
             <p className="mt-3 text-muted-foreground leading-relaxed">{a.bio}</p>
@@ -133,7 +121,26 @@ function ArtistPage() {
             </div>
           </section>
         </div>
-        <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} />
+        <div className="space-y-6">
+          {(bars.length > 0 || facts.length > 0) && (
+            <section className="rounded-2xl bg-card shadow-card p-6">
+              <h2 className="font-semibold">{t("Track record")}</h2>
+              <div className="mt-4 space-y-3">
+                {bars.map((x) => (
+                  <div key={x.k}>
+                    <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t(x.k)}</span><b dir="ltr">{x.v}</b></div>
+                    <div className="mt-1 h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-gradient-gold" style={{ width: `${Math.max(2, Math.min(100, x.pct))}%` }} /></div>
+                  </div>
+                ))}
+                {facts.map((x) => (
+                  <div key={x.k} className="flex justify-between text-xs"><span className="text-muted-foreground">{t(x.k)}</span><b dir="ltr">{x.v}</b></div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
+            </section>
+          )}
+          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} />
+        </div>
       </div>
     </PublicLayout>
   );
@@ -146,7 +153,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
   artistId: string; artistName: string; basePrice: number; blocked: string[]; similar: Similar[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
-  const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "" });
+  const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "", start: "", end: "", duration: "" });
   const [sending, setSending] = useState(false);
   const [extra, setExtra] = useState<string[]>([]);
   const [sent, setSent] = useState<Sent[] | null>(null);
@@ -158,13 +165,15 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
+    if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
     if (f.date && blocked.includes(f.date)) { toast.error(t("The artist is unavailable on that date.")); return; }
     setSending(true);
     try {
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: f.budget ? Number(f.budget) : null, message: f.message || null,
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: f.message || null,
+        startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });
       if ("error" in r) { toast.error(r.error); return; }
@@ -185,7 +194,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
   };
 
   return (
-    <aside className="lg:sticky lg:top-32 self-start rounded-2xl bg-card shadow-card p-6">
+    <aside className="rounded-2xl bg-card shadow-card p-6">
       <div className="text-sm text-muted-foreground">{t("Starting from")}</div>
       <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
       {sent ? (
@@ -200,7 +209,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
-          <div className="font-semibold">{t("Free Quick Quote")}</div>
+          <div className="font-semibold">{t("Job Detail")}</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
             <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
             <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
@@ -209,11 +218,16 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
             <div><Label className="text-xs">{t("Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
             <div><Label className="text-xs">{t("Guests")}</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
           </div>
+          <div className="grid grid-cols-3 gap-2 items-end">
+            <div><Label className="text-xs">{t("Start")}</Label><Input type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value, duration: f.duration || autoDuration(e.target.value, f.end) })} /></div>
+            <div><Label className="text-xs">{t("End")}</Label><Input type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value, duration: f.duration || autoDuration(f.start, e.target.value) })} /></div>
+            <div><Label className="text-xs">{t("Duration")}</Label><Input type="number" placeholder={t("min")} min={1} max={1440} value={f.duration} onChange={up("duration")} /></div>
+          </div>
           <Select value={f.area} onValueChange={(v) => setF({ ...f, area: v })}>
             <SelectTrigger><SelectValue placeholder={t("Venue area")} /></SelectTrigger>
             <SelectContent>{catalog.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
-          <Input placeholder={t("Budget (AED, optional)")} type="number" value={f.budget} onChange={up("budget")} />
+          <div><Label className="text-xs">{t("Budget (AED)")} *</Label><Input type="number" min={1} required value={f.budget} onChange={up("budget")} /></div>
           <Input placeholder={t("Your name")} value={f.name} onChange={up("name")} maxLength={120} />
           <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
           <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
@@ -239,4 +253,12 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
       )}
     </aside>
   );
+}
+
+function autoDuration(start: string, end: string) {
+  if (!start || !end) return "";
+  const m = (v: string) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3, 5));
+  let d = m(end) - m(start);
+  if (d <= 0) d += 1440;
+  return String(d);
 }

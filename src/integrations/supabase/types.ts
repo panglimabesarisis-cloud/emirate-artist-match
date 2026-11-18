@@ -824,13 +824,16 @@ export type Database = {
           client_user_id: string | null
           created_at: string
           email: string
+          end_time: string | null
           event_date: string | null
           event_type_id: string | null
           guests: number | null
           id: string
           message: string | null
           name: string
+          perform_minutes: number | null
           phone: string | null
+          start_time: string | null
           status: string
         }
         Insert: {
@@ -840,13 +843,16 @@ export type Database = {
           client_user_id?: string | null
           created_at?: string
           email: string
+          end_time?: string | null
           event_date?: string | null
           event_type_id?: string | null
           guests?: number | null
           id?: string
           message?: string | null
           name: string
+          perform_minutes?: number | null
           phone?: string | null
+          start_time?: string | null
           status?: string
         }
         Update: {
@@ -856,13 +862,16 @@ export type Database = {
           client_user_id?: string | null
           created_at?: string
           email?: string
+          end_time?: string | null
           event_date?: string | null
           event_type_id?: string | null
           guests?: number | null
           id?: string
           message?: string | null
           name?: string
+          perform_minutes?: number | null
           phone?: string | null
+          start_time?: string | null
           status?: string
         }
         Relationships: [

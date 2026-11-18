@@ -15,6 +15,7 @@ const str = (v: unknown, max: number, required = false) => {
 export type QuoteInput = {
   artistId: string; clientUserId: string | null; name: string; email: string; phone: string | null;
   eventTypeId: string | null; eventDate: string | null; areaId: string | null; guests: number | null; budget: number | null; message: string | null;
+  startTime?: string | null; endTime?: string | null; performMinutes?: number | null;
 };
 
 /** Public: stores a quote request, opens a conversation and gets the first AI reply. */
@@ -26,7 +27,10 @@ export const submitQuote = createServerFn({ method: "POST" })
       artistId: uuid(i.artistId), clientUserId: null, name: str(i.name, 120, true)!, email, phone: str(i.phone, 30),
       eventTypeId: i.eventTypeId ? uuid(i.eventTypeId) : null, eventDate: i.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(i.eventDate) ? i.eventDate : null,
       areaId: i.areaId ? uuid(i.areaId) : null, guests: i.guests ? Math.min(Math.max(1, Math.round(Number(i.guests))), 100000) : null,
-      budget: i.budget ? Math.min(Math.max(0, Number(i.budget)), 10_000_000) : null, message: str(i.message, 2000),
+      budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
+      startTime: typeof i.startTime === "string" && /^\d{2}:\d{2}$/.test(i.startTime) ? i.startTime : null,
+      endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
+      performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
     };
   })
   .handler(async ({ data }) => {
@@ -41,6 +45,7 @@ export const submitQuote = createServerFn({ method: "POST" })
     const { data: q, error } = await supabaseAdmin.from("quote_requests").insert({
       artist_id: data.artistId, name: data.name, email: data.email, phone: data.phone, event_type_id: data.eventTypeId,
       event_date: data.eventDate, area_id: data.areaId, guests: data.guests, budget: data.budget, message: data.message,
+      start_time: data.startTime ?? null, end_time: data.endTime ?? null, perform_minutes: data.performMinutes ?? null,
     }).select("id").single();
     if (error || !q) throw new Error("Could not save request");
     const { data: c } = await supabaseAdmin.from("conversations").insert({ quote_request_id: q.id, artist_id: data.artistId }).select("id, access_key").single();
@@ -48,6 +53,8 @@ export const submitQuote = createServerFn({ method: "POST" })
     const summary = [
       `Hi! I'm ${data.name}.`,
       data.eventDate && `Event date: ${data.eventDate}.`,
+      (data.startTime || data.endTime) && `Time: ${data.startTime ?? "?"}–${data.endTime ?? "?"}.`,
+      data.performMinutes && `Performance duration: ${data.performMinutes} minutes.`,
       data.guests && `Guests: ${data.guests}.`,
       data.budget && `Budget: AED ${data.budget}.`,
       data.message,
