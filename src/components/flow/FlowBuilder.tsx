@@ -82,19 +82,19 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
   return (
     <div className="grid gap-3 lg:grid-cols-[200px_1fr_280px]">
       {!readOnly && (
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">Drag a block onto the canvas</p>
-          {FLOW_GROUPS.map((g) => <div key={g} className="space-y-1.5"><div className="pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g}</div>
+        <div className="flex gap-3 overflow-x-auto pb-2 lg:block lg:space-y-1.5 lg:overflow-visible lg:pb-0">
+          <p className="hidden text-xs text-muted-foreground lg:block">Drag a block onto the canvas</p>
+          {FLOW_GROUPS.map((g) => <div key={g} className="flex shrink-0 items-end gap-1.5 lg:block lg:space-y-1.5"><div className="pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g}</div>
           {FLOW_KINDS.filter((k) => k.group === g).map((k) => (
             <button key={k.kind} draggable onDragStart={(e) => e.dataTransfer.setData("application/flow", k.kind)} onClick={() => add(k.kind)}
-              className="flex w-full cursor-grab items-center gap-2 rounded-lg border bg-card px-3 py-2 text-start text-sm hover:border-primary">
+              className="flex w-40 shrink-0 cursor-grab items-center lg:w-full gap-2 rounded-lg border bg-card px-3 py-2 text-start text-sm hover:border-primary">
               <span className="h-6 w-1 rounded-full" style={{ background: `var(${k.color})` }} />
               <span><span className="block font-medium">{k.label}</span><span className="block text-[11px] text-muted-foreground">{k.hint}</span></span>
             </button>
           ))}</div>)}
         </div>
       )}
-      <div ref={wrap} className={`h-[640px] rounded-xl border bg-muted/30 ${readOnly ? "lg:col-span-2" : ""}`}
+      <div ref={wrap} className={`h-[480px] rounded-xl lg:h-[640px] border bg-muted/30 ${readOnly ? "lg:col-span-2" : ""}`}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
         onDrop={(e) => { e.preventDefault(); const k = e.dataTransfer.getData("application/flow") as FlowKind; if (k) add(k, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} {...(readOnly ? {} : { onNodesChange, onEdgesChange, onConnect })} onNodeClick={(_, n) => setSel(n.id)} onPaneClick={() => setSel(null)}
