@@ -64,7 +64,7 @@ Never share or ask for phone numbers, emails or social handles — all communica
 BOOKING HAND-OFF: once the client has agreed to a package and price AND you know the event date, area, timing and guest count, tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation.
-QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise.
+QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise.\nVARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}

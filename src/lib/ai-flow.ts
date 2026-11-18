@@ -1,6 +1,9 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
 export type FlowKind = "start" | "message" | "question" | "buttons" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking";
-export type FlowData = { text: string; buttons?: string[] };
+export type UrlButton = { label: string; url: string };
+export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string };
+/** Variables a step can save the client's answer into; usable later as {name} in any step. */
+export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package"];
 export type FlowNode = { id: string; type: FlowKind; position: { x: number; y: number }; data: FlowData };
 export type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
 
@@ -79,6 +82,10 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       const y = outs.find((e) => e.sourceHandle === "yes"), no = outs.find((e) => e.sourceHandle === "no");
       next = [y && `if yes go to step ${num.get(y.target)}`, no && `if no go to step ${num.get(no.target)}`].filter(Boolean).join("; ");
     } else if (outs.length) next = `then step ${outs.map((e) => num.get(e.target)).join(" or ")}`;
-    return `${num.get(x.id)}. [${kindLabel(x.type)}] ${x.data.text.trim()}${next ? ` (${next})` : ""}`;
+    const extra = [
+      x.data.urlButtons?.length && `share these links: ${x.data.urlButtons.map((u) => `${u.label}: ${u.url}`).join(", ")}`,
+      x.data.saveAs && `remember the client's answer as {${x.data.saveAs}}`,
+    ].filter(Boolean).join("; ");
+    return `${num.get(x.id)}. [${kindLabel(x.type)}] ${x.data.text.trim()}${extra ? ` (${extra})` : ""}${next ? ` (${next})` : ""}`;
   }).join("\n");
 }
