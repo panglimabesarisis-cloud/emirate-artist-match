@@ -1,9 +1,10 @@
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { submitQuote } from "@/lib/chat.functions";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { youtubeId } from "@/lib/media";
 import { getArtist, getCatalog } from "@/lib/public.functions";
 import { PublicLayout } from "@/components/site/PublicLayout";
@@ -277,41 +278,59 @@ type Media = { id: string; kind: "photo" | "video" | "youtube"; src: string; cap
 
 function MediaShowcase({ media, name }: { media: Media[]; name: string }) {
   const { t } = useI18n();
-  const photos = media.filter((m) => m.kind === "photo");
-  const videos = media.filter((m) => m.kind !== "photo");
-  const [i, setI] = useState(0);
-  if (media.length === 0) return null;
-  const go = (d: number) => setI((n) => (n + d + photos.length) % photos.length);
+  const photos = media.filter((m) => m.kind === "photo").slice(0, 10);
+  const videos = media.filter((m) => m.kind !== "photo").slice(0, 5);
+  const [open, setOpen] = useState<{ type: "photo" | "video"; i: number } | null>(null);
+  if (photos.length + videos.length === 0) return null;
+  const list = open?.type === "photo" ? photos : videos;
+  const go = (d: number) => setOpen((o) => (o ? { ...o, i: (o.i + d + list.length) % list.length } : o));
+  const cur = open ? list[open.i] : null;
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <h2 className="text-2xl font-semibold">{t("Photos & videos")}</h2>
       {photos.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl bg-muted aspect-[16/9]">
-          <div className="flex h-full transition-transform duration-500" style={{ transform: `translateX(-${i * 100}%)` }} dir="ltr">
-            {photos.map((p) => <img key={p.id} src={p.src} alt={p.caption ?? name} className="h-full w-full shrink-0 object-cover" loading="lazy" />)}
-          </div>
-          {photos.length > 1 && (
-            <>
-              <button type="button" aria-label="Previous photo" onClick={() => go(-1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronLeft className="h-5 w-5" /></button>
-              <button type="button" aria-label="Next photo" onClick={() => go(1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronRight className="h-5 w-5" /></button>
-              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
-                {photos.map((p, n) => <button key={p.id} type="button" aria-label={`Photo ${n + 1}`} onClick={() => setI(n)} className={`h-2 rounded-full transition-all ${n === i ? "w-6 bg-gold" : "w-2 bg-card/80"}`} />)}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-      {videos.length > 0 && (
-        <div className={`grid gap-4 ${videos.length > 1 ? "md:grid-cols-2" : ""}`}>
-          {videos.map((v) => (
-            <div key={v.id} className="overflow-hidden rounded-2xl bg-muted aspect-video">
-              {v.kind === "youtube"
-                ? <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${youtubeId(v.src)}`} title={v.caption ?? `${name} video`} allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" />
-                : <video className="h-full w-full" src={v.src} controls preload="metadata" />}
-            </div>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+          {photos.map((p, n) => (
+            <button key={p.id} type="button" onClick={() => setOpen({ type: "photo", i: n })} className="overflow-hidden rounded-lg bg-muted aspect-square hover:opacity-90">
+              <img src={p.src} alt={p.caption ?? name} className="h-full w-full object-cover" loading="lazy" />
+            </button>
           ))}
         </div>
       )}
+      {videos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {videos.map((v, n) => (
+            <button key={v.id} type="button" onClick={() => setOpen({ type: "video", i: n })} aria-label={`Video ${n + 1}`} className="relative overflow-hidden rounded-lg bg-muted aspect-video hover:opacity-90">
+              {v.kind === "youtube"
+                ? <img src={`https://i.ytimg.com/vi/${youtubeId(v.src)}/mqdefault.jpg`} alt={v.caption ?? `${name} video`} className="h-full w-full object-cover" loading="lazy" />
+                : <video className="h-full w-full object-cover" src={v.src} preload="metadata" muted />}
+              <span className="absolute inset-0 grid place-items-center"><span className="grid h-8 w-8 place-items-center rounded-full bg-card/85 shadow-card"><Play className="h-4 w-4" /></span></span>
+            </button>
+          ))}
+        </div>
+      )}
+      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <DialogContent className="max-w-4xl p-2 sm:p-3">
+          <DialogTitle className="sr-only">{cur?.caption ?? name}</DialogTitle>
+          {cur && (
+            <div className="relative" dir="ltr">
+              {open?.type === "photo"
+                ? <img src={cur.src} alt={cur.caption ?? name} className="max-h-[80vh] w-full rounded-lg object-contain" />
+                : <div className="aspect-video overflow-hidden rounded-lg bg-muted">
+                    {cur.kind === "youtube"
+                      ? <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${youtubeId(cur.src)}?autoplay=1`} title={cur.caption ?? `${name} video`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+                      : <video className="h-full w-full" src={cur.src} controls autoPlay />}
+                  </div>}
+              {list.length > 1 && (
+                <>
+                  <button type="button" aria-label="Previous" onClick={() => go(-1)} className="absolute left-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronLeft className="h-5 w-5" /></button>
+                  <button type="button" aria-label="Next" onClick={() => go(1)} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronRight className="h-5 w-5" /></button>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
