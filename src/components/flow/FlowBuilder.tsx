@@ -156,7 +156,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
           </div>
         )}
       </div>
-      <div className="grid lg:grid-cols-[220px_1fr_320px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] [&>*]:min-w-0">
         {!readOnly && (
           <div className="space-y-2 border-b bg-card p-3 lg:border-b-0 lg:border-e">
             <Input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} className="h-8 text-sm" />
