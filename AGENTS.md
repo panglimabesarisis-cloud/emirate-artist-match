@@ -34,3 +34,5 @@ use the editor.
 - Public artist stats come only from the `artist_public_stats()` SQL function, which computes from bookings/reviews and applies each artist's visibility settings — never store or type stat numbers.
 - Roles live in `user_roles`; signup may only self-assign artist or client, admin is granted manually.
 - Owner-protected columns (artist status/plan/featured, review rating/body) are enforced by DB triggers, not the UI.
+- The AI booking agent runs only server-side (`src/lib/agent.server.ts`); clients reach chats through a secret per-conversation link key, and every AI reply is charged via `credit_ledger` (wallet balance is maintained by a DB trigger, never written directly).
+- All chat text passes through `maskContacts` (`src/lib/masking.ts`) before storage.
