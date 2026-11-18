@@ -38,3 +38,26 @@ export const CONTRACT_TERMS = [
   "If the artist cancels, the client receives a 100% refund.",
   "Both parties follow UAE law and venue rules; content must respect local cultural norms.",
 ];
+
+/** Escrow is held this long after completion so the client can still raise a dispute. */
+export const ESCROW_HOLD_HOURS = 48;
+
+export function canDispute(status: string, escrowStatus: string) {
+  return status === "confirmed" || (status === "completed" && escrowStatus === "release_pending");
+}
+
+export type BookingDraft = { title: string; amount: number; date: string; notes: string };
+
+/** Parses the AI agent's `[BOOKING_READY {...}]` token. Returns the text without the token plus the draft (if valid). */
+export function extractDraft(text: string): { text: string; draft: BookingDraft | null } {
+  const m = text.match(/\[BOOKING_READY\s*(\{[\s\S]*?\})\s*\]/);
+  if (!m) return { text, draft: null };
+  const clean = text.replace(m[0], "").trim();
+  try {
+    const j = JSON.parse(m[1]!) as Record<string, unknown>;
+    const amount = Number(j["amount"]);
+    const date = String(j["date"] ?? "");
+    if (!(amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { text: clean, draft: null };
+    return { text: clean, draft: { title: String(j["title"] ?? "Performance").slice(0, 120), amount, date, notes: String(j["notes"] ?? "").slice(0, 1000) } };
+  } catch { return { text: clean, draft: null }; }
+}

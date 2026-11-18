@@ -9,6 +9,7 @@ import { BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -25,15 +26,17 @@ function Admin() {
       <div className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-3xl font-semibold">Admin</h1>
         <Tabs defaultValue="artists" className="mt-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="artists">Artist approvals</TabsTrigger>
             <TabsTrigger value="verify">Verification Center</TabsTrigger>
             <TabsTrigger value="reviews">Review moderation</TabsTrigger>
+            <TabsTrigger value="escrow">Escrow & disputes</TabsTrigger>
             <TabsTrigger value="catalog">Catalog</TabsTrigger>
           </TabsList>
           <TabsContent value="artists"><Artists /></TabsContent>
           <TabsContent value="verify"><VerifyQueue /></TabsContent>
           <TabsContent value="reviews"><ReviewQueue /></TabsContent>
+          <TabsContent value="escrow"><AdminEscrow /></TabsContent>
           <TabsContent value="catalog"><Catalog /></TabsContent>
         </Tabs>
       </div>

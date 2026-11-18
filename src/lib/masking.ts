@@ -10,7 +10,8 @@ const PATTERNS: RegExp[] = [
 export const MASK = "[contact hidden]";
 
 export function maskContacts(text: string): string {
-  return PATTERNS.reduce((t, re) => t.replace(re, MASK), text);
+  // ISO dates (2026-12-19) look like digit runs but are not contact details.
+  return PATTERNS.reduce((t, re) => t.replace(re, (m) => (/^\d{4}-\d{2}-\d{2}$/.test(m.trim()) ? m : MASK)), text);
 }
 
 export const AI_CREDIT_COST = 1;

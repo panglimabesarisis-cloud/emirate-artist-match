@@ -16,6 +16,7 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as CategoryIndexRouteImport } from './routes/$category.index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as ApproveIdRouteImport } from './routes/approve.$id'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
@@ -56,6 +57,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApproveIdRoute = ApproveIdRouteImport.update({
+  id: '/approve/$id',
+  path: '/approve/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArtistSlugRoute = ArtistSlugRouteImport.update({
   id: '/artist/$slug',
   path: '/artist/$slug',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/admin'
     | '/dashboard'
+    | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/admin'
     | '/dashboard'
+    | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  ApproveIdRoute: typeof ApproveIdRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
   BookingIdRoute: typeof BookingIdRoute
   ChatIdRoute: typeof ChatIdRoute
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/approve/$id': {
+      id: '/approve/$id'
+      path: '/approve/$id'
+      fullPath: '/approve/$id'
+      preLoaderRoute: typeof ApproveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/artist/$slug': {
       id: '/artist/$slug'
       path: '/artist/$slug'
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   HowItWorksRoute: HowItWorksRoute,
+  ApproveIdRoute: ApproveIdRoute,
   ArtistSlugRoute: ArtistSlugRoute,
   BookingIdRoute: BookingIdRoute,
   ChatIdRoute: ChatIdRoute,

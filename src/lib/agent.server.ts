@@ -1,5 +1,8 @@
 import { generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getRequest } from "@tanstack/react-start/server";
+import { extractDraft, priceBreakdown } from "./booking-rules";
+import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-6-astra" as const;
@@ -51,6 +54,9 @@ ${packages || "- No packages set. Do not quote a price; say the artist will conf
 - Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
 AVAILABILITY: unavailable on ${(blocked ?? []).map((b) => b.date).join(", ") || "no blocked dates"}. Never confirm a booking yourself; say the artist will send a formal confirmation.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
+BOOKING HAND-OFF: once the client has agreed to a package and price AND you know the event date, area, timing and guest count, tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
+[BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
+Use this token only once per conversation.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `Artist notes: ${settings.extra_instructions}` : ""}
 Original request: ${JSON.stringify(quote ?? {})}`;
@@ -66,15 +72,39 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       if (item.type === "message") for (const c of item.content) if (c.type === "output_text") text += c.text;
     }
     text = text.trim();
+    const ex = extractDraft(text);
+    text = ex.text;
     const wantsHandover = text.includes("[HANDOVER]");
     text = maskContacts(text.replace("[HANDOVER]", "").replace(/\*\*|__|^#+\s/gm, "").trim());
     if (!text) return;
     await addMessage(conversationId, "ai", text);
     await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
+    if (ex.draft) await createDraft(convo.id, convo.artist_id, ex.draft, floor, (blocked ?? []).map((b) => b.date));
     if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
   } catch (e) {
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
     await handover(`${artist.stage_name} will reply to you personally shortly.`);
   }
+}
+
+/** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
+async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, blocked: string[]) {
+  const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
+  if ((count ?? 0) > 0 || blocked.includes(d.date)) return;
+  const amount = Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
+  const { data: convo } = await supabaseAdmin.from("conversations").select("quote_requests(name, email, phone, event_type_id, guests)").eq("id", conversationId).single();
+  const q = convo?.quote_requests;
+  const p = priceBreakdown(amount);
+  const { data: b } = await supabaseAdmin.from("bookings").insert({
+    artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? "Client", client_email: q?.email ?? null, client_phone: q?.phone ?? null,
+    event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title, notes: maskContacts(d.notes) || null,
+    amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai",
+  }).select("id, artist_key").single();
+  if (!b) return;
+  await addMessage(conversationId, "system", "Your booking details were sent to the artist for approval. You'll get a payment link here, by email and WhatsApp once approved.");
+  const c = await artistContact(artistId);
+  const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
+  await notifyBooking(b.id, "artist", "approval_request", c, `New booking to approve: ${d.title} on ${d.date}`,
+    `Client: ${q?.name ?? "Client"}\nPrice: AED ${p.subtotal.toLocaleString("en-US")} + VAT\n${d.notes}\n\nApprove or edit: ${link}`);
 }

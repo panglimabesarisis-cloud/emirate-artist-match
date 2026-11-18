@@ -14,3 +14,19 @@ describe("booking rules", () => {
     expect(canComplete("quoted", "2026-11-10", now)).toBe(false);
   });
 });
+
+import { canDispute, extractDraft } from "./booking-rules";
+describe("disputes and AI drafts", () => {
+  it("disputes allowed while paid or during the 48h hold", () => {
+    expect(canDispute("confirmed", "held")).toBe(true);
+    expect(canDispute("completed", "release_pending")).toBe(true);
+    expect(canDispute("completed", "released")).toBe(false);
+    expect(canDispute("quoted", "none")).toBe(false);
+  });
+  it("parses the AI booking-ready token", () => {
+    const r = extractDraft('Great, sending to the artist. [BOOKING_READY {"title":"Gold set","amount":2500,"date":"2026-12-20","notes":"JBR villa, 80 guests"}]');
+    expect(r.text).toBe("Great, sending to the artist.");
+    expect(r.draft).toEqual({ title: "Gold set", amount: 2500, date: "2026-12-20", notes: "JBR villa, 80 guests" });
+  });
+  it("ignores an invalid draft", () => expect(extractDraft('ok [BOOKING_READY {"amount":0}]').draft).toBeNull());
+});

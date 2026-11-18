@@ -121,6 +121,7 @@ export type Database = {
           id: string
           is_seed: boolean
           languages: string[] | null
+          notify_phone: string | null
           plan: string
           response_rate: number | null
           slug: string
@@ -145,6 +146,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           languages?: string[] | null
+          notify_phone?: string | null
           plan?: string
           response_rate?: number | null
           slug: string
@@ -169,6 +171,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           languages?: string[] | null
+          notify_phone?: string | null
           plan?: string
           response_rate?: number | null
           slug?: string
@@ -245,19 +248,23 @@ export type Database = {
           access_key: string
           amount: number
           artist_id: string
+          artist_key: string
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           client_email: string | null
           client_name: string
+          client_phone: string | null
           client_user_id: string | null
           completed_at: string | null
           contract_accepted_at: string | null
           conversation_id: string | null
           created_at: string
+          drafted_by: string
           escrow_status: string
           event_date: string
           event_type_id: string | null
+          guests: number | null
           id: string
           invoice_no: string | null
           is_seed: boolean
@@ -266,6 +273,7 @@ export type Database = {
           paid_amount: number
           paid_at: string | null
           refund_amount: number
+          revision_note: string | null
           status: string
           total: number
           vat_amount: number
@@ -274,19 +282,23 @@ export type Database = {
           access_key?: string
           amount: number
           artist_id: string
+          artist_key?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_email?: string | null
           client_name: string
+          client_phone?: string | null
           client_user_id?: string | null
           completed_at?: string | null
           contract_accepted_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          drafted_by?: string
           escrow_status?: string
           event_date: string
           event_type_id?: string | null
+          guests?: number | null
           id?: string
           invoice_no?: string | null
           is_seed?: boolean
@@ -295,6 +307,7 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          revision_note?: string | null
           status?: string
           total?: number
           vat_amount?: number
@@ -303,19 +316,23 @@ export type Database = {
           access_key?: string
           amount?: number
           artist_id?: string
+          artist_key?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_email?: string | null
           client_name?: string
+          client_phone?: string | null
           client_user_id?: string | null
           completed_at?: string | null
           contract_accepted_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          drafted_by?: string
           escrow_status?: string
           event_date?: string
           event_type_id?: string | null
+          guests?: number | null
           id?: string
           invoice_no?: string | null
           is_seed?: boolean
@@ -324,6 +341,7 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          revision_note?: string | null
           status?: string
           total?: number
           vat_amount?: number
@@ -491,6 +509,53 @@ export type Database = {
           },
         ]
       }
+      disputes: {
+        Row: {
+          admin_note: string | null
+          booking_id: string
+          created_at: string
+          id: string
+          opened_by: string
+          reason: string
+          refund_amount: number
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          booking_id: string
+          created_at?: string
+          id?: string
+          opened_by: string
+          reason: string
+          refund_amount?: number
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          booking_id?: string
+          created_at?: string
+          id?: string
+          opened_by?: string
+          reason?: string
+          refund_amount?: number
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emirates: {
         Row: {
           id: string
@@ -564,6 +629,50 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          audience: string
+          booking_id: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          recipient: string | null
+          status: string
+        }
+        Insert: {
+          audience: string
+          booking_id?: string | null
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          recipient?: string | null
+          status?: string
+        }
+        Update: {
+          audience?: string
+          booking_id?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          recipient?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -910,6 +1019,7 @@ export type Database = {
       }
       next_invoice_no: { Args: never; Returns: string }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
+      release_due_escrow: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"

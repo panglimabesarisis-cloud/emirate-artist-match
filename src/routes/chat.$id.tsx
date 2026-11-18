@@ -57,7 +57,9 @@ function ChatPage() {
         <div className="text-sm text-muted-foreground">Save this page's link to come back to your conversation.</div>
         {offers && offers.length > 0 && (
           <div className="mt-4 space-y-2">
-            {offers.map((o) => (
+            {offers.map((o) => o.status === "inquiry" ? (
+              <div key={o.id} className="rounded-xl border bg-card p-4 shadow-card"><div className="font-semibold">Booking details · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · waiting for the artist to approve</div></div>
+            ) : (
               <Link key={o.id} to="/booking/$id" params={{ id: o.id }} search={{ k: o.access_key }} className="flex items-center justify-between rounded-xl border border-gold/40 bg-card p-4 shadow-card hover:border-gold">
                 <div><div className="font-semibold">Booking offer · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · {aed(Number(o.total))} incl. VAT</div></div>
                 <span className="text-xs font-medium uppercase tracking-wide text-gold">{o.status === "quoted" ? "Review & pay" : o.status}</span>

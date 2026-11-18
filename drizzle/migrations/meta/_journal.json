@@ -36,6 +36,13 @@
       "when": 1795016741835,
       "tag": "0004_booking_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795017284972,
+      "tag": "0005_approvals_disputes_notifications",
+      "breakpoints": true
     }
   ]
 }

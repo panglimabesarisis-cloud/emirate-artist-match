@@ -4,8 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Printer, ShieldCheck, Star } from "lucide-react";
-import { getBooking, acceptAndPay, cancelBookingAsClient, submitBookingReview } from "@/lib/bookings.functions";
-import { CONTRACT_TERMS, refundAmount } from "@/lib/booking-rules";
+import { getBooking, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
+import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ export const Route = createFileRoute("/booking/$id")({
   component: BookingPage,
 });
 
-const STATUS: Record<string, string> = { quoted: "Awaiting your payment", confirmed: "Confirmed · funds in escrow", completed: "Completed", cancelled: "Cancelled" };
-const ESCROW: Record<string, string> = { none: "Not paid", held: "Held in escrow", released: "Released to artist", refunded: "Refunded", partially_refunded: "Partially refunded" };
+const STATUS: Record<string, string> = { inquiry: "Waiting for artist approval", disputed: "Under review by Dealmaker", quoted: "Awaiting your payment", confirmed: "Confirmed · funds in escrow", completed: "Completed", cancelled: "Cancelled" };
+const ESCROW: Record<string, string> = { none: "Not paid", held: "Held in escrow", released: "Released to artist", release_pending: "Held 48h after the event, then released", frozen: "Frozen during dispute review", refunded: "Refunded", partially_refunded: "Partially refunded" };
 
 function BookingPage() {
   const { id } = Route.useParams();
@@ -35,6 +35,8 @@ function BookingPage() {
   const [busy, setBusy] = useState(false);
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
+  const dispute$ = useServerFn(openDisputeAsClient);
+  const [problem, setProblem] = useState("");
   const { data: b, error } = useQuery({ queryKey: ["booking", id], queryFn: () => get$({ data: { id, key: k } }), retry: false });
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
@@ -92,6 +94,7 @@ function BookingPage() {
           <h2 className="font-semibold">Booking contract</h2>
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>
           {b.contract_accepted_at && <p className="mt-3 text-xs text-muted-foreground">Accepted {new Date(b.contract_accepted_at).toLocaleString("en-GB")}</p>}
+          {b.status === "inquiry" && <p className="mt-4 text-sm text-muted-foreground">The artist is reviewing these details. You can pay once they approve.</p>}
           {b.status === "quoted" && (
             <div className="mt-5 space-y-4">
               <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} /> I accept the contract terms above.</label>
@@ -103,7 +106,23 @@ function BookingPage() {
           )}
         </section>
 
-        {(b.status === "quoted" || b.status === "confirmed") && (
+        {canDispute(b.status, b.escrow_status) && (
+          <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
+            <h2 className="font-semibold">Report a problem</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Funds stay frozen in escrow while Dealmaker reviews your case.</p>
+            <Textarea className="mt-3" rows={3} maxLength={1500} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="What went wrong?" />
+            <Button variant="outline" className="mt-3" disabled={busy || problem.trim().length < 10} onClick={() => run(() => dispute$({ data: { id, key: k, reason: problem } }), "Dispute opened — our team will review it")}>Open dispute</Button>
+          </section>
+        )}
+        {b.disputes?.map((d) => (
+          <section key={d.id} className="rounded-2xl bg-card p-6 shadow-card print:hidden">
+            <h2 className="font-semibold">Dispute · {d.status === "open" ? "under review" : "resolved"}</h2>
+            <p className="mt-1 text-sm" dir="auto">{d.reason}</p>
+            {d.resolution && <p className="mt-2 text-sm text-muted-foreground">Decision: {d.resolution === "release_to_artist" ? "payment released to the artist" : d.resolution === "refund_full" ? "full refund" : "partial refund"}</p>}
+          </section>
+        ))}
+
+        {(b.status === "inquiry" || b.status === "quoted" || b.status === "confirmed") && (
           <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
             <h2 className="font-semibold">Cancel booking</h2>
             <p className="mt-1 text-sm text-muted-foreground">

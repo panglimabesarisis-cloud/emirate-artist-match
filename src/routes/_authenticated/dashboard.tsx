@@ -98,7 +98,7 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
-        <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} /></TabsContent>
+        <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} /></TabsContent>
         <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
         <TabsContent value="credits"><Credits artistId={artist.id} /></TabsContent>
         <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>

@@ -4,3 +4,6 @@
 - [x] Phase 3: booking lifecycle, VAT invoices, contracts, demo payments/escrow, cancellations, verified reviews from bookings, Top Performer automation
 - [ ] Phase 4–5: WhatsApp, Google Calendar, disputes, team members, Arabic RTL, data export
 - [x] Brand name: Dealmaker
+- [x] Phase 3b: AI-drafted booking → artist approval page (approve / revise) before client pays
+- [ ] Phase 3b: Email + WhatsApp delivery — built and logged; waits on user: email sender domain + WhatsApp Business connection
+- [x] Phase 3b: Admin escrow monitor & dispute handling
