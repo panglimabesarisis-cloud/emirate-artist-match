@@ -55,8 +55,9 @@ export const submitQuote = createServerFn({ method: "POST" })
     const { data: pk } = data.packageIds?.length
       ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
       : { data: [] };
+    const { data: area } = data.areaId ? await supabaseAdmin.from("areas").select("name").eq("id", data.areaId).maybeSingle() : { data: null };
     const summary = formatBookingMessage({
-      name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
+      venue: area?.name ?? null, name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
       performMinutes: data.performMinutes ?? null, guests: data.guests, budget: data.budget,
       packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
     });

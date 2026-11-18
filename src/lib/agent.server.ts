@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
+import { formatBookingConfirm } from "./booking-message";
 import { flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
@@ -26,7 +27,7 @@ export async function runAgent(conversationId: string) {
       supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", convo.artist_id).order("sort"),
       supabaseAdmin.from("availability").select("date").eq("artist_id", convo.artist_id).gte("date", new Date().toISOString().slice(0, 10)),
       convo.quote_request_id
-        ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
+        ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),
       supabaseAdmin.from("messages").select("sender, body").eq("conversation_id", conversationId).order("created_at").limit(40),
     ]);
@@ -51,6 +52,14 @@ export async function runAgent(conversationId: string) {
   const packages = (rates ?? []).map((r) => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} (${r.duration_minutes} min) — ${r.description ?? ""}`).join("\n");
   const floor = Math.min(...(rates ?? []).map((r) => Number(r.price)), Number(artist.base_price)) * (1 - maxDiscount / 100);
 
+  const confirm = quote ? formatBookingConfirm({ name: quote.name, artistName: artist.stage_name, eventDate: quote.event_date, venue: quote.areas?.name ?? null,
+    startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;
+  const aiCount = (history ?? []).filter((m) => m.sender === "ai").length;
+  // First reply is a fixed confirmation of the booking details; no AI call needed.
+  if (confirm && aiCount === 0) {
+    await addMessage(conversationId, "ai", maskContacts(confirm));
+    return;
+  }
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: collect missing event details (date, venue area, guest count, timing, event type), recommend a package and quote a price.
@@ -68,6 +77,7 @@ QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token 
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
+BOOKING CONFIRMATION: your first message already showed the client their booking details and asked "This is your booking? Have any request?". If the client's next message confirms with no extra request (e.g. "No", "Yes", "Correct"), reply exactly: "Okay, please wait, I will check the schedule for you." then continue with the flow on later turns. If they ask for changes, acknowledge them first.
 CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
 ${flowSteps}
 Original request: ${JSON.stringify(quote ?? {})}`;

@@ -1,6 +1,6 @@
 /** Formats the first "Book Artist" chat message sent on behalf of the client. */
 export type BookingMessageInput = {
-  name: string; artistName: string; eventDate: string | null; startTime: string | null; endTime: string | null;
+  name: string; artistName: string; eventDate: string | null; venue?: string | null; startTime: string | null; endTime: string | null;
   performMinutes: number | null; guests: number | null; budget: number | null;
   packages: { title: string; price: number }[]; note: string | null;
 };
@@ -13,17 +13,26 @@ export function formatEventDate(iso: string): string {
   return `${d} ${MONTHS[(m ?? 1) - 1]} ${y}`;
 }
 
-export function formatBookingMessage(i: BookingMessageInput): string {
-  const details = [
+function detailLines(i: Omit<BookingMessageInput, "name" | "packages" | "note">): string[] {
+  return [
     `Artist: ${i.artistName}`,
     i.eventDate && `Event Date: ${formatEventDate(i.eventDate)}`,
+    i.venue && `Venue Event: ${i.venue}`,
     (i.startTime || i.endTime) && `Time: ${i.startTime ?? "?"} - ${i.endTime ?? "?"}`,
     i.performMinutes && `Performance Duration: ${i.performMinutes} Minutes`,
     i.guests && `Guest : ${num(i.guests)} People`,
     i.budget && `Budget: AED ${num(i.budget)}`,
-  ].filter(Boolean);
-  const parts = [`Hi i'm ${i.name}\nwant to book :`, details.join("\n")];
+  ].filter(Boolean) as string[];
+}
+
+export function formatBookingMessage(i: BookingMessageInput): string {
+  const parts = [`Hi i'm ${i.name}\nwant to book :`, detailLines(i).join("\n")];
   if (i.packages.length) parts.push(`Packages: ${i.packages.map((p) => p.title).join(", ")}\n${num(i.packages.reduce((s, p) => s + p.price, 0))}`);
   if (i.note) parts.push(i.note);
   return parts.join("\n---\n") + "\n---\nPlease Check Schedule";
+}
+
+/** The AI's first reply: repeats the booking back to the client for confirmation. */
+export function formatBookingConfirm(i: Omit<BookingMessageInput, "packages" | "note">): string {
+  return `Hi ${i.name}\n---\n${detailLines(i).join("\n")}\n---\nThis is your booking?\nHave any request?`;
 }
