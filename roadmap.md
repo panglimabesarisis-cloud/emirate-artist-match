@@ -26,3 +26,4 @@
 - [ ] Subscription cancellation: retain paid benefits until period end, then return to Free; connect after AED checkout is available.
 - [ ] Subscription upgrades: immediate, prorated; downgrades: next renewal — connect after AED checkout is available.
 - [x] Tested pure settlement and subscription benefit predicates; not yet connected to payment processing.
+- [x] Demo payment mode: booking escrow + artist plan switch (simulated, no real money) while live checkout waits on AED

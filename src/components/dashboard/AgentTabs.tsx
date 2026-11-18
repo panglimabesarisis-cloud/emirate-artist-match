@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bot, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { artistReply, testAgent, topUpCredits } from "@/lib/chat.functions";
+import { artistReply, testAgent, topUpCredits, subscribePlanDemo } from "@/lib/chat.functions";
 import { TOPUP_PACKAGES } from "@/lib/masking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,6 +163,7 @@ export function Credits({ artistId }: { artistId: string }) {
   const labels: Record<string, string> = { plan_allocation: "Plan credits", ai_reply: "AI reply", topup_demo: "Top-up (demo)" };
   return (
     <div className="mt-6 space-y-8">
+      <DemoPlans artistId={artistId} />
       <div className="rounded-2xl bg-night text-night-foreground p-6 flex items-center justify-between">
         <div>
           <div className="text-sm opacity-75">AI credit balance</div>
@@ -194,5 +195,53 @@ export function Credits({ artistId }: { artistId: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function DemoPlans({ artistId }: { artistId: string }) {
+  const qc = useQueryClient();
+  const sub$ = useServerFn(subscribePlanDemo);
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [busy, setBusy] = useState<string | null>(null);
+  const { data } = useQuery({
+    queryKey: ["demo-plans", artistId],
+    queryFn: async () => {
+      const [t, a] = await Promise.all([
+        supabase.from("plan_tiers").select("*").order("sort"),
+        supabase.from("artists").select("plan").eq("id", artistId).maybeSingle(),
+      ]);
+      return { tiers: t.data ?? [], plan: a.data?.plan as string | undefined };
+    },
+  });
+  const pick = async (code: string) => {
+    setBusy(code);
+    try { const r = await sub$({ data: { code, cycle } }); toast.success(`Now on ${r.name} (demo payment)`); qc.invalidateQueries(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } finally { setBusy(null); }
+  };
+  return (
+    <section className="rounded-2xl bg-card p-6 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 className="font-semibold">Your plan</h2><p className="text-xs text-muted-foreground">DEMO MODE · no real money is charged.</p></div>
+        <div className="flex gap-1 rounded-full bg-muted p-1 text-sm">
+          {(["monthly", "yearly"] as const).map((c) => <button key={c} onClick={() => setCycle(c)} className={`rounded-full px-3 py-1 ${cycle === c ? "bg-background shadow-sm" : ""}`}>{c === "monthly" ? "Monthly" : "Yearly"}</button>)}
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {data?.tiers.map((t) => {
+          const current = data.plan === t.code;
+          const price = cycle === "yearly" ? t.price_yearly : t.price_monthly;
+          return (
+            <div key={t.code} className={`rounded-xl border p-4 ${current ? "border-primary" : ""}`}>
+              <div className="font-medium">{t.name}</div>
+              <div className="mt-1 text-2xl font-semibold">AED {Number(price).toLocaleString("en-US")}<span className="text-xs font-normal text-muted-foreground">/{cycle === "yearly" ? "yr" : "mo"}</span></div>
+              <div className="mt-1 text-xs text-muted-foreground">{t.ai_credits} AI credits · {t.commission_pct}% fee</div>
+              <Button size="sm" className="mt-3 w-full" variant={current ? "outline" : "default"} disabled={current || busy !== null} onClick={() => pick(t.code)}>
+                {current ? "Current plan" : busy === t.code ? "Processing…" : `Pay (demo) & switch`}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
