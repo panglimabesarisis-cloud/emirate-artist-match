@@ -42,3 +42,4 @@ use the editor.
 - Calendar feeds are served from `/api/public/calendar/<token>.ics`; the token lives in owner-only `artist_calendar` because `artists` rows are publicly readable.
 - UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
 - CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.
+- Artist photos/videos live in the private `artist-media` bucket (public buckets are blocked by workspace policy); public pages show them via short-lived signed URLs created in `getArtist`.

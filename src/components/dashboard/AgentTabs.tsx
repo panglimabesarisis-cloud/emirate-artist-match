@@ -91,13 +91,13 @@ export function AgentSettings({ artistId }: { artistId: string }) {
   const test$ = useServerFn(testAgent);
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["agent", artistId], queryFn: async () => (await supabase.from("agent_settings").select("*").eq("artist_id", artistId).maybeSingle()).data });
-  const [v, setV] = useState({ enabled: true, tone: "warm and professional", max_discount_pct: 10, extra_instructions: "" });
-  useEffect(() => { if (data) setV({ enabled: data.enabled, tone: data.tone, max_discount_pct: data.max_discount_pct, extra_instructions: data.extra_instructions ?? "" }); }, [data]);
+  const [v, setV] = useState({ enabled: true, tone: "warm and professional", max_discount_pct: 10, extra_instructions: "", knowledge: "" });
+  useEffect(() => { if (data) setV({ enabled: data.enabled, tone: data.tone, max_discount_pct: data.max_discount_pct, extra_instructions: data.extra_instructions ?? "", knowledge: data.knowledge ?? "" }); }, [data]);
   const [msg, setMsg] = useState("");
   const [chat, setChat] = useState<{ id: string; sender: string; body: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const save = async () => {
-    const { error } = await supabase.from("agent_settings").upsert({ artist_id: artistId, ...v, extra_instructions: v.extra_instructions || null, updated_at: new Date().toISOString() });
+    const { error } = await supabase.from("agent_settings").upsert({ artist_id: artistId, ...v, extra_instructions: v.extra_instructions || null, knowledge: v.knowledge || null, updated_at: new Date().toISOString() });
     if (error) { toast.error(error.message); return; }
     toast.success("AI agent settings saved");
   };
@@ -116,7 +116,8 @@ export function AgentSettings({ artistId }: { artistId: string }) {
         </div>
         <div><Label>Tone of voice</Label><Input value={v.tone} maxLength={80} onChange={(e) => setV({ ...v, tone: e.target.value })} /></div>
         <div><Label>Maximum discount the AI may offer (%)</Label><Input type="number" min={0} max={30} value={v.max_discount_pct} onChange={(e) => setV({ ...v, max_discount_pct: Math.min(30, Math.max(0, Number(e.target.value))) })} /></div>
-        <div><Label>Extra notes for your assistant</Label><Textarea rows={4} maxLength={1500} value={v.extra_instructions} onChange={(e) => setV({ ...v, extra_instructions: e.target.value })} placeholder="e.g. I need a 30-min sound check. No performances after 1am." /></div>
+        <div><Label>Reply instructions</Label><p className="text-xs text-muted-foreground">How the assistant should reply: rules, style, what to ask.</p><Textarea rows={4} maxLength={1500} value={v.extra_instructions} onChange={(e) => setV({ ...v, extra_instructions: e.target.value })} placeholder="e.g. I need a 30-min sound check. No performances after 1am." /></div>
+        <div><Label>AI knowledge</Label><p className="text-xs text-muted-foreground">Facts the assistant can use: FAQ, equipment, set list, travel, rider, cancellation terms.</p><Textarea rows={8} maxLength={8000} value={v.knowledge} onChange={(e) => setV({ ...v, knowledge: e.target.value })} placeholder={"Q: Do you bring your own sound system?\nA: Yes, for up to 200 guests.\n\nSet list: Arabic pop, Khaleeji, international hits…"} /><div className="text-end text-[11px] text-muted-foreground">{v.knowledge.length}/8000</div></div>
         <Button onClick={save}>Save settings</Button>
         <p className="text-xs text-muted-foreground">The AI only quotes your package prices and never confirms a booking on its own.</p>
       </div>

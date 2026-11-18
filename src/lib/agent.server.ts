@@ -58,7 +58,8 @@ BOOKING HAND-OFF: once the client has agreed to a package and price AND you know
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
-${settings?.extra_instructions ? `Artist notes: ${settings.extra_instructions}` : ""}
+${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
+${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
 Original request: ${JSON.stringify(quote ?? {})}`;
 
   const input = (history ?? [])

@@ -4,6 +4,7 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Book Artist": "احجز الفنان", "Photos & videos": "الصور والفيديو", "Estimated total (excl. VAT)": "الإجمالي التقديري (بدون الضريبة)",
   "Job Detail": "تفاصيل العمل", Start: "البداية", End: "النهاية", Duration: "المدة", "Budget (AED)": "الميزانية (درهم)", "Please enter your budget.": "يرجى إدخال ميزانيتك.",
   Performance: "الأداء", Punctuality: "الالتزام بالمواعيد", Communication: "التواصل",
   "Also ask up to 2 similar artists": "اطلب أيضًا من فنانَين مشابهين كحد أقصى", "Your quote requests were sent": "تم إرسال طلبات عرض السعر",

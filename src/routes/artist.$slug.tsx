@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { submitQuote } from "@/lib/chat.functions";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock } from "lucide-react";
+import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { youtubeId } from "@/lib/media";
 import { getArtist, getCatalog } from "@/lib/public.functions";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
@@ -83,19 +84,7 @@ function ArtistPage() {
             <h2 className="text-2xl font-semibold">{t("About")}</h2>
             <p className="mt-3 text-muted-foreground leading-relaxed">{a.bio}</p>
           </section>
-          <section>
-            <h2 className="text-2xl font-semibold">{t("Packages")}</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {a.rateCards.map((r) => (
-                <div key={r.id} className="rounded-2xl border bg-card p-5">
-                  <div className="font-semibold">{r.title}</div>
-                  <div className="font-display text-2xl mt-2">{aed(Number(r.price))}</div>
-                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {r.duration_minutes} {t("min")}</div>
-                  <p className="text-sm text-muted-foreground mt-3">{r.description}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <MediaShowcase media={a.media} name={a.stage_name} />
           <section>
             <h2 className="text-2xl font-semibold">{t("Reviews")} <span className="text-muted-foreground text-lg">({s.review_count})</span></h2>
             <div className="mt-4 space-y-4">
@@ -139,7 +128,7 @@ function ArtistPage() {
               <p className="mt-3 text-[11px] text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
             </section>
           )}
-          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} />
+          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} packages={a.rateCards} />
         </div>
       </div>
     </PublicLayout>
@@ -149,13 +138,16 @@ function ArtistPage() {
 type Similar = { id: string; slug: string; stage_name: string; base_price: number; rating: number | null };
 type Sent = { name: string; conversationId: string; key: string };
 
-function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar }: {
+function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar, packages }: {
   artistId: string; artistName: string; basePrice: number; blocked: string[]; similar: Similar[];
+  packages: { id: string; title: string; description: string | null; price: number; duration_minutes: number | null }[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "", start: "", end: "", duration: "" });
   const [sending, setSending] = useState(false);
   const [extra, setExtra] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const pickedPkgs = packages.filter((p) => picked.includes(p.id));
   const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
   const navigate = useNavigate();
@@ -172,7 +164,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: f.message || null,
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: [pickedPkgs.length ? `Selected packages: ${pickedPkgs.map((p) => `${p.title} (AED ${Number(p.price).toLocaleString("en-US")})`).join(", ")}.` : "", f.message].filter(Boolean).join(" ") || null,
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });
@@ -209,6 +201,24 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
+          {packages.length > 0 && (
+            <div className="space-y-2">
+              <div className="font-semibold">{t("Packages")}</div>
+              {packages.map((p) => {
+                const on = picked.includes(p.id);
+                return (
+                  <label key={p.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${on ? "border-gold bg-gold/10" : "hover:border-gold/50"}`}>
+                    <input type="checkbox" className="mt-1 accent-gold" checked={on} onChange={(e) => setPicked(e.target.checked ? [...picked, p.id] : picked.filter((x) => x !== p.id))} />
+                    <span className="flex-1">
+                      <span className="flex justify-between gap-2 text-sm font-semibold"><span>{p.title}</span><span dir="ltr">{aed(Number(p.price))}</span></span>
+                      <span className="block text-xs text-muted-foreground"><Clock className="me-1 inline h-3 w-3" />{p.duration_minutes} {t("min")}{p.description ? ` · ${p.description}` : ""}</span>
+                    </span>
+                  </label>
+                );
+              })}
+              {pickedPkgs.length > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("Estimated total (excl. VAT)")}</span><b dir="ltr">{aed(pickedPkgs.reduce((n, p) => n + Number(p.price), 0))}</b></div>}
+            </div>
+          )}
           <div className="font-semibold">{t("Job Detail")}</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
             <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
@@ -246,7 +256,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar 
             </div>
           )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
-            {sending ? t("Assistant is replying…") : t("Get my free quote")}
+            {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
@@ -261,4 +271,47 @@ function autoDuration(start: string, end: string) {
   let d = m(end) - m(start);
   if (d <= 0) d += 1440;
   return String(d);
+}
+
+type Media = { id: string; kind: "photo" | "video" | "youtube"; src: string; caption: string | null };
+
+function MediaShowcase({ media, name }: { media: Media[]; name: string }) {
+  const { t } = useI18n();
+  const photos = media.filter((m) => m.kind === "photo");
+  const videos = media.filter((m) => m.kind !== "photo");
+  const [i, setI] = useState(0);
+  if (media.length === 0) return null;
+  const go = (d: number) => setI((n) => (n + d + photos.length) % photos.length);
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-semibold">{t("Photos & videos")}</h2>
+      {photos.length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl bg-muted aspect-[16/9]">
+          <div className="flex h-full transition-transform duration-500" style={{ transform: `translateX(-${i * 100}%)` }} dir="ltr">
+            {photos.map((p) => <img key={p.id} src={p.src} alt={p.caption ?? name} className="h-full w-full shrink-0 object-cover" loading="lazy" />)}
+          </div>
+          {photos.length > 1 && (
+            <>
+              <button type="button" aria-label="Previous photo" onClick={() => go(-1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" aria-label="Next photo" onClick={() => go(1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronRight className="h-5 w-5" /></button>
+              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
+                {photos.map((p, n) => <button key={p.id} type="button" aria-label={`Photo ${n + 1}`} onClick={() => setI(n)} className={`h-2 rounded-full transition-all ${n === i ? "w-6 bg-gold" : "w-2 bg-card/80"}`} />)}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {videos.length > 0 && (
+        <div className={`grid gap-4 ${videos.length > 1 ? "md:grid-cols-2" : ""}`}>
+          {videos.map((v) => (
+            <div key={v.id} className="overflow-hidden rounded-2xl bg-muted aspect-video">
+              {v.kind === "youtube"
+                ? <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${youtubeId(v.src)}`} title={v.caption ?? `${name} video`} allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" />
+                : <video className="h-full w-full" src={v.src} controls preload="metadata" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }

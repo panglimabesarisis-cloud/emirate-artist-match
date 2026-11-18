@@ -154,7 +154,7 @@ export const getArtist = createServerFn({ method: "GET" })
       .map((c) => ({ id: c.id, slug: c.slug, stage_name: c.stage_name, base_price: c.base_price, rating: c.stats.rating }));
     const { publicClient } = await import("./public-client.server");
     const sb = publicClient();
-    const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }] = await Promise.all([
+    const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }] = await Promise.all([
       sb.from("artists").select("bio, travel_radius_km").eq("id", card.id).single(),
       sb.from("rate_cards").select("id, title, description, price, duration_minutes").eq("artist_id", card.id).order("sort"),
       sb
@@ -164,7 +164,14 @@ export const getArtist = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(20),
       sb.from("availability").select("date").eq("artist_id", card.id).gte("date", new Date().toISOString().slice(0, 10)),
+      sb.from("artist_media").select("id, kind, url, storage_path, caption").eq("artist_id", card.id).order("sort").order("created_at"),
     ]);
+    const paths = (mediaRows ?? []).filter((m) => m.storage_path).map((m) => m.storage_path!);
+    const signed = paths.length ? (await sb.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
+    const media = (mediaRows ?? []).map((m) => ({
+      id: m.id, kind: m.kind as "photo" | "video" | "youtube", caption: m.caption,
+      src: m.storage_path ? signed.find((x) => x.path === m.storage_path)?.signedUrl ?? "" : m.url,
+    })).filter((m) => m.src);
     return {
       ...card,
       bio: full?.bio ?? null,
@@ -173,5 +180,6 @@ export const getArtist = createServerFn({ method: "GET" })
       reviews: reviews ?? [],
       blockedDates: (blocked ?? []).map((b) => b.date),
       similar,
+      media,
     };
   });

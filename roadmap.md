@@ -16,3 +16,6 @@
 - [x] Private client ratings (visible to artists/teams only)
 - [x] Arabic for chat page and dashboard tabs (inner dashboard forms still English)
 - [ ] Follow-up reminder emails — waits on email sender domain
+- [x] Artist media: photo slider, videos, YouTube links + upload page
+- [x] Packages as sidebar checkboxes, "Book Artist" opens full-width AI chat
+- [x] AI reply instructions + AI knowledge in artist dashboard

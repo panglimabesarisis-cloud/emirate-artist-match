@@ -1,0 +1,92 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Trash2, Image as ImageIcon, Film, Youtube } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { youtubeId } from "@/lib/media";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const BUCKET = "artist-media";
+
+export function MediaTab({ artistId }: { artistId: string }) {
+  const qc = useQueryClient();
+  const key = ["artist-media", artistId];
+  const { data: items } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const rows = (await supabase.from("artist_media").select("id, kind, url, storage_path, caption, sort").eq("artist_id", artistId).order("sort").order("created_at")).data ?? [];
+      const paths = rows.filter((r) => r.storage_path).map((r) => r.storage_path!);
+      const signed = paths.length ? (await supabase.storage.from(BUCKET).createSignedUrls(paths, 3600)).data ?? [] : [];
+      return rows.map((r) => ({ ...r, src: r.storage_path ? signed.find((s) => s.path === r.storage_path)?.signedUrl ?? "" : r.url }));
+    },
+  });
+  const [busy, setBusy] = useState(false);
+  const [yt, setYt] = useState("");
+
+  const upload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setBusy(true);
+    try {
+      for (const file of Array.from(files)) {
+        const kind = file.type.startsWith("image/") ? "photo" : file.type.startsWith("video/") ? "video" : null;
+        if (!kind) { toast.error(`${file.name}: only photos or videos`); continue; }
+        if (file.size > 50 * 1024 * 1024) { toast.error(`${file.name}: max 50 MB`); continue; }
+        const path = `${artistId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, "_")}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+        if (error) { toast.error(`${file.name}: upload failed`); continue; }
+        await supabase.from("artist_media").insert({ artist_id: artistId, kind, url: path, storage_path: path, sort: (items?.length ?? 0) + 1 });
+      }
+      toast.success("Media uploaded");
+      qc.invalidateQueries({ queryKey: key });
+    } finally { setBusy(false); }
+  };
+
+  const addYoutube = async () => {
+    const id = youtubeId(yt);
+    if (!id) { toast.error("Paste a valid YouTube link"); return; }
+    const { error } = await supabase.from("artist_media").insert({ artist_id: artistId, kind: "youtube", url: `https://www.youtube.com/watch?v=${id}`, sort: (items?.length ?? 0) + 1 });
+    if (error) { toast.error("Could not add video"); return; }
+    setYt(""); toast.success("YouTube video added"); qc.invalidateQueries({ queryKey: key });
+  };
+
+  const remove = async (m: { id: string; storage_path: string | null }) => {
+    if (!confirm("Remove this item?")) return;
+    if (m.storage_path) await supabase.storage.from(BUCKET).remove([m.storage_path]);
+    await supabase.from("artist_media").delete().eq("id", m.id);
+    qc.invalidateQueries({ queryKey: key });
+  };
+
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
+          <Label>Upload photos or videos</Label>
+          <Input type="file" accept="image/*,video/*" multiple disabled={busy} onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
+          <p className="text-xs text-muted-foreground">Up to 50 MB per file. Photos show in the slider on your profile, videos below it.</p>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
+          <Label>Add a YouTube video</Label>
+          <div className="flex gap-2"><Input placeholder="https://youtube.com/watch?v=…" value={yt} onChange={(e) => setYt(e.target.value)} /><Button onClick={addYoutube}>Add</Button></div>
+        </div>
+      </div>
+      {items?.length === 0 && <p className="text-muted-foreground">No media yet.</p>}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {items?.map((m) => (
+          <div key={m.id} className="relative rounded-xl overflow-hidden bg-card shadow-card">
+            <div className="aspect-video bg-muted">
+              {m.kind === "photo" && <img src={m.src} alt="" className="h-full w-full object-cover" />}
+              {m.kind === "video" && <video src={m.src} className="h-full w-full object-cover" muted />}
+              {m.kind === "youtube" && <img src={`https://img.youtube.com/vi/${youtubeId(m.url)}/hqdefault.jpg`} alt="" className="h-full w-full object-cover" />}
+            </div>
+            <div className="flex items-center justify-between p-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">{m.kind === "photo" ? <ImageIcon className="h-3 w-3" /> : m.kind === "video" ? <Film className="h-3 w-3" /> : <Youtube className="h-3 w-3" />}{m.kind}</span>
+              <button type="button" aria-label="Remove" onClick={() => remove(m)}><Trash2 className="h-4 w-4 text-destructive" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

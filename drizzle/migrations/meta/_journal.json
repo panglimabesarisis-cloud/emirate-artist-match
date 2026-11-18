@@ -78,6 +78,13 @@
       "when": 1795021273895,
       "tag": "0010_quote_request_times",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795021751330,
+      "tag": "0011_artist_media_ai_knowledge",
+      "breakpoints": true
     }
   ]
 }

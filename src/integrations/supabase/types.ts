@@ -19,6 +19,7 @@ export type Database = {
           artist_id: string
           enabled: boolean
           extra_instructions: string | null
+          knowledge: string | null
           max_discount_pct: number
           tone: string
           updated_at: string
@@ -27,6 +28,7 @@ export type Database = {
           artist_id: string
           enabled?: boolean
           extra_instructions?: string | null
+          knowledge?: string | null
           max_discount_pct?: number
           tone?: string
           updated_at?: string
@@ -35,6 +37,7 @@ export type Database = {
           artist_id?: string
           enabled?: boolean
           extra_instructions?: string | null
+          knowledge?: string | null
           max_discount_pct?: number
           tone?: string
           updated_at?: string
@@ -128,6 +131,47 @@ export type Database = {
             foreignKeyName: "artist_calendar_artist_id_fkey"
             columns: ["artist_id"]
             isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_media: {
+        Row: {
+          artist_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          kind: string
+          sort: number
+          storage_path: string | null
+          url: string
+        }
+        Insert: {
+          artist_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          sort?: number
+          storage_path?: string | null
+          url: string
+        }
+        Update: {
+          artist_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          sort?: number
+          storage_path?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_media_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
             referencedRelation: "artists"
             referencedColumns: ["id"]
           },

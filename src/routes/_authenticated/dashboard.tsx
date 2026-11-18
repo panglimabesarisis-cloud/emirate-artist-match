@@ -8,6 +8,7 @@ import { PublicLayout } from "@/components/site/PublicLayout";
 import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
 import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
+import { MediaTab } from "@/components/dashboard/MediaTab";
 import { CalendarSync, TeamTab } from "@/components/dashboard/TeamTabs";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -74,12 +75,14 @@ function MemberOrClient({ userId }: { userId: string }) {
           <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
           <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
           <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>
+          <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>
           <TabsTrigger value="mine">{tr("My requests")}</TabsTrigger>
         </TabsList>
         <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>
         <TabsContent value="quotes"><Quotes artistId={a.id} /></TabsContent>
         <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>
+        <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>
         <TabsContent value="mine"><ClientDash userId={userId} /></TabsContent>
       </Tabs>
     </div>
@@ -141,8 +144,10 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="verify">{tr("Verification")}</TabsTrigger>
           <TabsTrigger value="reviews">{tr("Reviews")}</TabsTrigger>
           <TabsTrigger value="team">{tr("Team")}</TabsTrigger>
+          <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>
           <TabsTrigger value="export">{tr("Export data")}</TabsTrigger>
         </TabsList>
+        <TabsContent value="media"><MediaTab artistId={artist.id} /></TabsContent>
         <TabsContent value="export"><ExportTab artistId={artist.id} slug={artist.slug} /></TabsContent>
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} /></TabsContent>
