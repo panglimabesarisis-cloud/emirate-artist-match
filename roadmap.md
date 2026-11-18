@@ -5,9 +5,14 @@
 - [x] Phase 4: data export (CSV)
 - [x] Phase 4: Google Calendar sync for artists
 - [x] Phase 4: artist team members (manager/assistant)
-- [x] Phase 4: Arabic language + RTL layout (public pages; dashboards stay English)
+- [x] Phase 4: Arabic language + RTL layout (public pages, chat, dashboard tabs)
 - [x] Brand name: Dealmaker
 - [x] Phase 3b: AI-drafted booking → artist approval page (approve / revise) before client pays
 - [ ] Phase 3b: WhatsApp booking links — connected; waits on Meta approving the message template (up to 48h) and choosing this project for incoming WhatsApp updates
 - [ ] Phase 3b: Email booking links — waits on the user setting up a sender domain
 - [x] Phase 3b: Admin escrow monitor & dispute handling
+- [x] Multi-artist quote (main artist + up to 2 similar)
+- [x] Review sub-ratings (performance, punctuality, communication)
+- [x] Private client ratings (visible to artists/teams only)
+- [x] Arabic for chat page and dashboard tabs (inner dashboard forms still English)
+- [ ] Follow-up reminder emails — waits on email sender domain

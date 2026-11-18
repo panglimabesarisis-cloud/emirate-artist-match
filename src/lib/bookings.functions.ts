@@ -128,19 +128,20 @@ export const completeBooking = createServerFn({ method: "POST" })
 
 /** Client: one verified review per completed booking. */
 export const submitBookingReview = createServerFn({ method: "POST" })
-  .inputValidator((i: { id: string; key: string; rating: number; body: string }) => {
+  .inputValidator((i: { id: string; key: string; rating: number; body: string; performance?: number; punctuality?: number; communication?: number }) => {
     const rating = Math.round(Number(i.rating));
     if (rating < 1 || rating > 5) throw new Error("Rating 1–5");
+    const sr = (v: unknown) => { const n = Math.round(Number(v)); return n >= 1 && n <= 5 ? n : null; };
     const body = maskContacts(String(i.body ?? "").trim().slice(0, 1500));
     if (body.length < 10) throw new Error("Please write at least a short sentence");
-    return { id: uuid(i.id), key: uuid(i.key), rating, body };
+    return { id: uuid(i.id), key: uuid(i.key), rating, body, performance: sr(i.performance), punctuality: sr(i.punctuality), communication: sr(i.communication) };
   })
   .handler(async ({ data }) => {
     const b = await bookingByKey(data.id, data.key);
     if (b.status !== "completed") throw new Error("Reviews open after the event is completed");
     if (b.reviews?.length) throw new Error("You already reviewed this booking");
     const db = await admin();
-    const { error } = await db.from("reviews").insert({ artist_id: b.artist_id, booking_id: b.id, client_name: b.client_name.split(" ")[0] ?? "Client", event_label: b.event_types?.name ?? b.package_title, rating: data.rating, body: data.body, status: "published" });
+    const { error } = await db.from("reviews").insert({ artist_id: b.artist_id, booking_id: b.id, client_name: b.client_name.split(" ")[0] ?? "Client", event_label: b.event_types?.name ?? b.package_title, rating: data.rating, body: data.body, status: "published", rating_performance: data.performance, rating_punctuality: data.punctuality, rating_communication: data.communication });
     if (error) throw new Error("Could not save review");
     return { ok: true };
   });

@@ -22,9 +22,20 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const dispute$ = useServerFn(openDisputeAsArtist);
   const [phone, setPhone] = useState(notifyPhone ?? "");
   const key = ["artist-bookings", artistId];
-  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("id, client_name, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
+  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
   const { data: convs } = useQuery({ queryKey: ["offer-convs", artistId], queryFn: async () => (await supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(50)).data ?? [] });
   const { data: packages } = useQuery({ queryKey: ["offer-packages", artistId], queryFn: async () => (await supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort")).data ?? [] });
+  const emails = [...new Set((bookings ?? []).map((b) => b.client_email?.toLowerCase()).filter(Boolean))] as string[];
+  const { data: ratings } = useQuery({ queryKey: ["client-ratings", artistId, emails.join(",")], enabled: emails.length > 0, queryFn: async () => (await supabase.from("client_ratings").select("booking_id, client_email, rating, note, artist_id").in("client_email", emails)).data ?? [] });
+  const [rate, setRate] = useState<{ id: string; rating: number; note: string } | null>(null);
+  const rep = (email: string | null) => { const r = (ratings ?? []).filter((x) => x.client_email.toLowerCase() === email?.toLowerCase()); return r.length ? { avg: r.reduce((n, x) => n + x.rating, 0) / r.length, n: r.length, notes: r.filter((x) => x.note).map((x) => x.note!) } : null; };
+  const saveRating = async (b: { id: string; client_email: string | null }) => {
+    if (!rate || !b.client_email) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("client_ratings").insert({ booking_id: b.id, artist_id: artistId, client_email: b.client_email.toLowerCase(), rating: rate.rating, note: rate.note.trim().slice(0, 500) || null, created_by: u.user!.id });
+    if (error) { toast.error("Could not save rating"); return; }
+    toast.success("Private client rating saved"); setRate(null); qc.invalidateQueries({ queryKey: ["client-ratings"] });
+  };
   const [f, setF] = useState({ conversationId: "", title: "", amount: "", eventDate: "", notes: "" });
   const [trnV, setTrn] = useState(trn ?? "");
   const [busy, setBusy] = useState(false);
@@ -47,10 +58,21 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
               <div>
                 <div className="font-semibold">{b.client_name} · {b.package_title}</div>
                 <div className="text-sm text-muted-foreground">{b.event_date} · {aed(Number(b.total))} incl. VAT {b.invoice_no ? `· ${b.invoice_no}` : ""}</div>
+                {(() => { const r = rep(b.client_email); return r ? <div className="text-xs" title={r.notes.join(" · ")}>Client reputation (private): <b>{r.avg.toFixed(1)}★</b> from {r.n} booking{r.n > 1 ? "s" : ""}{r.notes.length ? ` · “${r.notes[0]}”` : ""}</div> : null; })()}
                 <div className="text-xs text-muted-foreground">Escrow: {b.escrow_status}{Number(b.refund_amount) > 0 ? ` · refunded ${aed(Number(b.refund_amount))}` : ""}</div>
               </div>
               <Badge variant={b.status === "confirmed" || b.status === "inquiry" ? "default" : "secondary"}>{b.status === "quoted" ? "offer sent" : b.status === "inquiry" ? "needs your approval" : b.status}</Badge>
             </div>
+            {b.status === "completed" && b.client_email && !(ratings ?? []).some((x) => x.booking_id === b.id) && (
+              rate?.id === b.id ? (
+                <div className="mt-3 space-y-2 rounded-lg border p-3">
+                  <div className="text-xs font-semibold">Rate this client privately (only artists see this)</div>
+                  <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" aria-label={`${n} stars`} className={n <= rate.rating ? "text-gold" : "text-muted-foreground"} onClick={() => setRate({ ...rate, rating: n })}>★</button>)}</div>
+                  <Input placeholder="Private note (optional)" maxLength={500} value={rate.note} onChange={(e) => setRate({ ...rate, note: e.target.value })} />
+                  <div className="flex gap-2"><Button size="sm" onClick={() => saveRating(b)}>Save rating</Button><Button size="sm" variant="ghost" onClick={() => setRate(null)}>Cancel</Button></div>
+                </div>
+              ) : <Button size="sm" variant="outline" className="mt-3" onClick={() => setRate({ id: b.id, rating: 5, note: "" })}>Rate client</Button>
+            )}
             {b.status === "inquiry" && (
               <Button asChild size="sm" className="mt-3 bg-gradient-gold text-gold-foreground"><Link to="/approve/$id" params={{ id: b.id }} search={{ k: b.artist_key }}>Review & approve</Link></Button>
             )}

@@ -467,6 +467,54 @@ export type Database = {
         }
         Relationships: []
       }
+      client_ratings: {
+        Row: {
+          artist_id: string
+          booking_id: string
+          client_email: string
+          created_at: string
+          created_by: string
+          id: string
+          note: string | null
+          rating: number
+        }
+        Insert: {
+          artist_id: string
+          booking_id: string
+          client_email: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string | null
+          rating: number
+        }
+        Update: {
+          artist_id?: string
+          booking_id?: string
+          client_email?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string | null
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ratings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_ratings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           access_key: string
@@ -890,6 +938,9 @@ export type Database = {
           id: string
           is_seed: boolean
           rating: number
+          rating_communication: number | null
+          rating_performance: number | null
+          rating_punctuality: number | null
           reply: string | null
           status: string
         }
@@ -903,6 +954,9 @@ export type Database = {
           id?: string
           is_seed?: boolean
           rating: number
+          rating_communication?: number | null
+          rating_performance?: number | null
+          rating_punctuality?: number | null
           reply?: string | null
           status?: string
         }
@@ -916,6 +970,9 @@ export type Database = {
           id?: string
           is_seed?: boolean
           rating?: number
+          rating_communication?: number | null
+          rating_performance?: number | null
+          rating_punctuality?: number | null
           reply?: string | null
           status?: string
         }
@@ -1121,6 +1178,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_any_artist_team: { Args: never; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
       next_invoice_no: { Args: never; Returns: string }

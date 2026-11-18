@@ -34,6 +34,7 @@ function BookingPage() {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rating, setRating] = useState(5);
+  const [subs, setSubs] = useState({ performance: 5, punctuality: 5, communication: 5 });
   const [body, setBody] = useState("");
   const dispute$ = useServerFn(openDisputeAsClient);
   const [problem, setProblem] = useState("");
@@ -142,8 +143,16 @@ function BookingPage() {
                 <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} type="button" aria-label={`${n} stars`} onClick={() => setRating(n)}><Star className={`h-6 w-6 ${n <= rating ? "fill-gold text-gold" : "text-muted-foreground"}`} /></button>
                 ))}</div>
+                {(["performance", "punctuality", "communication"] as const).map((k) => (
+                  <div key={k} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="capitalize text-muted-foreground">{k}</span>
+                    <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} type="button" aria-label={`${k} ${n} stars`} onClick={() => setSubs({ ...subs, [k]: n })}><Star className={`h-4 w-4 ${n <= subs[k] ? "fill-gold text-gold" : "text-muted-foreground"}`} /></button>
+                    ))}</div>
+                  </div>
+                ))}
                 <Textarea rows={4} maxLength={1500} value={body} onChange={(e) => setBody(e.target.value)} placeholder="How was the performance?" />
-                <Button disabled={busy || body.trim().length < 10} onClick={() => run(() => review$({ data: { id, key: k, rating, body } }), "Thank you for your review!")}>Publish review</Button>
+                <Button disabled={busy || body.trim().length < 10} onClick={() => run(() => review$({ data: { id, key: k, rating, body, ...subs } }), "Thank you for your review!")}>Publish review</Button>
               </div>
             )}
           </section>

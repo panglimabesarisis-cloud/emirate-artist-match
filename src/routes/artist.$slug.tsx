@@ -119,6 +119,13 @@ function ArtistPage() {
                     <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < r.rating ? "fill-gold text-gold" : "text-border"}`} />)}</div>
                   </div>
                   <div className="text-xs text-muted-foreground">{t("Verified booking")} · {r.event_label} · {new Date(r.created_at).toLocaleDateString("en-GB")}</div>
+                  {r.rating_performance != null && (
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span>{t("Performance")} <b className="text-foreground" dir="ltr">{r.rating_performance}/5</b></span>
+                      {r.rating_punctuality != null && <span>{t("Punctuality")} <b className="text-foreground" dir="ltr">{r.rating_punctuality}/5</b></span>}
+                      {r.rating_communication != null && <span>{t("Communication")} <b className="text-foreground" dir="ltr">{r.rating_communication}/5</b></span>}
+                    </div>
+                  )}
                   <p className="mt-3 text-sm" dir="auto">{r.body}</p>
                   {r.reply && <div className="mt-3 border-s-2 border-gold ps-3 text-sm text-muted-foreground"><span className="font-semibold text-foreground">{t("Reply from artist:")}</span> {r.reply}</div>}
                 </div>
@@ -126,18 +133,23 @@ function ArtistPage() {
             </div>
           </section>
         </div>
-        <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} />
+        <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} />
       </div>
     </PublicLayout>
   );
 }
 
-function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
-  artistId: string; artistName: string; basePrice: number; blocked: string[];
+type Similar = { id: string; slug: string; stage_name: string; base_price: number; rating: number | null };
+type Sent = { name: string; conversationId: string; key: string };
+
+function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar }: {
+  artistId: string; artistName: string; basePrice: number; blocked: string[]; similar: Similar[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "" });
   const [sending, setSending] = useState(false);
+  const [extra, setExtra] = useState<string[]>([]);
+  const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -149,13 +161,22 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
     if (f.date && blocked.includes(f.date)) { toast.error(t("The artist is unavailable on that date.")); return; }
     setSending(true);
     try {
-      const r = await submit$({ data: {
-        artistId, clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
+      const payload = {
+        clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
         guests: f.guests ? Number(f.guests) : null, budget: f.budget ? Number(f.budget) : null, message: f.message || null,
-      } });
+      };
+      const r = await submit$({ data: { ...payload, artistId } });
       if ("error" in r) { toast.error(r.error); return; }
-      navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } });
+      if (extra.length === 0) { navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); return; }
+      const list: Sent[] = [{ name: artistName, ...r }];
+      const others = await Promise.allSettled(extra.map((xid) => submit$({ data: { ...payload, artistId: xid } })));
+      others.forEach((o, i) => {
+        const s = similar.find((x) => x.id === extra[i]);
+        if (o.status === "fulfilled" && !("error" in o.value) && s) list.push({ name: s.stage_name, conversationId: o.value.conversationId, key: o.value.key });
+        else if (s) toast.error(`${s.stage_name}: ${t("unavailable on that date")}`);
+      });
+      setSent(list);
     } catch {
       toast.error(t("Could not send your request. Please try again."));
     } finally {
@@ -167,7 +188,17 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
     <aside className="lg:sticky lg:top-32 self-start rounded-2xl bg-card shadow-card p-6">
       <div className="text-sm text-muted-foreground">{t("Starting from")}</div>
       <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
-      {(
+      {sent ? (
+        <div className="mt-5 space-y-3">
+          <div className="font-semibold">{t("Your quote requests were sent")}</div>
+          <p className="text-xs text-muted-foreground">{t("Each artist replies in its own chat. Save these links to come back later.")}</p>
+          {sent.map((s) => (
+            <Button key={s.conversationId} variant="outline" className="w-full justify-between" onClick={() => navigate({ to: "/chat/$id", params: { id: s.conversationId }, search: { k: s.key } })}>
+              <span>{s.name}</span><span>{t("Open chat")} →</span>
+            </Button>
+          ))}
+        </div>
+      ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
           <div className="font-semibold">{t("Free Quick Quote")}</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
@@ -187,6 +218,19 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
           <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
           <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
           <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
+          {similar.length > 0 && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="text-xs font-semibold">{t("Also ask up to 2 similar artists")}</div>
+              {similar.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="accent-gold" checked={extra.includes(s.id)} disabled={!extra.includes(s.id) && extra.length >= 2}
+                    onChange={(e) => setExtra(e.target.checked ? [...extra, s.id] : extra.filter((x) => x !== s.id))} />
+                  <span className="flex-1">{s.stage_name}</span>
+                  <span className="text-xs text-muted-foreground">{t("from")} {aed(s.base_price)}</span>
+                </label>
+              ))}
+            </div>
+          )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Get my free quote")}
           </Button>

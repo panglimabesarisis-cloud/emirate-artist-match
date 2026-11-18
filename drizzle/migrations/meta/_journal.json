@@ -64,6 +64,13 @@
       "when": 1795019965136,
       "tag": "0008_calendar_token_private",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795020709958,
+      "tag": "0009_ratings_breakdown_client_ratings",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,7 @@ import { PublicLayout } from "@/components/site/PublicLayout";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
@@ -27,6 +28,7 @@ function ChatPage() {
   const send$ = useServerFn(sendClientMessage);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t: tr } = useI18n();
   const box = useRef<HTMLDivElement>(null);
   const { data, error } = useQuery({
     queryKey: ["chat", id],
@@ -45,24 +47,24 @@ function ChatPage() {
       const r = await send$({ data: { id, key: k, text: t } });
       if ("error" in r && r.error) toast.error(r.error);
       await qc.invalidateQueries({ queryKey: ["chat", id] });
-    } catch { toast.error("Message failed. Please try again."); setText(t); }
+    } catch { toast.error(tr("Message failed. Please try again.")); setText(t); }
     finally { setBusy(false); }
   };
 
-  if (error) return <PublicLayout><div className="p-16 text-center">This conversation link is invalid.</div></PublicLayout>;
+  if (error) return <PublicLayout><div className="p-16 text-center">{tr("This conversation link is invalid.")}</div></PublicLayout>;
   const a = data?.artist;
   return (
     <PublicLayout>
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="text-sm text-muted-foreground">Save this page's link to come back to your conversation.</div>
+        <div className="text-sm text-muted-foreground">{tr("Save this page's link to come back to your conversation.")}</div>
         {offers && offers.length > 0 && (
           <div className="mt-4 space-y-2">
             {offers.map((o) => o.status === "inquiry" ? (
-              <div key={o.id} className="rounded-xl border bg-card p-4 shadow-card"><div className="font-semibold">Booking details · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · waiting for the artist to approve</div></div>
+              <div key={o.id} className="rounded-xl border bg-card p-4 shadow-card"><div className="font-semibold">{tr("Booking details")} · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · {tr("waiting for the artist to approve")}</div></div>
             ) : (
               <Link key={o.id} to="/booking/$id" params={{ id: o.id }} search={{ k: o.access_key }} className="flex items-center justify-between rounded-xl border border-gold/40 bg-card p-4 shadow-card hover:border-gold">
-                <div><div className="font-semibold">Booking offer · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · {aed(Number(o.total))} incl. VAT</div></div>
-                <span className="text-xs font-medium uppercase tracking-wide text-gold">{o.status === "quoted" ? "Review & pay" : o.status}</span>
+                <div><div className="font-semibold">{tr("Booking offer")} · {o.package_title}</div><div className="text-xs text-muted-foreground">{o.event_date} · {aed(Number(o.total))} {tr("incl. VAT")}</div></div>
+                <span className="text-xs font-medium uppercase tracking-wide text-gold">{o.status === "quoted" ? tr("Review & pay") : o.status}</span>
               </Link>
             ))}
           </div>
@@ -73,10 +75,10 @@ function ChatPage() {
             <div className="flex-1">
               <div className="font-semibold">{a?.stage_name ?? "…"}</div>
               <div className="text-xs opacity-75 inline-flex items-center gap-1">
-                {data?.mode === "human" ? "The artist is handling this chat personally" : <><Bot className="h-3 w-3" /> AI assistant replying on the artist's behalf</>}
+                {data?.mode === "human" ? tr("The artist is handling this chat personally") : <><Bot className="h-3 w-3" /> {tr("AI assistant replying on the artist's behalf")}</>}
               </div>
             </div>
-            {a && <Link to="/artist/$slug" params={{ slug: a.slug }} className="text-xs text-gold underline">View profile</Link>}
+            {a && <Link to="/artist/$slug" params={{ slug: a.slug }} className="text-xs text-gold underline">{tr("View profile")}</Link>}
           </div>
           <div ref={box} className="p-4 space-y-3 min-h-[320px] max-h-[60vh] overflow-y-auto">
             {data?.messages.map((m) =>
@@ -85,21 +87,21 @@ function ChatPage() {
               ) : (
                 <div key={m.id} className={`flex ${m.sender === "client" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.sender === "client" ? "bg-primary text-primary-foreground" : "bg-muted"}`} dir="auto">
-                    {m.sender !== "client" && <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{m.sender === "ai" ? "AI assistant" : a?.stage_name}</div>}
+                    {m.sender !== "client" && <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>}
                     {m.body}
                   </div>
                 </div>
               ),
             )}
-            {busy && <div className="text-xs text-muted-foreground">Typing…</div>}
+            {busy && <div className="text-xs text-muted-foreground">{tr("Typing…")}</div>}
           </div>
           <div className="border-t p-3 flex gap-2">
-            <Textarea rows={2} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder="Type your message…"
+            <Textarea rows={2} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder={tr("Type your message…")}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <Button onClick={send} disabled={busy || !text.trim()} className="self-end bg-gradient-gold text-gold-foreground"><Send className="h-4 w-4" /></Button>
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.</p>
+        <p className="mt-3 text-xs text-muted-foreground">{tr("DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.")}</p>
       </div>
     </PublicLayout>
   );

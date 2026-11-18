@@ -144,8 +144,14 @@ export const searchArtists = createServerFn({ method: "GET" })
 export const getArtist = createServerFn({ method: "GET" })
   .inputValidator((i: { slug: string }) => i)
   .handler(async ({ data }) => {
-    const [card] = await loadCards({ artistSlug: data.slug });
+    const all = await loadCards();
+    const card = all.find((c) => c.slug === data.slug);
     if (!card) return null;
+    const similar = all
+      .filter((c) => c.id !== card.id && c.category?.slug === card.category?.slug)
+      .sort((x, y) => Number(x.emirate?.slug !== card.emirate?.slug) - Number(y.emirate?.slug !== card.emirate?.slug) || (y.stats.rating ?? 0) - (x.stats.rating ?? 0))
+      .slice(0, 4)
+      .map((c) => ({ id: c.id, slug: c.slug, stage_name: c.stage_name, base_price: c.base_price, rating: c.stats.rating }));
     const { publicClient } = await import("./public-client.server");
     const sb = publicClient();
     const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }] = await Promise.all([
@@ -153,7 +159,7 @@ export const getArtist = createServerFn({ method: "GET" })
       sb.from("rate_cards").select("id, title, description, price, duration_minutes").eq("artist_id", card.id).order("sort"),
       sb
         .from("reviews")
-        .select("id, client_name, event_label, rating, body, reply, created_at")
+        .select("id, client_name, event_label, rating, rating_performance, rating_punctuality, rating_communication, body, reply, created_at")
         .eq("artist_id", card.id)
         .order("created_at", { ascending: false })
         .limit(20),
@@ -166,5 +172,6 @@ export const getArtist = createServerFn({ method: "GET" })
       rateCards: rates ?? [],
       reviews: reviews ?? [],
       blockedDates: (blocked ?? []).map((b) => b.date),
+      similar,
     };
   });

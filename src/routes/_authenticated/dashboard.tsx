@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -56,6 +57,7 @@ function MemberOrClient({ userId }: { userId: string }) {
   });
   const teams = (data ?? []).filter((t) => t.artists);
   const [pick, setPick] = useState(0);
+  const { t: tr } = useI18n();
   if (isLoading) return null;
   if (teams.length === 0) return <ClientDash userId={userId} />;
   const t = teams[Math.min(pick, teams.length - 1)]!;
@@ -68,11 +70,11 @@ function MemberOrClient({ userId }: { userId: string }) {
       </div>
       <Tabs key={a.id} defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="inbox">Inbox</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="quotes">Quote requests</TabsTrigger>
-          <TabsTrigger value="calendar">Availability</TabsTrigger>
-          <TabsTrigger value="mine">My requests</TabsTrigger>
+          <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>
+          <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
+          <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
+          <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>
+          <TabsTrigger value="mine">{tr("My requests")}</TabsTrigger>
         </TabsList>
         <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>
@@ -110,6 +112,7 @@ function ArtistDash({ userId }: { userId: string }) {
     queryKey: ["my-artist", userId],
     queryFn: async () => (await supabase.from("artists").select("*").eq("user_id", userId).maybeSingle()).data,
   });
+  const { t: tr } = useI18n();
   if (isLoading) return null;
   if (!artist) return <Onboarding userId={userId} onDone={refetch} />;
   return (
@@ -119,26 +122,26 @@ function ArtistDash({ userId }: { userId: string }) {
           <h1 className="text-3xl font-semibold">{artist.stage_name}</h1>
           <div className="mt-1 flex gap-2 items-center text-sm">
             <Badge variant={artist.status === "approved" ? "default" : "secondary"}>{artist.status === "pending" ? "Awaiting approval" : artist.status}</Badge>
-            <span className="text-muted-foreground">Plan: {artist.plan}</span>
+            <span className="text-muted-foreground">{tr("Plan:")} {artist.plan}</span>
           </div>
         </div>
-        {artist.status === "approved" && <Button asChild variant="outline"><Link to="/artist/$slug" params={{ slug: artist.slug }}>View public profile</Link></Button>}
+        {artist.status === "approved" && <Button asChild variant="outline"><Link to="/artist/$slug" params={{ slug: artist.slug }}>{tr("View public profile")}</Link></Button>}
       </div>
       <Tabs defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="inbox">Inbox</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="agent">AI agent</TabsTrigger>
-          <TabsTrigger value="credits">Credits</TabsTrigger>
-          <TabsTrigger value="quotes">Quote requests</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="packages">Packages</TabsTrigger>
-          <TabsTrigger value="calendar">Availability</TabsTrigger>
-          <TabsTrigger value="visibility">Public stats</TabsTrigger>
-          <TabsTrigger value="verify">Verification</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="export">Export data</TabsTrigger>
+          <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>
+          <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
+          <TabsTrigger value="agent">{tr("AI agent")}</TabsTrigger>
+          <TabsTrigger value="credits">{tr("Credits")}</TabsTrigger>
+          <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
+          <TabsTrigger value="profile">{tr("Profile")}</TabsTrigger>
+          <TabsTrigger value="packages">{tr("Packages")}</TabsTrigger>
+          <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>
+          <TabsTrigger value="visibility">{tr("Public stats")}</TabsTrigger>
+          <TabsTrigger value="verify">{tr("Verification")}</TabsTrigger>
+          <TabsTrigger value="reviews">{tr("Reviews")}</TabsTrigger>
+          <TabsTrigger value="team">{tr("Team")}</TabsTrigger>
+          <TabsTrigger value="export">{tr("Export data")}</TabsTrigger>
         </TabsList>
         <TabsContent value="export"><ExportTab artistId={artist.id} slug={artist.slug} /></TabsContent>
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>

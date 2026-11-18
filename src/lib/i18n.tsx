@@ -4,6 +4,19 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  Performance: "الأداء", Punctuality: "الالتزام بالمواعيد", Communication: "التواصل",
+  "Also ask up to 2 similar artists": "اطلب أيضًا من فنانَين مشابهين كحد أقصى", "Your quote requests were sent": "تم إرسال طلبات عرض السعر",
+  "Each artist replies in its own chat. Save these links to come back later.": "يرد كل فنان في محادثة منفصلة. احفظ هذه الروابط للعودة لاحقًا.",
+  "Open chat": "فتح المحادثة", "unavailable on that date": "غير متاح في هذا التاريخ",
+  "This conversation link is invalid.": "رابط المحادثة غير صالح.", "Save this page's link to come back to your conversation.": "احفظ رابط هذه الصفحة للعودة إلى محادثتك.",
+  "Booking details": "تفاصيل الحجز", "Booking offer": "عرض الحجز", "waiting for the artist to approve": "بانتظار موافقة الفنان", "incl. VAT": "شامل الضريبة",
+  "Review & pay": "راجع وادفع", "The artist is handling this chat personally": "الفنان يتولى هذه المحادثة بنفسه",
+  "AI assistant replying on the artist's behalf": "مساعد ذكي يرد نيابة عن الفنان", "View profile": "عرض الملف", "Typing…": "يكتب…",
+  "AI assistant": "المساعد الذكي", "Type your message…": "اكتب رسالتك…", "Message failed. Please try again.": "فشل إرسال الرسالة. حاول مرة أخرى.",
+  "DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.": "وضع تجريبي · يتم إخفاء أرقام الهواتف والبريد الإلكتروني وحسابات التواصل تلقائيًا لحمايتك.",
+  Inbox: "صندوق الوارد", Bookings: "الحجوزات", "Quote requests": "طلبات عروض الأسعار", Availability: "التوفر", "My requests": "طلباتي",
+  "AI agent": "الوكيل الذكي", Credits: "الأرصدة", Profile: "الملف الشخصي", "Public stats": "الإحصاءات العامة",
+  Verification: "التوثيق", Team: "الفريق", "Export data": "تصدير البيانات", "View public profile": "عرض الملف العام", "Plan:": "الخطة:",
   "DEMO MODE — no real payments are processed.": "وضع تجريبي — لا تتم معالجة أي مدفوعات حقيقية.",
   Musicians: "موسيقيون", DJs: "منسقو أغاني", "Cultural Acts": "عروض ثقافية", "How it works": "كيف يعمل",
   Admin: "الإدارة", Dashboard: "لوحة التحكم", "Sign out": "تسجيل الخروج", "Sign in": "تسجيل الدخول", "Join as talent": "انضم كفنان",
