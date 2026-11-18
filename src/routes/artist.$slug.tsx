@@ -165,7 +165,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: [pickedPkgs.length ? `Selected packages: ${pickedPkgs.map((p) => `${p.title} (AED ${Number(p.price).toLocaleString("en-US")})`).join(", ")}.` : "", f.message].filter(Boolean).join(" ") || null,
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: f.message.trim() || null, packageIds: pickedPkgs.map((p) => p.id),
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });

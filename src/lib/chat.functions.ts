@@ -1,3 +1,4 @@
+import { formatBookingMessage } from "./booking-message";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts, MAX_CLIENT_MESSAGE_LENGTH, TOPUP_PACKAGES } from "./masking";
@@ -15,7 +16,7 @@ const str = (v: unknown, max: number, required = false) => {
 export type QuoteInput = {
   artistId: string; clientUserId: string | null; name: string; email: string; phone: string | null;
   eventTypeId: string | null; eventDate: string | null; areaId: string | null; guests: number | null; budget: number | null; message: string | null;
-  startTime?: string | null; endTime?: string | null; performMinutes?: number | null;
+  startTime?: string | null; endTime?: string | null; performMinutes?: number | null; packageIds?: string[];
 };
 
 /** Public: stores a quote request, opens a conversation and gets the first AI reply. */
@@ -30,13 +31,14 @@ export const submitQuote = createServerFn({ method: "POST" })
       budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
       startTime: typeof i.startTime === "string" && /^\d{2}:\d{2}$/.test(i.startTime) ? i.startTime : null,
       endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
+      packageIds: Array.isArray(i.packageIds) ? i.packageIds.slice(0, 10).map(uuid) : [],
       performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
     };
   })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { addMessage, runAgent } = await import("./agent.server");
-    const { data: artist } = await supabaseAdmin.from("artists").select("id, status").eq("id", data.artistId).single();
+    const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
     if (data.eventDate) {
       const { data: b } = await supabaseAdmin.from("availability").select("id").eq("artist_id", data.artistId).eq("date", data.eventDate).maybeSingle();
@@ -50,15 +52,14 @@ export const submitQuote = createServerFn({ method: "POST" })
     if (error || !q) throw new Error("Could not save request");
     const { data: c } = await supabaseAdmin.from("conversations").insert({ quote_request_id: q.id, artist_id: data.artistId }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
-    const summary = [
-      `Hi! I'm ${data.name}.`,
-      data.eventDate && `Event date: ${data.eventDate}.`,
-      (data.startTime || data.endTime) && `Time: ${data.startTime ?? "?"}–${data.endTime ?? "?"}.`,
-      data.performMinutes && `Performance duration: ${data.performMinutes} minutes.`,
-      data.guests && `Guests: ${data.guests}.`,
-      data.budget && `Budget: AED ${data.budget}.`,
-      data.message,
-    ].filter(Boolean).join(" ");
+    const { data: pk } = data.packageIds?.length
+      ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
+      : { data: [] };
+    const summary = formatBookingMessage({
+      name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
+      performMinutes: data.performMinutes ?? null, guests: data.guests, budget: data.budget,
+      packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
+    });
     await addMessage(c.id, "client", maskContacts(summary));
     await runAgent(c.id);
     return { conversationId: c.id, key: c.access_key };
