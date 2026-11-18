@@ -69,8 +69,8 @@ function Admin() {
       <div className="flex-1 min-w-0">
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/90 backdrop-blur px-4 md:px-8 py-3">
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setMenu(!menu)}>☰</Button>
-          <h1 className="text-lg font-semibold">{current.label}</h1>
-          <span className="ms-auto text-sm text-muted-foreground truncate">{user?.email} · Super admin</span>
+          <h1 className="text-lg font-semibold whitespace-nowrap">{current.label}</h1>
+          <span className="ms-auto hidden sm:block text-sm text-muted-foreground truncate">{user?.email} · Super admin</span>
         </header>
         <main className="p-4 md:p-8">
           {section === "overview" && <AdminOverview />}
