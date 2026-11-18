@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/artist/$slug")({
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/artist/$slug")({
 function ArtistPage() {
   const { artist: a, catalog } = Route.useLoaderData();
   const s = a.stats;
+  const { t } = useI18n();
   const stats = [
     s.completed_orders != null && { k: "Completed bookings", v: String(s.completed_orders) },
     s.rating != null && { k: "Rating", v: `${s.rating.toFixed(1)} / 5` },
@@ -60,13 +62,13 @@ function ArtistPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {a.badges.map((b) => (
                 <span key={b} className={`inline-flex items-center gap-1 rounded-full text-xs font-bold px-2.5 py-1 ${b === "top_performer" ? "bg-gradient-gold text-gold-foreground" : "bg-sidebar-accent"}`}>
-                  {b === "top_performer" ? <Trophy className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3 text-gold" />} {BADGE_LABELS[b]}
+                  {b === "top_performer" ? <Trophy className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3 text-gold" />} {t(BADGE_LABELS[b] ?? b)}
                 </span>
               ))}
             </div>
             <div className="mt-4 flex flex-wrap gap-5 text-sm opacity-85">
-              {s.rating != null && <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-gold text-gold" /> {s.rating.toFixed(1)} ({s.review_count} reviews)</span>}
-              <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {a.area?.name}, {a.emirate?.name} · travels {a.travel_radius_km} km</span>
+              {s.rating != null && <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-gold text-gold" /> {s.rating.toFixed(1)} ({s.review_count} {t("reviews")})</span>}
+              <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {a.area?.name}, {a.emirate?.name} · {t("travels")} {a.travel_radius_km} {t("km")}</span>
               <span className="inline-flex items-center gap-1"><Languages className="h-4 w-4" /> {a.languages.join(", ")}</span>
             </div>
           </div>
@@ -77,48 +79,48 @@ function ArtistPage() {
         <div className="space-y-12">
           {stats.length > 0 && (
             <section>
-              <h2 className="text-2xl font-semibold">Track record</h2>
+              <h2 className="text-2xl font-semibold">{t("Track record")}</h2>
               <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
                 {stats.map((x) => (
                   <div key={x.k} className="rounded-xl bg-card p-4 shadow-card">
-                    <div className="text-xs text-muted-foreground">{x.k}</div>
-                    <div className="font-display text-2xl font-semibold mt-1">{x.v}</div>
+                    <div className="text-xs text-muted-foreground">{t(x.k)}</div>
+                    <div className="font-display text-2xl font-semibold mt-1" dir="ltr" style={{ textAlign: "inherit" }}>{x.v}</div>
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Calculated from bookings on the platform. The artist chooses which figures to show.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
             </section>
           )}
           <section>
-            <h2 className="text-2xl font-semibold">About</h2>
+            <h2 className="text-2xl font-semibold">{t("About")}</h2>
             <p className="mt-3 text-muted-foreground leading-relaxed">{a.bio}</p>
           </section>
           <section>
-            <h2 className="text-2xl font-semibold">Packages</h2>
+            <h2 className="text-2xl font-semibold">{t("Packages")}</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               {a.rateCards.map((r) => (
                 <div key={r.id} className="rounded-2xl border bg-card p-5">
                   <div className="font-semibold">{r.title}</div>
                   <div className="font-display text-2xl mt-2">{aed(Number(r.price))}</div>
-                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {r.duration_minutes} min</div>
+                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {r.duration_minutes} {t("min")}</div>
                   <p className="text-sm text-muted-foreground mt-3">{r.description}</p>
                 </div>
               ))}
             </div>
           </section>
           <section>
-            <h2 className="text-2xl font-semibold">Reviews <span className="text-muted-foreground text-lg">({s.review_count})</span></h2>
+            <h2 className="text-2xl font-semibold">{t("Reviews")} <span className="text-muted-foreground text-lg">({s.review_count})</span></h2>
             <div className="mt-4 space-y-4">
-              {a.reviews.length === 0 && <p className="text-muted-foreground">No reviews yet.</p>}
+              {a.reviews.length === 0 && <p className="text-muted-foreground">{t("No reviews yet.")}</p>}
               {a.reviews.map((r) => (
                 <div key={r.id} className="rounded-2xl bg-card p-5 shadow-card">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold">{r.client_name}</div>
                     <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < r.rating ? "fill-gold text-gold" : "text-border"}`} />)}</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Verified booking · {r.event_label} · {new Date(r.created_at).toLocaleDateString("en-GB")}</div>
+                  <div className="text-xs text-muted-foreground">{t("Verified booking")} · {r.event_label} · {new Date(r.created_at).toLocaleDateString("en-GB")}</div>
                   <p className="mt-3 text-sm" dir="auto">{r.body}</p>
-                  {r.reply && <div className="mt-3 border-l-2 border-gold pl-3 text-sm text-muted-foreground"><span className="font-semibold text-foreground">Reply from artist:</span> {r.reply}</div>}
+                  {r.reply && <div className="mt-3 border-s-2 border-gold ps-3 text-sm text-muted-foreground"><span className="font-semibold text-foreground">{t("Reply from artist:")}</span> {r.reply}</div>}
                 </div>
               ))}
             </div>
@@ -138,12 +140,13 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
   const [sending, setSending] = useState(false);
   const submit$ = useServerFn(submitQuote);
   const navigate = useNavigate();
+  const { t } = useI18n();
   const up = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error("Please enter your name and a valid email."); return; }
-    if (f.date && blocked.includes(f.date)) { toast.error("The artist is unavailable on that date."); return; }
+    if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
+    if (f.date && blocked.includes(f.date)) { toast.error(t("The artist is unavailable on that date.")); return; }
     setSending(true);
     try {
       const r = await submit$({ data: {
@@ -154,7 +157,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
       if ("error" in r) { toast.error(r.error); return; }
       navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } });
     } catch {
-      toast.error("Could not send your request. Please try again.");
+      toast.error(t("Could not send your request. Please try again."));
     } finally {
       setSending(false);
     }
@@ -162,32 +165,32 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked }: {
 
   return (
     <aside className="lg:sticky lg:top-32 self-start rounded-2xl bg-card shadow-card p-6">
-      <div className="text-sm text-muted-foreground">Starting from</div>
+      <div className="text-sm text-muted-foreground">{t("Starting from")}</div>
       <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
       {(
         <form onSubmit={submit} className="mt-5 space-y-3">
-          <div className="font-semibold">Free Quick Quote</div>
+          <div className="font-semibold">{t("Free Quick Quote")}</div>
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
-            <SelectTrigger><SelectValue placeholder="Event type" /></SelectTrigger>
-            <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
+            <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
+            <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
           </Select>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Date</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
-            <div><Label className="text-xs">Guests</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
+            <div><Label className="text-xs">{t("Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
+            <div><Label className="text-xs">{t("Guests")}</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
           </div>
           <Select value={f.area} onValueChange={(v) => setF({ ...f, area: v })}>
-            <SelectTrigger><SelectValue placeholder="Venue area" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Venue area")} /></SelectTrigger>
             <SelectContent>{catalog.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
-          <Input placeholder="Budget (AED, optional)" type="number" value={f.budget} onChange={up("budget")} />
-          <Input placeholder="Your name" value={f.name} onChange={up("name")} maxLength={120} />
-          <Input placeholder="Email" type="email" value={f.email} onChange={up("email")} maxLength={255} />
-          <Input placeholder="Phone (+971…)" value={f.phone} onChange={up("phone")} maxLength={30} />
-          <Textarea placeholder="Tell the artist about your event" value={f.message} onChange={up("message")} maxLength={2000} />
+          <Input placeholder={t("Budget (AED, optional)")} type="number" value={f.budget} onChange={up("budget")} />
+          <Input placeholder={t("Your name")} value={f.name} onChange={up("name")} maxLength={120} />
+          <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
+          <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
+          <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
-            {sending ? `${artistName.split(" ")[0]}\u2019s assistant is replying…` : "Get my free quote"}
+            {sending ? t("Assistant is replying…") : t("Get my free quote")}
           </Button>
-          <p className="text-[11px] text-muted-foreground">An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.</p>
+          <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
     </aside>

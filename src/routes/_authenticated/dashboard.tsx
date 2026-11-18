@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
 import { BookingsTab } from "@/components/dashboard/BookingsTab";
+import { ExportTab } from "@/components/dashboard/ExportTab";
+import { CalendarSync, TeamTab } from "@/components/dashboard/TeamTabs";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +42,46 @@ function useCatalog() {
 function Dashboard() {
   const { user, isArtist, loading } = useAuth();
   if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">Loading…</div></PublicLayout>;
-  return <PublicLayout><div className="mx-auto max-w-6xl px-4 py-10">{isArtist ? <ArtistDash userId={user.id} /> : <ClientDash userId={user.id} />}</div></PublicLayout>;
+  return <PublicLayout><div className="mx-auto max-w-6xl px-4 py-10">{isArtist ? <ArtistDash userId={user.id} /> : <MemberOrClient userId={user.id} />}</div></PublicLayout>;
+}
+
+/** Managers/assistants invited by an artist get a reduced artist workspace. */
+function MemberOrClient({ userId }: { userId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-teams", userId],
+    queryFn: async () => {
+      await supabase.rpc("accept_artist_invites");
+      return (await supabase.from("artist_members").select("role, artists(id, slug, stage_name)").eq("user_id", userId).eq("status", "active")).data ?? [];
+    },
+  });
+  const teams = (data ?? []).filter((t) => t.artists);
+  const [pick, setPick] = useState(0);
+  if (isLoading) return null;
+  if (teams.length === 0) return <ClientDash userId={userId} />;
+  const t = teams[Math.min(pick, teams.length - 1)]!;
+  const a = t.artists!;
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h1 className="text-3xl font-semibold">{a.stage_name}</h1><p className="text-sm text-muted-foreground">You are a {t.role} on this team</p></div>
+        {teams.length > 1 && <Select value={String(pick)} onValueChange={(v) => setPick(Number(v))}><SelectTrigger className="w-56"><SelectValue /></SelectTrigger><SelectContent>{teams.map((x, i) => <SelectItem key={x.artists!.id} value={String(i)}>{x.artists!.stage_name}</SelectItem>)}</SelectContent></Select>}
+      </div>
+      <Tabs key={a.id} defaultValue="inbox" className="mt-8">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="inbox">Inbox</TabsTrigger>
+          <TabsTrigger value="bookings">Bookings</TabsTrigger>
+          <TabsTrigger value="quotes">Quote requests</TabsTrigger>
+          <TabsTrigger value="calendar">Availability</TabsTrigger>
+          <TabsTrigger value="mine">My requests</TabsTrigger>
+        </TabsList>
+        <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>
+        <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>
+        <TabsContent value="quotes"><Quotes artistId={a.id} /></TabsContent>
+        <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>
+        <TabsContent value="mine"><ClientDash userId={userId} /></TabsContent>
+      </Tabs>
+    </div>
+  );
 }
 
 function ClientDash({ userId }: { userId: string }) {
@@ -96,7 +137,10 @@ function ArtistDash({ userId }: { userId: string }) {
           <TabsTrigger value="visibility">Public stats</TabsTrigger>
           <TabsTrigger value="verify">Verification</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="export">Export data</TabsTrigger>
         </TabsList>
+        <TabsContent value="export"><ExportTab artistId={artist.id} slug={artist.slug} /></TabsContent>
         <TabsContent value="inbox"><Inbox artistId={artist.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} /></TabsContent>
         <TabsContent value="agent"><AgentSettings artistId={artist.id} /></TabsContent>
@@ -104,7 +148,8 @@ function ArtistDash({ userId }: { userId: string }) {
         <TabsContent value="quotes"><Quotes artistId={artist.id} /></TabsContent>
         <TabsContent value="profile"><ProfileEditor artist={artist} onSaved={refetch} /></TabsContent>
         <TabsContent value="packages"><Packages artistId={artist.id} /></TabsContent>
-        <TabsContent value="calendar"><Availability artistId={artist.id} /></TabsContent>
+        <TabsContent value="calendar"><Availability artistId={artist.id} /><CalendarSync artistId={artist.id} /></TabsContent>
+        <TabsContent value="team"><TeamTab artistId={artist.id} /></TabsContent>
         <TabsContent value="visibility"><Visibility artistId={artist.id} /></TabsContent>
         <TabsContent value="verify"><Verification artistId={artist.id} userId={userId} /></TabsContent>
         <TabsContent value="reviews"><Reviews artistId={artist.id} /></TabsContent>

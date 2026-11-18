@@ -107,11 +107,76 @@ export type Database = {
           },
         ]
       }
+      artist_calendar: {
+        Row: {
+          artist_id: string
+          created_at: string
+          token: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          token?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_calendar_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_members: {
+        Row: {
+          artist_id: string
+          created_at: string
+          email: string
+          id: string
+          role: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          email: string
+          id?: string
+          role?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_members_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artists: {
         Row: {
           area_id: string | null
           base_price: number | null
           bio: string | null
+          calendar_token: string
           category_id: string | null
           created_at: string
           emirate_id: string | null
@@ -137,6 +202,7 @@ export type Database = {
           area_id?: string | null
           base_price?: number | null
           bio?: string | null
+          calendar_token?: string
           category_id?: string | null
           created_at?: string
           emirate_id?: string | null
@@ -162,6 +228,7 @@ export type Database = {
           area_id?: string | null
           base_price?: number | null
           bio?: string | null
+          calendar_token?: string
           category_id?: string | null
           created_at?: string
           emirate_id?: string | null
@@ -1033,6 +1100,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_artist_invites: { Args: never; Returns: number }
       artist_public_stats: {
         Args: never
         Returns: {
@@ -1053,6 +1121,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_artist_owner: { Args: { _artist: string }; Returns: boolean }
+      is_artist_team: { Args: { _artist: string }; Returns: boolean }
       next_invoice_no: { Args: never; Returns: string }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }

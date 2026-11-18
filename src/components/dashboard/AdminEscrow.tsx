@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import { adminEscrow, adminReleaseEscrow, adminResolveDispute } from "@/lib/bookings.functions";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,10 @@ export function AdminEscrow() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Escrow ledger</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Escrow ledger</h2>
+          <Button size="sm" variant="outline" disabled={rows.length === 0} onClick={() => downloadCsv(`dealmaker-escrow-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, [["Invoice", (b) => b.invoice_no], ["Artist", (b) => b.artists?.stage_name], ["Client", (b) => b.client_name], ["Package", (b) => b.package_title], ["Event date", (b) => b.event_date], ["Status", (b) => b.status], ["Escrow", (b) => b.escrow_status], ["Total (AED)", (b) => b.total], ["Paid (AED)", (b) => b.paid_amount], ["Refunded (AED)", (b) => b.refund_amount], ["Completed at", (b) => b.completed_at], ["Disputes", (b) => (b.disputes ?? []).length]]))}>Download CSV</Button>
+        </div>
         <div className="mt-3 overflow-x-auto rounded-xl bg-card shadow-card">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="text-left text-xs text-muted-foreground"><tr><th className="p-3">Invoice</th><th>Artist</th><th>Client</th><th>Event</th><th className="text-right">Paid</th><th className="text-right">Refunded</th><th className="pl-4">Escrow</th><th></th></tr></thead>

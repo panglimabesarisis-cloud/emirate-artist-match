@@ -20,7 +20,9 @@ async function bookingByKey(id: string, key: string) {
 }
 
 async function assertArtistOwns(supabase: any, userId: string, artistId: string) {
-  const { data } = await supabase.from("artists").select("id").eq("id", artistId).eq("user_id", userId).maybeSingle();
+  // Owner or an active team member (manager/assistant).
+  void userId;
+  const { data } = await supabase.rpc("is_artist_team", { _artist: artistId });
   if (!data) throw new Error("Forbidden");
 }
 

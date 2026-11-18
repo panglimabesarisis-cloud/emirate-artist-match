@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoBanner } from "./DemoBanner";
+import { useI18n } from "@/lib/i18n";
 
 export function SiteHeader() {
   const { user, isAdmin } = useAuth();
+  const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const signOut = async () => {
@@ -25,33 +27,36 @@ export function SiteHeader() {
             <span className="font-display text-xl font-semibold">Dealmaker<span className="text-gold">.</span></span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm opacity-90">
-            <Link to="/$category" params={{ category: "musicians" }} className="hover:text-gold">Musicians</Link>
-            <Link to="/$category" params={{ category: "djs" }} className="hover:text-gold">DJs</Link>
-            <Link to="/$category" params={{ category: "arabic-cultural-acts" }} className="hover:text-gold">Cultural Acts</Link>
-            <Link to="/how-it-works" className="hover:text-gold">How it works</Link>
+            <Link to="/$category" params={{ category: "musicians" }} className="hover:text-gold">{t("Musicians")}</Link>
+            <Link to="/$category" params={{ category: "djs" }} className="hover:text-gold">{t("DJs")}</Link>
+            <Link to="/$category" params={{ category: "arabic-cultural-acts" }} className="hover:text-gold">{t("Cultural Acts")}</Link>
+            <Link to="/how-it-works" className="hover:text-gold">{t("How it works")}</Link>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">
+              {lang === "ar" ? "EN" : "عربي"}
+            </Button>
             {user ? (
               <>
                 {isAdmin && (
                   <Button asChild variant="ghost" size="sm" className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">
-                    <Link to="/admin">Admin</Link>
+                    <Link to="/admin">{t("Admin")}</Link>
                   </Button>
                 )}
                 <Button asChild size="sm" className="bg-gradient-gold text-gold-foreground hover:opacity-90">
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to="/dashboard">{t("Dashboard")}</Link>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={signOut} className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">
-                  Sign out
+                  {t("Sign out")}
                 </Button>
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" size="sm" className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">
-                  <Link to="/auth">Sign in</Link>
+                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-night-foreground hover:bg-sidebar-accent hover:text-gold">
+                  <Link to="/auth">{t("Sign in")}</Link>
                 </Button>
                 <Button asChild size="sm" className="bg-gradient-gold text-gold-foreground hover:opacity-90">
-                  <Link to="/auth" search={{ mode: "signup" }}>Join as talent</Link>
+                  <Link to="/auth" search={{ mode: "signup" }}>{t("Join as talent")}</Link>
                 </Button>
               </>
             )}

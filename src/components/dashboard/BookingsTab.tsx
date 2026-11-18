@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function BookingsTab({ artistId, trn, notifyPhone }: { artistId: string; trn: string | null; notifyPhone: string | null }) {
+export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { artistId: string; trn: string | null; notifyPhone: string | null; teamMode?: boolean }) {
   const qc = useQueryClient();
   const offer$ = useServerFn(createBookingOffer);
   const complete$ = useServerFn(completeBooking);
@@ -87,7 +87,7 @@ export function BookingsTab({ artistId, trn, notifyPhone }: { artistId: string; 
           <Button className="w-full" disabled={busy || !f.conversationId || !f.eventDate || !(Number(f.amount) > 0)}
             onClick={() => run(async () => { await offer$({ data: { ...f, amount: Number(f.amount) } }); setF({ conversationId: "", title: "", amount: "", eventDate: "", notes: "" }); }, "Offer sent to the client's chat")}>Send offer</Button>
         </div>
-        <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
+        {!teamMode && <><div className="rounded-xl bg-card p-4 shadow-card space-y-2">
           <h3 className="font-semibold">Booking alerts</h3>
           <Label>WhatsApp number for approval requests</Label>
           <div className="flex gap-2"><Input value={phone} maxLength={20} onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))} placeholder="+971 50 123 4567" />
@@ -99,7 +99,7 @@ export function BookingsTab({ artistId, trn, notifyPhone }: { artistId: string; 
           <Label>TRN (shown on invoices)</Label>
           <div className="flex gap-2"><Input value={trnV} maxLength={15} onChange={(e) => setTrn(e.target.value.replace(/\D/g, ""))} placeholder="15 digits" />
             <Button variant="outline" onClick={async () => { const { error } = await supabase.from("artists").update({ trn: trnV || null }).eq("id", artistId); if (error) toast.error(error.message); else toast.success("TRN saved"); }}>Save</Button></div>
-        </div>
+        </div></>}
       </div>
     </div>
   );

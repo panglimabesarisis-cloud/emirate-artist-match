@@ -38,3 +38,7 @@ use the editor.
 - All chat text passes through `maskContacts` (`src/lib/masking.ts`) before storage.
 - Booking money/policy rules (VAT, refunds, completion) live in `src/lib/booking-rules.ts` with tests; booking state changes go only through `src/lib/bookings.functions.ts` (clients via secret booking link key, artists via auth).
 - Booking emails/WhatsApp go through `src/lib/notify.server.ts`, which logs every attempt in `notifications`; WhatsApp uses one Meta-approved template (business-initiated messages require it) and delivery statuses arrive via the signed `/api/public/whatsapp/webhook` inbox. Artist approval uses a separate per-booking `artist_key` link so artists can approve without signing in.
+- Artist team access goes through `is_artist_team()` (owner or active `artist_members` row) in RLS and server checks; owner-only areas (profile, credits, AI settings, team, calendar link) use `is_artist_owner()`.
+- Calendar feeds are served from `/api/public/calendar/<token>.ics`; the token lives in owner-only `artist_calendar` because `artists` rows are publicly readable.
+- UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
+- CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.

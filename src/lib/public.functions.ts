@@ -75,9 +75,9 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async () => 
   const { publicClient } = await import("./public-client.server");
   const sb = publicClient();
   const [c, s, e, a, et] = await Promise.all([
-    sb.from("categories").select("id, slug, name, description, icon, sort").order("sort"),
+    sb.from("categories").select("id, slug, name, name_ar, description, icon, sort").order("sort"),
     sb.from("subcategories").select("id, slug, name, category_id").order("name"),
-    sb.from("emirates").select("id, slug, name, sort").order("sort"),
+    sb.from("emirates").select("id, slug, name, name_ar, sort").order("sort"),
     sb.from("areas").select("id, slug, name, emirate_id").order("name"),
     sb.from("event_types").select("id, slug, name, sort").order("sort"),
   ]);

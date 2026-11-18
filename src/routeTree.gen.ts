@@ -22,6 +22,7 @@ import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
+import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -88,6 +89,11 @@ const CategoryEmirateAreaRoute = CategoryEmirateAreaRouteImport.update({
   path: '/$category/$emirate/$area',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCalendarTokenRoute = ApiPublicCalendarTokenRouteImport.update({
+  id: '/api/public/calendar/$token',
+  path: '/api/public/calendar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
+  '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/$category/$emirate/'
+    | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/$category'
     | '/$category/$emirate/$area'
     | '/$category/$emirate'
+    | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/$category/$emirate/'
+    | '/api/public/calendar/$token'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
+  ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoryEmirateAreaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/calendar/$token': {
+      id: '/api/public/calendar/$token'
+      path: '/api/public/calendar/$token'
+      fullPath: '/api/public/calendar/$token'
+      preLoaderRoute: typeof ApiPublicCalendarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
       path: '/api/public/whatsapp/webhook'
@@ -334,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
+  ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
