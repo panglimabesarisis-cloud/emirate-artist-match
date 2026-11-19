@@ -70,10 +70,10 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
           </div>
           <div className="mt-3 space-y-2">
             {items.map((it, i) => (
-              <div key={i} className="flex gap-2">
-                <Input className="flex-1" placeholder="Service" value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} />
+              <div key={i} className="flex flex-wrap gap-2 sm:flex-nowrap">
+                <Input className="basis-full sm:basis-auto sm:flex-1" placeholder="Service" value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} />
                 <Input className="w-20" type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, qty: Number(e.target.value) } : x))} />
-                <Input className="w-32" type="number" min={0} value={it.price} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} />
+                <Input className="w-32 flex-1 sm:flex-none" type="number" min={0} value={it.price} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} />
                 <Button size="icon" variant="ghost" onClick={() => setItems(items.filter((_, j) => j !== i))} aria-label="Remove"><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
