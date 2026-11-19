@@ -62,3 +62,5 @@ use the editor.
 - Artist invoice composition uses an item editor and read-only live document preview with shared invoice calculations; client selection only routes delivery, and invoice metadata is not editable there.
 - WhatsApp flow approvals snapshot invoice intent on the booking; `approve_flow_booking` atomically approves and posts one linked invoice, paid through the booking contract/escrow checkout to prevent duplicate charges.
 - Flow builder previews and client chats share ChatFlowControls so buttons and form dates render identically; a standalone date picker is a single-date-field form, preserving the existing agent contract. These structured controls use shadcn rather than AI Elements because they submit the existing flow text protocol, not an AI SDK transcript.
+
+- Booking invoice approval, partial settlement, calendar and reminder invariants are documented in src/lib/AGENTS.md.

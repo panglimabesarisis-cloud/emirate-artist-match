@@ -7,6 +7,7 @@ const CONNECTOR = "google_calendar";
 const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 
 export const startCalendarConnect = createServerFn({ method: "POST" })

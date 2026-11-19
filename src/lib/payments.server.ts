@@ -41,11 +41,12 @@ export async function reconcileOrder(id:string) {
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const {data:o}=await db.from('payment_orders').select('*').eq('id',id).single();
   if(!o)throw new Error('Payment not found');
-  if(o.status==='paid')return {status:'paid'};
+  if(o.status==='paid'){if(o.kind==='booking'&&o.target_id){const {syncBookingCalendar}=await import('./booking-calendar.server');await syncBookingCalendar(o.target_id);}return {status:'paid'};}
   if(!o.stripe_session_id)return {status:o.status};
   const s=await createStripeClient('sandbox').checkout.sessions.retrieve(o.stripe_session_id);
   if(s.metadata?.['orderId']!==o.id)throw new Error('Payment reference mismatch');
   if(sandboxPaymentSettled(s)){ const {data:changed,error}=await db.rpc('settle_sandbox_order',{_id:o.id,_session:s.id,_amount:s.amount_total??0,_currency:s.currency??''}); if(error)throw new Error(error.message);
+    if(o.kind==='booking'&&o.target_id){const {syncBookingCalendar}=await import('./booking-calendar.server');await syncBookingCalendar(o.target_id);}
     if(changed&&o.kind==='booking'&&o.target_id){const {notifyTeamPaid}=await import('./bookings.functions'); await notifyTeamPaid(o.target_id).catch(e=>console.error('Payment notification failed',e));}
     return {status:'paid'};
   }

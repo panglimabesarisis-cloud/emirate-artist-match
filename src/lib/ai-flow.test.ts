@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { approvalAction, type FlowNode, DEFAULT_FLOW, FORM_FIELD_PRESETS, FLOW_VARIABLES, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
+import { invoiceWorkflow, approvalAction, type FlowNode, DEFAULT_FLOW, FORM_FIELD_PRESETS, FLOW_VARIABLES, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
 
 describe("flowToPrompt", () => {
   it("starts with the greeting step", () => {
@@ -71,4 +71,12 @@ describe("form", () => {
   it("splits the form off the reply text", () => {
     expect(extractForm("Details please\n[FORM: Name:text | Phone:phone]")).toEqual({ text: "Details please", fields: [{ label: "Name", type: "text" }, { label: "Phone", type: "phone" }] });
   });
+});
+
+describe("artist invoice flow",()=>{
+ const start:FlowNode={id:"start",type:"start",position:{x:0,y:0},data:{text:"Hello"}};
+ const rate:FlowNode={id:"rate",type:"ratecard",position:{x:0,y:100},data:{text:"Artist invoice",rateDescription:"DJ performance",ratePrice:1000}};
+ it("uses the connected rate description and price as artist draft items",()=>expect(invoiceWorkflow([start,rate],[{id:"e",source:"start",target:"rate"}])).toEqual({description:"DJ performance",price:1000}));
+ it("does not enable disconnected invoice pricing",()=>expect(invoiceWorkflow([start,rate],[])).toBeNull());
+ it("saves job_detail for a later step",()=>{expect(FLOW_VARIABLES).toContain("job_detail");expect(flowToPrompt([{...start,type:"question",data:{text:"Details",saveAs:"job_detail"}}],[])).toContain("remember the client's answer as {job_detail}");});
 });

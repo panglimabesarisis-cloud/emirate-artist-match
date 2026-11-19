@@ -33,7 +33,7 @@ export function canComplete(status: string, eventDate: string, now = new Date())
 
 export const CONTRACT_TERMS = [
   "The artist performs the agreed package on the event date and location stated in this booking.",
-  "The client pays the full total (incl. 5% VAT) into Dealmaker escrow. Funds are released to the artist after the event is marked completed.",
+  "The client pays the deposit shown in this booking (incl. 5% VAT) into Dealmaker escrow, with any remaining balance due seven days before the event. Funds are released to the artist after the event is marked completed.",
   "Client cancellation: 14+ days before the event = 100% refund, 7–13 days = 50% refund, under 7 days = no refund.",
   "If the artist cancels, the client receives a 100% refund.",
   "Both parties follow UAE law and venue rules; content must respect local cultural norms.",
@@ -46,7 +46,7 @@ export function canDispute(status: string, escrowStatus: string) {
   return status === "confirmed" || (status === "completed" && escrowStatus === "release_pending");
 }
 
-export type BookingDraft = { title: string; amount: number; date: string; notes: string };
+export type BookingDraft = { title: string; amount: number; date: string; notes: string; clientName?: string; jobDetail?: string };
 
 /** Parses the AI agent's `[BOOKING_READY {...}]` token. Returns the text without the token plus the draft (if valid). */
 export function extractDraft(text: string): { text: string; draft: BookingDraft | null } {
@@ -54,10 +54,10 @@ export function extractDraft(text: string): { text: string; draft: BookingDraft 
   if (!m) return { text, draft: null };
   const clean = text.replace(m[0], "").trim();
   try {
-    const j = JSON.parse(m[1]!) as Record<string, unknown>;
+    const j = JSON.parse(m[1] ?? "{}") as Record<string, unknown>;
     const amount = Number(j["amount"]);
     const date = String(j["date"] ?? "");
     if (!(amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { text: clean, draft: null };
-    return { text: clean, draft: { title: String(j["title"] ?? "Performance").slice(0, 120), amount, date, notes: String(j["notes"] ?? "").slice(0, 1000) } };
+    return { text: clean, draft: { title: String(j["title"] ?? "Performance").slice(0, 120), amount, date, ...(j["clientName"] ? {clientName:String(j["clientName"]).slice(0,120)} : {}), ...(j["jobDetail"] ? {jobDetail:String(j["jobDetail"]).slice(0,1000)} : {}), notes: String(j["notes"] ?? "").slice(0, 1000) } };
   } catch { return { text: clean, draft: null }; }
 }

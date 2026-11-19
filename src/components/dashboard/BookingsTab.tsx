@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { bookingPayment } from "@/lib/booking-payment-rules";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -22,17 +23,18 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const dispute$ = useServerFn(openDisputeAsArtist);
   const [phone, setPhone] = useState(notifyPhone ?? "");
   const key = ["artist-bookings", artistId];
-  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
+  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("start_time,end_time,job_detail,notes,paid_amount,deposit_pct,calendar_sync_status,calendar_sync_error,reminder_sent_at,id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
   const { data: convs } = useQuery({ queryKey: ["offer-convs", artistId], queryFn: async () => (await supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(50)).data ?? [] });
   const { data: packages } = useQuery({ queryKey: ["offer-packages", artistId], queryFn: async () => (await supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort")).data ?? [] });
   const emails = [...new Set((bookings ?? []).map((b) => b.client_email?.toLowerCase()).filter(Boolean))] as string[];
   const { data: ratings } = useQuery({ queryKey: ["client-ratings", artistId, emails.join(",")], enabled: emails.length > 0, queryFn: async () => (await supabase.from("client_ratings").select("booking_id, client_email, rating, note, artist_id").in("client_email", emails)).data ?? [] });
   const [rate, setRate] = useState<{ id: string; rating: number; note: string } | null>(null);
-  const rep = (email: string | null) => { const r = (ratings ?? []).filter((x) => x.client_email.toLowerCase() === email?.toLowerCase()); return r.length ? { avg: r.reduce((n, x) => n + x.rating, 0) / r.length, n: r.length, notes: r.filter((x) => x.note).map((x) => x.note!) } : null; };
+  const rep = (email: string | null) => { const r = (ratings ?? []).filter((x) => x.client_email.toLowerCase() === email?.toLowerCase()); return r.length ? { avg: r.reduce((n, x) => n + x.rating, 0) / r.length, n: r.length, notes: r.filter((x) => x.note).map((x) => x.note ?? "") } : null; };
   const saveRating = async (b: { id: string; client_email: string | null }) => {
     if (!rate || !b.client_email) return;
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("client_ratings").insert({ booking_id: b.id, artist_id: artistId, client_email: b.client_email.toLowerCase(), rating: rate.rating, note: rate.note.trim().slice(0, 500) || null, created_by: u.user!.id });
+    if (!u.user) { toast.error("Please sign in"); return; }
+    const { error } = await supabase.from("client_ratings").insert({ booking_id: b.id, artist_id: artistId, client_email: b.client_email.toLowerCase(), rating: rate.rating, note: rate.note.trim().slice(0, 500) || null, created_by: u.user.id });
     if (error) { toast.error("Could not save rating"); return; }
     toast.success("Private client rating saved"); setRate(null); qc.invalidateQueries({ queryKey: ["client-ratings"] });
   };
@@ -49,11 +51,11 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   };
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-      <div className="space-y-3">
-        {bookings?.length === 0 && <p className="text-muted-foreground">No platform bookings yet. Send an offer from a quote conversation.</p>}
+    <div className="mt-6 space-y-6">
+      <div className="min-w-0 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-start"><th className="p-3 text-start">Client / booking</th><th className="p-3 text-start">Date & time</th><th className="p-3 text-start">Total</th><th className="p-3 text-start">Payment</th><th className="p-3 text-start">Balance</th><th className="p-3 text-start">Calendar</th></tr></thead><tbody>
+        {bookings?.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">No bookings yet</td></tr>}
         {bookings?.map((b) => (
-          <div key={b.id} className="rounded-xl bg-card p-4 shadow-card">
+          <tr key={b.id} className="border-b align-top"><td className="min-w-[250px] p-3">
             <div className="flex justify-between gap-3">
               <div>
                 <div className="font-semibold">{b.client_name} · {b.package_title}</div>
@@ -78,14 +80,15 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
             )}
             {(b.status === "quoted" || b.status === "confirmed") && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {b.status === "confirmed" && <Button size="sm" disabled={busy || !canComplete(b.status, b.event_date)} title={canComplete(b.status, b.event_date) ? "" : "Available from the event date"} onClick={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>Mark completed</Button>}
+                {b.status === "confirmed" && <Button size="sm" disabled={busy || Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)} title={canComplete(b.status, b.event_date) ? "" : "Available from the event date"} onClick={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>Mark completed</Button>}
                 {canDispute(b.status, b.escrow_status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = prompt("Describe the problem for the Dealmaker team"); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>Report problem</Button>}
                 <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm("Cancel? The client gets a full refund.")) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>Cancel</Button>
               </div>
             )}
-          </div>
+            <details className="mt-3"><summary className="cursor-pointer text-primary">Booking information</summary><table className="mt-2 w-full text-xs"><tbody>{[["Job detail",b.job_detail??b.notes??"—"],["Email",b.client_email??"—"],["Invoice",b.invoice_no??"—"],["H-7 reminder",b.reminder_sent_at?"Sent":"Pending"],["Calendar error",b.calendar_sync_error??"—"]].map(([k,v])=><tr key={k} className="border-b"><th className="py-2 pe-2 text-start">{k}</th><td className="py-2 whitespace-pre-wrap break-words">{v}</td></tr>)}</tbody></table></details>
+          </td><td className="p-3 whitespace-nowrap">{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap">{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap"><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`Paid ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:"Unpaid"}</Badge></td><td className="p-3 whitespace-nowrap">{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3">{b.calendar_sync_status}</td></tr>
         ))}
-      </div>
+      </tbody></table></div>
       <div className="space-y-6">
         <div className="rounded-xl bg-card p-4 shadow-card space-y-3">
           <h3 className="font-semibold">Send booking offer</h3>

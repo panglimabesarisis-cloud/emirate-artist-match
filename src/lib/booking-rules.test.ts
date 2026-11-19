@@ -30,3 +30,5 @@ describe("disputes and AI drafts", () => {
   });
   it("ignores an invalid draft", () => expect(extractDraft('ok [BOOKING_READY {"amount":0}]').draft).toBeNull());
 });
+
+it("preserves client job details from direct chat",()=>{expect(extractDraft('[BOOKING_READY {"title":"DJ","amount":1,"date":"2026-12-20","notes":"Wedding","clientName":"Alex","jobDetail":"Outdoor wedding, 80 guests, 18:00–20:00"}]').draft?.jobDetail).toBe("Outdoor wedding, 80 guests, 18:00–20:00");});

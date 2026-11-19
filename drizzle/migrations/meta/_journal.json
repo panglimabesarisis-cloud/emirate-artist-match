@@ -169,6 +169,13 @@
       "when": 1795110978121,
       "tag": "0023_ai_flow_template_library",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795113023520,
+      "tag": "0024_booking_invoice_deposits",
+      "breakpoints": true
     }
   ]
 }

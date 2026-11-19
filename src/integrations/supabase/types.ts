@@ -513,7 +513,11 @@ export type Database = {
           access_key: string
           amount: number
           artist_id: string
+          artist_invoice_required: boolean
           artist_key: string
+          calendar_event_id: string | null
+          calendar_sync_error: string | null
+          calendar_sync_status: string
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -525,21 +529,28 @@ export type Database = {
           contract_accepted_at: string | null
           conversation_id: string | null
           created_at: string
+          deposit_pct: number
           drafted_by: string
+          end_time: string | null
           escrow_status: string
           event_date: string
           event_type_id: string | null
           guests: number | null
           id: string
+          invoice_items: Json
           invoice_no: string | null
           is_seed: boolean
+          job_detail: string | null
           notes: string | null
           package_title: string | null
           paid_amount: number
           paid_at: string | null
           refund_amount: number
+          reminder_claimed_at: string | null
+          reminder_sent_at: string | null
           revision_note: string | null
           send_invoice_after_approval: boolean
+          start_time: string | null
           status: string
           total: number
           vat_amount: number
@@ -548,7 +559,11 @@ export type Database = {
           access_key?: string
           amount: number
           artist_id: string
+          artist_invoice_required?: boolean
           artist_key?: string
+          calendar_event_id?: string | null
+          calendar_sync_error?: string | null
+          calendar_sync_status?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -560,21 +575,28 @@ export type Database = {
           contract_accepted_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          deposit_pct?: number
           drafted_by?: string
+          end_time?: string | null
           escrow_status?: string
           event_date: string
           event_type_id?: string | null
           guests?: number | null
           id?: string
+          invoice_items?: Json
           invoice_no?: string | null
           is_seed?: boolean
+          job_detail?: string | null
           notes?: string | null
           package_title?: string | null
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          reminder_claimed_at?: string | null
+          reminder_sent_at?: string | null
           revision_note?: string | null
           send_invoice_after_approval?: boolean
+          start_time?: string | null
           status?: string
           total?: number
           vat_amount?: number
@@ -583,7 +605,11 @@ export type Database = {
           access_key?: string
           amount?: number
           artist_id?: string
+          artist_invoice_required?: boolean
           artist_key?: string
+          calendar_event_id?: string | null
+          calendar_sync_error?: string | null
+          calendar_sync_status?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -595,21 +621,28 @@ export type Database = {
           contract_accepted_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          deposit_pct?: number
           drafted_by?: string
+          end_time?: string | null
           escrow_status?: string
           event_date?: string
           event_type_id?: string | null
           guests?: number | null
           id?: string
+          invoice_items?: Json
           invoice_no?: string | null
           is_seed?: boolean
+          job_detail?: string | null
           notes?: string | null
           package_title?: string | null
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          reminder_claimed_at?: string | null
+          reminder_sent_at?: string | null
           revision_note?: string | null
           send_invoice_after_approval?: boolean
+          start_time?: string | null
           status?: string
           total?: number
           vat_amount?: number
@@ -1651,6 +1684,10 @@ export type Database = {
           _revision: string
           _title: string
         }
+        Returns: boolean
+      }
+      approve_invoice_booking: {
+        Args: { _id: string; _items: Json; _key: string }
         Returns: boolean
       }
       artist_public_stats: {

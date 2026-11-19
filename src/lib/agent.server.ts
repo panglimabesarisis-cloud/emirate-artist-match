@@ -8,7 +8,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm } from "./booking-message";
-import { approvalAction, flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
+import { invoiceWorkflow, approvalAction, flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-5.6-luna" as const;
@@ -54,6 +54,8 @@ export async function runAgent(conversationId: string) {
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
+  const invoiceAction = invoiceWorkflow(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
+  const {data: existingBooking} = await supabaseAdmin.from("bookings").select("status,artist_invoice_required,paid_amount,total").eq("conversation_id",conversationId).in("status",["inquiry","quoted","confirmed"]).limit(1).maybeSingle();
   const maxDiscount = settings?.max_discount_pct ?? 10;
   const pricing = agentRates(rates ?? [], artist.base_price);
   const floor = pricing.minimum === null ? Infinity : pricing.minimum * (pricing.startingOnly ? 1 : 1 - maxDiscount / 100);
@@ -70,15 +72,15 @@ export async function runAgent(conversationId: string) {
 Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: collect missing event details (date, venue area, guest count, timing, event type), recommend a package and quote a price.
 PRICING RULES (strict):
-${pricing.text}
+${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}
 - Only quote the stored prices above, in AED. Prices exclude 5% VAT.
-${pricing.startingOnly ? "- Before sending approval, explain the starting-rate estimate and ask the client to agree to it. Never turn a request to book into consent to an undisclosed price. Do not discount this estimate." : pricing.minimum === null ? "- No payable draft can be created until the artist supplies a price; hand over." : `- You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.`}
+${invoiceAction ? "- Invoice prices must be supplied and approved by the artist. Use amount 1 as an internal non-payable placeholder in BOOKING_READY; never show it as a quote." : pricing.startingOnly ? "- Before sending approval, explain the starting-rate estimate and ask the client to agree to it. Never turn a request to book into consent to an undisclosed price. Do not discount this estimate." : pricing.minimum === null ? "- No payable draft can be created until the artist supplies a price; hand over." : `- You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.`}
 - Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
 AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown, never assume available or busy, do not send a booking or invoice; explain the schedule cannot be verified and hand over to the artist. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
-BOOKING HAND-OFF: once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages) AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
-[BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
-Use this token only once per conversation.
+BOOKING HAND-OFF: ${invoiceAction ? "once the client explicitly agrees to proceed with the verified available schedule (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
+[BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>"}]
+Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
 QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise. Same for [FORM: ...] tokens from a Form step.\nVARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
@@ -134,7 +136,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     if (ex.draft && calendarCheck) {
       const fresh = await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime });
       if (!verifiedCalendarDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
-      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action);
+      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction);
     }
     if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
   } catch (e) {
@@ -144,17 +146,19 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, action: ReturnType<typeof approvalAction>) {
+async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string; clientName?: string; jobDetail?: string }, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
-  if (!Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
-  const amount = Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
+  if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
+  const amount = invoiceAction ? 0 : Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
   const { data: convo } = await supabaseAdmin.from("conversations").select("quote_requests(name, email, phone, event_type_id, guests)").eq("id", conversationId).single();
   const q = convo?.quote_requests;
   const p = priceBreakdown(amount);
   const { data: b, error: bookingError } = await supabaseAdmin.from("bookings").insert({
-    artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? "Client", client_email: q?.email ?? null, client_phone: q?.phone ?? null,
+    artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? maskContacts(d.clientName || "Client"), client_email: q?.email ?? null, client_phone: q?.phone ?? null,
     event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title, notes: maskContacts(d.notes) || null,
+    start_time: calendar.window.startTime, end_time: calendar.window.endTime, job_detail: maskContacts(d.jobDetail || d.notes), artist_invoice_required: !!invoiceAction, deposit_pct: invoiceAction ? 20 : 100,
+    invoice_items: invoiceAction ? [{title:maskContacts(invoiceAction.description),qty:1,price:invoiceAction.price}] : [],
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();
   if (bookingError || !b) throw new Error(bookingError?.message ?? "Could not save approval request");
@@ -162,7 +166,7 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   const c = await artistContact(artistId);
   if (action?.phone) c.phone = action.phone;
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
-  await notifyBooking(b.id, "artist", "approval_request", c, `New booking to approve: ${d.title} on ${d.date}`,
+  await notifyBooking(b.id, "artist", "approval_request", c, `${invoiceAction ? "Fill invoice for booking" : "New booking to approve"}: ${d.title} on ${d.date}`,
     `Client ${q?.name ?? "Client"}, AED ${p.subtotal.toLocaleString("en-US")} + VAT, ${d.notes}`, link);
 }
 

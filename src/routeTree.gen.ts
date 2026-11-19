@@ -30,6 +30,7 @@ import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emi
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
+import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -139,6 +140,12 @@ const ApiPublicCalendarTokenRoute = ApiPublicCalendarTokenRouteImport.update({
   path: '/api/public/calendar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsBookingRemindersRoute =
+  ApiPublicJobsBookingRemindersRouteImport.update({
+    id: '/api/public/jobs/booking-reminders',
+    path: '/api/public/jobs/booking-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -173,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
+  '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -197,6 +205,7 @@ export interface FileRoutesByTo {
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
+  '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -223,6 +232,7 @@ export interface FileRoutesById {
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
+  '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate/'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
+    | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
+    | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/webhook'
   id:
@@ -298,6 +310,7 @@ export interface FileRouteTypes {
     | '/$category/$emirate/'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
+    | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -322,6 +335,7 @@ export interface RootRouteChildren {
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
   ApiOauthGoogle_calendarReturnRoute: typeof ApiOauthGoogle_calendarReturnRoute
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
+  ApiPublicJobsBookingRemindersRoute: typeof ApiPublicJobsBookingRemindersRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -475,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCalendarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/booking-reminders': {
+      id: '/api/public/jobs/booking-reminders'
+      path: '/api/public/jobs/booking-reminders'
+      fullPath: '/api/public/jobs/booking-reminders'
+      preLoaderRoute: typeof ApiPublicJobsBookingRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -526,6 +547,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,
   ApiOauthGoogle_calendarReturnRoute: ApiOauthGoogle_calendarReturnRoute,
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
+  ApiPublicJobsBookingRemindersRoute: ApiPublicJobsBookingRemindersRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
