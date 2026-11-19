@@ -1,4 +1,5 @@
 import { decodeInvoice } from "./invoice";
+import { agentRates } from "./agent-pricing";
 import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
 import { checkGoogleAvailability } from "./calendar-availability.server";
 import { verifiedCalendarDraft, type CalendarCheck } from "./calendar-rules";
@@ -54,8 +55,8 @@ export async function runAgent(conversationId: string) {
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
   const maxDiscount = settings?.max_discount_pct ?? 10;
-  const packages = (rates ?? []).map((r) => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} (${r.duration_minutes} min) — ${r.description ?? ""}`).join("\n");
-  const floor = Math.min(...(rates ?? []).map((r) => Number(r.price)), Number(artist.base_price)) * (1 - maxDiscount / 100);
+  const pricing = agentRates(rates ?? [], artist.base_price);
+  const floor = pricing.minimum === null ? Infinity : pricing.minimum * (pricing.startingOnly ? 1 : 1 - maxDiscount / 100);
 
   const confirm = quote ? formatBookingConfirm({ name: quote.name, artistName: artist.stage_name, eventDate: quote.event_date, venue: quote.areas?.name ?? null,
     startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;
@@ -69,20 +70,20 @@ export async function runAgent(conversationId: string) {
 Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: collect missing event details (date, venue area, guest count, timing, event type), recommend a package and quote a price.
 PRICING RULES (strict):
-${packages || "- No packages set. Do not quote a price; say the artist will confirm."}
-- Only quote the package prices above, in AED. Prices exclude 5% VAT.
-- You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.
+${pricing.text}
+- Only quote the stored prices above, in AED. Prices exclude 5% VAT.
+${pricing.startingOnly ? "- Before sending approval, explain the starting-rate estimate and ask the client to agree to it. Never turn a request to book into consent to an undisclosed price. Do not discount this estimate." : pricing.minimum === null ? "- No payable draft can be created until the artist supplies a price; hand over." : `- You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.`}
 - Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
 AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown, never assume available or busy, do not send a booking or invoice; explain the schedule cannot be verified and hand over to the artist. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
-BOOKING HAND-OFF: once the client has agreed to a package and price AND you know the event date, area, timing and guest count, tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
+BOOKING HAND-OFF: once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages) AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation.
 QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise. Same for [FORM: ...] tokens from a Form step.\nVARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
-BOOKING CONFIRMATION: your first message already showed the client their booking details and asked "This is your booking? Have any request?". If the client's next message confirms with no extra request (e.g. "No", "Yes", "Correct"), reply exactly: "Okay, please wait, I will check the schedule for you." then continue with the flow on later turns. If they ask for changes, acknowledge them first.
+BOOKING CONFIRMATION: ${confirm ? 'Your first message showed the booking details. When the client confirms, check_calendar and continue the flow in the same turn; do not promise a background check that never runs.' : 'This is a direct chat; collect the missing details following the flow. When details are confirmed, check_calendar and continue in the same turn.'}
 CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
 ${flowSteps}
 Original request: ${JSON.stringify(quote ?? {})}`;
@@ -146,16 +147,17 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, action: ReturnType<typeof approvalAction>) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
+  if (!Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
   const amount = Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
   const { data: convo } = await supabaseAdmin.from("conversations").select("quote_requests(name, email, phone, event_type_id, guests)").eq("id", conversationId).single();
   const q = convo?.quote_requests;
   const p = priceBreakdown(amount);
-  const { data: b } = await supabaseAdmin.from("bookings").insert({
+  const { data: b, error: bookingError } = await supabaseAdmin.from("bookings").insert({
     artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? "Client", client_email: q?.email ?? null, client_phone: q?.phone ?? null,
     event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title, notes: maskContacts(d.notes) || null,
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();
-  if (!b) return;
+  if (bookingError || !b) throw new Error(bookingError?.message ?? "Could not save approval request");
   await addMessage(conversationId, "system", "Your booking is awaiting artist approval. An invoice or payment link will appear here once approved.");
   const c = await artistContact(artistId);
   if (action?.phone) c.phone = action.phone;

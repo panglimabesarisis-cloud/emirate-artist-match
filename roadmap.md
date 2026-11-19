@@ -1,10 +1,11 @@
 # Roadmap
+- [x] Repair direct-chat Inbox/invoice visibility (new chat read back signed-in on desktop/mobile) and disclose stored starting-rate estimates before explicit client consent; 40 pricing/calendar/flow tests pass. WhatsApp end-to-end remains blocked by Meta account restriction.
 - [x] AI Agent uses live artist Google Calendar, not manual blocked dates; 28 tests pass and connected-artist chat reads availability back through the UI.
 - [x] Artist invoice two-column item editor and read-only live preview; verified live totals, chat sending, persisted Unpaid table, and desktop/mobile layout.
 - [x] Option A: GPT-5.6 Luna, immediately visible masked client messages, and typing status; real chat verified on desktop/mobile without duplicates. Model calls 1.1–1.7s; full UI replies 7.6–8.6s in sandbox.
 - [x] WotNot-style chat buttons, compact forms and calendar date picker shared with the AI Flow right-side preview; date submission and buttons verified in a signed-in artist preview on desktop and mobile.
 - [x] AI Flow WhatsApp approval block with artist destination and automatic invoice after approval; verified in a temporary signed-in artist dashboard and client chat.
-- [ ] Verify WhatsApp approval delivery — blocked: Meta template is PENDING; user confirmed Dealmaker as incoming destination; actual signed delivery remains unverified. Quiet-period recovery waits for a subsequent callback or send.
+- [ ] Verify WhatsApp approval delivery — blocked: existing template REJECTED; Meta refused new template creation because the business account is restricted. User must resolve the restriction with Meta before template approval/delivery testing. Actual signed delivery remains unverified; quiet-period recovery waits for subsequent traffic.
 - [x] Invoice preview and sent-invoice payment-status table; sent and read back in a temporary client chat.
 - [x] Stripe sandbox checkout for invoices, AI credits, talent deposit, and client bookings; verified, idempotent settlement implemented (successful AED transaction remains blocked).
 - [ ] End-to-end AED sandbox purchase — blocked: current Stripe sandbox only supports IDR.

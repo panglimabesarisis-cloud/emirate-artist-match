@@ -24,18 +24,29 @@ export function Inbox({ artistId }: { artistId: string }) {
   const [text, setText] = useState("");
   const { data: convos } = useQuery({
     queryKey: ["inbox", artistId],
-    queryFn: async () => (await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, quote_requests(name, event_date)").eq("artist_id", artistId).not("quote_request_id", "is", null).order("last_message_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
     refetchInterval: 10000,
   });
   const { data: msgs } = useQuery({
     queryKey: ["inbox-msgs", open],
     enabled: !!open,
-    queryFn: async () => (await supabase.from("messages").select("id, sender, body, created_at").eq("conversation_id", open!).order("created_at")).data ?? [],
+    queryFn: async () => {
+      if (!open) return [];
+      const { data, error } = await supabase.from("messages").select("id, sender, body, created_at").eq("conversation_id", open).order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
     refetchInterval: 5000,
   });
   const current = convos?.find((c) => c.id === open);
   const setMode = async (mode: string) => {
-    await supabase.from("conversations").update({ mode }).eq("id", open!);
+    if (!open) return;
+    const { error } = await supabase.from("conversations").update({ mode }).eq("id", open);
+    if (error) { toast.error("Could not change chat mode"); return; }
     qc.invalidateQueries({ queryKey: ["inbox", artistId] });
   };
   const send = async () => {
@@ -50,15 +61,15 @@ export function Inbox({ artistId }: { artistId: string }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-[300px_1fr]">
       <div className="space-y-2">
-        {convos?.length === 0 && <p className="text-sm text-muted-foreground">No conversations yet. They start when a client requests a quote.</p>}
+        {convos?.length === 0 && <p className="text-sm text-muted-foreground">No conversations yet.</p>}
         {convos?.map((c) => (
-          <button key={c.id} onClick={() => setOpen(c.id)} className={`w-full text-left rounded-xl p-3 border ${open === c.id ? "border-gold bg-accent" : "bg-card"}`}>
+          <Button variant="outline" key={c.id} onClick={() => setOpen(c.id)} className={`h-auto w-full flex-col items-stretch whitespace-normal text-start p-3 ${open === c.id ? "border-gold bg-accent" : "bg-card"}`}>
             <div className="flex justify-between items-center">
-              <span className="font-semibold">{c.quote_requests?.name ?? "Client"}</span>
+              <span className="font-semibold">{c.quote_requests?.name ?? `Direct chat · ${c.id.slice(0, 8)}`}</span>
               <Badge variant={c.mode === "human" ? "default" : "secondary"}>{c.mode === "human" ? "Needs you" : "AI"}</Badge>
             </div>
             <div className="text-xs text-muted-foreground">{c.quote_requests?.event_date ?? "date TBC"} · {c.ai_replies} AI replies</div>
-          </button>
+          </Button>
         ))}
       </div>
       {open ? (
@@ -70,16 +81,16 @@ export function Inbox({ artistId }: { artistId: string }) {
             </Button>
           </div>
           <div className="p-4 space-y-2 max-h-[50vh] overflow-y-auto flex-1">
-            {msgs?.map((m) => m.sender === "system" ? (
+            {msgs?.map((m) => { const inv = decodeInvoice(m.body); return m.sender === "system" && !inv ? (
               <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>
             ) : (
               <div key={m.id} className={`flex ${m.sender === "client" ? "justify-start" : "justify-end"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.sender === "client" ? "bg-muted" : m.sender === "ai" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}`} dir="auto">
                   <div className="text-[10px] uppercase opacity-70">{m.sender === "ai" ? "AI assistant" : m.sender === "artist" ? "You" : "Client"}</div>
-                  {decodeInvoice(m.body) ? <InvoiceCard inv={decodeInvoice(m.body)!} /> : m.body}
+                  {inv ? <InvoiceCard inv={inv} /> : m.body}
                 </div>
               </div>
-            ))}
+            ); })}
           </div>
           <div className="p-3 border-t flex gap-2">
             <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Reply personally…" maxLength={2000} onKeyDown={(e) => e.key === "Enter" && send()} />

@@ -25,9 +25,10 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
     queryKey: ["invoices", artistId], refetchInterval: 5000,
     queryFn: async () => {
       const [c, r] = await Promise.all([
-        supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).not("quote_request_id", "is", null).order("last_message_at", { ascending: false }).limit(100),
+        supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(100),
         supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort"),
       ]);
+      if (c.error) throw c.error;
       const convos = c.data ?? [];
       const ids = convos.map((x) => x.id);
       const stored = (await supabase.from("service_invoices").select("*").eq("artist_id", artistId).order("created_at", { ascending: false })).data ?? [];
@@ -43,7 +44,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
     try { return buildInvoice("PREVIEW", items.map(i => ({ ...i, title: maskContacts(i.title) })), null, null); }
     catch { return null; }
   })();
-  const nameOf = (id: string) => data?.convos.find((c) => c.id === id)?.quote_requests?.name ?? "Client";
+  const nameOf = (id: string) => data?.convos.find((c) => c.id === id)?.quote_requests?.name ?? `Direct chat · ${id.slice(0, 8)}`;
   const selectedClient = data?.convos.find((c) => c.id === convo)?.quote_requests;
 
   const submit = async () => {
@@ -66,7 +67,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
         <section aria-label={t("Invoice items")} className="min-w-0 space-y-5">
           <div className="space-y-2"><Label>{t("Client chat")}</Label>
             <Select value={convo} onValueChange={setConvo}><SelectTrigger><SelectValue placeholder="Choose a client" /></SelectTrigger>
-              <SelectContent>{data?.convos.map((c) => <SelectItem key={c.id} value={c.id}>{c.quote_requests?.name ?? "Client"} · {c.quote_requests?.event_date ?? "date TBC"}</SelectItem>)}</SelectContent></Select>
+              <SelectContent>{data?.convos.map((c) => <SelectItem key={c.id} value={c.id}>{nameOf(c.id)} · {c.quote_requests?.event_date ?? "date TBC"}</SelectItem>)}</SelectContent></Select>
           </div>
         <div>
           <Label>{t("Services")}</Label>
