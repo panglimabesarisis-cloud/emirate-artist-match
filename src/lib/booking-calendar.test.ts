@@ -1,0 +1,11 @@
+import {it,expect,vi,beforeEach} from 'vitest';
+const mocks=vi.hoisted(()=>({booking:{id:'12345678-1234-1234-1234-123456789abc',status:'confirmed',paid_amount:420,total:2100,start_time:'18:00',end_time:'20:00',event_date:'2026-12-20',job_detail:'Wedding 80 guests',client_name:'Alex',artists:{user_id:'owner',stage_name:'DJ'},calendar_event_id:null},update:vi.fn(),call:vi.fn(),key:vi.fn()}));
+vi.mock('@/integrations/supabase/client.server',()=>({supabaseAdmin:{from:()=>({select:()=>({eq:()=>({single:async()=>({data:mocks.booking})})}),update:(v:unknown)=>{mocks.update(v);return{eq:async()=>({error:null})};}})}}));
+vi.mock('./appUserConnections.server',()=>({getConnectionKeyForUser:mocks.key}));
+vi.mock('@/integrations/lovable/appUserConnector',()=>({callAsAppUser:mocks.call}));
+import {syncBookingCalendar} from './booking-calendar.server';
+beforeEach(()=>{vi.clearAllMocks();mocks.booking.paid_amount=420;mocks.key.mockResolvedValue('test-key');mocks.call.mockResolvedValue(new Response('{}',{status:200}));});
+it('writes paid deposit event with client job details and UAE times',async()=>{await syncBookingCalendar('123');const args=mocks.call.mock.calls[0]?.[0];const event=JSON.parse(args.init.body);expect(event.description).toContain('Wedding 80 guests');expect(event.start.dateTime).toBe('2026-12-20T18:00:00+04:00');expect(event.id).toBe('dm12345678123412341234123456789abc');expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({calendar_sync_status:'synced'}));});
+it('never writes unpaid booking events',async()=>{mocks.booking.paid_amount=0;await syncBookingCalendar('123');expect(mocks.call).not.toHaveBeenCalled();});
+it('keeps failed scope writes visible for reconnection',async()=>{mocks.call.mockResolvedValue(new Response('missing scope',{status:403}));await syncBookingCalendar('123');expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({calendar_sync_status:'failed'}));});
+it('reconciles a repeated deterministic event without duplication',async()=>{mocks.call.mockResolvedValue(new Response('{}',{status:409}));await syncBookingCalendar('123');expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({calendar_sync_status:'synced'}));});

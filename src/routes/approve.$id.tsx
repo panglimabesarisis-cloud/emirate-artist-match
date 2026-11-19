@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ApprovalInvoiceEditor } from "@/components/dashboard/ApprovalInvoiceEditor";
+import type { InvoiceItem } from "@/lib/invoice";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/approve/$id")({
@@ -52,6 +54,8 @@ function ApprovePage() {
     ["Client", b.client_name],
     ["Event", b.event_types?.name ?? "—"],
     ["Date", b.event_date],
+    ["Time", `${b.start_time?.slice(0,5) ?? "—"} – ${b.end_time?.slice(0,5) ?? "—"}`],
+    ["Job detail", b.job_detail ?? b.notes ?? "—"],
     ["Area", q?.areas?.name ?? "—"],
     ["Guests", b.guests ? String(b.guests) : "—"],
     ["Client budget", q?.budget ? aed(Number(q.budget)) : "—"],
@@ -63,11 +67,11 @@ function ApprovePage() {
 
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-5xl px-4 py-10 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Bot className="h-3 w-3" />{b.drafted_by === "ai" ? "Drafted by your AI assistant" : "Booking"} for {b.artists?.stage_name}</div>
-            <h1 className="text-3xl font-semibold">Approve this booking?</h1>
+            <h1 className="text-3xl font-semibold">Review booking & invoice</h1>
           </div>
           <Badge variant={pending ? "default" : "secondary"}>{pending ? "Awaiting your approval" : b.status === "quoted" ? "Approved · waiting for client payment" : b.status}</Badge>
         </div>
@@ -90,7 +94,8 @@ function ApprovePage() {
           </section>
         )}
 
-        {pending && mode === "view" && (
+        {pending && b.artist_invoice_required && <ApprovalInvoiceEditor id={id} linkKey={k} initial={Array.isArray(b.invoice_items)? b.invoice_items as InvoiceItem[]:[]} onSent={()=>qc.invalidateQueries({queryKey:["approval",id]})} />}
+        {pending && !b.artist_invoice_required && mode === "view" && (
           <div className="grid gap-3 sm:grid-cols-3">
             <Button disabled={busy} className="bg-gradient-gold text-gold-foreground" onClick={() => run(() => approve$({ data: { id, key: k, ...f, amount: Number(f.amount) } }), "Approved — payment link sent to the client")}><Check className="mr-2 h-4 w-4" />Approve</Button>
             <Button variant="outline" onClick={() => setMode("edit")}><PencilLine className="mr-2 h-4 w-4" />Edit details</Button>

@@ -2,6 +2,8 @@ import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
+import { bookingPayment } from "./booking-payment-rules";
+import { buildInvoice, type InvoiceItem } from "./invoice";
 import { priceBreakdown, refundAmount, canComplete, canDispute } from "./booking-rules";
 
 const uuid = (v: unknown) => {
@@ -10,7 +12,7 @@ const uuid = (v: unknown) => {
 };
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
-const BOOKING_COLS = "id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body)";
+const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body)";
 
 async function bookingByKey(id: string, key: string) {
   const db = await admin();
@@ -71,21 +73,29 @@ export const getBooking = createServerFn({ method: "POST" })
 
 /** Client: accept the contract and pay into demo escrow. */
 export const acceptAndPay = createServerFn({ method: "POST" })
-  .inputValidator((i: { id: string; key: string; agree: boolean }) => {
+  .inputValidator((i: { id: string; key: string; agree: boolean; phone?: string | undefined }) => {
     if (i.agree !== true) throw new Error("Please accept the contract");
-    return { id: uuid(i.id), key: uuid(i.key) };
+    if (i.phone && !/^\+[1-9]\d{7,14}$/.test(i.phone)) throw new Error("Use an international WhatsApp number");
+    return { id: uuid(i.id), key: uuid(i.key), phone:i.phone || null };
   })
   .handler(async ({ data }) => {
     try {
     const b = await bookingByKey(data.id, data.key);
-    if (b.status !== "quoted") throw new Error(b.status === "inquiry" ? "Waiting for the artist to approve" : "This offer can no longer be paid");
+    if (!["quoted","confirmed"].includes(b.status) || Number(b.paid_amount)>=Number(b.total)) throw new Error(b.status === "inquiry" ? "Waiting for the artist to approve" : "This offer can no longer be paid");
     const db = await admin();
     const now = new Date().toISOString();
-    const { error } = await db.from("bookings").update({ contract_accepted_at: now }).eq("id", b.id).eq("status", "quoted");
+    if(Number(b.paid_amount)===0 && b.start_time && b.end_time){
+      const {data:artist}=await db.from("artists").select("user_id").eq("id",b.artist_id).single();
+      const {checkGoogleAvailability}=await import("./calendar-availability.server");
+      if(!artist?.user_id)throw new Error("Artist Calendar not connected");
+      const check=await checkGoogleAvailability(artist.user_id,{date:b.event_date,startTime:b.start_time.slice(0,5),endTime:b.end_time.slice(0,5)});
+      if(check.status!=="available")throw new Error("This schedule is no longer verified available; contact the artist");
+    }
+    const { error } = await db.from("bookings").update({ contract_accepted_at: now, ...(data.phone?{client_phone:data.phone}:{}) }).eq("id", b.id).in("status", ["quoted","confirmed"]);
     if (error) throw new Error(error.message);
     const { data: identity } = await db.from("bookings").select("client_user_id").eq("id", b.id).single();
     const { openOrder } = await import("./payments.server");
-    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: Math.round(Number(b.total) * 100) }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
+    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
     } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 
@@ -120,10 +130,10 @@ export const completeBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string }) => ({ id: uuid(i.id) }))
   .handler(async ({ data, context }) => {
-    const { data: b } = await context.supabase.from("bookings").select("artist_id, status, event_date").eq("id", data.id).maybeSingle();
+    const { data: b } = await context.supabase.from("bookings").select("artist_id, status, event_date,paid_amount,total").eq("id", data.id).maybeSingle();
     if (!b) throw new Error("Not found");
     await assertArtistOwns(context.supabase, context.userId, b.artist_id);
-    if (!canComplete(b.status, b.event_date)) throw new Error("Only paid bookings on or after the event date can be completed");
+    if (Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)) throw new Error("Only paid bookings on or after the event date can be completed");
     const db = await admin();
     await db.from("bookings").update({ status: "completed", completed_at: new Date().toISOString(), escrow_status: "release_pending" }).eq("id", data.id);
     return { ok: true };
@@ -153,7 +163,7 @@ export const submitBookingReview = createServerFn({ method: "POST" })
 export const notifyTeamPaid = createServerOnlyFn(async (bookingId: string) => {
   const db = await admin();
   const { notifyBooking, siteOrigin } = await import("./notify.server");
-  const { data: b } = await db.from("bookings").select("id, client_name, client_phone, client_email, guests, package_title, notes, event_date, amount, total, invoice_no, event_types(name), artists(stage_name, notify_phone, manager_phone), conversations(quote_requests(start_time, end_time, perform_minutes, areas(name)))").eq("id", bookingId).single();
+  const { data: b } = await db.from("bookings").select("id, start_time, end_time, paid_amount, client_name, client_phone, client_email, guests, package_title, notes, event_date, amount, total, invoice_no, event_types(name), artists(stage_name, notify_phone, manager_phone), conversations(quote_requests(start_time, end_time, perform_minutes, areas(name)))").eq("id", bookingId).single();
   if (!b) return;
   const q = b.conversations?.quote_requests;
   const details = [
@@ -162,7 +172,7 @@ export const notifyTeamPaid = createServerOnlyFn(async (bookingId: string) => {
     q?.areas?.name ? `Venue: ${q.areas.name}` : null, q?.perform_minutes ? `Performance: ${q.perform_minutes} min` : null,
     b.guests ? `Guests: ${b.guests}` : null, `Package: ${b.package_title ?? "-"}`,
     `Client: ${b.client_name}${b.client_phone ? ` ${b.client_phone}` : ""}${b.client_email ? ` ${b.client_email}` : ""}`,
-    `Paid: AED ${Number(b.total).toLocaleString("en-US")} (invoice ${b.invoice_no ?? "-"})`, b.notes ? `Notes: ${b.notes}` : null,
+    `Paid: AED ${Number(b.paid_amount).toLocaleString("en-US")} (invoice ${b.invoice_no ?? "-"})`, b.notes ? `Notes: ${b.notes}` : null,
   ].filter(Boolean).join("\n");
   const link = `${siteOrigin(getRequest())}/dashboard`;
   const phones = [...new Set([b.artists?.notify_phone, b.artists?.manager_phone].filter((x): x is string => !!x))];
@@ -187,7 +197,7 @@ async function sendClientLink(bookingId: string) {
 
 async function bookingByArtistKey(id: string, key: string) {
   const db = await admin();
-  const { data } = await db.from("bookings").select("id, artist_id, conversation_id, client_name, guests, package_title, notes, event_date, amount, vat_amount, total, status, drafted_by, revision_note, event_types(name), artists(stage_name), conversations(quote_requests(areas(name), message, budget))").eq("id", id).eq("artist_key", key).maybeSingle();
+  const { data } = await db.from("bookings").select("artist_invoice_required, invoice_items, start_time, end_time, job_detail, deposit_pct, id, artist_id, conversation_id, client_name, guests, package_title, notes, event_date, amount, vat_amount, total, status, drafted_by, revision_note, event_types(name), artists(stage_name), conversations(quote_requests(areas(name), message, budget))").eq("id", id).eq("artist_key", key).maybeSingle();
   if (!data) throw new Error("Approval link not found");
   return data;
 }
@@ -213,6 +223,7 @@ export const approveBooking = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const b = await bookingByArtistKey(data.id, data.key);
     if (b.status !== "inquiry") throw new Error("This booking was already handled");
+    if (b.artist_invoice_required) throw new Error("Fill invoice items before approval");
     const p = priceBreakdown(data.amount);
     const edited = p.subtotal !== Number(b.amount) || data.eventDate !== b.event_date || data.title !== b.package_title;
     const db = await admin();
@@ -316,3 +327,24 @@ export const adminResolveDispute = createServerFn({ method: "POST" })
       : { status: "completed", completed_at: d.bookings?.completed_at ?? now, refund_amount: refund, escrow_status: refund > 0 ? "partially_refunded" : "released" }).eq("id", d.booking_id);
     return { ok: true };
   });
+
+/** Secret artist link: immutable event details, editable invoice items only. */
+export const approveArtistInvoice = createServerFn({method:"POST"})
+ .inputValidator((i:{id:string;key:string;items:InvoiceItem[]})=>{
+  if(!Array.isArray(i.items)||i.items.length<1||i.items.length>20)throw new Error("Add 1–20 invoice items");
+  if(i.items.some(x=>!x.title?.trim()||!Number.isInteger(x.qty)||x.qty<1||x.qty>99||!Number.isFinite(x.price)||x.price<0))throw new Error("Invalid invoice items");
+  const doc=buildInvoice("",i.items.map(x=>({...x,title:maskContacts(x.title)})),null,null);
+  return {id:uuid(i.id),key:uuid(i.key),items:doc.items};
+ }).handler(async({data})=>{
+  const b=await bookingByArtistKey(data.id,data.key);
+  if(!b.artist_invoice_required||b.status!=="inquiry")throw new Error("Invoice approval unavailable");
+  const db=await admin();
+  const {data:a}=await db.from("artists").select("user_id").eq("id",b.artist_id).single();
+  if(!a?.user_id)throw new Error("Artist Calendar not connected");
+  const {checkGoogleAvailability}=await import("./calendar-availability.server");
+  const check=await checkGoogleAvailability(a.user_id,{date:b.event_date,startTime:b.start_time?.slice(0,5) ?? null,endTime:b.end_time?.slice(0,5) ?? null});
+  if(check.status!=="available")throw new Error("Google Calendar must confirm this schedule before invoice approval");
+  const {error,data:changed}=await db.rpc("approve_invoice_booking",{_id:b.id,_key:data.key,_items:data.items});
+  if(error||!changed)throw new Error(error?.message??"Already handled");
+  await sendClientLink(b.id); return {ok:true};
+ });

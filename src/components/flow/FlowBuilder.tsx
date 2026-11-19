@@ -7,7 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +23,7 @@ import type { TemplateFlow } from "@/lib/flow-templates";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type Data = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[]; destinationPhone?: string };
+type Data = FlowData;
 const EMOJI = ["😊", "👋", "🎉", "🎤", "🎶", "💃", "📅", "⏰", "📍", "💰", "✅", "🙏"];
 
 function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
@@ -61,7 +61,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
           <Handle id="yes" type="source" position={Position.Bottom} style={{ left: "20%", background: color }} className="!h-2.5 !w-2.5" />
           <Handle id="no" type="source" position={Position.Bottom} style={{ left: "80%", background: color }} className="!h-2.5 !w-2.5" />
         </div>
-      ) : k !== "handover" && k !== "booking" && k !== "whatsapp" ? <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border !border-border !bg-background" /> : null}
+      ) : k !== "handover" && k !== "booking" ? <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border !border-border !bg-background" /> : null}
     </div>
   );
 }
@@ -161,6 +161,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
       const urls = (x.data.urlButtons ?? []).filter((u) => u.label.trim() && /^https?:\/\//.test(u.url));
       if (urls.length) d.urlButtons = urls;
       if (x.data.saveAs) d.saveAs = x.data.saveAs;
+      if (x.type === "ratecard") { d.rateDescription = x.data.rateDescription?.trim() ?? ""; d.ratePrice = Math.max(0, Number(x.data.ratePrice) || 0); }
       if (x.type === "whatsapp") d.destinationPhone = x.data.destinationPhone?.trim() ?? "";
       const fields = (x.data.fields ?? []).map((f) => ({ ...f, label: f.label.trim() })).filter((f) => f.label);
       if (fields.length) d.fields = fields.map((f) => (f.saveAs ? f : { label: f.label, type: f.type }));
@@ -260,6 +261,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 <p className="text-[11px] text-muted-foreground">The client sees one form with all fields and sends it in one go.</p>
               </div>
             )}
+            {selected.type === "ratecard" && <div className="space-y-3"><div><Label htmlFor="rate-description">Service description</Label><Textarea id="rate-description" value={selected.data.rateDescription ?? ""} maxLength={120} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, rateDescription:e.target.value }))} /></div><div><Label htmlFor="rate-price">Price excl. VAT (AED)</Label><Input id="rate-price" type="number" min={0} step="0.01" disabled={readOnly} value={selected.data.ratePrice ?? 0} onChange={e => patch(selected.id, d => ({ ...d, ratePrice:Number(e.target.value) }))} /></div></div>}
             {selected.type === "whatsapp" && <div className="space-y-4">
               <div className="space-y-1.5"><Label htmlFor="approval-phone">{t("Artist WhatsApp number")}</Label><Input id="approval-phone" aria-label="Artist WhatsApp number" type="tel" dir="ltr" maxLength={16} placeholder="+971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d]/g, "") }))} /></div>
               <div className="space-y-1.5"><Label>{t("Destination")}</Label><div className="text-sm text-muted-foreground">{selected.data.destinationPhone || t("Artist's saved WhatsApp number")}</div></div>

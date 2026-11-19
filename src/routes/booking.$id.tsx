@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Printer, ShieldCheck, Star } from "lucide-react";
 import { getBooking, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
+import { bookingPayment } from "@/lib/booking-payment-rules";
+import type { InvoiceItem } from "@/lib/invoice";
 import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
@@ -12,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SandboxCheckout, PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/booking/$id")({
@@ -33,6 +37,7 @@ function BookingPage() {
   const cancel$ = useServerFn(cancelBookingAsClient);
   const review$ = useServerFn(submitBookingReview);
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
+  const [phone,setPhone]=useState("");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rating, setRating] = useState(5);
@@ -53,6 +58,8 @@ function BookingPage() {
   if (!b) return <PublicLayout><div className="p-16 text-center text-muted-foreground">Loading…</div></PublicLayout>;
   const paid = Number(b.paid_amount);
   const review = b.reviews?.[0];
+  const payment = bookingPayment(Number(b.total),paid,b.deposit_pct);
+  const items = Array.isArray(b.invoice_items) ? b.invoice_items as InvoiceItem[] : [];
 
   return (
     <PublicLayout>
@@ -66,6 +73,7 @@ function BookingPage() {
           <Badge variant={b.status === "cancelled" ? "secondary" : "default"}>{STATUS[b.status] ?? b.status}</Badge>
         </div>
 
+        <section className="overflow-x-auto"><h2 className="mb-3 font-semibold">Booking details</h2><table className="w-full text-sm"><tbody>{[["Client",b.client_name],["Event date",b.event_date],["Time",`${b.start_time?.slice(0,5)??"—"} – ${b.end_time?.slice(0,5)??"—"}`],["Job detail",b.job_detail??b.notes??"—"],["Payment",paid>0?`Paid ${payment.percent}%`:"Unpaid"],["Balance",aed(payment.balance)],["Calendar",b.calendar_sync_status]].map(([label,value])=><tr key={label} className="border-b"><th className="py-3 pe-4 text-start font-medium">{label}</th><td className="py-3 break-words">{value}</td></tr>)}</tbody></table></section>
         {/* Invoice */}
         <section className="rounded-2xl bg-card p-6 shadow-card">
           <div className="flex justify-between gap-4">
@@ -82,7 +90,8 @@ function BookingPage() {
           </div>
           <table className="mt-6 w-full text-sm">
             <tbody>
-              <tr className="border-b"><td className="py-2">{b.package_title}{b.event_types?.name ? ` · ${b.event_types.name}` : ""} · {b.event_date}</td><td className="py-2 text-right">{aed(Number(b.amount))}</td></tr>
+              {items.map((item,i)=><tr key={i} className="border-b"><td className="py-2">{item.qty} × {item.title}</td><td className="py-2 text-end">{aed(item.qty*item.price)}</td></tr>)}
+              {!items.length && <tr className="border-b"><td className="py-2">{b.package_title}{b.event_types?.name ? ` · ${b.event_types.name}` : ""} · {b.event_date}</td><td className="py-2 text-right">{aed(Number(b.amount))}</td></tr>}
               <tr><td className="py-2 text-muted-foreground">VAT 5%</td><td className="py-2 text-right">{aed(Number(b.vat_amount))}</td></tr>
               <tr className="border-t font-semibold"><td className="py-2">Total</td><td className="py-2 text-right">{aed(Number(b.total))}</td></tr>
               <tr><td className="py-1 text-muted-foreground">Payment</td><td className="py-1 text-right">{ESCROW[b.escrow_status] ?? b.escrow_status}</td></tr>
@@ -100,11 +109,12 @@ function BookingPage() {
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>
           {b.contract_accepted_at && <p className="mt-3 text-xs text-muted-foreground">Accepted {new Date(b.contract_accepted_at).toLocaleString("en-GB")}</p>}
           {b.status === "inquiry" && <p className="mt-4 text-sm text-muted-foreground">The artist is reviewing these details. You can pay once they approve.</p>}
-          {b.status === "quoted" && (
+          {["quoted","confirmed"].includes(b.status) && payment.dueMinor>0 && (
             <div className="mt-5 space-y-4">
+              <div><Label htmlFor="client-whatsapp">WhatsApp for payment reminders</Label><Input id="client-whatsapp" type="tel" dir="ltr" placeholder="+971501234567" value={phone || b.client_phone || ""} onChange={e=>setPhone(e.target.value.replace(/[^+\d]/g,""))} /></div>
               <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} /> I accept the contract terms above.</label>
-              <Button disabled={!agree || busy} className="w-full bg-gradient-gold text-gold-foreground" onClick={() => run(async () => { const r = await pay$({ data: { id, key: k, agree } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
-                <ShieldCheck className="mr-2 h-4 w-4" />Pay {aed(Number(b.total))} · Stripe sandbox
+              <Button disabled={!agree || busy} className="w-full bg-gradient-gold text-gold-foreground" onClick={() => run(async () => { const r = await pay$({ data: { id, key: k, agree, phone:phone || b.client_phone || undefined } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
+                <ShieldCheck className="mr-2 h-4 w-4" />{paid>0?"Pay balance":"Pay deposit"} {paid===0?`${b.deposit_pct}% · `:""}{aed(payment.dueMinor/100)} · Stripe sandbox
               </Button>
               <p className="text-xs text-muted-foreground">DEMO MODE · no real money is charged.</p>
             </div>
