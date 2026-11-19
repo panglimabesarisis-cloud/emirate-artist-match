@@ -39,8 +39,9 @@ function PaymentPage() {
     queryKey: ["join-pay-tier", plan], enabled: !!plan,
     queryFn: async () => (await supabase.from("plan_tiers").select("*").eq("code", plan!).maybeSingle()).data,
   }).data;
-  const t = joinPaymentTotal(Number(tier?.price_monthly ?? 0));
-  const free = t.total === 0;
+  const t = joinPaymentTotal();
+  const free = false;
+  const paidPlan = plan && plan !== "free";
 
   const fmtNum = (v: string) => v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
   const fmtExp = (v: string) => { const d = v.replace(/\D/g, "").slice(0, 4); return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d; };
@@ -53,7 +54,7 @@ function PaymentPage() {
     setBusy(true);
     try {
       await new Promise((r) => setTimeout(r, 1500));
-      if (!free && plan) await pay$({ data: { code: plan, cycle: "monthly" } });
+      if (paidPlan) await pay$({ data: { code: plan, cycle: "monthly" } });
       localStorage.removeItem("join_plan");
       setReceipt(`DM-PAY-${Date.now().toString(36).toUpperCase()}`);
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
@@ -71,7 +72,7 @@ function PaymentPage() {
             <div className="mt-5 space-y-1 rounded-xl border p-4 text-start text-sm">
               <div className="flex justify-between"><span>Reference</span><b>{receipt}</b></div>
               <div className="flex justify-between"><span>Amount paid</span><b>{aed(t.total)}</b></div>
-              <div className="flex justify-between"><span>AI credits added</span><b>{free ? 0 : tier?.ai_credits}</b></div>
+              <div className="flex justify-between"><span>AI credits added</span><b>{paidPlan ? tier?.ai_credits : 0}</b></div>
             </div>
             <Button asChild className="mt-6 w-full bg-gradient-gold text-gold-foreground"><Link to="/dashboard">Go to talent dashboard</Link></Button>
           </div>
@@ -79,9 +80,9 @@ function PaymentPage() {
           <div className="grid gap-6 md:grid-cols-5">
             <div className="rounded-2xl border bg-card p-6 md:col-span-2">
               <h2 className="font-semibold">Order summary</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{tier?.name ?? "…"} plan · monthly</p>
+              <p className="mt-1 text-sm text-muted-foreground">{tier?.name ?? "…"} plan · registration deposit</p>
               <div className="mt-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span>Subscription</span><span>{aed(t.subtotal)}</span></div>
+                <div className="flex justify-between"><span>Registration deposit</span><span>{aed(t.subtotal)}</span></div>
                 <div className="flex justify-between"><span>VAT 5%</span><span>{aed(t.vat)}</span></div>
                 <div className="flex justify-between border-t pt-2 text-base font-semibold"><span>Total</span><span>{aed(t.total)}</span></div>
               </div>
