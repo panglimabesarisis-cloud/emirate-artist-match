@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { WhatsAppSettings } from "./WhatsAppSettings";
 
 type Obj = Record<string, unknown>;
 function useSetting(key: string) {
@@ -47,6 +48,7 @@ export function AdminSettings() {
         <TabsTrigger value="ai">AI agent</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="invoice">Invoice</TabsTrigger>
+        <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
       </TabsList>
       <div className="mt-4">
         <TabsContent value="general"><General /></TabsContent>
@@ -56,6 +58,7 @@ export function AdminSettings() {
         <TabsContent value="ai"><Secrets title="AI agent" fields={[["openai_api_key", "OpenAI API key (optional)", "Leave empty to keep using the built-in AI included with the platform."], ["ai_model", "Model name", "e.g. gpt-5-mini"]]} /></TabsContent>
         <TabsContent value="payments"><Payments /></TabsContent>
         <TabsContent value="invoice"><Invoice /></TabsContent>
+        <TabsContent value="whatsapp"><WhatsAppSettings /></TabsContent>
       </div>
     </Tabs>
   );

@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Admin Meta/Fonnte selection, write-only token and test-send control; 8 provider/security tests pass, both providers saved and read back signed-in, mobile verified. Test data removed, original settings restored.
+- [ ] Verify real Fonnte approval delivery — waits for the user to enter their Fonnte token and connect their WhatsApp device; acceptance is not confirmed delivery.
 - [x] Repair direct-chat Inbox/invoice visibility (new chat read back signed-in on desktop/mobile) and disclose stored starting-rate estimates before explicit client consent; 40 pricing/calendar/flow tests pass. WhatsApp end-to-end remains blocked by Meta account restriction.
 - [x] AI Agent uses live artist Google Calendar, not manual blocked dates; 28 tests pass and connected-artist chat reads availability back through the UI.
 - [x] Artist invoice two-column item editor and read-only live preview; verified live totals, chat sending, persisted Unpaid table, and desktop/mobile layout.
