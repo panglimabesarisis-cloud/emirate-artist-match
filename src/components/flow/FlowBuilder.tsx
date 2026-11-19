@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { approvalAction } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
+import { CalendarDays, Eye, Settings2 } from "lucide-react";
+import { FlowChatPreview } from "./FlowChatPreview";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -124,17 +126,18 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
   const [sel, setSel] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<string>("All");
+  const [panel, setPanel] = useState<"edit" | "preview">("edit");
   const wrap = useRef<HTMLDivElement>(null);
   const rf = useReactFlow();
   useEffect(() => { setNodes(start.nodes); setEdges(start.edges); setSel(null); }, [start, setNodes, setEdges]);
 
   const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: crypto.randomUUID(), type: "smoothstep", label: c.sourceHandle === "yes" ? "Yes" : c.sourceHandle === "no" ? "No" : undefined }, es)), [setEdges]);
-  const add = (kind: FlowKind, pos?: { x: number; y: number }) => {
+  const add = (kind: FlowKind, pos?: { x: number; y: number }, datePicker = false) => {
     const def = FLOW_KINDS.find((k) => k.kind === kind);
     if (!def) return;
     const id = crypto.randomUUID();
     const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 200, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 120 });
-    setNodes((ns) => [...ns, { id, type: kind, position, data: kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
+    setNodes((ns) => [...ns, { id, type: kind, position, data: datePicker ? { text: "Please select your preferred event date", fields: [{ label: "Event date", type: "date", saveAs: "event_date" }] } : kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);
@@ -163,6 +166,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     <div className="overflow-hidden rounded-xl border">
       <div className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2">
         <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Blocks: {nodes.length}</span>
+        <Button size="sm" variant="outline" onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Test bot")}</Button>
         {!readOnly && (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => { const d = toRF(DEFAULT_FLOW); setNodes(d.nodes); setEdges(d.edges); setSel(null); }}>Reset</Button>
@@ -178,6 +182,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
               {["All", ...FLOW_GROUPS].map((g) => <button key={g} onClick={() => setTab(g)} className={`rounded-full border px-2 py-0.5 text-[11px] ${tab === g ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"}`}>{g === "All" ? "All" : GROUP_LABEL[g]}</button>)}
             </div>
             <div className="flex gap-1 overflow-x-auto lg:block lg:space-y-0.5">
+              {(tab === "All" || tab === "Ask") && "date picker".includes(q.toLowerCase()) && <Button variant="ghost" className="h-auto shrink-0 justify-start px-2 py-1.5 text-sm lg:w-full" onClick={() => add("form", undefined, true)}><CalendarDays className="size-5 text-primary" />{t("Date picker")}</Button>}
               {blocks.map((k) => (
                 <button key={k.kind} draggable onDragStart={(e) => e.dataTransfer.setData("application/flow", k.kind)} onClick={() => add(k.kind)} title={k.hint}
                   className="flex shrink-0 cursor-grab items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm hover:bg-muted lg:w-full">
@@ -196,7 +201,8 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
           </ReactFlow>
         </div>
         <div className="space-y-4 border-t bg-card p-4 lg:border-s lg:border-t-0">
-          {selected ? (<>
+          <div className="grid grid-cols-2 gap-1 border-b pb-3"><Button size="sm" variant={panel === "edit" ? "secondary" : "ghost"} onClick={() => setPanel("edit")}><Settings2 className="size-4" />{t("Edit block")}</Button><Button size="sm" variant={panel === "preview" ? "secondary" : "ghost"} onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Preview")}</Button></div>
+          {panel === "preview" ? <FlowChatPreview key={sel ?? "start"} nodes={nodes as FlowNode[]} edges={edges} selectedId={sel} /> : selected ? (<>
             <div>
               <div className="text-xs text-muted-foreground">{kindLabel(selected.type as FlowKind)}</div>
               <div className="mt-1 flex items-center gap-2 text-sm font-semibold"><span className="grid h-6 w-6 place-items-center rounded text-[11px] text-primary-foreground" style={{ background: `var(${kindColor(selected.type as FlowKind)})` }}>{kindLabel(selected.type as FlowKind)[0]}</span>{kindLabel(selected.type as FlowKind)}</div>

@@ -1,6 +1,7 @@
 # Roadmap
+- [x] WotNot-style chat buttons, compact forms and calendar date picker shared with the AI Flow right-side preview; date submission and buttons verified in a signed-in artist preview on desktop and mobile.
 - [x] AI Flow WhatsApp approval block with artist destination and automatic invoice after approval; verified in a temporary signed-in artist dashboard and client chat.
-- [ ] Verify WhatsApp approval delivery — blocked: Meta template is PENDING; incoming destination and actual signed delivery remain unverified. Quiet-period recovery waits for a subsequent callback or send.
+- [ ] Verify WhatsApp approval delivery — blocked: Meta template is PENDING; user confirmed Dealmaker as incoming destination; actual signed delivery remains unverified. Quiet-period recovery waits for a subsequent callback or send.
 - [x] Invoice preview and sent-invoice payment-status table; sent and read back in a temporary client chat.
 - [x] Stripe sandbox checkout for invoices, AI credits, talent deposit, and client bookings; verified, idempotent settlement implemented (successful AED transaction remains blocked).
 - [ ] End-to-end AED sandbox purchase — blocked: current Stripe sandbox only supports IDR.

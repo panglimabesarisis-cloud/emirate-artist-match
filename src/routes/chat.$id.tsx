@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
 import { decodeInvoice } from "@/lib/invoice";
 import { PayableInvoice } from "@/components/site/PayableInvoice";
-import { extractButtons, extractForm, type FormField } from "@/lib/ai-flow";
+import { extractButtons, extractForm } from "@/lib/ai-flow";
+import { ChatFlowButtons, ChatFlowForm } from "@/components/flow/ChatFlowControls";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
@@ -107,11 +108,9 @@ function ChatPage() {
                   {decodeInvoice(m.body) ? <div className="max-w-md"><PayableInvoice inv={decodeInvoice(m.body) as NonNullable<ReturnType<typeof decodeInvoice>>} conversationId={id} linkKey={k} status={data.invoices.find(i => i.id === decodeInvoice(m.body)?.id)?.status} /></div> : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
                     <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
                     {buttons.length > 0 && last && data.mode !== "human" && (
-                      <div className="mt-3 flex flex-wrap gap-2">{buttons.map((b) => (
-                        <button key={b} disabled={busy} onClick={() => send(b)} className="rounded-full border border-gold/60 bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:bg-gold hover:text-gold-foreground disabled:opacity-50" dir="auto">{b}</button>
-                      ))}</div>
+                      <ChatFlowButtons buttons={buttons} busy={busy} onSelect={(value) => send(value)} />
                     )}
-                    {f.fields.length > 0 && last && data.mode !== "human" && <ChatForm fields={f.fields} busy={busy} onSubmit={(t) => send(t)} />}
+                    {f.fields.length > 0 && last && data.mode !== "human" && <ChatFlowForm fields={f.fields} busy={busy} onSubmit={(t) => send(t)} />}
                   </>; })()}
                 </div>
               </div>
@@ -140,19 +139,3 @@ function ChatPage() {
   );
 }
 
-const INPUT_TYPE: Record<string, string> = { text: "text", email: "email", phone: "tel", number: "number", date: "date", time: "time" };
-function ChatForm({ fields, busy, onSubmit }: { fields: FormField[]; busy: boolean; onSubmit: (t: string) => void }) {
-  const [v, setV] = useState<Record<number, string>>({});
-  return (
-    <form className="mt-3 max-w-sm space-y-2 rounded-2xl border bg-card p-4" onSubmit={(e) => { e.preventDefault(); onSubmit(fields.map((f, i) => `${f.label}: ${(v[i] ?? "").trim()}`).join("\n")); }}>
-      {fields.map((f, i) => (
-        <label key={i} className="block text-sm">
-          <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
-          <input required type={INPUT_TYPE[f.type] ?? "text"} value={v[i] ?? ""} maxLength={200} onChange={(e) => setV({ ...v, [i]: e.target.value })}
-            className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" dir="auto" />
-        </label>
-      ))}
-      <button type="submit" disabled={busy} className="h-10 w-full rounded-lg bg-gradient-gold text-sm font-semibold text-gold-foreground disabled:opacity-50">Send</button>
-    </form>
-  );
-}

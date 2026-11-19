@@ -17,7 +17,7 @@ import { AdminSettings } from "@/components/admin/AdminSettings";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({ meta: [{ title: "Admin | Dealmaker" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Admin | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage Dealmaker artists, bookings and the master AI conversation flow." }, { property: "og:title", content: "Admin | Dealmaker" }, { property: "og:description", content: "Dealmaker administration and master AI flow builder." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Admin,
 });
 
