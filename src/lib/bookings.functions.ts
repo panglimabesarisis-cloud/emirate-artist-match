@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
@@ -76,15 +76,17 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     return { id: uuid(i.id), key: uuid(i.key) };
   })
   .handler(async ({ data }) => {
+    try {
     const b = await bookingByKey(data.id, data.key);
     if (b.status !== "quoted") throw new Error(b.status === "inquiry" ? "Waiting for the artist to approve" : "This offer can no longer be paid");
     const db = await admin();
-    const { data: inv } = await db.rpc("next_invoice_no");
     const now = new Date().toISOString();
-    await db.from("bookings").update({ status: "confirmed", contract_accepted_at: now, paid_at: now, paid_amount: b.total, escrow_status: "held", invoice_no: inv as string }).eq("id", b.id).eq("status", "quoted");
-    await db.from("availability").upsert({ artist_id: b.artist_id, date: b.event_date, note: "Booked" }, { onConflict: "artist_id,date", ignoreDuplicates: true });
-    await notifyTeamPaid(b.id).catch((e) => console.error("paid notify failed", e));
-    return { ok: true };
+    const { error } = await db.from("bookings").update({ contract_accepted_at: now }).eq("id", b.id).eq("status", "quoted");
+    if (error) throw new Error(error.message);
+    const { data: identity } = await db.from("bookings").select("client_user_id").eq("id", b.id).single();
+    const { openOrder } = await import("./payments.server");
+    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: Math.round(Number(b.total) * 100) }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
+    } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 
 async function doCancel(id: string, by: "client" | "artist", reason: string | null) {
@@ -148,7 +150,7 @@ export const submitBookingReview = createServerFn({ method: "POST" })
   });
 
 /** After payment: send the full booking details to the artist's and manager's WhatsApp. */
-async function notifyTeamPaid(bookingId: string) {
+export const notifyTeamPaid = createServerOnlyFn(async (bookingId: string) => {
   const db = await admin();
   const { notifyBooking, siteOrigin } = await import("./notify.server");
   const { data: b } = await db.from("bookings").select("id, client_name, client_phone, client_email, guests, package_title, notes, event_date, amount, total, invoice_no, event_types(name), artists(stage_name, notify_phone, manager_phone), conversations(quote_requests(start_time, end_time, perform_minutes, areas(name)))").eq("id", bookingId).single();
@@ -165,7 +167,7 @@ async function notifyTeamPaid(bookingId: string) {
   const link = `${siteOrigin(getRequest())}/dashboard`;
   const phones = [...new Set([b.artists?.notify_phone, b.artists?.manager_phone].filter((x): x is string => !!x))];
   for (const phone of phones) await notifyBooking(b.id, "artist", "booking_paid", { phone }, "New paid booking confirmed", details, link);
-}
+});
 
 async function sendClientLink(bookingId: string) {
   const db = await admin();

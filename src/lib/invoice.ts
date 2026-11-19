@@ -1,7 +1,7 @@
 import { priceBreakdown } from "./booking-rules";
 
 export type InvoiceItem = { title: string; qty: number; price: number };
-export type Invoice = { no: string; items: InvoiceItem[]; subtotal: number; vat: number; total: number; due: string | null; notes: string | null };
+export type Invoice = { id?: string; no: string; items: InvoiceItem[]; subtotal: number; vat: number; total: number; due: string | null; notes: string | null };
 
 const MARK = "[[INVOICE]]";
 

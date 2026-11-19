@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendInvoice } from "@/lib/chat.functions";
-import { decodeInvoice, type InvoiceItem } from "@/lib/invoice";
+import { decodeInvoice, type InvoiceItem, type Invoice } from "@/lib/invoice";
 import { priceBreakdown } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { InvoiceCard } from "@/components/site/InvoiceCard";
 
 export function InvoicesTab({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const send$ = useServerFn(sendInvoice);
   const { data } = useQuery({
-    queryKey: ["invoices", artistId],
+    queryKey: ["invoices", artistId], refetchInterval: 5000,
     queryFn: async () => {
       const [c, r] = await Promise.all([
         supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).not("quote_request_id", "is", null).order("last_message_at", { ascending: false }).limit(100),
@@ -27,14 +29,16 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
       ]);
       const convos = c.data ?? [];
       const ids = convos.map((x) => x.id);
+      const stored = (await supabase.from("service_invoices").select("*").eq("artist_id", artistId).order("created_at", { ascending: false })).data ?? [];
       const m = ids.length ? (await supabase.from("messages").select("id, conversation_id, body, created_at").in("conversation_id", ids).like("body", "[[INVOICE]]%").order("created_at", { ascending: false })).data ?? [] : [];
-      return { convos, rates: r.data ?? [], sent: m };
+      return { convos, rates: r.data ?? [], sent: m, stored };
     },
   });
   const [convo, setConvo] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [due, setDue] = useState("");
   const [notes, setNotes] = useState("");
+  const [preview, setPreview] = useState<Invoice | null>(null);
   const [busy, setBusy] = useState(false);
   const p = priceBreakdown(items.reduce((s, i) => s + i.qty * i.price, 0));
   const nameOf = (id: string) => data?.convos.find((c) => c.id === id)?.quote_requests?.name ?? "Client";
@@ -82,16 +86,16 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
         <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Payment terms, details…" /></div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <div className="text-sm text-muted-foreground">Subtotal {aed(p.subtotal)} · VAT 5% {aed(p.vat)} · <span className="font-semibold text-foreground">Total {aed(p.total)}</span></div>
+          <Button variant="outline" disabled={!items.length} onClick={() => setPreview({ no: "PREVIEW", items, subtotal: p.subtotal, vat: p.vat, total: p.total, due: due || null, notes: notes || null })}><Eye className="me-2 h-4 w-4" />Preview invoice</Button>
           <Button disabled={busy || items.length === 0} onClick={submit} className="bg-gradient-gold text-gold-foreground">Create & send to chat</Button>
         </div>
       </div>
       <div>
         <h2 className="text-lg font-semibold">Sent invoices</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {data?.sent.length === 0 && <p className="text-sm text-muted-foreground">No invoices yet.</p>}
-          {data?.sent.map((m) => { const inv = decodeInvoice(m.body); return inv && <div key={m.id}><div className="mb-1 text-xs text-muted-foreground">{nameOf(m.conversation_id)} · {m.created_at.slice(0, 10)}</div><InvoiceCard inv={inv} /></div>; })}
-        </div>
+        <div className="mt-3 overflow-x-auto"><table className="w-full text-sm"><thead className="border-b bg-muted"><tr>{["Invoice", "Client", "Total", "Payment", "Paid at", "View"].map(h => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead><tbody>{data?.stored.map(r => <tr key={r.id} className="border-b"><td className="p-3 whitespace-nowrap">{r.number}</td><td className="p-3">{nameOf(r.conversation_id)}</td><td className="p-3 whitespace-nowrap">{aed(Number(r.total))}</td><td className="p-3"><Badge variant={r.status === "paid" ? "default" : "secondary"}>{r.status === "paid" ? "Paid" : "Unpaid"}</Badge></td><td className="p-3">{r.paid_at ? new Date(r.paid_at).toLocaleString("en-GB") : "—"}</td><td className="p-3"><Button variant="ghost" size="icon" aria-label={`View ${r.number}`} onClick={() => setPreview(r.document as unknown as Invoice)}><Eye className="h-4 w-4" /></Button></td></tr>)}{data?.stored.length === 0 && <tr><td colSpan={6} className="p-6">No invoices yet.</td></tr>}</tbody></table></div>
+        {data?.sent.filter(m => !decodeInvoice(m.body)?.id).map(m => { const inv = decodeInvoice(m.body); return inv && <div key={m.id} className="mt-3"><p className="text-xs text-muted-foreground">Legacy invoice · payment status not tracked</p><InvoiceCard inv={inv} /></div>; })}
       </div>
+      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>Invoice preview</DialogTitle></DialogHeader>{preview && <InvoiceCard inv={preview} />}</DialogContent></Dialog>
     </div>
   );
 }

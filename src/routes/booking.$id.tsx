@@ -10,13 +10,14 @@ import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SandboxCheckout, PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/booking/$id")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({ k: typeof s["k"] === "string" ? s["k"] : "" }),
-  head: () => ({ meta: [{ title: "Your booking | Dealmaker" }, { name: "description", content: "Review your Dealmaker booking, contract and VAT invoice." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Your booking | Dealmaker" }, { name: "description", content: "Review your Dealmaker booking, contract and VAT invoice." }, { name: "robots", content: "noindex" }, { property: "og:title", content: "Your booking | Dealmaker" }, { property: "og:description", content: "Review your booking and pay safely in Stripe sandbox." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: BookingPage,
 });
 
@@ -31,6 +32,7 @@ function BookingPage() {
   const pay$ = useServerFn(acceptAndPay);
   const cancel$ = useServerFn(cancelBookingAsClient);
   const review$ = useServerFn(submitBookingReview);
+  const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rating, setRating] = useState(5);
@@ -38,7 +40,7 @@ function BookingPage() {
   const [body, setBody] = useState("");
   const dispute$ = useServerFn(openDisputeAsClient);
   const [problem, setProblem] = useState("");
-  const { data: b, error } = useQuery({ queryKey: ["booking", id], queryFn: () => get$({ data: { id, key: k } }), retry: false });
+  const { data: b, error } = useQuery({ queryKey: ["booking", id], queryFn: () => get$({ data: { id, key: k } }), retry: false, refetchInterval: 5000 });
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
@@ -54,6 +56,7 @@ function BookingPage() {
 
   return (
     <PublicLayout>
+      <PaymentTestModeBanner />
       <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
           <div>
@@ -90,6 +93,7 @@ function BookingPage() {
           {b.invoice_no && <Button variant="outline" size="sm" className="mt-4 print:hidden" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Print / save PDF</Button>}
         </section>
 
+        {checkout && <SandboxCheckout session={checkout} linkKey={k} onPaid={() => { setCheckout(null); qc.invalidateQueries({ queryKey: ["booking", id] }); }} />}
         {/* Contract */}
         <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
           <h2 className="font-semibold">Booking contract</h2>
@@ -99,8 +103,8 @@ function BookingPage() {
           {b.status === "quoted" && (
             <div className="mt-5 space-y-4">
               <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} /> I accept the contract terms above.</label>
-              <Button disabled={!agree || busy} className="w-full bg-gradient-gold text-gold-foreground" onClick={() => run(() => pay$({ data: { id, key: k, agree } }), "Payment received — booking confirmed")}>
-                <ShieldCheck className="mr-2 h-4 w-4" />Pay {aed(Number(b.total))} into escrow (demo)
+              <Button disabled={!agree || busy} className="w-full bg-gradient-gold text-gold-foreground" onClick={() => run(async () => { const r = await pay$({ data: { id, key: k, agree } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
+                <ShieldCheck className="mr-2 h-4 w-4" />Pay {aed(Number(b.total))} · Stripe sandbox
               </Button>
               <p className="text-xs text-muted-foreground">DEMO MODE · no real money is charged.</p>
             </div>

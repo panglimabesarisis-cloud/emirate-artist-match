@@ -1,4 +1,7 @@
 # Roadmap
+- [x] Invoice preview and sent-invoice payment-status table; sent and read back in a temporary client chat.
+- [x] Stripe sandbox checkout for invoices, AI credits, talent deposit, and client bookings; verified, idempotent settlement implemented (successful AED transaction remains blocked).
+- [ ] End-to-end AED sandbox purchase — blocked: current Stripe sandbox only supports IDR.
 - [x] Phase 1: marketplace, search, profiles, quick quote, auth/roles, artist dashboard, admin (approvals, verification, reviews)
 - [x] Phase 2: AI booking agent, AI credit wallet, inbox & handover, contact masking
 - [x] Phase 3: booking lifecycle, VAT invoices, contracts, demo payments/escrow, cancellations, verified reviews from bookings, Top Performer automation

@@ -14,13 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
 import { decodeInvoice } from "@/lib/invoice";
-import { InvoiceCard } from "@/components/site/InvoiceCard";
+import { PayableInvoice } from "@/components/site/PayableInvoice";
 import { extractButtons, extractForm, type FormField } from "@/lib/ai-flow";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({ k: typeof s["k"] === "string" ? s["k"] : "" }),
-  head: () => ({ meta: [{ title: "Your quote conversation | Dealmaker" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Your quote conversation | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Chat with your talent agent and review service invoices." }, { property: "og:title", content: "Your quote conversation | Dealmaker" }, { property: "og:description", content: "Your private booking conversation and invoices." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: ChatPage,
 });
 
@@ -102,7 +102,7 @@ function ChatPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 text-xs font-semibold text-muted-foreground">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>
-                  {decodeInvoice(m.body) ? <div className="max-w-md"><InvoiceCard inv={decodeInvoice(m.body)!} /></div> : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
+                  {decodeInvoice(m.body) ? <div className="max-w-md"><PayableInvoice inv={decodeInvoice(m.body) as NonNullable<ReturnType<typeof decodeInvoice>>} conversationId={id} linkKey={k} status={data.invoices.find(i => i.id === decodeInvoice(m.body)?.id)?.status} /></div> : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
                     <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
                     {buttons.length > 0 && last && data.mode !== "human" && (
                       <div className="mt-3 flex flex-wrap gap-2">{buttons.map((b) => (

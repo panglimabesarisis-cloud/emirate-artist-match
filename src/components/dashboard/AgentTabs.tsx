@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bot, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { artistReply, testAgent, topUpCredits, subscribePlanDemo } from "@/lib/chat.functions";
+import { artistReply, testAgent, subscribePlanDemo } from "@/lib/chat.functions";
+import { artistCheckout } from "@/lib/payments.functions";
+import { SandboxCheckout, PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
 import { TOPUP_PACKAGES } from "@/lib/masking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,7 +147,8 @@ export function AgentSettings({ artistId }: { artistId: string }) {
 
 export function Credits({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
-  const top$ = useServerFn(topUpCredits);
+  const top$ = useServerFn(artistCheckout);
+  const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   const { data } = useQuery({
     queryKey: ["wallet", artistId],
     queryFn: async () => {
@@ -159,13 +162,15 @@ export function Credits({ artistId }: { artistId: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const buy = async (id: string) => {
     setBusy(id);
-    try { const r = await top$({ data: { packageId: id } }); toast.success(`${r.credits} credits added (demo payment)`); qc.invalidateQueries({ queryKey: ["wallet", artistId] }); }
-    catch { toast.error("Top-up failed"); } finally { setBusy(null); }
+    try { const r = await top$({ data: { kind: "credits", packageId: id } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Top-up failed"); } finally { setBusy(null); }
   };
   const labels: Record<string, string> = { plan_allocation: "Plan credits", ai_reply: "AI reply", topup_demo: "Top-up (demo)" };
   return (
     <div className="mt-6 space-y-8">
+      <PaymentTestModeBanner />
       <DemoPlans artistId={artistId} />
+      {checkout && <SandboxCheckout session={checkout} onPaid={() => { setCheckout(null); toast.success("Payment verified — credits added"); qc.invalidateQueries({ queryKey: ["wallet", artistId] }); }} />}
       <div className="rounded-2xl bg-night text-night-foreground p-6 flex items-center justify-between">
         <div>
           <div className="text-sm opacity-75">AI credit balance</div>
@@ -180,8 +185,8 @@ export function Credits({ artistId }: { artistId: string }) {
           <div key={p.id} className="rounded-2xl border bg-card p-5">
             <div className="font-display text-3xl">{p.credits}</div>
             <div className="text-sm text-muted-foreground">credits</div>
-            <div className="mt-3 font-semibold">AED {p.priceAed}</div>
-            <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy === p.id} onClick={() => buy(p.id)}>{busy === p.id ? "Processing…" : "Buy (demo)"}</Button>
+            <div className="mt-3 font-semibold">AED {(p.priceAed * 1.05).toFixed(2)} incl. VAT 5%</div>
+            <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy === p.id} onClick={() => buy(p.id)}>{busy === p.id ? "Processing…" : "Buy · Stripe sandbox"}</Button>
           </div>
         ))}
       </div>

@@ -966,6 +966,65 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          amount_minor: number
+          artist_id: string
+          created_at: string
+          credits: number
+          currency: string
+          environment: string
+          id: string
+          kind: string
+          package_id: string | null
+          paid_at: string | null
+          plan_code: string | null
+          status: string
+          stripe_session_id: string | null
+          target_id: string | null
+        }
+        Insert: {
+          amount_minor: number
+          artist_id: string
+          created_at?: string
+          credits?: number
+          currency?: string
+          environment?: string
+          id?: string
+          kind: string
+          package_id?: string | null
+          paid_at?: string | null
+          plan_code?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          target_id?: string | null
+        }
+        Update: {
+          amount_minor?: number
+          artist_id?: string
+          created_at?: string
+          credits?: number
+          currency?: string
+          environment?: string
+          id?: string
+          kind?: string
+          package_id?: string | null
+          paid_at?: string | null
+          plan_code?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_orders_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payout_requests: {
         Row: {
           admin_note: string | null
@@ -1253,6 +1312,57 @@ export type Database = {
           },
         ]
       }
+      service_invoices: {
+        Row: {
+          artist_id: string
+          conversation_id: string
+          created_at: string
+          document: Json
+          id: string
+          number: string
+          paid_at: string | null
+          status: string
+          total: number
+        }
+        Insert: {
+          artist_id: string
+          conversation_id: string
+          created_at?: string
+          document: Json
+          id?: string
+          number: string
+          paid_at?: string | null
+          status?: string
+          total: number
+        }
+        Update: {
+          artist_id?: string
+          conversation_id?: string
+          created_at?: string
+          document?: Json
+          id?: string
+          number?: string
+          paid_at?: string | null
+          status?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_invoices_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_invoices_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_pages: {
         Row: {
           body: string
@@ -1509,6 +1619,15 @@ export type Database = {
       next_invoice_no: { Args: never; Returns: string }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
+      settle_sandbox_order: {
+        Args: {
+          _amount: number
+          _currency: string
+          _id: string
+          _session: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"

@@ -79,7 +79,8 @@ export const getChat = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin, convo } = await verifyKey(data.id, data.key);
     const { data: msgs } = await supabaseAdmin.from("messages").select("id, sender, body, created_at").eq("conversation_id", data.id).order("created_at");
-    return { mode: convo.mode, artist: convo.artists, messages: msgs ?? [] };
+    const { data: invoices } = await supabaseAdmin.from("service_invoices").select("id,status,paid_at").eq("conversation_id", data.id);
+    return { mode: convo.mode, artist: convo.artists, messages: msgs ?? [], invoices: invoices ?? [] };
   });
 
 /** Public with secret link key: client sends a message; AI replies if in AI mode. */
@@ -118,13 +119,8 @@ export const topUpCredits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { packageId: string }) => i)
   .handler(async ({ data, context }) => {
-    const pkg = TOPUP_PACKAGES.find((p) => p.id === data.packageId);
-    if (!pkg) throw new Error("Unknown package");
-    const { data: artist } = await context.supabase.from("artists").select("id").eq("user_id", context.userId).maybeSingle();
-    if (!artist) throw new Error("No artist profile");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("credit_ledger").insert({ artist_id: artist.id, delta: pkg.credits, reason: "topup_demo", ref: `${pkg.id}:AED${pkg.priceAed}` });
-    return { ok: true, credits: pkg.credits };
+    void data; void context;
+    throw new Error("Use Stripe sandbox checkout to buy credits");
   });
 
 /** Artist tests their agent with a private chat (charged like real replies). */
@@ -192,7 +188,13 @@ export const sendInvoice = createServerFn({ method: "POST" })
     await assertOwner(context.supabase, data.conversationId);
     const { buildInvoice, encodeInvoice } = await import("./invoice");
     const no = `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-    const inv = buildInvoice(no, data.items, data.due, data.notes ? maskContacts(data.notes) : null);
+    const inv = buildInvoice(no, data.items.map(x => ({ ...x, title: maskContacts(x.title) })), data.due, data.notes ? maskContacts(data.notes) : null);
+    const { data: c } = await context.supabase.from("conversations").select("artist_id").eq("id", data.conversationId).single();
+    if (!c) throw new Error("Conversation not found");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    inv.id = crypto.randomUUID();
+    const { error } = await supabaseAdmin.from("service_invoices").insert({ id: inv.id, artist_id: c.artist_id, conversation_id: data.conversationId, number: no, document: JSON.parse(JSON.stringify(inv)), total: inv.total });
+    if (error) throw new Error(error.message);
     const { addMessage } = await import("./agent.server");
     await addMessage(data.conversationId, "artist", encodeInvoice(inv));
     return { ok: true, no, total: inv.total };

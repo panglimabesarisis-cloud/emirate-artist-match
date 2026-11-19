@@ -53,4 +53,7 @@ use the editor.
 - Artist wallet numbers come only from the `artist_wallet()` SQL function (completed bookings minus plan commission minus payouts); withdrawals are `payout_requests` rows guarded by a trigger (amount ≤ available, only admins change status).
 - Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.
 - Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.
-- Talent signup plan choice is kept in localStorage `join_plan` (survives Google OAuth redirect); specialty limits and signup deposit totals live in `src/lib/join-rules.ts` with tests; `/join/payment` reuses `subscribePlanDemo` for the demo card charge.
+- Talent signup plan choice is kept in localStorage `join_plan` (survives Google OAuth redirect); specialty limits and signup deposit totals live in `src/lib/join-rules.ts` with tests; `/join/payment` uses sandbox-only Stripe checkout for the deposit.
+
+- Sandbox payment orders settle atomically through `settle_sandbox_order` only after server-side Stripe verification; invoice, credit, deposit, and booking amounts come from server-owned data, never browser totals.
+- Service invoices are stored separately from chat messages so payment status stays authoritative; legacy chat-only invoices have no inferred payment state.
