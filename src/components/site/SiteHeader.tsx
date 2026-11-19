@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoBanner } from "./DemoBanner";
 import { useI18n } from "@/lib/i18n";
+import { LogOut } from "lucide-react";
 
 export function SiteHeader() {
   const { user, isAdmin } = useAuth();
@@ -22,7 +23,7 @@ export function SiteHeader() {
       <DemoBanner />
       <div className="bg-night text-night-foreground">
         <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
             <span className="h-8 w-8 rounded-full bg-gradient-gold grid place-items-center font-display font-bold text-gold-foreground">D</span>
             <span className="font-display text-xl font-semibold">Dealmaker<span className="text-gold">.</span></span>
           </Link>
@@ -46,8 +47,8 @@ export function SiteHeader() {
                 <Button asChild size="sm" className="bg-gradient-gold text-gold-foreground hover:opacity-90">
                   <Link to="/dashboard">{t("Dashboard")}</Link>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={signOut} className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">
-                  {t("Sign out")}
+                <Button variant="ghost" size="sm" onClick={signOut} aria-label={t("Sign out")} title={t("Sign out")} className="shrink-0 text-night-foreground hover:bg-sidebar-accent hover:text-gold">
+                  <LogOut className="h-4 w-4 sm:hidden" /><span className="hidden sm:inline">{t("Sign out")}</span>
                 </Button>
               </>
             ) : (

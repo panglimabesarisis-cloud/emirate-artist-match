@@ -165,7 +165,7 @@ export function Credits({ artistId }: { artistId: string }) {
     try { const r = await top$({ data: { kind: "credits", packageId: id } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Top-up failed"); } finally { setBusy(null); }
   };
-  const labels: Record<string, string> = { plan_allocation: "Plan credits", ai_reply: "AI reply", topup_demo: "Top-up (demo)" };
+  const labels: Record<string, string> = { plan_allocation: "Plan credits", ai_reply: "AI reply", topup_demo: "Top-up (demo)", topup_stripe_sandbox: "Stripe sandbox top-up" };
   return (
     <div className="mt-6 space-y-8">
       <PaymentTestModeBanner />
@@ -186,7 +186,7 @@ export function Credits({ artistId }: { artistId: string }) {
             <div className="font-display text-3xl">{p.credits}</div>
             <div className="text-sm text-muted-foreground">credits</div>
             <div className="mt-3 font-semibold">AED {(p.priceAed * 1.05).toFixed(2)} incl. VAT 5%</div>
-            <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy === p.id} onClick={() => buy(p.id)}>{busy === p.id ? "Processing…" : "Buy · Stripe sandbox"}</Button>
+            <Button className="mt-4 h-auto min-h-9 w-full whitespace-normal bg-gradient-gold text-gold-foreground" disabled={busy !== null} onClick={() => buy(p.id)}>{busy === p.id ? "Processing…" : "Buy · Stripe sandbox"}</Button>
           </div>
         ))}
       </div>

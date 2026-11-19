@@ -5,9 +5,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendInvoice } from "@/lib/chat.functions";
-import { decodeInvoice, type InvoiceItem, type Invoice } from "@/lib/invoice";
-import { priceBreakdown } from "@/lib/booking-rules";
-import { aed } from "@/lib/format";
+import { buildInvoice, decodeInvoice, invoiceMoney as aed, type InvoiceItem, type Invoice } from "@/lib/invoice";
+import { maskContacts } from "@/lib/masking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +39,11 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   const [notes, setNotes] = useState("");
   const [preview, setPreview] = useState<Invoice | null>(null);
   const [busy, setBusy] = useState(false);
-  const p = priceBreakdown(items.reduce((s, i) => s + i.qty * i.price, 0));
+  const draft = (() => {
+    try { return buildInvoice("PREVIEW", items.map(i => ({ ...i, title: maskContacts(i.title) })), due || null, notes ? maskContacts(notes) : null); }
+    catch { return null; }
+  })();
+  const p = draft ?? { subtotal: 0, vat: 0, total: 0 };
   const nameOf = (id: string) => data?.convos.find((c) => c.id === id)?.quote_requests?.name ?? "Client";
 
   const submit = async () => {
@@ -57,7 +60,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <div className="border-b pb-5 space-y-4">
         <h2 className="text-lg font-semibold">New invoice</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div><Label>Client chat</Label>
@@ -69,7 +72,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
         <div>
           <Label>Services</Label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {data?.rates.map((r) => <Button key={r.id} size="sm" variant="outline" onClick={() => setItems([...items, { title: r.title, qty: 1, price: Number(r.price) }])}><Plus className="me-1 h-3 w-3" />{r.title} · {aed(Number(r.price))}</Button>)}
+            {data?.rates.map((r) => <Button key={r.id} size="sm" variant="outline" className="h-auto max-w-full whitespace-normal py-2 text-start" onClick={() => setItems([...items, { title: r.title, qty: 1, price: Number(r.price) }])}><Plus className="me-1 h-3 w-3 shrink-0" />{r.title} · {aed(Number(r.price))}</Button>)}
             <Button size="sm" variant="ghost" onClick={() => setItems([...items, { title: "", qty: 1, price: 0 }])}><Plus className="me-1 h-3 w-3" />Custom item</Button>
           </div>
           <div className="mt-3 space-y-2">
@@ -86,8 +89,8 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
         <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Payment terms, details…" /></div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <div className="text-sm text-muted-foreground">Subtotal {aed(p.subtotal)} · VAT 5% {aed(p.vat)} · <span className="font-semibold text-foreground">Total {aed(p.total)}</span></div>
-          <Button variant="outline" disabled={!items.length} onClick={() => setPreview({ no: "PREVIEW", items, subtotal: p.subtotal, vat: p.vat, total: p.total, due: due || null, notes: notes || null })}><Eye className="me-2 h-4 w-4" />Preview invoice</Button>
-          <Button disabled={busy || items.length === 0} onClick={submit} className="bg-gradient-gold text-gold-foreground">Create & send to chat</Button>
+          <Button variant="outline" disabled={!draft} onClick={() => setPreview(draft)}><Eye className="me-2 h-4 w-4" />Preview invoice</Button>
+          <Button disabled={busy || !draft} onClick={submit} className="bg-gradient-gold text-gold-foreground">Create & send to chat</Button>
         </div>
       </div>
       <div>
