@@ -295,6 +295,41 @@ export type Database = {
           },
         ]
       }
+      artist_order_forms: {
+        Row: {
+          artist_id: string
+          description: string | null
+          enabled: boolean
+          fields: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          description?: string | null
+          enabled?: boolean
+          fields?: Json
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          description?: string | null
+          enabled?: boolean
+          fields?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_order_forms_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artists: {
         Row: {
           area_id: string | null
