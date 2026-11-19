@@ -1,5 +1,5 @@
 # Roadmap
-- [x] Booking workflow blocks and job_detail, artist item approval/live preview, 20% deposit + balance, booking tables, calendar write and H-7 job; 56 tests pass, invoice/settlement readback and artist UI verified with isolated fixtures.
+- [x] Booking workflow blocks and job_detail, artist item approval/live preview, 20% deposit + balance, booking tables, calendar write and H-7 job; 56 tests pass, invoice/settlement readback verified with isolated fixtures. All four block editors/previews opened via admin and artist menus at desktop/phone widths in light/dark, booking detail and balance control checked; test fixtures removed.
 - [ ] Verify full live chat → artist invoice → Stripe DP → Google event → H-7 WhatsApp: blocked by AED sandbox currency support, artist reconnection with Calendar event write permission, and configured working WhatsApp delivery.
 - [x] AI Flow template library: admin create/edit/publish/delete and artist preview/use/save/reload verified; published-only artist access, mobile catalog and 19 tests pass. Copies keep artist settings independent.
 - [x] Admin Meta/Fonnte selection, write-only token and test-send control; 8 provider/security tests pass, both providers saved and read back signed-in, mobile verified. Test data removed, original settings restored.
