@@ -1,4 +1,5 @@
 # Roadmap
+- [x] AI Flow template library: admin create/edit/publish/delete and artist preview/use/save/reload verified; published-only artist access, mobile catalog and 19 tests pass. Copies keep artist settings independent.
 - [x] Admin Meta/Fonnte selection, write-only token and test-send control; 8 provider/security tests pass, both providers saved and read back signed-in, mobile verified. Test data removed, original settings restored.
 - [ ] Verify real Fonnte approval delivery — waits for the user to enter their Fonnte token and connect their WhatsApp device; acceptance is not confirmed delivery.
 - [x] Repair direct-chat Inbox/invoice visibility (new chat read back signed-in on desktop/mobile) and disclose stored starting-rate estimates before explicit client consent; 40 pricing/calendar/flow tests pass. WhatsApp end-to-end remains blocked by Meta account restriction.

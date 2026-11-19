@@ -17,6 +17,8 @@ import { approvalAction } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
 import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
+import { FlowTemplateLibrary } from "./FlowTemplateLibrary";
+import type { TemplateFlow } from "@/lib/flow-templates";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -316,6 +318,8 @@ const parse = (row: { nodes: unknown; edges: unknown } | null | undefined) =>
 export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | null; canEdit?: boolean }) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<TemplateFlow | null>(null);
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({
     queryKey: ["ai-flow", artistId],
     queryFn: async () => {
@@ -324,6 +328,10 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
       return { master, own };
     },
   });
+  const savedFlow = useMemo(() => {
+    const master = parse(data?.master) ?? DEFAULT_FLOW;
+    return artistId && data?.own?.enabled ? parse(data.own) ?? master : master;
+  }, [data, artistId]);
   if (isLoading || !data) return <div className="p-8 text-center text-muted-foreground">Loading flow…</div>;
   const masterFlow = parse(data.master) ?? DEFAULT_FLOW;
   const custom = !!artistId && !!data.own?.enabled;
@@ -342,12 +350,15 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Flow saved");
-    qc.invalidateQueries({ queryKey: ["ai-flow", artistId] });
+    await qc.invalidateQueries({ queryKey: ["ai-flow", artistId] });
+    setDraft(null);
   };
 
   return (
     <ReactFlowProvider>
       <div className="space-y-4">
+        {canEdit && <FlowTemplateLibrary admin={!artistId} current={draft ?? savedFlow} onUse={setDraft} renderEditor={(flow, saveTemplate, templateSaving) => <ReactFlowProvider><Canvas initial={flow} onSave={saveTemplate} saving={templateSaving} /></ReactFlowProvider>} />}
+        {draft && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{t("Template loaded · not saved")}</span><Button variant="ghost" size="sm" onClick={() => setDraft(null)}>{t("Discard template")}</Button></div>}
         {artistId ? (
           <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
             <div>
@@ -359,7 +370,7 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
         ) : (
           <p className="text-sm text-muted-foreground">This is the standard flow every artist's AI assistant follows unless the artist turns on their own custom flow.</p>
         )}
-        <Canvas initial={artistId && custom ? parse(data.own) ?? masterFlow : masterFlow} readOnly={!canEdit || (!!artistId && !custom)} onSave={(f) => persist(f, true)} saving={saving} />
+        <Canvas initial={draft ?? savedFlow} readOnly={!canEdit || (!!artistId && !custom && !draft)} onSave={(f) => persist(f, true)} saving={saving} />
       </div>
     </ReactFlowProvider>
   );

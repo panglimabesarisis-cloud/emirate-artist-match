@@ -70,6 +70,36 @@ export type Database = {
           },
         ]
       }
+      ai_flow_templates: {
+        Row: {
+          description: string
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          published: boolean
+          updated_at: string
+        }
+        Insert: {
+          description?: string
+          edges?: Json
+          id?: string
+          name: string
+          nodes?: Json
+          published?: boolean
+          updated_at?: string
+        }
+        Update: {
+          description?: string
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          published?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_flows: {
         Row: {
           artist_id: string | null
