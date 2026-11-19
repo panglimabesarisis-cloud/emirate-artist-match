@@ -3,6 +3,7 @@ import { Star, BadgeCheck, Trophy, MapPin } from "lucide-react";
 import type { ArtistCard as Card } from "@/lib/public.functions";
 import { aed, initials } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 export function ArtistAvatar({ name, hue, className = "" }: { name: string; hue: number; className?: string }) {
   return (
@@ -15,7 +16,7 @@ export function ArtistAvatar({ name, hue, className = "" }: { name: string; hue:
   );
 }
 
-export function ArtistCardView({ a }: { a: Card }) {
+export function ArtistCardView({ a, compact = false }: { a: Card; compact?: boolean }) {
   const verified = a.badges.some((b) => b.startsWith("verified"));
   const top = a.badges.includes("top_performer");
   const { t } = useI18n();
@@ -23,9 +24,9 @@ export function ArtistCardView({ a }: { a: Card }) {
     <Link
       to="/artist/$slug"
       params={{ slug: a.slug }}
-      className="group rounded-2xl bg-card shadow-card overflow-hidden flex flex-col transition-transform hover:-translate-y-1"
+      className={`group rounded-2xl bg-card shadow-card overflow-hidden flex flex-col transition-transform hover:-translate-y-1 ${compact ? "home-artist-card" : ""}`}
     >
-      <div className="relative aspect-[4/3]">
+      <div className={compact ? "relative h-[150px] shrink-0" : "relative aspect-[4/3]"}>
         <ArtistAvatar name={a.stage_name} hue={a.hue} className="absolute inset-0 text-5xl" />
         <div className="absolute top-3 start-3 flex gap-1.5">
           {top && (
@@ -63,6 +64,7 @@ export function ArtistCardView({ a }: { a: Card }) {
             {t("from")} <span className="font-bold text-base">{aed(a.base_price)}</span>
           </span>
         </div>
+        {compact && <Button asChild variant="secondary" className="home-book mt-4 w-full"><span>{t("Book Artist")}</span></Button>}
       </div>
     </Link>
   );

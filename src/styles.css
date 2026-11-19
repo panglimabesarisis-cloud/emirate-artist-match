@@ -110,3 +110,96 @@
 @utility bg-gradient-gold { background-image: var(--gradient-gold); }
 @utility bg-gradient-night { background-image: var(--gradient-night); }
 @utility shadow-card { box-shadow: var(--shadow-card); }
+
+/* Homepage presentation is scoped so dashboard and artist pages keep their theme. */
+.dealmaker-home {
+  --radius: 1rem;
+  --home-hero-overlay: linear-gradient(180deg, color-mix(in oklch, var(--night) 85%, transparent), color-mix(in oklch, var(--night) 82%, transparent));
+  --home-shadow: 0 12px 40px color-mix(in oklch, var(--foreground) 8%, transparent);
+  letter-spacing: 0;
+}
+.dealmaker-home h1, .dealmaker-home h2, .dealmaker-home h3 { letter-spacing: 0; }
+.home-wrap { width: 100%; max-width: 1180px; margin-inline: auto; padding-inline: 24px; }
+.dealmaker-home > header > div > div { max-width: 1180px; padding-inline: 24px; }
+.dealmaker-home > header { position: sticky; }
+.dealmaker-home > header nav { gap: 28px; }
+.dealmaker-home > header a, .dealmaker-home > header button { letter-spacing: 0; }
+.home-hero-image { object-position: center 54%; }
+.home-hero-shade { background: var(--home-hero-overlay); }
+.home-hero-content { max-width: 760px; padding-block: 78px 88px; }
+.home-eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0; }
+.home-title { margin-block: 18px; font-size: 64px; line-height: 1.07; font-weight: 600; }
+.home-lead { font-size: 17px; line-height: 1.65; max-width: 540px; color: color-mix(in oklch, var(--night-foreground) 80%, transparent); }
+.home-search { margin-top: 32px; max-width: 720px; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; padding: 6px; background: var(--card); color: var(--card-foreground); border-radius: 18px; box-shadow: var(--home-shadow); }
+.home-search-field { padding: 8px 12px; min-width: 0; }
+.home-search-field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted-foreground); }
+.home-search-field [data-slot="select-trigger"], .home-search-field > button { width: 100%; height: 28px; padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0; font-size: 14px; font-weight: 600; }
+.home-search-go { height: 100%; border-radius: 12px; padding-inline: 24px; background: var(--night); color: var(--night-foreground); }
+.home-search-go:hover { background: var(--primary); }
+.home-stats { gap: 40px; margin-top: 32px; }
+.home-stats strong { display: block; height: 34px; font-family: var(--font-display); font-size: 26px; font-weight: 600; }
+.home-stats span { font-size: 12px; opacity: .65; }
+.home-categories { margin-top: -32px; z-index: 2; }
+.home-category-bar { padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--home-shadow); }
+.home-category-scroll { min-width: 0; padding-block: 4px; scrollbar-width: none; }
+.home-category-scroll::-webkit-scrollbar { display: none; }
+.home-category-chip { height: 40px; border-radius: 999px; padding-inline: 16px; box-shadow: none; background: var(--card); color: var(--card-foreground); font-size: 13px; }
+.home-category-chip svg { color: var(--gold); }
+.home-category-chip.is-active { background: var(--night); color: var(--night-foreground); border-color: var(--night); }
+.home-category-arrow { border-radius: 50%; width: 36px; height: 36px; box-shadow: none; }
+.home-talent { padding-block: 58px 64px; scroll-margin-top: 110px; }
+.dealmaker-home h2 { font-size: 36px; font-weight: 600; line-height: 1.2; }
+.home-see { color: var(--accent-foreground); font-size: 13px; padding-inline: 0; }
+.home-artist-card { border: 1px solid var(--border); border-radius: 16px; box-shadow: none; }
+.home-artist-card > div:last-child { padding: 16px 18px 18px; }
+.home-artist-card .font-display { line-height: 1.3; }
+.home-artist-card > div:last-child > p { min-height: 40px; font-size: 13px; }
+.home-artist-card > div:last-child > div:nth-last-child(2) { border-top: 1px dashed var(--border); margin-top: 14px; padding-top: 14px; gap: 8px; }
+.home-artist-card > div:last-child > div:nth-last-child(2) > span:last-child { text-align: end; font-size: 12px; }
+.home-artist-card > div:last-child > div:nth-last-child(2) > span:last-child > span { display: block; white-space: nowrap; font-size: 15px; }
+.home-book { background: var(--accent); color: var(--accent-foreground); border-radius: 10px; font-weight: 700; height: 40px; }
+.home-artist-card:hover .home-book { background: var(--night); color: var(--night-foreground); }
+.home-why { padding-block: 64px 40px; }
+.home-benefits { margin-top: 36px; }
+.home-benefit { min-width: 0; display: flex; flex-direction: column; }
+.home-benefit-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: color-mix(in oklch, var(--gold) 15%, transparent); color: var(--gold); }
+.home-benefit-visual { border-top: 1px solid color-mix(in oklch, var(--night-foreground) 15%, transparent); padding-block: 18px; font-size: 12px; margin-top: auto; }
+.home-benefit ul { padding-bottom: 26px; }
+.home-trust { margin-top: 24px; padding-top: 28px; border-top: 1px solid color-mix(in oklch, var(--night-foreground) 12%, transparent); color: color-mix(in oklch, var(--night-foreground) 75%, transparent); }
+.home-trust span { display: inline-flex; align-items: center; gap: 8px; }
+.home-trust svg { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; }
+.home-cta { padding-block: 64px; }
+.home-organiser, .home-performer { padding-block: 16px; }
+.home-performer { padding-inline-start: 40px; border-inline-start: 1px solid var(--border); }
+.home-performer .home-eyebrow { color: var(--accent-foreground); }
+.home-cta h2 { font-size: 32px; }
+.dealmaker-home footer { margin-top: 0; }
+.dealmaker-home footer > div { max-width: 1180px; padding-inline: 24px; }
+@media (max-width: 1024px) {
+  .dealmaker-home > header nav { display: none; }
+  .home-benefit-visual { margin-top: 0; }
+}
+@media (max-width: 640px) {
+  .home-wrap, .dealmaker-home > header > div > div, .dealmaker-home footer > div { padding-inline: 18px; }
+  .home-hero-content { padding-block: 32px 48px; }
+  .home-title { font-size: 40px; line-height: 1.12; }
+  .home-lead { font-size: 14px; }
+  .home-search { grid-template-columns: 1fr; margin-top: 24px; gap: 2px; border-radius: 14px; }
+  .home-search-field { padding: 5px 12px; border-bottom: 1px solid var(--border); }
+  .home-search-go { height: 44px; margin-top: 4px; }
+  .home-stats { gap: 24px; margin-top: 22px; }
+  .home-stats span { font-size: 10px; }
+  .home-categories { margin-top: -28px; }
+  .home-category-bar { padding: 6px; border-radius: 16px; gap: 4px; }
+  .home-category-chip { height: 36px; padding-inline: 12px; font-size: 12px; }
+  .home-category-arrow { width: 30px; height: 30px; }
+  .home-talent { padding-block: 38px 44px; }
+  .home-section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .dealmaker-home h2 { font-size: 28px; }
+  .home-why { padding-block: 44px 32px; }
+  .home-cta { padding-block: 40px; gap: 24px; }
+  .home-performer { padding-inline-start: 0; padding-top: 30px; border-inline-start: 0; border-top: 1px solid var(--border); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dealmaker-home * { scroll-behavior: auto; transition: none; }
+}
