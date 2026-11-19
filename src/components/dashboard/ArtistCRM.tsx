@@ -80,12 +80,21 @@ function waitForOAuth(popup: Window) {
 }
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function CalendarTab({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const start$ = useServerFn(startCalendarConnect), complete$ = useServerFn(completeCalendarConnect), events$ = useServerFn(getCalendarEvents), disc$ = useServerFn(disconnectCalendar);
-  const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [view, setView] = useState<"day" | "week" | "month">("month");
+  const [focus, setFocus] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); });
+  const cursor = useMemo(() => new Date(focus.getFullYear(), focus.getMonth(), 1), [focus]);
+  const shift = (dir: number) => setFocus(view === "month" ? new Date(focus.getFullYear(), focus.getMonth() + dir, 1) : new Date(focus.getFullYear(), focus.getMonth(), focus.getDate() + dir * (view === "week" ? 7 : 1)));
+  const weekDays = useMemo(() => { const s = new Date(focus.getFullYear(), focus.getMonth(), focus.getDate() - ((focus.getDay() + 6) % 7)); return Array.from({ length: 7 }, (_, i) => new Date(s.getFullYear(), s.getMonth(), s.getDate() + i)); }, [focus]);
+  const title = view === "month" ? cursor.toLocaleString("en-GB", { month: "long", year: "numeric" })
+    : view === "week" ? `${weekDays[0]!.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${weekDays[6]!.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+    : focus.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const month = ymd(cursor).slice(0, 7);
   const [busy, setBusy] = useState(false);
   const g = useQuery({ queryKey: ["gcal", month], queryFn: () => events$({ data: { month } }), retry: false });
@@ -153,11 +162,20 @@ export function CalendarTab({ artistId }: { artistId: string }) {
       </div>
 
       <div className="rounded-xl border bg-card">
-        <div className="flex items-center justify-between border-b p-3">
-          <Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="font-semibold">{cursor.toLocaleString("en-GB", { month: "long", year: "numeric" })}</div>
-          <Button variant="ghost" size="icon" aria-label="Next month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b p-3">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" aria-label="Previous" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" onClick={() => { const d = new Date(); setFocus(new Date(d.getFullYear(), d.getMonth(), d.getDate())); }}>Today</Button>
+            <Button variant="ghost" size="icon" aria-label="Next" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+          <div className="font-semibold">{title}</div>
+          <div className="flex rounded-lg border p-0.5">
+            {(["day", "week", "month"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-xs font-medium ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}>{v === "day" ? "Daily" : v === "week" ? "Weekly" : "Monthly"}</button>
+            ))}
+          </div>
         </div>
+        {view === "month" && <>
         <div className="grid grid-cols-7 border-b text-center text-xs font-medium text-muted-foreground">{WEEK.map((w) => <div key={w} className="py-2">{w}</div>)}</div>
         <div className="grid grid-cols-7">
           {days.map((d, i) => {
@@ -167,25 +185,73 @@ export function CalendarTab({ artistId }: { artistId: string }) {
             const bks = local.data?.bookings.filter((b) => b.event_date === date) ?? [];
             const ev = gEventsOn(date);
             return (
-              <button key={date} onClick={() => toggleBlock(date)} title={blocked ? "Click to unblock" : "Click to block this date"}
+              <button key={date} onClick={() => toggleBlock(date)} onDoubleClick={() => { setFocus(d); setView("day"); }} title={blocked ? "Click to unblock · double-click for day view" : "Click to block · double-click for day view"}
                 className={`min-h-24 border-b border-e p-1.5 text-start align-top transition-colors hover:bg-accent/50 ${blocked ? "bg-destructive/10" : ""}`}>
                 <div className={`mb-1 inline-grid h-6 w-6 place-items-center rounded-full text-xs ${date === today ? "bg-primary text-primary-foreground" : ""}`}>{d.getDate()}</div>
                 <div className="space-y-0.5">
                   {blocked && <div className="truncate rounded bg-destructive/20 px-1 text-[10px] text-destructive">{blocked.note ?? "Blocked"}</div>}
                   {bks.map((b) => <div key={b.id} className="truncate rounded bg-gold/25 px-1 text-[10px]">{b.client_name}</div>)}
-                  {ev.slice(0, 3).map((e) => <div key={e.id + date} className="truncate rounded bg-primary/15 px-1 text-[10px]">{e.allDay ? "" : `${new Date(e.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} `}{e.title}</div>)}
+                  {ev.slice(0, 3).map((e) => <div key={e.id + date} className="truncate rounded bg-primary/15 px-1 text-[10px]">{e.allDay ? "" : `${hm(e.start)} `}{e.title}</div>)}
                   {ev.length > 3 && <div className="text-[10px] text-muted-foreground">+{ev.length - 3} more</div>}
                 </div>
               </button>
             );
           })}
         </div>
+        </>}
+        {view !== "month" && (() => {
+          const cols = view === "week" ? weekDays : [focus];
+          return (
+            <div className="overflow-x-auto">
+              <div className="min-w-[640px]">
+                <div className="grid border-b" style={{ gridTemplateColumns: `56px repeat(${cols.length}, minmax(0,1fr))` }}>
+                  <div />
+                  {cols.map((d) => {
+                    const date = ymd(d), blocked = local.data?.blocked.find((x) => x.date === date);
+                    const allDay = gEventsOn(date).filter((e) => e.allDay), bks = local.data?.bookings.filter((b) => b.event_date === date) ?? [];
+                    return (
+                      <div key={date} className={`border-s p-1.5 text-xs ${blocked ? "bg-destructive/10" : ""}`}>
+                        <button onClick={() => { setFocus(d); setView("day"); }} className={`font-medium ${date === today ? "text-primary" : ""}`}>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</button>
+                        <div className="mt-1 space-y-0.5">
+                          {blocked && <div className="truncate rounded bg-destructive/20 px-1 text-[10px] text-destructive">{blocked.note ?? "Blocked"}</div>}
+                          {bks.map((b) => <div key={b.id} className="truncate rounded bg-gold/25 px-1 text-[10px]">{b.client_name}</div>)}
+                          {allDay.map((e) => <div key={e.id} className="truncate rounded bg-primary/15 px-1 text-[10px]">{e.title}</div>)}
+                          <button onClick={() => toggleBlock(date)} className="text-[10px] text-muted-foreground underline">{blocked ? "Unblock" : "Block day"}</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="relative grid max-h-[640px] overflow-y-auto" style={{ gridTemplateColumns: `56px repeat(${cols.length}, minmax(0,1fr))` }}>
+                  <div>{HOURS.map((h) => <div key={h} className="h-12 border-b pe-1 text-end text-[10px] text-muted-foreground">{String(h).padStart(2, "0")}:00</div>)}</div>
+                  {cols.map((d) => {
+                    const date = ymd(d), dayStart = d.getTime();
+                    const timed = gEventsOn(date).filter((e) => !e.allDay);
+                    return (
+                      <div key={date} className="relative border-s">
+                        {HOURS.map((h) => <div key={h} className="h-12 border-b" />)}
+                        {timed.map((e) => {
+                          const s = Math.max(0, (new Date(e.start).getTime() - dayStart) / 3600000), en = Math.min(24, (new Date(e.end).getTime() - dayStart) / 3600000);
+                          return (
+                            <div key={e.id} className="absolute inset-x-1 overflow-hidden rounded bg-primary/20 px-1 text-[10px] leading-tight" style={{ top: s * 48, height: Math.max(18, (en - s) * 48) }}>
+                              <div className="font-medium">{hm(e.start)}–{hm(e.end)}</div><div className="truncate">{e.title}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-gold/40" /> Dealmaker booking</span>
         <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-primary/25" /> Google Calendar</span>
         <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/25" /> Blocked (clients can't book)</span>
-        <span>Click a day to block or unblock it.</span>
+        <span>Monthly: click a day to block it, double-click to open the daily view.</span>
       </div>
     </div>
   );
