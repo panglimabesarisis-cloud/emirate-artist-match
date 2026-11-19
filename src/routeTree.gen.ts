@@ -23,6 +23,7 @@ import { Route as ApproveIdRouteImport } from './routes/approve.$id'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
+import { Route as JoinPaymentRouteImport } from './routes/join_.payment'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
@@ -101,6 +102,11 @@ const ChatIdRoute = ChatIdRouteImport.update({
   path: '/chat/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinPaymentRoute = JoinPaymentRouteImport.update({
+  id: '/join_/payment',
+  path: '/join/payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/join/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/join/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
   '/chat/$id': typeof ChatIdRoute
+  '/join_/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/join/payment'
     | '/p/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/join/payment'
     | '/p/$slug'
     | '/$category'
     | '/$category/$emirate/$area'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/artist/$slug'
     | '/booking/$id'
     | '/chat/$id'
+    | '/join_/payment'
     | '/p/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
@@ -289,6 +301,7 @@ export interface RootRouteChildren {
   ArtistSlugRoute: typeof ArtistSlugRoute
   BookingIdRoute: typeof BookingIdRoute
   ChatIdRoute: typeof ChatIdRoute
+  JoinPaymentRoute: typeof JoinPaymentRoute
   PSlugRoute: typeof PSlugRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
@@ -399,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join_/payment': {
+      id: '/join_/payment'
+      path: '/join/payment'
+      fullPath: '/join/payment'
+      preLoaderRoute: typeof JoinPaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$slug': {
       id: '/p/$slug'
       path: '/p/$slug'
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistSlugRoute: ArtistSlugRoute,
   BookingIdRoute: BookingIdRoute,
   ChatIdRoute: ChatIdRoute,
+  JoinPaymentRoute: JoinPaymentRoute,
   PSlugRoute: PSlugRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,

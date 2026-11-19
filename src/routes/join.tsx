@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { slugify } from "@/lib/format";
+import { specialtyLimit } from "@/lib/join-rules";
+import { X } from "lucide-react";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -28,7 +30,7 @@ export const Route = createFileRoute("/join")({
   component: JoinPage,
 });
 
-const STEPS = ["Account", "Category & photos", "Rate card", "Stage identity", "Contract"];
+const STEPS = ["Plan", "Account", "Category & photos", "Rate card", "Stage identity", "Contract"];
 type Pkg = { title: string; description: string; duration: string; price: string };
 
 function GoogleG() {
@@ -40,6 +42,10 @@ function JoinPage() {
   const [checked, setChecked] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [step, setStep] = useState(0);
+  const [plan, setPlanState] = useState<string | null>(null);
+  useEffect(() => { setPlanState(localStorage.getItem("join_plan")); }, []);
+  const setPlan = (p: string | null) => { if (p) localStorage.setItem("join_plan", p); else localStorage.removeItem("join_plan"); setPlanState(p); };
+  const shown = plan ? step + 1 : 0;
 
   useEffect(() => {
     const load = async () => {
@@ -63,29 +69,60 @@ function JoinPage() {
     <PublicLayout>
       <div className="mx-auto max-w-3xl px-4 py-12">
         <h1 className="text-3xl font-semibold">Talent register</h1>
-        <p className="mt-1 text-muted-foreground">Five quick steps. Our team reviews every profile before it goes live.</p>
-        <ol className="mt-8 grid grid-cols-5 gap-2">
+        <p className="mt-1 text-muted-foreground">Choose a plan, then five quick steps. Our team reviews every profile before it goes live.</p>
+        <ol className="mt-8 grid grid-cols-6 gap-2">
           {STEPS.map((s, i) => (
             <li key={s} className="text-center">
-              <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold ${i < step ? "bg-gold text-gold-foreground border-gold" : i === step ? "border-gold text-gold" : "text-muted-foreground"}`}>
-                {i < step ? <Check className="h-4 w-4" /> : i + 1}
+              <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold ${i < shown ? "bg-gold text-gold-foreground border-gold" : i === shown ? "border-gold text-gold" : "text-muted-foreground"}`}>
+                {i < shown ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <div className={`mt-2 hidden text-xs sm:block ${i === step ? "font-medium" : "text-muted-foreground"}`}>{s}</div>
+              <div className={`mt-2 hidden text-xs sm:block ${i === shown ? "font-medium" : "text-muted-foreground"}`}>{s}</div>
             </li>
           ))}
         </ol>
         <div className="mt-8 rounded-2xl border bg-card p-6">
           {!checked ? <p className="text-muted-foreground">Loading…</p>
             : hasProfile ? <div><p>Your talent profile is already submitted.</p><Button asChild className="mt-4"><Link to="/dashboard">Go to dashboard</Link></Button></div>
-            : !user ? <AccountStep />
-            : <Wizard user={user} step={step} setStep={setStep} onDone={() => setHasProfile(true)} />}
+            : !plan ? <PlanStep onPick={setPlan} />
+            : !user ? <AccountStep plan={plan} onChangePlan={() => setPlan(null)} />
+            : <Wizard user={user} plan={plan} step={step} setStep={setStep} onChangePlan={() => setPlan(null)} />}
         </div>
       </div>
     </PublicLayout>
   );
 }
 
-function AccountStep() {
+function PlanStep({ onPick }: { onPick: (p: string) => void }) {
+  const tiers = useQuery({ queryKey: ["join-plans"], queryFn: async () => (await supabase.from("plan_tiers").select("*").order("sort")).data ?? [] }).data;
+  return (
+    <div>
+      <h2 className="text-xl font-semibold">Choose your plan</h2>
+      <p className="text-sm text-muted-foreground">Your plan sets how many specialties, photos and AI replies you get. You can change it later.</p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        {tiers?.map((t) => (
+          <div key={t.code} className={`flex flex-col rounded-xl border p-4 ${t.code === "medium" ? "border-gold" : ""}`}>
+            <div className="font-semibold">{t.name}</div>
+            <div className="mt-1 text-2xl font-semibold">AED {Number(t.price_monthly).toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+            <ul className="mt-3 flex-1 space-y-1 text-sm text-muted-foreground">
+              <li>{specialtyLimit(t.code)} {specialtyLimit(t.code) === 1 ? "specialty" : "specialties"}</li>
+              <li>{t.ai_credits} AI credits</li>
+              <li>{t.max_photos} photos · {t.max_videos} videos</li>
+              <li>{Number(t.commission_pct)}% platform commission</li>
+              {(Array.isArray(t.features) ? t.features as string[] : []).map((f) => <li key={f}>{f}</li>)}
+            </ul>
+            <Button type="button" onClick={() => onPick(t.code)} className="mt-4 bg-gradient-gold text-gold-foreground">Choose {t.name}</Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlanBadge({ plan, onChange }: { plan: string; onChange: () => void }) {
+  return <p className="mb-4 text-sm text-muted-foreground">Plan: <b className="capitalize text-foreground">{plan}</b> · <button type="button" onClick={onChange} className="underline">change</button></p>;
+}
+
+function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () => void }) {
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false);
   const google = async () => {
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/join" });
@@ -100,6 +137,7 @@ function AccountStep() {
   };
   return (
     <div>
+      <PlanBadge plan={plan} onChange={onChangePlan} />
       <h2 className="text-xl font-semibold">Step 1 · Account</h2>
       <p className="text-sm text-muted-foreground">Sign up with Google and your name and email fill in automatically.</p>
       <Button type="button" variant="outline" onClick={google} className="mt-4 h-11 w-full"><GoogleG /> Sign up with Google</Button>
@@ -115,7 +153,9 @@ function AccountStep() {
   );
 }
 
-function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: string; name: string }; step: number; setStep: (n: number) => void; onDone: () => void }) {
+function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: string; email: string; name: string }; plan: string; step: number; setStep: (n: number) => void; onChangePlan: () => void }) {
+  const navigate = useNavigate();
+  const limit = specialtyLimit(plan);
   const cat = useQuery({
     queryKey: ["join-catalog"],
     queryFn: async () => {
@@ -129,7 +169,7 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
     },
   }).data;
   const [name, setName] = useState(user.name); const [phone, setPhone] = useState("");
-  const [categoryId, setCategoryId] = useState(""); const [subId, setSubId] = useState("");
+  const [categoryId, setCategoryId] = useState(""); const [specs, setSpecs] = useState<string[]>([]); const [q, setQ] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [basePrice, setBasePrice] = useState("");
   const [pkgs, setPkgs] = useState<Pkg[]>([{ title: "Essential", description: "", duration: "60", price: "" }]);
@@ -142,6 +182,7 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
   const validate = (): string | null => {
     if (step === 0 && (!name.trim() || !/^\+?[0-9 ]{8,16}$/.test(phone))) return "Enter your name and a valid WhatsApp number.";
     if (step === 1 && !categoryId) return "Choose your talent category.";
+    if (step === 1 && specs.length > limit) return `Your plan allows up to ${limit} specialties.`;
     if (step === 1 && photos.length !== 5) return "Upload exactly 5 photos.";
     if (step === 2 && (!Number(basePrice) || pkgs.some((p) => !p.title.trim() || !Number(p.price)))) return "Enter a starting price and a title and price for each package.";
     if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage name and base emirate.";
@@ -161,7 +202,7 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
     try {
       const { data: a, error } = await supabase.from("artists").insert({
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
-        category_id: categoryId, subcategory_id: subId || null, emirate_id: emirateId, area_id: areaId || null,
+        category_id: categoryId, subcategory_id: specs[0] ?? null, specialty_ids: specs, emirate_id: emirateId, area_id: areaId || null,
         base_price: Number(basePrice), languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
         travel_radius_km: Number(radius) || null, notify_phone: phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
@@ -175,14 +216,15 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
         const up = await supabase.storage.from("artist-media").upload(path, f, { contentType: f.type });
         if (!up.error) await supabase.from("artist_media").insert({ artist_id: a.id, kind: "photo", url: path, storage_path: path, sort: i + 1 });
       }
-      toast.success("Profile submitted for approval!");
-      onDone();
+      toast.success("Profile saved — one last step: payment.");
+      navigate({ to: "/join/payment" });
     } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
   };
 
   const subs = cat?.subcategories.filter((s) => s.category_id === categoryId) ?? [];
   return (
     <div className="space-y-4">
+      <PlanBadge plan={plan} onChange={onChangePlan} />
       {step === 0 && <>
         <h2 className="text-xl font-semibold">Step 1 · Account</h2>
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></div>
@@ -192,8 +234,22 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
       {step === 1 && <>
         <h2 className="text-xl font-semibold">Step 2 · Talent category & photos</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div><Label>Category</Label><Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setSubId(""); }}><SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger><SelectContent>{cat?.categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-          <div><Label>Specialty</Label><Select value={subId} onValueChange={setSubId} disabled={!subs.length}><SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger><SelectContent>{subs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label>Category</Label><Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setSpecs([]); }}><SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger><SelectContent>{cat?.categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="relative">
+            <Label>Specialties ({specs.length}/{limit})</Label>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {specs.map((id) => <span key={id} className="inline-flex items-center gap-1 rounded-full border bg-muted px-2 py-0.5 text-xs">{cat?.subcategories.find((s) => s.id === id)?.name}<button type="button" aria-label="Remove" onClick={() => setSpecs(specs.filter((x) => x !== id))}><X className="h-3 w-3" /></button></span>)}
+            </div>
+            <Input className="mt-1" value={q} onChange={(e) => setQ(e.target.value)} disabled={!categoryId || specs.length >= limit} placeholder={!categoryId ? "Choose a category first" : specs.length >= limit ? `Limit reached on ${plan} plan` : "Search specialty…"} />
+            {q.trim() && specs.length < limit && (
+              <div className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-md border bg-popover shadow">
+                {subs.filter((s) => !specs.includes(s.id) && s.name.toLowerCase().includes(q.toLowerCase())).map((s) => (
+                  <button type="button" key={s.id} onClick={() => { setSpecs([...specs, s.id]); setQ(""); }} className="block w-full px-3 py-2 text-start text-sm hover:bg-accent">{s.name}</button>
+                ))}
+                {!subs.some((s) => !specs.includes(s.id) && s.name.toLowerCase().includes(q.toLowerCase())) && <div className="px-3 py-2 text-sm text-muted-foreground">No match</div>}
+              </div>
+            )}
+          </div>
         </div>
         <div>
           <Label>5 portfolio photos ({photos.length}/5)</Label>
@@ -259,7 +315,7 @@ function Wizard({ user, step, setStep, onDone }: { user: { id: string; email: st
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" disabled={step === 0} onClick={() => setStep(step - 1)}>Back</Button>
         {step < 4 ? <Button type="button" onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
-          : <Button type="button" disabled={busy} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Submit for approval"}</Button>}
+          : <Button type="button" disabled={busy} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Submit & continue to payment"}</Button>}
       </div>
     </div>
   );

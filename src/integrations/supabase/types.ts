@@ -316,6 +316,7 @@ export type Database = {
           plan: string
           response_rate: number | null
           slug: string
+          specialty_ids: string[]
           stage_name: string
           status: string
           subcategory_id: string | null
@@ -344,6 +345,7 @@ export type Database = {
           plan?: string
           response_rate?: number | null
           slug: string
+          specialty_ids?: string[]
           stage_name: string
           status?: string
           subcategory_id?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           plan?: string
           response_rate?: number | null
           slug?: string
+          specialty_ids?: string[]
           stage_name?: string
           status?: string
           subcategory_id?: string | null

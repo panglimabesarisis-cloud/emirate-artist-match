@@ -120,6 +120,13 @@
       "when": 1795037223895,
       "tag": "0016_artist_crm_wallet_calendar",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795084971430,
+      "tag": "0017_join_specialties_and_areas",
+      "breakpoints": true
     }
   ]
 }
