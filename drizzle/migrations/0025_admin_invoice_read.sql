@@ -1,0 +1,1 @@
+CREATE POLICY "invoice_admin_read" ON public.service_invoices FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));

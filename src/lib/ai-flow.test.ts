@@ -53,7 +53,7 @@ describe("buttons", () => {
 });
 
 describe("form", () => {
-  it.each(["artist_name", "Perform_duration", "Additonal_Request", "informasion"])("preserves %s through the agent form and saves its answer", (variable) => {
+  it.each(["artist_name", "Perform_duration", "Additonal_Request", "informasion", "client_occupation", "job_artis", "speciality_artis", "ratecard", "venue_name", "client_company", "sound_system_included"])("preserves %s through the agent form and saves its answer", (variable) => {
     const preset = FORM_FIELD_PRESETS.find((field) => field.saveAs === variable);
     expect(preset).toBeDefined();
     if (!preset) return;

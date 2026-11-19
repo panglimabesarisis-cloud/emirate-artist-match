@@ -14,6 +14,9 @@ import { AdminOverview } from "@/components/admin/AdminOverview";
 import { ArtistDirectory, ArtistRequests, CategoryManager, EventTypeManager } from "@/components/admin/AdminArtists";
 import { AdminPlans } from "@/components/admin/AdminPlans";
 import { AdminSettings } from "@/components/admin/AdminSettings";
+import { AdminRatecards } from "@/components/admin/AdminRatecards";
+import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
+import { ContractsTable } from "@/components/dashboard/ContractsTable";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -27,6 +30,9 @@ const NAV = [
   { id: "requests", label: "Artist requests", group: "Artists" },
   { id: "categories", label: "Categories", group: "Artists" },
   { id: "verify", label: "Verification", group: "Artists" },
+  { id: "ratecards", label: "Ratecard", group: "Business" },
+  { id: "invoices", label: "Invoice", group: "Business" },
+  { id: "contracts", label: "Contract", group: "Business" },
   { id: "plans", label: "Artist packages", group: "Business" },
   { id: "escrow", label: "Escrow & disputes", group: "Business" },
   { id: "payouts", label: "Artist payouts", group: "Business" },
@@ -81,6 +87,9 @@ function Admin() {
           {section === "requests" && <ArtistRequests />}
           {section === "categories" && <CategoryManager />}
           {section === "verify" && <VerifyQueue />}
+          {section === "ratecards" && <AdminRatecards />}
+          {section === "invoices" && <InvoiceRecords />}
+          {section === "contracts" && <ContractsTable />}
           {section === "plans" && <AdminPlans />}
           {section === "escrow" && <AdminEscrow />}
           {section === "payouts" && <PayoutQueue />}

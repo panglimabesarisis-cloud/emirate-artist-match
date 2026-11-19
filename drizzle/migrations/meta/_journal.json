@@ -176,6 +176,13 @@
       "when": 1795113023520,
       "tag": "0024_booking_invoice_deposits",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795120088795,
+      "tag": "0025_admin_invoice_read",
+      "breakpoints": true
     }
   ]
 }

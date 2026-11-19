@@ -140,7 +140,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     if (!def) return;
     const id = crypto.randomUUID();
     const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 200, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 120 });
-    setNodes((ns) => [...ns, { id, type: kind, position, data: datePicker ? { text: "Please select your preferred event date", fields: [{ label: "Event date", type: "date", saveAs: "event_date" }] } : kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
+    setNodes((ns) => [...ns, { id, type: kind, position, data: datePicker ? { text: "Please select your preferred event date", fields: [{ label: "Event date", type: "date", saveAs: "event_date" }] } : kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.slice(0, 4).map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);

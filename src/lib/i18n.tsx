@@ -4,6 +4,11 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  Ratecard: "قائمة الأسعار", Invoice: "فاتورة", Contract: "عقد", Artist: "الفنان", Client: "العميل", Total: "الإجمالي", Payment: "الدفع", Balance: "الرصيد", View: "عرض", Service: "الخدمة", Time: "الوقت",
+  "Job type": "نوع العمل", "Add ratecard": "إضافة سعر", "Edit ratecard": "تعديل السعر", "Search ratecards": "البحث في الأسعار", "No ratecards yet.": "لا توجد أسعار بعد.", "All artists": "كل الفنانين",
+  "Search invoices": "البحث في الفواتير", "Payment status": "حالة الدفع", "All payments": "كل المدفوعات", Unpaid: "غير مدفوع", Paid: "مدفوع", "Paid 100%": "مدفوع 100%", "Partially paid": "مدفوع جزئياً", "Paid at": "تاريخ الدفع", "No invoices yet.": "لا توجد فواتير بعد.", "Invoice preview": "معاينة الفاتورة",
+  "Total invoiced": "إجمالي الفواتير", "Total paid": "إجمالي المدفوع", "Outstanding balance": "الرصيد المتبقي", "Search contracts": "البحث في العقود", "Acceptance status": "حالة الموافقة", "All contracts": "كل العقود", Accepted: "تمت الموافقة", "Awaiting acceptance": "بانتظار الموافقة", "Accepted at": "تاريخ الموافقة", "No contracts yet.": "لا توجد عقود بعد.", "Contract preview": "معاينة العقد", "Booking contract": "عقد الحجز", Booking: "الحجز", "Booking status": "حالة الحجز",
+  "Could not load invoices.": "تعذر تحميل الفواتير.", "Could not load contracts.": "تعذر تحميل العقود.", "Could not load artists.": "تعذر تحميل الفنانين.", "Could not load ratecards.": "تعذر تحميل الأسعار.",
   Talent: "الموهبة", City: "المدينة", Event: "المناسبة", Categories: "الفئات",
   "AI booking agent": "وكيل الحجز الذكي", "Transparent pricing": "أسعار واضحة",
   "See all talent": "عرض جميع المواهب", "Discover performers with reviews from completed bookings.": "اكتشف فنانين بتقييمات من حجوزات مكتملة.",
