@@ -51,6 +51,7 @@ use the editor.
 - Order form reads allow public access only when enabled and the artist is approved; authenticated artist teams can read their own drafts so dashboard editing remains available.
 - Talent signup goes through the `/join` wizard; Google sign-ups get the artist role via the `become_artist()` RPC (self-only, never admin) since OAuth can't carry signup metadata.
 - Artist Google Calendar uses the per-user App User Connector (`src/lib/calendar.functions.ts`); connection keys are stored encrypted in server-only `app_user_connections`, never sent to the browser.
+- AI drafts require live Google freeBusy for the artist owner; never manual blocks, since prompt-only checks cannot enforce availability.
 - Artist wallet numbers come only from the `artist_wallet()` SQL function (completed bookings minus plan commission minus payouts); withdrawals are `payout_requests` rows guarded by a trigger (amount ≤ available, only admins change status).
 - Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.
 - Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.

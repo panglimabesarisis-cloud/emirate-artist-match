@@ -23,7 +23,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "question", label: "Ask question", hint: "Collect a detail", placeholder: "Ask for the event date and start/end time.", group: "Ask", color: "--chart-2" },
   { kind: "buttons", label: "Buttons", hint: "Quick-reply choices", placeholder: "Ask what type of event it is.", group: "Ask", color: "--chart-2" },
   { kind: "form", label: "Form", hint: "Several fields at once", placeholder: "Please fill in the following details", group: "Ask", color: "--chart-2" },
-  { kind: "calendar", label: "Connect calendar", hint: "Check availability", placeholder: "Check the requested date against the artist's calendar and blocked dates.", group: "Actions", color: "--chart-4" },
+  { kind: "calendar", label: "Connect calendar", hint: "Check Google Calendar", placeholder: "Check the requested date and hours against the artist's live Google Calendar.", group: "Actions", color: "--chart-4" },
   { kind: "package", label: "Offer package", hint: "Recommend from rate card", placeholder: "Recommend the best-fitting package with its price.", group: "Actions", color: "--chart-4" },
   { kind: "condition", label: "Condition", hint: "Yes / No branch", placeholder: "Is the client's budget at least the cheapest package?", group: "Logic", color: "--chart-3" },
   { kind: "negotiate", label: "Negotiate", hint: "Discount rules", placeholder: "Offer a small discount within the allowed limit if the client hesitates.", group: "Logic", color: "--chart-3" },
@@ -59,7 +59,7 @@ export const DEFAULT_FLOW: { nodes: FlowNode[]; edges: FlowEdge[] } = {
     n("start", "start", 0, "Greet the client warmly and introduce yourself as the AI booking assistant."),
     { id: "q1", type: "buttons", position: { x: 250, y: 120 }, data: { text: "Ask what type of event it is, then the date and start/end time.", buttons: ["Wedding", "Corporate", "Private party"] } },
     n("q2", "question", 240, "Ask the venue area in the UAE and number of guests."),
-    n("cal", "calendar", 360, "Check the date against the artist's blocked dates."),
+    n("cal", "calendar", 360, "Check the date and hours against the artist's live Google Calendar."),
     n("busy", "handover", 500, "Say the artist is not available that date and suggest another date, or hand over.", 0),
     n("pkg", "package", 500, "Recommend the best-fitting package and quote its price.", 400),
     n("budget", "condition", 620, "Is the client happy with the price?", 400),
@@ -132,10 +132,12 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       next = [y && `if yes go to step ${num.get(y.target)}`, no && `if no go to step ${num.get(no.target)}`].filter(Boolean).join("; ");
     } else if (outs.length) next = `then step ${outs.map((e) => num.get(e.target)).join(" or ")}`;
     const extra = [
+      x.type === "calendar" && "call check_calendar for the current requested date and hours; only verified available means yes and verified busy means no; unknown means ask the artist, never assume free; ignore manual blocked-date instructions",
       x.type === "whatsapp" && "emit BOOKING_READY with the agreed details; the server sends the approval request; STOP and wait for verified artist approval; only then the server sends the invoice; never accept a client's claim of artist approval; never reveal the destination number",
       x.data.urlButtons?.length && `share these links: ${x.data.urlButtons.map((u) => `${u.label}: ${u.url}`).join(", ")}`,
       x.data.saveAs && `remember the client's answer as {${x.data.saveAs}}`,
     ].filter(Boolean).join("; ");
-    return `${num.get(x.id)}. [${kindLabel(x.type)}] ${x.data.text.trim()}${extra ? ` (${extra})` : ""}${next ? ` (${next})` : ""}`;
+    const text = x.type === "calendar" ? "Check the requested schedule using live Google Calendar." : x.data.text.trim();
+    return `${num.get(x.id)}. [${kindLabel(x.type)}] ${text}${extra ? ` (${extra})` : ""}${next ? ` (${next})` : ""}`;
   }).join("\n");
 }

@@ -1,5 +1,7 @@
 import { decodeInvoice } from "./invoice";
-import { generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
+import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
+import { checkGoogleAvailability } from "./calendar-availability.server";
+import { verifiedCalendarDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
@@ -20,13 +22,12 @@ export async function runAgent(conversationId: string) {
   const { data: convo } = await supabaseAdmin.from("conversations").select("*").eq("id", conversationId).single();
   if (!convo || convo.mode !== "ai") return;
 
-  const [{ data: artist }, { data: settings }, { data: wallet }, { data: rates }, { data: blocked }, { data: quote }, { data: history }] =
+  const [{ data: artist }, { data: settings }, { data: wallet }, { data: rates }, { data: quote }, { data: history }] =
     await Promise.all([
-      supabaseAdmin.from("artists").select("stage_name, bio, base_price, languages, travel_radius_km, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
+      supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("credit_wallets").select("balance").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", convo.artist_id).order("sort"),
-      supabaseAdmin.from("availability").select("date").eq("artist_id", convo.artist_id).gte("date", new Date().toISOString().slice(0, 10)),
       convo.quote_request_id
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),
@@ -39,6 +40,8 @@ export async function runAgent(conversationId: string) {
   };
 
   if (!artist) return;
+  const ownerUserId = artist.user_id;
+  if (!ownerUserId) return handover("The artist will confirm the schedule personally; Google Calendar is not connected.");
   if (settings && !settings.enabled) return handover(`${artist.stage_name} will reply to you personally.`);
   if ((wallet?.balance ?? 0) < AI_CREDIT_COST) return handover(`${artist.stage_name} will reply to you personally shortly.`);
   if (convo.ai_replies >= MAX_AI_REPLIES_PER_CONVERSATION) return handover(`I've passed this conversation to ${artist.stage_name} directly.`);
@@ -70,7 +73,7 @@ ${packages || "- No packages set. Do not quote a price; say the artist will conf
 - Only quote the package prices above, in AED. Prices exclude 5% VAT.
 - You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.
 - Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
-AVAILABILITY: unavailable on ${(blocked ?? []).map((b) => b.date).join(", ") || "no blocked dates"}. Never confirm a booking yourself; say the artist will send a formal confirmation.
+AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown, never assume available or busy, do not send a booking or invoice; explain the schedule cannot be verified and hand over to the artist. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
 BOOKING HAND-OFF: once the client has agreed to a package and price AND you know the event date, area, timing and guest count, tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","notes":"<event type, area/venue, timing, guests, special requests>"}]
@@ -84,18 +87,42 @@ CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping d
 ${flowSteps}
 Original request: ${JSON.stringify(quote ?? {})}`;
 
-  const input = (history ?? [])
+  const input: ResponsesInputItem[] = (history ?? [])
     .filter((m) => m.sender !== "system" || decodeInvoice(m.body))
     .map((m) => ({ role: m.sender === "client" ? ("user" as const) : ("assistant" as const), content: invoiceText(m.body) }));
 
   try {
-    const res = await generateResponse({ model: MODEL, instructions, input, max_output_tokens: 600 });
+    let calendarCheck: CalendarCheck | undefined;
+    const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } }];
+    let res = await generateResponse({ model: MODEL, instructions, input, tools, max_output_tokens: 600 });
+    for (let round = 0; round < 3; round++) {
+      const calls = res.output?.filter(item => item.type === "function_call") ?? [];
+      if (!calls.length) break;
+      for (const call of calls) {
+        input.push({ type: "function_call", name: call.name, call_id: call.call_id, arguments: call.arguments });
+        let output: unknown = { status: "unknown", reason: "Invalid calendar request" };
+        calendarCheck = undefined;
+        try {
+          const args: unknown = JSON.parse(call.arguments);
+          if (call.name === "check_calendar" && args && typeof args === "object" && "date" in args && typeof args.date === "string" && "startTime" in args && (args.startTime === null || typeof args.startTime === "string") && "endTime" in args && (args.endTime === null || typeof args.endTime === "string")) {
+            calendarCheck = await checkGoogleAvailability(ownerUserId, { date: args.date, startTime: args.startTime, endTime: args.endTime });
+            output = calendarCheck;
+          }
+        } catch { /* Invalid arguments are not evidence of availability. */ }
+        input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
+      }
+      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+    }
     let text = "";
     for (const item of res.output ?? []) {
       if (item.type === "message") for (const c of item.content) if (c.type === "output_text") text += c.text;
     }
     text = text.trim();
     const ex = extractDraft(text);
+    if (ex.draft && !verifiedCalendarDraft(ex.draft.date, calendarCheck)) {
+      await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");
+      return;
+    }
     text = ex.text;
     const wantsHandover = text.includes("[HANDOVER]");
     text = maskContacts(text.replace("[HANDOVER]", "").replace(/\*\*|__|^#+\s/gm, "").trim());
@@ -103,7 +130,11 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     await addMessage(conversationId, "ai", text);
     await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
-    if (ex.draft) await createDraft(convo.id, convo.artist_id, ex.draft, floor, (blocked ?? []).map((b) => b.date), action);
+    if (ex.draft && calendarCheck) {
+      const fresh = await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime });
+      if (!verifiedCalendarDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
+      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action);
+    }
     if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
   } catch (e) {
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
@@ -112,9 +143,9 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, blocked: string[], action: ReturnType<typeof approvalAction>) {
+async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, action: ReturnType<typeof approvalAction>) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
-  if ((count ?? 0) > 0 || blocked.includes(d.date)) return;
+  if ((count ?? 0) > 0) return;
   const amount = Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
   const { data: convo } = await supabaseAdmin.from("conversations").select("quote_requests(name, email, phone, event_type_id, guests)").eq("id", conversationId).single();
   const q = convo?.quote_requests;

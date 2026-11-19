@@ -300,7 +300,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 <p className="text-[11px] text-muted-foreground">Use it later in any step as {"{"}variable{"}"}, e.g. "Hi {"{client_name}"}".</p>
               </div>
             )}
-            {selected.type === "calendar" && <p className="rounded-md bg-muted p-2 text-[11px] text-muted-foreground">Uses the artist's blocked dates and confirmed bookings. "Available" and "Busy" outputs lead to different steps.</p>}
+            {selected.type === "calendar" && <div className="text-xs text-muted-foreground">{t("Google Calendar")}</div>}
             {!readOnly && <Button variant="outline" size="sm" className="w-full" onClick={() => { setNodes((ns) => ns.filter((x) => x.id !== selected.id)); setEdges((es) => es.filter((e) => e.source !== selected.id && e.target !== selected.id)); setSel(null); }}>Delete block</Button>}
           </>) : <p className="text-xs text-muted-foreground">Click a block to edit it. Connect blocks by dragging from the dot at the bottom of one to the top of another.</p>}
         </div>
