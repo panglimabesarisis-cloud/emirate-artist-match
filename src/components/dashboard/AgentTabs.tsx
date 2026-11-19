@@ -1,3 +1,5 @@
+import { decodeInvoice } from "@/lib/invoice";
+import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -72,7 +74,7 @@ export function Inbox({ artistId }: { artistId: string }) {
               <div key={m.id} className={`flex ${m.sender === "client" ? "justify-start" : "justify-end"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.sender === "client" ? "bg-muted" : m.sender === "ai" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}`} dir="auto">
                   <div className="text-[10px] uppercase opacity-70">{m.sender === "ai" ? "AI assistant" : m.sender === "artist" ? "You" : "Client"}</div>
-                  {m.body}
+                  {decodeInvoice(m.body) ? <InvoiceCard inv={decodeInvoice(m.body)!} /> : m.body}
                 </div>
               </div>
             ))}

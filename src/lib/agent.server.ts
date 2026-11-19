@@ -1,3 +1,4 @@
+import { decodeInvoice } from "./invoice";
 import { generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
@@ -84,7 +85,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 
   const input = (history ?? [])
     .filter((m) => m.sender !== "system")
-    .map((m) => ({ role: m.sender === "client" ? ("user" as const) : ("assistant" as const), content: m.body }));
+    .map((m) => ({ role: m.sender === "client" ? ("user" as const) : ("assistant" as const), content: invoiceText(m.body) }));
 
   try {
     const res = await generateResponse({ model: MODEL, instructions, input, max_output_tokens: 600 });
@@ -128,4 +129,10 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
   await notifyBooking(b.id, "artist", "approval_request", c, `New booking to approve: ${d.title} on ${d.date}`,
     `Client ${q?.name ?? "Client"}, AED ${p.subtotal.toLocaleString("en-US")} + VAT, ${d.notes}`, link);
+}
+
+function invoiceText(body: string) {
+  const inv = decodeInvoice(body);
+  if (!inv) return body;
+  return `I sent invoice ${inv.no}: ${inv.items.map((i) => `${i.qty} x ${i.title} AED ${i.price}`).join(", ")}. Total AED ${inv.total} incl. 5% VAT${inv.due ? `, due ${inv.due}` : ""}.`;
 }

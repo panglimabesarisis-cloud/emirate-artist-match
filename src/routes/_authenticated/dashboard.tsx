@@ -8,6 +8,7 @@ import { PublicLayout } from "@/components/site/PublicLayout";
 import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
 import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
+import { InvoicesTab } from "@/components/dashboard/InvoicesTab";
 import { RateCardTable } from "@/components/dashboard/RateCardTable";
 import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
@@ -121,6 +122,7 @@ const ARTIST_NAV = [
   { id: "quotes", label: "Quote requests", group: "Sales" },
   { id: "bookings", label: "Bookings", group: "Sales" },
   { id: "calendar", label: "Calendar", group: "Sales" },
+  { id: "invoices", label: "Invoices", group: "Sales" },
   { id: "wallet", label: "Wallet", group: "Money" },
   { id: "credits", label: "AI credits", group: "Money" },
   { id: "export", label: "Export data", group: "Money" },
@@ -189,6 +191,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "quotes" && <Quotes artistId={artist.id} />}
           {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
           {section === "calendar" && <><CalendarTab artistId={artist.id} /><CalendarSync artistId={artist.id} /></>}
+          {section === "invoices" && <InvoicesTab artistId={artist.id} />}
           {section === "wallet" && <WalletTab artistId={artist.id} />}
           {section === "credits" && <Credits artistId={artist.id} />}
           {section === "export" && <ExportTab artistId={artist.id} slug={artist.slug} />}

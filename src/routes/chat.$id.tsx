@@ -13,6 +13,8 @@ import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
+import { decodeInvoice } from "@/lib/invoice";
+import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { extractButtons, extractForm, type FormField } from "@/lib/ai-flow";
 
 export const Route = createFileRoute("/chat/$id")({
@@ -100,7 +102,7 @@ function ChatPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 text-xs font-semibold text-muted-foreground">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>
-                  {(() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
+                  {decodeInvoice(m.body) ? <div className="max-w-md"><InvoiceCard inv={decodeInvoice(m.body)!} /></div> : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
                     <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
                     {buttons.length > 0 && last && data.mode !== "human" && (
                       <div className="mt-3 flex flex-wrap gap-2">{buttons.map((b) => (

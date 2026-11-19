@@ -178,3 +178,22 @@ export const startChat = createServerFn({ method: "POST" })
     await runAgent(c.id);
     return { conversationId: c.id, key: c.access_key };
   });
+
+/** Artist: create an invoice from services and post it into the client's chat. */
+export const sendInvoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { conversationId: string; items: { title: string; qty: number; price: number }[]; due?: string | null; notes?: string | null }) => ({
+    conversationId: uuid(i.conversationId),
+    items: (Array.isArray(i.items) ? i.items : []).slice(0, 20).map((x) => ({ title: String(x?.title ?? ""), qty: Number(x?.qty) || 0, price: Number(x?.price) || 0 })),
+    due: typeof i.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(i.due) ? i.due : null,
+    notes: str(i.notes, 500),
+  }))
+  .handler(async ({ data, context }) => {
+    await assertOwner(context.supabase, data.conversationId);
+    const { buildInvoice, encodeInvoice } = await import("./invoice");
+    const no = `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const inv = buildInvoice(no, data.items, data.due, data.notes ? maskContacts(data.notes) : null);
+    const { addMessage } = await import("./agent.server");
+    await addMessage(data.conversationId, "artist", encodeInvoice(inv));
+    return { ok: true, no, total: inv.total };
+  });
