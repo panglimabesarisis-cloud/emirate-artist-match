@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_FLOW, FORM_FIELD_PRESETS, FLOW_VARIABLES, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
+import { approvalAction, type FlowNode, DEFAULT_FLOW, FORM_FIELD_PRESETS, FLOW_VARIABLES, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
 
 describe("flowToPrompt", () => {
   it("starts with the greeting step", () => {
@@ -11,6 +11,27 @@ describe("flowToPrompt", () => {
   });
   it("returns empty text for an empty flow", () => {
     expect(flowToPrompt([], [])).toBe("");
+  });
+});
+
+describe("WhatsApp artist approval", () => {
+  const start: FlowNode = { id: "start", type: "start", position: { x: 0, y: 0 }, data: { text: "Hello" } };
+  const approval: FlowNode = { id: "wa", type: "whatsapp", position: { x: 0, y: 120 }, data: { text: "Approve", destinationPhone: "+971501234567" } };
+  const edge = { id: "e", source: "start", target: "wa" };
+  it("sends the confirmation to the configured artist number", () => {
+    expect(approvalAction([start, approval], [edge])?.phone).toBe("+971501234567");
+  });
+  it("requires invoice sending after artist approval", () => {
+    expect(approvalAction([start, approval], [edge])?.sendInvoice).toBe(true);
+  });
+  it("does not activate a disconnected WhatsApp block", () => {
+    expect(approvalAction([start, approval], [])).toBeNull();
+  });
+  it("uses the artist's saved number when the field is empty", () => {
+    expect(approvalAction([{ ...approval, data: { text: "Approve" } }], [])?.phone).toBeNull();
+  });
+  it("rejects a destination without an international country code", () => {
+    expect(() => approvalAction([{ ...approval, data: { text: "Approve", destinationPhone: "0501234567" } }], [])).toThrow();
   });
 });
 

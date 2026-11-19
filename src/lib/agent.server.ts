@@ -5,7 +5,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm } from "./booking-message";
-import { flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
+import { approvalAction, flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-6-astra" as const;
@@ -48,6 +48,7 @@ export async function runAgent(conversationId: string) {
   const master = flows?.find((f) => f.artist_id === null && Array.isArray(f.nodes) && f.nodes.length);
   const flow = own ?? master;
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
+  const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
   const maxDiscount = settings?.max_discount_pct ?? 10;
   const packages = (rates ?? []).map((r) => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} (${r.duration_minutes} min) — ${r.description ?? ""}`).join("\n");
@@ -84,7 +85,7 @@ ${flowSteps}
 Original request: ${JSON.stringify(quote ?? {})}`;
 
   const input = (history ?? [])
-    .filter((m) => m.sender !== "system")
+    .filter((m) => m.sender !== "system" || decodeInvoice(m.body))
     .map((m) => ({ role: m.sender === "client" ? ("user" as const) : ("assistant" as const), content: invoiceText(m.body) }));
 
   try {
@@ -102,7 +103,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     await addMessage(conversationId, "ai", text);
     await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
-    if (ex.draft) await createDraft(convo.id, convo.artist_id, ex.draft, floor, (blocked ?? []).map((b) => b.date));
+    if (ex.draft) await createDraft(convo.id, convo.artist_id, ex.draft, floor, (blocked ?? []).map((b) => b.date), action);
     if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
   } catch (e) {
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
@@ -111,7 +112,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, blocked: string[]) {
+async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string }, floor: number, blocked: string[], action: ReturnType<typeof approvalAction>) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0 || blocked.includes(d.date)) return;
   const amount = Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
@@ -121,11 +122,12 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   const { data: b } = await supabaseAdmin.from("bookings").insert({
     artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? "Client", client_email: q?.email ?? null, client_phone: q?.phone ?? null,
     event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title, notes: maskContacts(d.notes) || null,
-    amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai",
+    amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();
   if (!b) return;
-  await addMessage(conversationId, "system", "Your booking details were sent to the artist for approval. You'll get a payment link here, by email and WhatsApp once approved.");
+  await addMessage(conversationId, "system", "Your booking is awaiting artist approval. An invoice or payment link will appear here once approved.");
   const c = await artistContact(artistId);
+  if (action?.phone) c.phone = action.phone;
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
   await notifyBooking(b.id, "artist", "approval_request", c, `New booking to approve: ${d.title} on ${d.date}`,
     `Client ${q?.name ?? "Client"}, AED ${p.subtotal.toLocaleString("en-US")} + VAT, ${d.notes}`, link);

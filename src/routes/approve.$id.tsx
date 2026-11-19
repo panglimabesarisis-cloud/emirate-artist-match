@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/approve/$id")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({ k: typeof s["k"] === "string" ? s["k"] : "" }),
-  head: () => ({ meta: [{ title: "Approve booking | Dealmaker" }, { name: "description", content: "Review the event details your AI assistant collected and approve or edit the booking." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Approve booking | Dealmaker" }, { name: "description", content: "Review the event details your AI assistant collected and approve or edit the booking." }, { property: "og:title", content: "Approve booking | Dealmaker" }, { property: "og:description", content: "Approve your Dealmaker booking before the client receives an invoice and payment link." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: ApprovePage,
 });
 

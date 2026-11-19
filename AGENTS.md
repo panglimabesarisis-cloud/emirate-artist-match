@@ -57,3 +57,4 @@ use the editor.
 
 - Sandbox payment orders settle atomically through `settle_sandbox_order` only after server-side Stripe verification; invoice, credit, deposit, and booking amounts come from server-owned data, never browser totals.
 - Service invoices are stored separately from chat messages so payment status stays authoritative; legacy chat-only invoices have no inferred payment state.
+- WhatsApp flow approvals snapshot invoice intent on the booking; `approve_flow_booking` atomically approves and posts one linked invoice, paid through the booking contract/escrow checkout to prevent duplicate charges.

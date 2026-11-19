@@ -509,6 +509,7 @@ export type Database = {
           paid_at: string | null
           refund_amount: number
           revision_note: string | null
+          send_invoice_after_approval: boolean
           status: string
           total: number
           vat_amount: number
@@ -543,6 +544,7 @@ export type Database = {
           paid_at?: string | null
           refund_amount?: number
           revision_note?: string | null
+          send_invoice_after_approval?: boolean
           status?: string
           total?: number
           vat_amount?: number
@@ -577,6 +579,7 @@ export type Database = {
           paid_at?: string | null
           refund_amount?: number
           revision_note?: string | null
+          send_invoice_after_approval?: boolean
           status?: string
           total?: number
           vat_amount?: number
@@ -922,11 +925,15 @@ export type Database = {
           booking_id: string | null
           channel: string
           created_at: string
+          delivered_at: string | null
           error: string | null
+          failed_at: string | null
           id: string
           kind: string
           provider_message_id: string | null
+          read_at: string | null
           recipient: string | null
+          sent_at: string | null
           status: string
           status_at: string | null
         }
@@ -935,11 +942,15 @@ export type Database = {
           booking_id?: string | null
           channel: string
           created_at?: string
+          delivered_at?: string | null
           error?: string | null
+          failed_at?: string | null
           id?: string
           kind: string
           provider_message_id?: string | null
+          read_at?: string | null
           recipient?: string | null
+          sent_at?: string | null
           status?: string
           status_at?: string | null
         }
@@ -948,11 +959,15 @@ export type Database = {
           booking_id?: string | null
           channel?: string
           created_at?: string
+          delivered_at?: string | null
           error?: string | null
+          failed_at?: string | null
           id?: string
           kind?: string
           provider_message_id?: string | null
+          read_at?: string | null
           recipient?: string | null
+          sent_at?: string | null
           status?: string
           status_at?: string | null
         }
@@ -1315,6 +1330,7 @@ export type Database = {
       service_invoices: {
         Row: {
           artist_id: string
+          booking_id: string | null
           conversation_id: string
           created_at: string
           document: Json
@@ -1326,6 +1342,7 @@ export type Database = {
         }
         Insert: {
           artist_id: string
+          booking_id?: string | null
           conversation_id: string
           created_at?: string
           document: Json
@@ -1337,6 +1354,7 @@ export type Database = {
         }
         Update: {
           artist_id?: string
+          booking_id?: string | null
           conversation_id?: string
           created_at?: string
           document?: Json
@@ -1352,6 +1370,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
           {
@@ -1552,6 +1577,7 @@ export type Database = {
           processed_at: string | null
           processing_error: string | null
           received_at: string
+          retry_at: string
         }
         Insert: {
           delivery_id: string
@@ -1561,6 +1587,7 @@ export type Database = {
           processed_at?: string | null
           processing_error?: string | null
           received_at?: string
+          retry_at?: string
         }
         Update: {
           delivery_id?: string
@@ -1570,6 +1597,7 @@ export type Database = {
           processed_at?: string | null
           processing_error?: string | null
           received_at?: string
+          retry_at?: string
         }
         Relationships: []
       }
@@ -1579,6 +1607,22 @@ export type Database = {
     }
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
+      apply_whatsapp_status: {
+        Args: { _at: string; _error: string; _message: string; _status: string }
+        Returns: boolean
+      }
+      approve_flow_booking: {
+        Args: {
+          _amount: number
+          _date: string
+          _id: string
+          _key: string
+          _notes: string
+          _revision: string
+          _title: string
+        }
+        Returns: boolean
+      }
       artist_public_stats: {
         Args: never
         Returns: {

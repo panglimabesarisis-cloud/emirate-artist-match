@@ -89,7 +89,9 @@ function ChatPage() {
             </div>
           )}
           {data?.messages.map((m) =>
-            m.sender === "system" ? (
+            decodeInvoice(m.body) ? (
+              <div key={m.id} className="max-w-md"><PayableInvoice inv={decodeInvoice(m.body) as NonNullable<ReturnType<typeof decodeInvoice>>} conversationId={id} linkKey={k} status={data.invoices.find(i => i.id === decodeInvoice(m.body)?.id)?.status} /></div>
+            ) : m.sender === "system" ? (
               <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>
             ) : m.sender === "client" ? (
               <div key={m.id} className="flex justify-end">

@@ -1,7 +1,7 @@
 import { priceBreakdown } from "./booking-rules";
 
 export type InvoiceItem = { title: string; qty: number; price: number };
-export type Invoice = { id?: string; no: string; items: InvoiceItem[]; subtotal: number; vat: number; total: number; due: string | null; notes: string | null };
+export type Invoice = { id?: string; bookingId?: string; no: string; items: InvoiceItem[]; subtotal: number; vat: number; total: number; due: string | null; notes: string | null };
 
 const MARK = "[[INVOICE]]";
 export const invoiceMoney = (amount: number) => `AED ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

@@ -216,8 +216,9 @@ export const approveBooking = createServerFn({ method: "POST" })
     const p = priceBreakdown(data.amount);
     const edited = p.subtotal !== Number(b.amount) || data.eventDate !== b.event_date || data.title !== b.package_title;
     const db = await admin();
-    await db.from("bookings").update({ status: "quoted", package_title: data.title, amount: p.subtotal, vat_amount: p.vat, total: p.total, event_date: data.eventDate, notes: data.notes, revision_note: edited ? "Edited by artist before approval" : null }).eq("id", b.id).eq("status", "inquiry");
-    if (b.conversation_id) await db.from("messages").insert({ conversation_id: b.conversation_id, sender: "system", body: `${b.artists?.stage_name} approved your booking${edited ? " with some changes" : ""}: ${data.title} on ${data.eventDate} — AED ${p.total.toLocaleString("en-US")} incl. VAT. Open the offer below to pay.` });
+    const { error, data: changed } = await db.rpc("approve_flow_booking", { _id: b.id, _key: data.key, _title: maskContacts(data.title), _amount: p.subtotal, _date: data.eventDate, _notes: data.notes ?? "", _revision: edited ? "Edited by artist before approval" : "" });
+    if (error) throw new Error(error.message);
+    if (!changed) throw new Error("This booking was already handled");
     await sendClientLink(b.id);
     return { ok: true };
   });

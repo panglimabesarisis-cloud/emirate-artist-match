@@ -141,6 +141,20 @@
       "when": 1795092481846,
       "tag": "0019_sandbox_invoice_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795099613989,
+      "tag": "0020_whatsapp_flow_approval_invoice",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795099676652,
+      "tag": "0021_whatsapp_status_recovery",
+      "breakpoints": true
     }
   ]
 }

@@ -13,11 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { approvalAction } from "@/lib/ai-flow";
+import { useI18n } from "@/lib/i18n";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type Data = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[] };
+type Data = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[]; destinationPhone?: string };
 const EMOJI = ["😊", "👋", "🎉", "🎤", "🎶", "💃", "📅", "⏰", "📍", "💰", "✅", "🙏"];
 
 function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
@@ -32,6 +34,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
         <span className="truncate">{kindLabel(k)}</span>
       </div>
       <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || "Click to edit…"}</div>
+      {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || "Artist's WhatsApp"}</div><div>Approval → Invoice</div></div>}
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
       {k === "form" && (
         <div className="space-y-1 border-t px-3 py-2">
@@ -54,7 +57,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
           <Handle id="yes" type="source" position={Position.Bottom} style={{ left: "20%", background: color }} className="!h-2.5 !w-2.5" />
           <Handle id="no" type="source" position={Position.Bottom} style={{ left: "80%", background: color }} className="!h-2.5 !w-2.5" />
         </div>
-      ) : k !== "handover" && k !== "booking" ? <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border !border-border !bg-background" /> : null}
+      ) : k !== "handover" && k !== "booking" && k !== "whatsapp" ? <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border !border-border !bg-background" /> : null}
     </div>
   );
 }
@@ -114,6 +117,7 @@ function RichText({ value, onChange, disabled }: { value: string; onChange: (v: 
 const GROUP_LABEL: Record<string, string> = { Send: "Talk", Ask: "Collect", Logic: "Logic", Actions: "Integrations" };
 
 function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowNode[]; edges: FlowEdge[] }; readOnly?: boolean; onSave: (f: { nodes: FlowNode[]; edges: FlowEdge[] }) => void; saving: boolean }) {
+  const { t } = useI18n();
   const start = useMemo(() => toRF(initial), [initial]);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<Data>>(start.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(start.edges);
@@ -145,6 +149,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
       const urls = (x.data.urlButtons ?? []).filter((u) => u.label.trim() && /^https?:\/\//.test(u.url));
       if (urls.length) d.urlButtons = urls;
       if (x.data.saveAs) d.saveAs = x.data.saveAs;
+      if (x.type === "whatsapp") d.destinationPhone = x.data.destinationPhone?.trim() ?? "";
       const fields = (x.data.fields ?? []).map((f) => ({ ...f, label: f.label.trim() })).filter((f) => f.label);
       if (fields.length) d.fields = fields.map((f) => (f.saveAs ? f : { label: f.label, type: f.type }));
       return { id: x.id, type: x.type as FlowKind, position: { x: Math.round(x.position.x), y: Math.round(x.position.y) }, data: d };
@@ -152,7 +157,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })),
   });
   const blocks = FLOW_KINDS.filter((k) => (tab === "All" || k.group === tab) && k.label.toLowerCase().includes(q.toLowerCase()));
-  const canSave = selected && !["start", "message", "handover", "booking", "form"].includes(selected.type as string);
+  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp"].includes(selected.type as string);
 
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -235,6 +240,12 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 <p className="text-[11px] text-muted-foreground">The client sees one form with all fields and sends it in one go.</p>
               </div>
             )}
+            {selected.type === "whatsapp" && <div className="space-y-4">
+              <div className="space-y-1.5"><Label htmlFor="approval-phone">{t("Artist WhatsApp number")}</Label><Input id="approval-phone" aria-label="Artist WhatsApp number" type="tel" dir="ltr" maxLength={16} placeholder="+971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d]/g, "") }))} /></div>
+              <div className="space-y-1.5"><Label>{t("Destination")}</Label><div className="text-sm text-muted-foreground">{selected.data.destinationPhone || t("Artist's saved WhatsApp number")}</div></div>
+              <div className="space-y-1.5"><Label>{t("On approval")}</Label><div className="text-sm">{t("Send invoice to client chat")}</div></div>
+              <div className="space-y-1.5"><Label>{t("If declined")}</Label><div className="text-sm text-muted-foreground">{t("No invoice · artist takes over")}</div></div>
+            </div>}
             {selected.type === "buttons" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Display as</Label>
@@ -300,6 +311,10 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
   const custom = !!artistId && !!data.own?.enabled;
 
   const persist = async (f: { nodes: FlowNode[]; edges: FlowEdge[] }, enabled = true) => {
+    if (f.nodes.filter(n => n.type === "whatsapp").length > 1) { toast.error("Use one WhatsApp approval block per flow"); return; }
+    try {
+      for (const node of f.nodes.filter(n => n.type === "whatsapp")) approvalAction([node], []);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Invalid WhatsApp number"); return; }
     setSaving(true);
     const payload = { nodes: f.nodes, edges: f.edges, enabled, updated_at: new Date().toISOString() };
     const existing = artistId ? data.own : data.master;

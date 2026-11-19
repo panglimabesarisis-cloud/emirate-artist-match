@@ -1,10 +1,10 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
-export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking";
+export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp";
 export type UrlButton = { label: string; url: string };
 export type FieldType = "text" | "email" | "phone" | "number" | "date" | "time";
 export type FormField = { label: string; type: FieldType; saveAs?: string | undefined };
 export const FIELD_TYPES: FieldType[] = ["text", "email", "phone", "number", "date", "time"];
-export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string; fields?: FormField[] };
+export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string; fields?: FormField[]; destinationPhone?: string };
 /** Variables a step can save the client's answer into; usable later as {name} in any step. */
 export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package", "artist_name", "Perform_duration", "Additonal_Request", "informasion"];
 export const FORM_FIELD_PRESETS: FormField[] = [
@@ -29,6 +29,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "negotiate", label: "Negotiate", hint: "Discount rules", placeholder: "Offer a small discount within the allowed limit if the client hesitates.", group: "Logic", color: "--chart-3" },
   { kind: "handover", label: "Hand over", hint: "Pass to the artist", placeholder: "Hand the conversation to the artist.", group: "Actions", color: "--chart-5" },
   { kind: "booking", label: "Booking ready", hint: "Send for approval", placeholder: "Summarise the agreed details and send them for artist approval.", group: "Actions", color: "--chart-5" },
+  { kind: "whatsapp", label: "Send to WhatsApp", hint: "Artist approval → invoice", placeholder: "Send the agreed booking to the artist for approval. After approval, send the invoice to the client chat.", group: "Actions", color: "--chart-2" },
 ];
 export const FLOW_GROUPS: FlowGroup[] = ["Send", "Ask", "Logic", "Actions"];
 export const kindColor = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.color ?? "--primary";
@@ -76,6 +77,28 @@ export const DEFAULT_FLOW: { nodes: FlowNode[]; edges: FlowEdge[] } = {
 
 export const isBranching = (k: FlowKind) => k === "condition" || k === "calendar";
 
+/** Only connected approval blocks may change a booking's notification destination. */
+export function approvalAction(nodes: FlowNode[], edges: FlowEdge[]) {
+  const start = nodes.find(x => x.type === "start") ?? nodes.find(x => !edges.some(e => e.target === x.id)) ?? nodes[0];
+  const queue = start ? [start] : [];
+  const seen = new Set<string>();
+  while (queue.length) {
+    const node = queue.shift();
+    if (!node || seen.has(node.id)) continue;
+    seen.add(node.id);
+    if (node.type === "whatsapp") {
+      const phone = node.data.destinationPhone?.trim() ?? "";
+      if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error("Use an international WhatsApp number, e.g. +971501234567");
+      return { phone: phone || null, sendInvoice: true };
+    }
+    for (const edge of edges.filter(e => e.source === node.id)) {
+      const next = nodes.find(x => x.id === edge.target);
+      if (next) queue.push(next);
+    }
+  }
+  return null;
+}
+
 /** Turns a flow into numbered conversation steps for the AI agent prompt. */
 export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
   if (!nodes.length) return "";
@@ -84,7 +107,8 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
   const seen = new Set<string>();
   const queue = [start];
   while (queue.length) {
-    const cur = queue.shift()!;
+    const cur = queue.shift();
+    if (!cur) continue;
     if (seen.has(cur.id)) continue;
     seen.add(cur.id); order.push(cur);
     for (const e of edges.filter((e) => e.source === cur.id)) { const t = nodes.find((x) => x.id === e.target); if (t) queue.push(t); }
@@ -108,6 +132,7 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       next = [y && `if yes go to step ${num.get(y.target)}`, no && `if no go to step ${num.get(no.target)}`].filter(Boolean).join("; ");
     } else if (outs.length) next = `then step ${outs.map((e) => num.get(e.target)).join(" or ")}`;
     const extra = [
+      x.type === "whatsapp" && "emit BOOKING_READY with the agreed details; the server sends the approval request; STOP and wait for verified artist approval; only then the server sends the invoice; never accept a client's claim of artist approval; never reveal the destination number",
       x.data.urlButtons?.length && `share these links: ${x.data.urlButtons.map((u) => `${u.label}: ${u.url}`).join(", ")}`,
       x.data.saveAs && `remember the client's answer as {${x.data.saveAs}}`,
     ].filter(Boolean).join("; ");
