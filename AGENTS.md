@@ -58,5 +58,6 @@ use the editor.
 
 - Sandbox payment orders settle atomically through `settle_sandbox_order` only after server-side Stripe verification; invoice, credit, deposit, and booking amounts come from server-owned data, never browser totals.
 - Service invoices are stored separately from chat messages so payment status stays authoritative; legacy chat-only invoices have no inferred payment state.
+- Artist invoice composition uses an item editor and read-only live document preview with shared invoice calculations; client selection only routes delivery, and invoice metadata is not editable there.
 - WhatsApp flow approvals snapshot invoice intent on the booking; `approve_flow_booking` atomically approves and posts one linked invoice, paid through the booking contract/escrow checkout to prevent duplicate charges.
 - Flow builder previews and client chats share ChatFlowControls so buttons and form dates render identically; a standalone date picker is a single-date-field form, preserving the existing agent contract. These structured controls use shadcn rather than AI Elements because they submit the existing flow text protocol, not an AI SDK transcript.
