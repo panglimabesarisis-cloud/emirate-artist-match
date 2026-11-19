@@ -6,7 +6,13 @@ export type FormField = { label: string; type: FieldType; saveAs?: string | unde
 export const FIELD_TYPES: FieldType[] = ["text", "email", "phone", "number", "date", "time"];
 export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string; fields?: FormField[] };
 /** Variables a step can save the client's answer into; usable later as {name} in any step. */
-export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package"];
+export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package", "artist_name", "Perform_duration", "Additonal_Request", "informasion"];
+export const FORM_FIELD_PRESETS: FormField[] = [
+  { label: "artist_name", type: "text", saveAs: "artist_name" },
+  { label: "Perform_duration", type: "text", saveAs: "Perform_duration" },
+  { label: "Additonal_Request", type: "text", saveAs: "Additonal_Request" },
+  { label: "informasion", type: "text", saveAs: "informasion" },
+];
 export type FlowNode = { id: string; type: FlowKind; position: { x: number; y: number }; data: FlowData };
 export type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
 

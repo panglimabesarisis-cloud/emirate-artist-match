@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_FLOW, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
+import { DEFAULT_FLOW, FORM_FIELD_PRESETS, FLOW_VARIABLES, flowToPrompt, extractButtons, extractForm } from "./ai-flow";
 
 describe("flowToPrompt", () => {
   it("starts with the greeting step", () => {
@@ -32,6 +32,15 @@ describe("buttons", () => {
 });
 
 describe("form", () => {
+  it.each(["artist_name", "Perform_duration", "Additonal_Request", "informasion"])("preserves %s through the agent form and saves its answer", (variable) => {
+    const preset = FORM_FIELD_PRESETS.find((field) => field.saveAs === variable);
+    expect(preset).toBeDefined();
+    if (!preset) return;
+    expect(FLOW_VARIABLES).toContain(variable);
+    const prompt = flowToPrompt([{ id: "preset", type: "form", position: { x: 0, y: 0 }, data: { text: "Booking details", fields: [preset] } }], []);
+    expect(extractForm(prompt.slice(prompt.indexOf("[FORM:"), prompt.indexOf("]", prompt.indexOf("[FORM:")) + 1)).fields).toEqual([{ label: variable, type: "text" }]);
+    expect(prompt).toContain(`remember "${variable}" as {${variable}}`);
+  });
   const nodes = [{ id: "f", type: "form" as const, position: { x: 0, y: 0 }, data: { text: "Fill in", fields: [{ label: "Name", type: "text" as const, saveAs: "client_name" }, { label: "Email", type: "email" as const }] } }];
   it("tells the AI to show the form fields", () => {
     const p = flowToPrompt(nodes, []);

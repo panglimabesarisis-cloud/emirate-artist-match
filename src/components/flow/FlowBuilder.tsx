@@ -7,7 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FIELD_TYPES, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -126,10 +126,11 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
 
   const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: crypto.randomUUID(), type: "smoothstep", label: c.sourceHandle === "yes" ? "Yes" : c.sourceHandle === "no" ? "No" : undefined }, es)), [setEdges]);
   const add = (kind: FlowKind, pos?: { x: number; y: number }) => {
-    const def = FLOW_KINDS.find((k) => k.kind === kind)!;
+    const def = FLOW_KINDS.find((k) => k.kind === kind);
+    if (!def) return;
     const id = crypto.randomUUID();
     const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 200, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 120 });
-    setNodes((ns) => [...ns, { id, type: kind, position, data: kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }] } : { text: def.placeholder } }]);
+    setNodes((ns) => [...ns, { id, type: kind, position, data: kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);
@@ -202,6 +203,16 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             {selected.type === "form" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Fields included in the form</Label>
+                {!readOnly && FORM_FIELD_PRESETS.some((preset) => !(selected.data.fields ?? []).some((f) => f.saveAs === preset.saveAs || f.label === preset.label)) && (
+                  <Select value="" disabled={(selected.data.fields?.length ?? 0) >= 8} onValueChange={(value) => {
+                    const preset = FORM_FIELD_PRESETS.find((f) => f.saveAs === value);
+                    if (!preset) return;
+                    setFields(selected.id, (fs) => fs.length >= 8 || fs.some((f) => f.saveAs === preset.saveAs || f.label === preset.label) ? fs : [...fs, { ...preset }]);
+                  }}>
+                    <SelectTrigger aria-label="Add booking field" className="h-8 text-xs"><SelectValue placeholder="Add booking field" /></SelectTrigger>
+                    <SelectContent>{FORM_FIELD_PRESETS.filter((preset) => !(selected.data.fields ?? []).some((f) => f.saveAs === preset.saveAs || f.label === preset.label)).map((preset) => <SelectItem key={preset.saveAs} value={preset.saveAs ?? preset.label}>{preset.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
                 {(selected.data.fields ?? []).map((f, i) => (
                   <div key={i} className="space-y-1 rounded-md border p-2">
                     <div className="flex gap-1">
