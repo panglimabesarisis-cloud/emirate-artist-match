@@ -155,6 +155,13 @@
       "when": 1795099676652,
       "tag": "0021_whatsapp_status_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795106253822,
+      "tag": "0022_restrict_public_site_settings",
+      "breakpoints": true
     }
   ]
 }
