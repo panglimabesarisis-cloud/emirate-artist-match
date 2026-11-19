@@ -191,7 +191,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
           onDrop={(e) => { e.preventDefault(); const k = e.dataTransfer.getData("application/flow") as FlowKind; if (k) add(k, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
           <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} {...(readOnly ? {} : { onNodesChange, onEdgesChange, onConnect })} onNodeClick={(_, n) => setSel(n.id)} onPaneClick={() => setSel(null)}
-            nodesDraggable={!readOnly} nodesConnectable={!readOnly} deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]} fitView>
+            nodesDraggable={!readOnly} nodesConnectable={!readOnly} deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]} fitView fitViewOptions={{ maxZoom: 1, padding: 0.2 }}>
             <Background gap={16} size={1.2} /><Controls position="bottom-center" orientation="horizontal" /><MiniMap pannable zoomable style={{ width: 140, height: 90 }} className="!hidden md:!block" />
           </ReactFlow>
         </div>
