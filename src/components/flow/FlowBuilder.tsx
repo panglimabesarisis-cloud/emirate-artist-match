@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { approvalAction } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
-import { CalendarDays, Eye, Settings2 } from "lucide-react";
+import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -124,12 +124,13 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<Data>>(start.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(start.edges);
   const [sel, setSel] = useState<string | null>(null);
+  const [edgeId, setEdgeId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<string>("All");
   const [panel, setPanel] = useState<"edit" | "preview">("edit");
   const wrap = useRef<HTMLDivElement>(null);
   const rf = useReactFlow();
-  useEffect(() => { setNodes(start.nodes); setEdges(start.edges); setSel(null); }, [start, setNodes, setEdges]);
+  useEffect(() => { setNodes(start.nodes); setEdges(start.edges); setSel(null); setEdgeId(null); }, [start, setNodes, setEdges]);
 
   const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: crypto.randomUUID(), type: "smoothstep", label: c.sourceHandle === "yes" ? "Yes" : c.sourceHandle === "no" ? "No" : undefined }, es)), [setEdges]);
   const add = (kind: FlowKind, pos?: { x: number; y: number }, datePicker = false) => {
@@ -141,6 +142,12 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);
+  const selectedEdge = edges.find((edge) => edge.id === edgeId);
+  const deleteConnection = () => {
+    if (readOnly || !selectedEdge) return;
+    setEdges((current) => current.filter((edge) => edge.id !== selectedEdge.id));
+    setEdgeId(null);
+  };
   const patch = (id: string, f: (d: Data) => Data) => setNodes((ns) => ns.map((x) => (x.id === id ? { ...x, data: f(x.data) } : x)));
   const setButtons = (id: string, f: (bs: string[]) => string[]) => patch(id, (d) => ({ ...d, buttons: f(d.buttons ?? []) }));
   const setFields = (id: string, f: (fs: FormField[]) => FormField[]) => patch(id, (d) => ({ ...d, fields: f(d.fields ?? []) }));
@@ -192,17 +199,22 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             </div>
           </div>
         )}
-        <div ref={wrap} className={`h-[480px] bg-muted/30 lg:h-[680px] ${readOnly ? "lg:col-span-2" : ""}`}
+        <div ref={wrap} className={`relative h-[480px] bg-muted/30 lg:h-[680px] ${readOnly ? "lg:col-span-2" : ""}`}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
           onDrop={(e) => { e.preventDefault(); const k = e.dataTransfer.getData("application/flow") as FlowKind; if (k) add(k, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
-          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} {...(readOnly ? {} : { onNodesChange, onEdgesChange, onConnect })} onNodeClick={(_, n) => setSel(n.id)} onPaneClick={() => setSel(null)}
+          {!readOnly && selectedEdge && <Button variant="destructive" size="icon" className="absolute end-3 top-3 z-10" aria-label={t("Delete connection")} title={t("Delete connection")} onClick={deleteConnection}><Trash2 className="size-4" /></Button>}
+          <ReactFlow nodes={nodes} edges={edges} defaultEdgeOptions={{ interactionWidth: 28 }} nodeTypes={nodeTypes} {...(readOnly ? {} : { onNodesChange, onEdgesChange, onConnect })} onNodeClick={(_, n) => { setSel(n.id); setEdgeId(null); }} onEdgeClick={(_, edge) => { setEdgeId(edge.id); setSel(null); setPanel("edit"); }} onPaneClick={() => { setSel(null); setEdgeId(null); }}
             nodesDraggable={!readOnly} nodesConnectable={!readOnly} deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]} fitView fitViewOptions={{ maxZoom: 1, padding: 0.2 }}>
             <Background gap={16} size={1.2} /><Controls position="bottom-center" orientation="horizontal" /><MiniMap pannable zoomable style={{ width: 140, height: 90 }} className="!hidden md:!block" />
           </ReactFlow>
         </div>
         <div className="space-y-4 border-t bg-card p-4 lg:border-s lg:border-t-0">
           <div className="grid grid-cols-2 gap-1 border-b pb-3"><Button size="sm" variant={panel === "edit" ? "secondary" : "ghost"} onClick={() => setPanel("edit")}><Settings2 className="size-4" />{t("Edit block")}</Button><Button size="sm" variant={panel === "preview" ? "secondary" : "ghost"} onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Preview")}</Button></div>
-          {panel === "preview" ? <FlowChatPreview key={sel ?? "start"} nodes={nodes as FlowNode[]} edges={edges} selectedId={sel} /> : selected ? (<>
+          {panel === "preview" ? <FlowChatPreview key={sel ?? "start"} nodes={nodes as FlowNode[]} edges={edges} selectedId={sel} /> : selectedEdge ? <div className="space-y-3">
+            <h3 className="text-sm font-semibold">{t("Connection")}</h3>
+            <div className="space-y-2 text-sm"><div className="break-words"><span className="text-muted-foreground">{t("From")}: </span>{kindLabel((nodes.find(node => node.id === selectedEdge.source)?.type ?? "message") as FlowKind)}</div><div className="break-words"><span className="text-muted-foreground">{t("To")}: </span>{kindLabel((nodes.find(node => node.id === selectedEdge.target)?.type ?? "message") as FlowKind)}</div></div>
+            {!readOnly && <Button variant="destructive" className="w-full" onClick={deleteConnection}><Trash2 className="size-4" />{t("Delete connection")}</Button>}
+          </div> : selected ? (<>
             <div>
               <div className="text-xs text-muted-foreground">{kindLabel(selected.type as FlowKind)}</div>
               <div className="mt-1 flex items-center gap-2 text-sm font-semibold"><span className="grid h-6 w-6 place-items-center rounded text-[11px] text-primary-foreground" style={{ background: `var(${kindColor(selected.type as FlowKind)})` }}>{kindLabel(selected.type as FlowKind)[0]}</span>{kindLabel(selected.type as FlowKind)}</div>
