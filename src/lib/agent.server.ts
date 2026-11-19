@@ -8,7 +8,7 @@ import { formatBookingConfirm } from "./booking-message";
 import { approvalAction, flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
-const MODEL = "openai/gpt-6-astra" as const;
+const MODEL = "openai/gpt-5.6-luna" as const;
 
 export async function addMessage(conversationId: string, sender: string, body: string) {
   await supabaseAdmin.from("messages").insert({ conversation_id: conversationId, sender, body: body.slice(0, 4000) });

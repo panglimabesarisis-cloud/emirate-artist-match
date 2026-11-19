@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Option A: GPT-5.6 Luna, immediately visible masked client messages, and typing status; real chat verified on desktop/mobile without duplicates. Model calls 1.1–1.7s; full UI replies 7.6–8.6s in sandbox.
 - [x] WotNot-style chat buttons, compact forms and calendar date picker shared with the AI Flow right-side preview; date submission and buttons verified in a signed-in artist preview on desktop and mobile.
 - [x] AI Flow WhatsApp approval block with artist destination and automatic invoice after approval; verified in a temporary signed-in artist dashboard and client chat.
 - [ ] Verify WhatsApp approval delivery — blocked: Meta template is PENDING; user confirmed Dealmaker as incoming destination; actual signed delivery remains unverified. Quiet-period recovery waits for a subsequent callback or send.

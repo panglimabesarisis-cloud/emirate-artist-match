@@ -17,6 +17,7 @@ import { decodeInvoice } from "@/lib/invoice";
 import { PayableInvoice } from "@/components/site/PayableInvoice";
 import { extractButtons, extractForm } from "@/lib/ai-flow";
 import { ChatFlowButtons, ChatFlowForm } from "@/components/flow/ChatFlowControls";
+import { maskContacts } from "@/lib/masking";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
@@ -33,6 +34,7 @@ function ChatPage() {
   const send$ = useServerFn(sendClientMessage);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<{ body: string; previousIds: string[] } | null>(null);
   const { t: tr } = useI18n();
   const box = useRef<HTMLDivElement>(null);
   const { data, error } = useQuery({
@@ -42,19 +44,21 @@ function ChatPage() {
   });
   const offers$ = useServerFn(getConversationBookings);
   const { data: offers } = useQuery({ queryKey: ["chat-offers", id], queryFn: () => offers$({ data: { id, key: k } }), refetchInterval: 10000, enabled: !!k });
-  useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [data?.messages.length, busy]);
+  useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [data?.messages.length, busy, pending]);
+  const pendingVisible = pending && !data?.messages.some(m => m.sender === "client" && m.body === pending.body && !pending.previousIds.includes(m.id));
 
   const send = async (preset?: string) => {
     const t = (preset ?? text).trim();
     if (!t || busy) return;
     setBusy(true);
+    setPending({ body: maskContacts(t), previousIds: data?.messages.map(m => m.id) ?? [] });
     setText("");
     try {
       const r = await send$({ data: { id, key: k, text: t } });
-      if ("error" in r && r.error) toast.error(r.error);
+      if ("error" in r && r.error) { toast.error(r.error); setText(t); }
       await qc.invalidateQueries({ queryKey: ["chat", id] });
     } catch { toast.error(tr("Message failed. Please try again.")); setText(t); }
-    finally { setBusy(false); }
+    finally { setPending(null); setBusy(false); }
   };
 
   if (error) return <PublicLayout><div className="p-16 text-center">{tr("This conversation link is invalid.")}</div></PublicLayout>;
@@ -116,10 +120,18 @@ function ChatPage() {
               </div>
             ),
           )}
+          {pendingVisible && pending && (
+            <div className="flex justify-end">
+              <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{pending.body}</div>
+            </div>
+          )}
           {busy && (
             <div className="flex gap-3">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground"><Bot className="h-4 w-4" /></div>
-              <div className="flex items-center gap-1 pt-2" aria-label={tr("Typing…")}>{[0, 1, 2].map((n) => <span key={n} className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: `${n * 0.15}s` }} />)}</div>
+              <div role="status" className="flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground">
+                <span>{tr("AI assistant")} · {tr("Typing…")}</span>
+                <span className="flex gap-1" aria-hidden="true">{[0, 1, 2].map((n) => <span key={n} className="h-2 w-2 animate-bounce motion-reduce:animate-none rounded-full bg-muted-foreground" style={{ animationDelay: `${n * 0.15}s` }} />)}</span>
+              </div>
             </div>
           )}
         </div>

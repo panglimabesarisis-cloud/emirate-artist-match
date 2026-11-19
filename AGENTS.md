@@ -36,6 +36,7 @@ use the editor.
 - Owner-protected columns (artist status/plan/featured, review rating/body) are enforced by DB triggers, not the UI.
 - The AI booking agent runs only server-side (`src/lib/agent.server.ts`); clients reach chats through a secret per-conversation link key, and every AI reply is charged via `credit_ledger` (wallet balance is maintained by a DB trigger, never written directly).
 - All chat text passes through `maskContacts` (`src/lib/masking.ts`) before storage.
+- Optimistic client chat messages use the same contact mask and reconcile against new stored message IDs, so polling cannot display duplicates.
 - Booking money/policy rules (VAT, refunds, completion) live in `src/lib/booking-rules.ts` with tests; booking state changes go only through `src/lib/bookings.functions.ts` (clients via secret booking link key, artists via auth).
 - Booking emails/WhatsApp go through `src/lib/notify.server.ts`, which logs every attempt in `notifications`; WhatsApp uses one Meta-approved template (business-initiated messages require it) and delivery statuses arrive via the signed `/api/public/whatsapp/webhook` inbox. Artist approval uses a separate per-booking `artist_key` link so artists can approve without signing in.
 - Artist team access goes through `is_artist_team()` (owner or active `artist_members` row) in RLS and server checks; owner-only areas (profile, credits, AI settings, team, calendar link) use `is_artist_owner()`.
