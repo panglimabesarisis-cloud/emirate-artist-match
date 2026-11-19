@@ -1,7 +1,10 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { submitQuote } from "@/lib/chat.functions";
+import { submitQuote, startChat } from "@/lib/chat.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play } from "lucide-react";
@@ -151,6 +154,19 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
   const pickedPkgs = packages.filter((p) => picked.includes(p.id));
   const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
+  const chat$ = useServerFn(startChat);
+  const [chatting, setChatting] = useState(false);
+  const openChat = async () => {
+    setChatting(true);
+    try { const r = await chat$({ data: { artistId } }); navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); }
+    catch { toast.error(t("Could not open the chat. Please try again.")); setChatting(false); }
+  };
+  const { data: orderForm } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
+    const { data } = await (supabase as any).from("artist_order_forms").select("title, description, fields, enabled").eq("artist_id", artistId).maybeSingle();
+    return data as { title: string; description: string | null; fields: OrderField[]; enabled: boolean } | null;
+  } });
+  const customFields = orderForm?.enabled ? orderForm.fields ?? [] : [];
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { t } = useI18n();
   const up = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
@@ -160,12 +176,16 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
     if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
     if (f.date && blocked.includes(f.date)) { toast.error(t("The artist is unavailable on that date.")); return; }
+    const missing = customFields.find((c) => c.required && !(answers[c.id] ?? "").trim());
+    if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
+    const extraLines = customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
+    const fullMessage = [f.message.trim(), ...extraLines].filter(Boolean).join("\n").slice(0, 2000);
     setSending(true);
     try {
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: f.message.trim() || null, packageIds: pickedPkgs.map((p) => p.id),
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null, packageIds: pickedPkgs.map((p) => p.id),
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });
@@ -225,6 +245,13 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
           <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
           <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
           <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
+          {customFields.length > 0 && (
+            <div className="rounded-xl border-t-4 border-gold bg-background p-3">
+              <div className="font-semibold">{orderForm?.title}</div>
+              {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
+              <div className="mt-3"><OrderFormFields fields={customFields} values={answers} onChange={(id, v) => setAnswers({ ...answers, [id]: v })} /></div>
+            </div>
+          )}
           {similar.length > 0 && (
             <div className="rounded-lg border p-3 space-y-2">
               <div className="text-xs font-semibold">{t("Also ask up to 2 similar artists")}</div>
@@ -258,6 +285,9 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
           )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Book Artist")}
+          </Button>
+          <Button type="button" variant="outline" disabled={chatting} onClick={openChat} className="w-full">
+            {chatting ? t("Opening chat…") : t("Chat With Us")}
           </Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>

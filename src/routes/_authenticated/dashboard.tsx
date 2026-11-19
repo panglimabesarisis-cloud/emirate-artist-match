@@ -8,6 +8,8 @@ import { PublicLayout } from "@/components/site/PublicLayout";
 import { Inbox, AgentSettings, Credits } from "@/components/dashboard/AgentTabs";
 import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
+import { RateCardTable } from "@/components/dashboard/RateCardTable";
+import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { CalendarSync } from "@/components/dashboard/TeamTabs";
@@ -124,6 +126,7 @@ const ARTIST_NAV = [
   { id: "export", label: "Export data", group: "Money" },
   { id: "profile", label: "Profile", group: "Profile" },
   { id: "packages", label: "Packages", group: "Profile" },
+  { id: "orderform", label: "Order form", group: "Profile" },
   { id: "media", label: "Photos & videos", group: "Profile" },
   { id: "reviews", label: "Reviews", group: "Profile" },
   { id: "visibility", label: "Public stats", group: "Profile" },
@@ -190,7 +193,8 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "credits" && <Credits artistId={artist.id} />}
           {section === "export" && <ExportTab artistId={artist.id} slug={artist.slug} />}
           {section === "profile" && <ProfileEditor artist={artist} onSaved={refetch} />}
-          {section === "packages" && <Packages artistId={artist.id} />}
+          {section === "packages" && <RateCardTable artistId={artist.id} />}
+          {section === "orderform" && <OrderFormBuilder artistId={artist.id} />}
           {section === "media" && <MediaTab artistId={artist.id} />}
           {section === "reviews" && <Reviews artistId={artist.id} />}
           {section === "visibility" && <Visibility artistId={artist.id} />}

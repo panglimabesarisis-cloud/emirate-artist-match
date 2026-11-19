@@ -163,3 +163,18 @@ export const subscribePlanDemo = createServerFn({ method: "POST" })
     if (tier.ai_credits > 0) await supabaseAdmin.from("credit_ledger").insert({ artist_id: artist.id, delta: tier.ai_credits, reason: "plan_allocation", ref: `demo:${tier.code}:${data.cycle}:AED${price}` });
     return { ok: true, name: tier.name };
   });
+
+/** Public: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
+export const startChat = createServerFn({ method: "POST" })
+  .inputValidator((i: { artistId: string }) => ({ artistId: uuid(i.artistId) }))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { addMessage, runAgent } = await import("./agent.server");
+    const { data: artist } = await supabaseAdmin.from("artists").select("id, status").eq("id", data.artistId).single();
+    if (!artist || artist.status !== "approved") throw new Error("Artist not available");
+    const { data: c } = await supabaseAdmin.from("conversations").insert({ artist_id: data.artistId }).select("id, access_key").single();
+    if (!c) throw new Error("Could not open conversation");
+    await addMessage(c.id, "client", "Hi, I'd like to chat about a booking.");
+    await runAgent(c.id);
+    return { conversationId: c.id, key: c.access_key };
+  });
