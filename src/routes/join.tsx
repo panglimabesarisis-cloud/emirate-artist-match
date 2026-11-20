@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { slugify } from "@/lib/format";
 import { specialtyLimit } from "@/lib/join-rules";
 import { X } from "lucide-react";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
+import { SampleTestimonials } from "@/components/site/SampleTestimonials";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -66,13 +69,15 @@ function JoinPage() {
   }, []);
 
   return (
-    <PublicLayout>
-      <div className="mx-auto max-w-3xl px-4 py-12">
+    <ReferenceTheme><PublicLayout>
+      <section className="reference-join"><SceneBackground />
+      <div className="reference-wrap reference-join-grid">
+        <aside className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
         <h1 className="text-3xl font-semibold">Talent register</h1>
         <p className="mt-1 text-muted-foreground">Choose a plan, then five quick steps. Our team reviews every profile before it goes live.</p>
-        <ol className="mt-8 grid grid-cols-6 gap-2">
+        <ol className="reference-stepper">
           {STEPS.map((s, i) => (
-            <li key={s} className="text-center">
+            <li key={s} aria-current={i === shown ? "step" : undefined}>
               <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold ${i < shown ? "bg-gold text-gold-foreground border-gold" : i === shown ? "border-gold text-gold" : "text-muted-foreground"}`}>
                 {i < shown ? <Check className="h-4 w-4" /> : i + 1}
               </div>
@@ -80,7 +85,8 @@ function JoinPage() {
             </li>
           ))}
         </ol>
-        <div className="mt-8 rounded-2xl border bg-card p-6">
+        </aside>
+        <div className="reference-join-card">
           {!checked ? <p className="text-muted-foreground">Loading…</p>
             : hasProfile ? <div><p>Your talent profile is already submitted.</p><Button asChild className="mt-4"><Link to="/dashboard">Go to dashboard</Link></Button></div>
             : !plan ? <PlanStep onPick={setPlan} />
@@ -88,21 +94,25 @@ function JoinPage() {
             : <Wizard user={user} plan={plan} step={step} setStep={setStep} onChangePlan={() => setPlan(null)} />}
         </div>
       </div>
-    </PublicLayout>
+      <SampleTestimonials />
+      </section>
+    </PublicLayout></ReferenceTheme>
   );
 }
 
 function PlanStep({ onPick }: { onPick: (p: string) => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
   const tiers = useQuery({ queryKey: ["join-plans"], queryFn: async () => (await supabase.from("plan_tiers").select("*").order("sort")).data ?? [] }).data;
   return (
     <div>
       <h2 className="text-xl font-semibold">Choose your plan</h2>
       <p className="text-sm text-muted-foreground">Your plan sets how many specialties, photos and AI replies you get. You can change it later.</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+      <div className="reference-plans" role="radiogroup" aria-label="Choose your plan">
         {tiers?.map((t) => (
-          <div key={t.code} className={`flex flex-col rounded-xl border p-4 ${t.code === "medium" ? "border-gold" : ""}`}>
-            <div className="font-semibold">{t.name}</div>
-            <div className="mt-1 text-2xl font-semibold">AED {Number(t.price_monthly).toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+          <div key={t.code} role="radio" aria-checked={selected === t.code} tabIndex={0} onClick={() => setSelected(t.code)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(t.code); } }} className={`reference-plan ${selected === t.code ? "selected" : ""}`}>
+            {t.code === "pro" && <span className="reference-best-value">Best value</span>}
+            <div className="reference-plan-name">{t.name}</div>
+            <div className="reference-plan-price">AED {Number(t.price_monthly).toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
             <ul className="mt-3 flex-1 space-y-1 text-sm text-muted-foreground">
               <li>{specialtyLimit(t.code)} {specialtyLimit(t.code) === 1 ? "specialty" : "specialties"}</li>
               <li>{t.ai_credits} AI credits</li>
@@ -110,10 +120,11 @@ function PlanStep({ onPick }: { onPick: (p: string) => void }) {
               <li>{Number(t.commission_pct)}% platform commission</li>
               {(Array.isArray(t.features) ? t.features as string[] : []).map((f) => <li key={f}>{f}</li>)}
             </ul>
-            <Button type="button" onClick={() => onPick(t.code)} className="mt-4 bg-gradient-gold text-gold-foreground">Choose {t.name}</Button>
+            <Button type="button" variant="outline" onClick={() => setSelected(t.code)} className="mt-4">{selected === t.code ? "Selected" : `Choose ${t.name}`}</Button>
           </div>
         ))}
       </div>
+      <div className="mt-6 flex justify-between"><Button variant="outline" disabled>Back</Button><Button className="reference-gold" disabled={!selected} onClick={() => { if (selected) onPick(selected); }}>Next</Button></div>
     </div>
   );
 }
@@ -123,6 +134,7 @@ function PlanBadge({ plan, onChange }: { plan: string; onChange: () => void }) {
 }
 
 function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () => void }) {
+  const [valid, setValid] = useState(false);
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false);
   const google = async () => {
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/join" });
@@ -142,11 +154,11 @@ function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () =>
       <p className="text-sm text-muted-foreground">Sign up with Google and your name and email fill in automatically.</p>
       <Button type="button" variant="outline" onClick={google} className="mt-4 h-11 w-full"><GoogleG /> Sign up with Google</Button>
       <div className="my-5 text-center text-xs text-muted-foreground">or with email</div>
-      <form onSubmit={signup} className="space-y-3">
+      <form onSubmit={signup} onInput={e => setValid(e.currentTarget.checkValidity())} className="space-y-3">
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} /></div>
         <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
         <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>
-        <Button type="submit" disabled={busy} className="w-full bg-gradient-gold text-gold-foreground">{busy ? "Please wait…" : "Create talent account"}</Button>
+        <div className="flex justify-between gap-4"><Button type="button" variant="outline" onClick={onChangePlan}>Back</Button><Button type="submit" disabled={busy || !valid} className="bg-gradient-gold text-gold-foreground">{busy ? "Please wait…" : "Next · Create account"}</Button></div>
       </form>
       <p className="mt-4 text-sm text-muted-foreground">Already registered? <Link to="/auth" search={{ redirect: "/join" }} className="underline">Sign in</Link></p>
     </div>
@@ -335,9 +347,9 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" /> I agree to the Dealmaker Talent Partnership Agreement and Terms of Service.</label>
       </>}
       <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" disabled={step === 0} onClick={() => setStep(step - 1)}>Back</Button>
-        {step < 4 ? <Button type="button" onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
-          : <Button type="button" disabled={busy} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Submit & continue to payment"}</Button>}
+        <Button type="button" variant="outline" onClick={() => { if (step === 0) onChangePlan(); else setStep(step - 1); }}>Back</Button>
+        {step < 4 ? <Button type="button" disabled={validate() !== null} onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
+          : <Button type="button" disabled={busy || validate() !== null} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Next · Submit & continue to payment"}</Button>}
       </div>
     </div>
   );
