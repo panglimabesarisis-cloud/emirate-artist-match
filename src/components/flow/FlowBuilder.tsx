@@ -83,7 +83,7 @@ function RichText({ value, onChange, disabled, variables }: { value: string; onC
     const a = el.selectionStart, b = el.selectionEnd;
     const inner = value.slice(a, b) || fallback;
     const next = value.slice(0, a) + before + inner + after + value.slice(b);
-    onChange(next.slice(0, 500));
+    onChange(next.slice(0, 5000));
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(a + before.length, a + before.length + inner.length); });
   };
   const insert = (t: string) => wrapSel("", "", t);
@@ -91,7 +91,7 @@ function RichText({ value, onChange, disabled, variables }: { value: string; onC
     const el = ref.current; if (!el) return;
     const a = value.lastIndexOf("\n", el.selectionStart - 1) + 1, b = el.selectionEnd;
     const block = value.slice(a, b).split("\n").map((l, i) => pre(i) + l).join("\n");
-    onChange((value.slice(0, a) + block + value.slice(b)).slice(0, 500));
+    onChange((value.slice(0, a) + block + value.slice(b)).slice(0, 5000));
   };
   const Tb = ({ label, title, onClick, className = "" }: { label: string; title: string; onClick: () => void; className?: string }) => (
     <button type="button" title={title} disabled={disabled} onClick={onClick} className={`grid h-7 min-w-7 place-items-center rounded px-1 text-xs hover:bg-muted disabled:opacity-40 ${className}`}>{label}</button>
@@ -114,9 +114,9 @@ function RichText({ value, onChange, disabled, variables }: { value: string; onC
           <PopoverContent className="grid w-44 grid-cols-6 gap-1 p-2">{EMOJI.map((e) => <button key={e} type="button" onClick={() => insert(e)} className="rounded p-0.5 text-lg hover:bg-muted">{e}</button>)}</PopoverContent>
         </Popover>
       </div>
-      <textarea ref={ref} rows={5} maxLength={500} disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}
+      <textarea ref={ref} rows={5} maxLength={5000} disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}
         className="block w-full resize-none bg-transparent px-3 py-2 text-sm outline-none" />
-      <div className="flex justify-between px-3 pb-1.5 text-[10px] text-muted-foreground"><span>Insert a variable with {"{x}"}</span><span>{value.length}/500</span></div>
+      <div className="flex justify-between px-3 pb-1.5 text-[10px] text-muted-foreground"><span>Insert a variable with {"{x}"}</span><span>{value.length}/5000</span></div>
     </div>
   );
 }
