@@ -1,0 +1,1 @@
+ALTER TABLE public.fonnte_approval_events ADD COLUMN reply_status text, ADD COLUMN reply_id text;

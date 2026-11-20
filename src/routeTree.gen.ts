@@ -32,6 +32,7 @@ import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicWhatsappFonnteWebhookRouteImport } from './routes/api/public/whatsapp/fonnte-webhook'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -152,6 +153,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWhatsappFonnteWebhookRoute =
+  ApiPublicWhatsappFonnteWebhookRouteImport.update({
+    id: '/api/public/whatsapp/fonnte-webhook',
+    path: '/api/public/whatsapp/fonnte-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -182,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
@@ -234,6 +243,7 @@ export interface FileRoutesById {
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
+    | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
+    | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
@@ -312,6 +324,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
     | '/api/public/payments/webhook'
+    | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -337,6 +350,7 @@ export interface RootRouteChildren {
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicJobsBookingRemindersRoute: typeof ApiPublicJobsBookingRemindersRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ApiPublicWhatsappFonnteWebhookRoute: typeof ApiPublicWhatsappFonnteWebhookRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
@@ -503,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp/fonnte-webhook': {
+      id: '/api/public/whatsapp/fonnte-webhook'
+      path: '/api/public/whatsapp/fonnte-webhook'
+      fullPath: '/api/public/whatsapp/fonnte-webhook'
+      preLoaderRoute: typeof ApiPublicWhatsappFonnteWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
       path: '/api/public/whatsapp/webhook'
@@ -549,6 +570,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicJobsBookingRemindersRoute: ApiPublicJobsBookingRemindersRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ApiPublicWhatsappFonnteWebhookRoute: ApiPublicWhatsappFonnteWebhookRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport

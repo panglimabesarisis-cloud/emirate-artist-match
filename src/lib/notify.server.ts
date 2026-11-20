@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendWhatsApp } from "./whatsapp-provider.server";
+import { readWhatsAppConfig, sendWhatsApp } from "./whatsapp-provider.server";
 export { WHATSAPP_TEMPLATE } from "./whatsapp-provider.server";
 
 type Target = { email?: string | null; phone?: string | null };
@@ -24,7 +24,18 @@ export async function notifyBooking(bookingId: string, audience: "client" | "art
   if (to.email) await log(bookingId, "email", audience, kind, to.email, "pending_setup");
   if (to.phone) {
     try {
-      const r = await sendWhatsApp(to.phone, subject, details, link);
+      let replyInstructions = '';
+      if (audience === 'artist' && kind === 'approval_request') {
+        const config = await readWhatsAppConfig();
+        if (config.provider === 'fonnte' && process.env['FONNTE_WEBHOOK_SECRET']) {
+          const {data:b,error}=await supabaseAdmin.from('bookings').select('artist_invoice_required').eq('id',bookingId).single();
+          if(error) throw error;
+          replyInstructions = b?.artist_invoice_required
+            ? `Reference: ${bookingId.slice(0,8)}. Reply NO ${bookingId.slice(0,8)} to decline. Reply YES ${bookingId.slice(0,8)} to confirm availability; invoice items must still be completed using the link.`
+            : `Reference: ${bookingId.slice(0,8)}. Reply YES ${bookingId.slice(0,8)} to approve or NO ${bookingId.slice(0,8)} to decline. YES/NO alone works only when you have one pending request. Use the link to edit details.`;
+        }
+      }
+      const r = await sendWhatsApp(to.phone, subject, [details,replyInstructions].filter(Boolean).join('\n\n'), link);
       await log(bookingId, "whatsapp", audience, kind, to.phone, r.status, r.error, r.messageId);
     } catch (e) { await log(bookingId, "whatsapp", audience, kind, to.phone, "failed", String(e)); }
   }

@@ -183,6 +183,27 @@
       "when": 1795120088795,
       "tag": "0025_admin_invoice_read",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795187251333,
+      "tag": "0026_fonnte_artist_approval_inbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795187325864,
+      "tag": "0027_fonnte_confirmation_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795187431536,
+      "tag": "0028_restrict_fonnte_inbox_grants",
+      "breakpoints": true
     }
   ]
 }

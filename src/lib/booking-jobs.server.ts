@@ -1,5 +1,7 @@
 import {reminderDue,bookingPayment} from './booking-payment-rules';
 export async function runBookingJobs(origin:string) {
+ const {recoverFonnteEvents}=await import('./fonnte-webhook.server');
+ await recoverFonnteEvents(origin);
  const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
  const {syncBookingCalendar}=await import('./booking-calendar.server');
  const {notifyBooking}=await import('./notify.server');

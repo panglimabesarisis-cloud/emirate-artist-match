@@ -950,6 +950,74 @@ export type Database = {
         }
         Relationships: []
       }
+      fonnte_approval_events: {
+        Row: {
+          applied_at: string | null
+          booking_id: string | null
+          decision: string
+          delivery_id: string
+          effects_started_at: string | null
+          effects_state: string
+          id: string
+          message_at: string
+          outcome: string | null
+          processed_at: string | null
+          processing_error: string | null
+          received_at: string
+          reference: string | null
+          reply_id: string | null
+          reply_status: string | null
+          retry_at: string
+          sender: string
+        }
+        Insert: {
+          applied_at?: string | null
+          booking_id?: string | null
+          decision: string
+          delivery_id: string
+          effects_started_at?: string | null
+          effects_state?: string
+          id?: string
+          message_at: string
+          outcome?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          received_at?: string
+          reference?: string | null
+          reply_id?: string | null
+          reply_status?: string | null
+          retry_at?: string
+          sender: string
+        }
+        Update: {
+          applied_at?: string | null
+          booking_id?: string | null
+          decision?: string
+          delivery_id?: string
+          effects_started_at?: string | null
+          effects_state?: string
+          id?: string
+          message_at?: string
+          outcome?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          received_at?: string
+          reference?: string | null
+          reply_id?: string | null
+          reply_status?: string | null
+          retry_at?: string
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fonnte_approval_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string
@@ -1670,6 +1738,7 @@ export type Database = {
     }
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
+      apply_fonnte_approval: { Args: { _event: string }; Returns: string }
       apply_whatsapp_status: {
         Args: { _at: string; _error: string; _message: string; _status: string }
         Returns: boolean
@@ -1717,6 +1786,7 @@ export type Database = {
         }[]
       }
       become_artist: { Args: never; Returns: undefined }
+      fonnte_phone: { Args: { _phone: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
