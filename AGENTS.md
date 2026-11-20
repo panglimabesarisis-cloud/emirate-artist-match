@@ -62,3 +62,4 @@ use the editor.
 - Flow builder previews and client chats share ChatFlowControls so buttons and form dates render identically; a standalone date picker is a single-date-field form, preserving the existing agent contract. These structured controls use shadcn rather than AI Elements because they submit the existing flow text protocol, not an AI SDK transcript.
 
 - Booking invoice approval, partial settlement, calendar and reminder invariants are documented in src/lib/AGENTS.md. UI translation, CSV export and payment-rules conventions are there too.
+- Render AI forms server-side to avoid missing LLM tags.

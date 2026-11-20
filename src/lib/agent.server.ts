@@ -1,4 +1,5 @@
 import { decodeChatMessage } from "./chat-attachments";
+import { ensureAgentForm, reachableForms } from "./agent-forms";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
 import { agentRates } from "./agent-pricing";
@@ -52,6 +53,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const own = flows?.find((f) => f.artist_id === convo.artist_id && f.enabled && Array.isArray(f.nodes) && f.nodes.length);
   const master = flows?.find((f) => f.artist_id === null && Array.isArray(f.nodes) && f.nodes.length);
   const flow = own ?? master;
+  const forms = reachableForms(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
@@ -96,7 +98,9 @@ Never share or ask for phone numbers, emails or social handles — all communica
 BOOKING HAND-OFF: ${invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
-QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise. Same for [FORM: ...] tokens from a Form step.\nVARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
+QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise.
+INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
+VARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
@@ -113,7 +117,9 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 
   try {
     let calendarCheck: CalendarCheck | undefined;
-    const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } }];
+    let requestedFormId: string | undefined;
+    const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
+      ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
     let res = await generateResponse({ model: MODEL, instructions, input, tools, max_output_tokens: 600 });
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
@@ -121,9 +127,16 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       for (const call of calls) {
         input.push({ type: "function_call", name: call.name, call_id: call.call_id, arguments: call.arguments });
         let output: unknown = { status: "unknown", reason: "Invalid calendar request" };
-        calendarCheck = undefined;
+        if (call.name === "check_calendar") calendarCheck = undefined;
         try {
           const args: unknown = JSON.parse(call.arguments);
+          if (call.name === "show_form" && args && typeof args === "object" && "nodeId" in args && typeof args.nodeId === "string") {
+            const saved = forms.find(node => node.id === args.nodeId);
+            if (saved) {
+              requestedFormId = saved.id;
+              output = { displayed: true, instruction: "Write only the brief introduction. The server appends the saved interactive fields. Stop here and wait for the client; do not call more tools or advance steps." };
+            }
+          }
           if (call.name === "check_calendar" && args && typeof args === "object" && "date" in args && typeof args.date === "string" && "startTime" in args && (args.startTime === null || typeof args.startTime === "string") && "endTime" in args && (args.endTime === null || typeof args.endTime === "string")) {
             calendarCheck = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: args.date, startTime: args.startTime, endTime: args.endTime }) : { status: "unknown", window: calendarWindow({ date: args.date, startTime: args.startTime, endTime: args.endTime }), reason: "Artist confirmation required; Calendar is not connected." };
             output = calendarCheck;
@@ -131,13 +144,13 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         } catch { /* Invalid arguments are not evidence of availability. */ }
         input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
       }
-      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 || requestedFormId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
     }
     let text = "";
     for (const item of res.output ?? []) {
       if (item.type === "message") for (const c of item.content) if (c.type === "output_text") text += c.text;
     }
-    text = text.trim();
+    text = ensureAgentForm(text.trim(), forms, history ?? [], requestedFormId);
     const ex = extractDraft(text);
     if (ex.draft && !artistApprovalDraft(ex.draft.date, calendarCheck)) {
       await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");

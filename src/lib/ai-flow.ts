@@ -164,7 +164,8 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       next = [`end your reply with exactly [BUTTONS: ${bs.join(" | ")}]`, ...routes, def && `otherwise step ${num.get(def.target)}`].filter(Boolean).join("; ");
     } else if (x.type === "form" && x.data.fields?.length) {
       const fs = x.data.fields;
-      next = [`end your reply with exactly [FORM: ${fs.map((f) => `${f.label}:${f.type}`).join(" | ")}]`,
+      next = [`REQUIRED: call show_form with nodeId ${JSON.stringify(x.id)} to display this saved form; never replace it with a plain-text question list. If using text, end your reply with exactly [FORM: ${fs.map((f) => `${f.label}:${f.type}`).join(" | ")}]`,
+        "pause here until the client submits the form; knowing one field does not complete the other fields",
         ...fs.filter((f) => f.saveAs).map((f) => `remember "${f.label}" as {${f.saveAs}}`),
         outs.length && `then step ${outs.map((e) => num.get(e.target)).join(" or ")}`].filter(Boolean).join("; ");
     } else if (isBranching(x.type)) {
