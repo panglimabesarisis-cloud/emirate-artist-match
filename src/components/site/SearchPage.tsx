@@ -1,7 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ArtistCard } from "@/lib/public.functions";
-import { ArtistCardView } from "./ArtistCard";
+import { ListingArtistCard } from "./ListingArtistCard";
+import { ListingSearch } from "./ListingSearch";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
+import { X } from "lucide-react";
 import { useWebMCP } from "use-webmcp-tool";
 import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 import { PublicLayout } from "./PublicLayout";
@@ -58,9 +62,10 @@ export function SearchPage(props: {
     navigate({ to: ".", search: (prev: Filters) => ({ ...prev, ...patch }), replace: true });
 
   return (
-    <PublicLayout>
-      <div className="bg-night text-night-foreground">
-        <div className="mx-auto max-w-7xl px-4 py-10">
+    <ReferenceTheme><PublicLayout>
+      <div className="reference-scene-header">
+        <SceneBackground arch={false} />
+        <div className="reference-wrap reference-scene-content">
           <nav className="text-xs opacity-70 flex gap-1 flex-wrap">
             <Link to="/">{t("Home")}</Link>
             {props.breadcrumbs.map((b) => (
@@ -76,23 +81,25 @@ export function SearchPage(props: {
           </nav>
           <h1 className="mt-3 text-3xl md:text-5xl font-semibold">{lang === "ar" && cat ? `${localName(lang, cat)}${emirate ? ` في ${localName(lang, emirate)}` : " في الإمارات"}` : props.title}</h1>
           {lang === "en" && <p className="mt-2 opacity-75 max-w-2xl">{cat?.description}</p>}
+          <ListingSearch catalog={catalog} categorySlug={categorySlug} emirateSlug={emirateSlug} filters={filters} />
+          <div className="reference-category-chips">{catalog.categories.map(c => <Link key={c.slug} to="/$category" params={{ category: c.slug }} search={filters} className={c.slug === categorySlug ? "is-active" : ""}>{localName(lang, c)}</Link>)}</div>
           {subs.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
-              <button onClick={() => set({ sub: undefined })}
-                className={`rounded-full px-3 py-1 text-sm border border-sidebar-border ${!filters.sub ? "bg-gradient-gold text-gold-foreground" : ""}`}>{t("All")}</button>
+              <Button variant="ghost" onClick={() => set({ sub: undefined })}
+                className={`rounded-full px-3 py-1 text-sm border border-sidebar-border ${!filters.sub ? "bg-gradient-gold text-gold-foreground" : ""}`}>{t("All")}</Button>
               {subs.map((s) => (
-                <button key={s.slug} onClick={() => set({ sub: s.slug })}
+                <Button variant="ghost" key={s.slug} onClick={() => set({ sub: s.slug })}
                   className={`rounded-full px-3 py-1 text-sm border border-sidebar-border ${filters.sub === s.slug ? "bg-gradient-gold text-gold-foreground" : ""}`}>
                   {s.name}
-                </button>
+                </Button>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-10 grid gap-8 lg:grid-cols-[260px_1fr]">
-        <aside className="space-y-6">
+      <div className="reference-wrap listing-content">
+        <aside hidden className="space-y-6">
           <div className="space-y-2">
             <Label>{t("Event type")}</Label>
             <Select value={filters.event ?? "any"} onValueChange={(v) => set({ event: v === "any" ? undefined : v })}>
@@ -145,7 +152,7 @@ export function SearchPage(props: {
               <Label>{t("Areas in")} {localName(lang, emirate)}</Label>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {areas.slice(0, 16).map((a) => (
-                  <Link key={a.slug} to="/$category/$emirate/$area" params={{ category: categorySlug, emirate: emirateSlug!, area: a.slug }}
+                  <Link key={a.slug} to="/$category/$emirate/$area" params={{ category: categorySlug, emirate: emirateSlug ?? "dubai", area: a.slug }}
                     className="text-xs rounded-full border px-2 py-0.5 hover:border-gold">{a.name}</Link>
                 ))}
               </div>
@@ -154,6 +161,9 @@ export function SearchPage(props: {
         </aside>
 
         <div>
+          <div className="listing-filter-chips">{Object.entries(filters).filter(([key, value]) => key !== "sort" && value !== undefined && value !== false).map(([key, value]) => <Button key={key} variant="ghost" onClick={() => set({ [key]: undefined })} aria-label={`${t("Remove")} ${key}`}>
+            {key === "sub" ? catalog.subcategories.find(s => s.slug === value)?.name ?? String(value) : key === "event" ? catalog.eventTypes.find(e => e.slug === value)?.name ?? String(value) : key === "maxPrice" ? `${t("Up to")} AED ${value}` : key === "minRating" ? `${value}+ ${t("rating")}` : key === "verified" ? t("Verified only") : key === "top" ? t("Top Performers") : String(value)}<X className="h-3 w-3" />
+          </Button>)}</div>
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">{results.length} {t("artists found")}</p>
             <Select value={filters.sort ?? "recommended"} onValueChange={(v) => set({ sort: v as Filters["sort"] })}>
@@ -172,8 +182,8 @@ export function SearchPage(props: {
               {t("No artists match these filters yet. Try widening your search.")}
             </div>
           ) : (
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {results.slice(0, shown).map((a) => <ArtistCardView key={a.id} a={a} />)}
+            <div className="listing-artists">
+              {results.slice(0, shown).map((a) => <ListingArtistCard key={a.id} artist={a} match={subs.find(s => s.slug === filters.sub)?.name ?? cat?.name ?? ""} />)}
             </div>
           )}
           {shown < results.length && (
@@ -195,7 +205,7 @@ export function SearchPage(props: {
           </section>
         </div>
       </div>
-    </PublicLayout>
+    </PublicLayout></ReferenceTheme>
   );
 }
 
