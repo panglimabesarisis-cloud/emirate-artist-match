@@ -170,7 +170,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
       if (x.type === "ratecard") { d.rateDescription = x.data.rateDescription?.trim() ?? ""; d.ratePrice = Math.max(0, Number(x.data.ratePrice) || 0); }
       if (x.type === "whatsapp") d.destinationPhone = x.data.destinationPhone?.trim() ?? "";
       const fields = (x.data.fields ?? []).map((f) => ({ ...f, label: f.label.trim() })).filter((f) => f.label);
-      if (fields.length) d.fields = fields.map((f) => (f.saveAs ? f : { label: f.label, type: f.type }));
+      if (fields.length) d.fields = fields;
       return { id: x.id, type: x.type as FlowKind, position: { x: Math.round(x.position.x), y: Math.round(x.position.y) }, data: d };
     }),
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })),
@@ -273,6 +273,13 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                       </Select>
                       <FlowVariableSelect key={`${selected.id}-${i}`} compact label={`Save to ${f.label}`} variables={variables} disabled={!!readOnly} value={f.saveAs} onChange={v => setFields(selected.id, fs => fs.map((x, j) => j === i ? { ...x, saveAs: v } : x))} />
                     </div>
+                    {f.type === "dropdown" && <div className="space-y-1">
+                      <Select disabled={!!readOnly} value={f.source ?? "custom"} onValueChange={value => setFields(selected.id, fs => fs.map((field, j) => j === i ? value === "event_types" ? { ...field, source: "event_types" } : { label: field.label, type: field.type, ...(field.saveAs ? { saveAs: field.saveAs } : {}), options: field.options ?? [] } : field))}>
+                        <SelectTrigger aria-label={`Options for ${f.label}`} className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="event_types">Event types</SelectItem><SelectItem value="custom">Custom options</SelectItem></SelectContent>
+                      </Select>
+                      {f.source !== "event_types" && <Textarea aria-label={`Dropdown options for ${f.label}`} disabled={!!readOnly} value={(f.options ?? []).join("\n")} placeholder="One option per line" onChange={event => setFields(selected.id, fs => fs.map((field, j) => j === i ? { ...field, options: event.target.value.split("\n") } : field))} />}
+                    </div>}
                   </div>
                 ))}
                 {!readOnly && <Button variant="outline" size="sm" className="w-full" disabled={(selected.data.fields?.length ?? 0) >= 8} onClick={() => setFields(selected.id, (fs) => [...fs, { label: `Field ${fs.length + 1}`, type: "text" }])}>+ Form field</Button>}

@@ -1,7 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
+import { getCatalog } from "@/lib/public.functions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarDays } from "lucide-react";
-import type { FormField } from "@/lib/ai-flow";
+import { interactiveFields, type FormField } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,6 +33,8 @@ function DateField({ label, value, onChange, disabled, inline }: { label: string
 export function ChatFlowForm({ fields, busy = false, onSubmit }: { fields: FormField[]; busy?: boolean; onSubmit: (text: string) => void }) {
   const { t } = useI18n();
   const [values, setValues] = useState<Record<number, string>>({});
+  fields = interactiveFields(fields);
+  const catalog = useQuery({ queryKey: ["catalog"], queryFn: () => getCatalog(), enabled: fields.some(field => field.source === "event_types"), staleTime: 60_000 });
   const types: Record<string, string> = { text: "text", email: "email", phone: "tel", number: "number", time: "time" };
   const inlineDate = fields.length === 1 && fields[0]?.type === "date";
   const complete = fields.every((_, i) => (values[i] ?? "").trim());
@@ -40,9 +45,13 @@ export function ChatFlowForm({ fields, busy = false, onSubmit }: { fields: FormF
   }}>
     {fields.map((field, i) => <div key={i} className="min-w-0 space-y-1">
       <label htmlFor={`flow-field-${i}`} className="block break-words text-xs font-medium">{field.label}<span className="ms-1 text-destructive">*</span></label>
-      {field.type === "date" ? <DateField label={field.label} value={values[i] ?? ""} disabled={busy} inline={inlineDate} onChange={(value) => setValues((current) => ({ ...current, [i]: value }))} /> :
+      {field.type === "dropdown" ? <Select disabled={busy || (field.source === "event_types" && !catalog.data?.eventTypes.length)} value={values[i] ?? ""} onValueChange={value => setValues(current => ({ ...current, [i]: value }))}>
+        <SelectTrigger id={`flow-field-${i}`} aria-label={field.label} className="h-10 w-full min-w-0 rounded-md bg-background text-start"><SelectValue placeholder={catalog.isError && field.source === "event_types" ? t("Unable to load options") : field.label} /></SelectTrigger>
+        <SelectContent>{(field.source === "event_types" ? catalog.data?.eventTypes.map(event => event.name) ?? [] : [...new Set((field.options ?? []).map(option => option.trim()).filter(Boolean))]).map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+      </Select> : field.type === "date" ? <DateField label={field.label} value={values[i] ?? ""} disabled={busy} inline={inlineDate} onChange={(value) => setValues((current) => ({ ...current, [i]: value }))} /> :
         field.type === "textarea" ? <Textarea id={`flow-field-${i}`} aria-label={field.label} required disabled={busy} rows={3} maxLength={1000} value={values[i] ?? ""} placeholder={field.label} onChange={(event) => setValues((current) => ({ ...current, [i]: event.target.value }))} className="min-h-24 rounded-md bg-background text-sm" dir="auto" /> : <Input id={`flow-field-${i}`} aria-label={field.label} required disabled={busy} type={types[field.type] ?? "text"} value={values[i] ?? ""} placeholder={field.type === "phone" ? "+971" : field.label} maxLength={200} onChange={(event) => setValues((current) => ({ ...current, [i]: event.target.value }))} className="h-10 rounded-md bg-background text-sm" dir={field.type === "phone" ? "ltr" : "auto"} />}
     </div>)}
+    {catalog.isError && fields.some(field => field.source === "event_types") && <Button type="button" variant="outline" onClick={() => void catalog.refetch()}>{t("Try again")}</Button>}
     <Button type="submit" disabled={busy || !complete} className="h-9 w-full rounded-md">{t("Submit")}</Button>
   </form>;
 }

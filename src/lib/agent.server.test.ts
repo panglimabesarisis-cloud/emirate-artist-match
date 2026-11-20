@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { calendarWindow } from './calendar-rules';
+import { extractForm } from './ai-flow';
 
 const mocks = vi.hoisted(() => ({
   generate: vi.fn(), calendar: vi.fn(), notify: vi.fn(), contact: vi.fn(),
   writes: [] as { table: string; value: unknown }[],
-  existing: false, sparseQuote: false,
+  existing: false, sparseQuote: false, formScenario: false,
 }));
 
 const flow = {
@@ -28,6 +29,14 @@ function result(table: string, inserting: boolean) {
     ],
     bookings: inserting ? { id: 'booking-fixture', artist_key: 'fixture-key' } : mocks.existing ? { status: 'inquiry', artist_invoice_required: false, paid_amount: 0, total: 5250, cancelled_by: null } : null,
   };
+  if (mocks.formScenario) {
+    data['ai_flows'] = [{ artist_id: 'artist-fixture', enabled: true, nodes: [
+      { id: 'start', type: 'start', data: { text: 'Hello' } },
+      { id: 'choice', type: 'buttons', data: { text: 'Ready?', buttons: ['Yes', 'No'] } },
+      { id: 'details', type: 'form', data: { text: 'Event details', fields: [{ label: 'Event Type', type: 'text', saveAs: 'event_type' }, { label: 'Start Time', type: 'time', saveAs: 'start_time' }, { label: 'End Time', type: 'time', saveAs: 'end_time' }] } },
+    ], edges: [{ id: '1', source: 'start', target: 'choice' }, { id: '2', source: 'choice', sourceHandle: 'b0', target: 'details' }] }];
+    data['messages'] = [{ sender: 'client', body: 'Yes' }, { sender: 'ai', body: 'Ready?\n[BUTTONS: Yes | No]' }];
+  }
   return { data: data[table] ?? null, error: null, count: mocks.existing ? 1 : 0 };
 }
 
@@ -54,7 +63,7 @@ vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('
 import { runAgent } from './agent.server';
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.sparseQuote = false;
+  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.sparseQuote = false; mocks.formScenario = false;
   mocks.calendar.mockResolvedValue({ status: 'available', window: calendarWindow({ date: '2026-11-29', startTime: '19:00', endTime: '21:00' }) });
   mocks.contact.mockResolvedValue({ phone: '+971509999999', email: null });
   mocks.notify.mockResolvedValue(undefined);
@@ -63,6 +72,21 @@ beforeEach(() => {
 });
 
 describe('Book Now → artist WhatsApp dispatch', () => {
+  it('renders all saved form fields when the model tries to ask only a start time', async () => {
+    mocks.formScenario = true;
+    mocks.generate.mockReset().mockResolvedValue({ output: [{ type: 'message', content: [{ type: 'output_text', text: 'What time does your event start?' }] }] });
+    await runAgent('conversation-fixture');
+    const message = mocks.writes.find(write => write.table === 'messages')?.value;
+    expect(message).toMatchObject({ sender: 'ai' });
+    if (!message || typeof message !== 'object' || !('body' in message) || typeof message.body !== 'string') throw new Error('Missing AI form');
+    expect(extractForm(message.body).fields).toEqual([
+      { label: 'Event Type', type: 'dropdown', saveAs: 'event_type', source: 'event_types' },
+      { label: 'Start Time', type: 'time', saveAs: 'start_time' },
+      { label: 'End Time', type: 'time', saveAs: 'end_time' },
+    ]);
+    expect(mocks.calendar).not.toHaveBeenCalled();
+    expect(mocks.notify).not.toHaveBeenCalled();
+  });
   it('creates an inquiry and dispatches once on the Book Now turn without another client answer', async () => {
     const details = {
       title: 'Emcee', amount: 5000, date: '2026-11-29', clientName: 'Maya', notes: 'Dubai Chamber, 19:00–21:00, 1000 guests', jobDetail: 'Emcee',

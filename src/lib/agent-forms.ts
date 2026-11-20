@@ -1,9 +1,11 @@
-import { extractForm, type FlowNode, type FlowEdge, type FormField } from "./ai-flow";
+import { extractButtons, extractForm, interactiveFields, type FlowNode, type FlowEdge, type FormField } from "./ai-flow";
 
 type Message = { sender: string; body: string };
 const normal = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 export function formToken(fields: FormField[]) {
+  fields = interactiveFields(fields.slice(0, 8));
+  if (fields.some(field => field.type === "dropdown" || field.saveAs)) return `[FORM_DATA: ${encodeURIComponent(JSON.stringify(fields))}]`;
   return `[FORM: ${fields.slice(0, 8).map(field => `${field.label.replace(/[\[\]|:]/g, " ").trim()}:${field.type}`).join(" | ")}]`;
 }
 
@@ -46,7 +48,38 @@ export function ensureAgentForm(text: string, forms: FlowNode[], history: Messag
     if (matches.length === 1) node = matches[0];
   }
   if (!node?.data.fields?.length) return parsed.fields.length ? parsed.text : text;
+  if (requestedId) return `Please fill in the following details.\n${formToken(node.data.fields)}`;
   const labels = node.data.fields.map(field => normal(field.label));
   const intro = parsed.text.split("\n").filter(line => !labels.includes(normal(line.replace(/^[-*\d.\s]+/, "")))).join("\n").trim();
   return `${intro}\n${formToken(node.data.fields)}`.trim();
+}
+/** Resolve only the displayed step and its saved edge, never an unchosen branch. */
+export function nextSavedForm(nodes: FlowNode[], edges: FlowEdge[], history: Message[]) {
+  let lastClient = history.length - 1;
+  while (lastClient >= 0 && history[lastClient]?.sender !== "client") lastClient--;
+  if (lastClient < 0) return undefined;
+  const client = history[lastClient];
+  const previous = history.slice(0, lastClient).reverse().find(message => message.sender === "ai");
+  if (!client || !previous) return undefined;
+  const displayed = extractForm(previous.body).fields;
+  const buttons = extractButtons(previous.body).buttons;
+  const matches = nodes.filter(node => displayed.length
+    ? node.type === "form" && node.data.fields?.length === displayed.length && node.data.fields.every((field, i) => normal(field.label) === normal(displayed[i]?.label ?? ""))
+    : buttons.length ? node.type === "buttons" && node.data.buttons?.join("|") === buttons.join("|")
+    : node.type === "question" && normal(node.data.text) === normal(previous.body));
+  if (matches.length !== 1) return undefined;
+  const current = matches[0];
+  if (!current) return undefined;
+  if (displayed.length && !current.data.fields?.every(field => client.body.split("\n").some(line => line.indexOf(":") > 0 && normal(line.split(":")[0] ?? "") === normal(field.label) && Boolean(line.slice(line.indexOf(":") + 1).trim())))) return current;
+  const index = current.data.buttons?.findIndex(button => normal(button) === normal(client.body)) ?? -1;
+  if (current.type === "buttons" && index < 0) return undefined;
+  const outs = edges.filter(edge => edge.source === current.id && (current.type !== "buttons" || edge.sourceHandle === `b${index}` || !edge.sourceHandle));
+  if (outs.length !== 1) return undefined;
+  const next = nodes.find(node => node.id === outs[0]?.target);
+  if (next?.type === "calendar") {
+    const timingForms = reachableForms([next, ...nodes.filter(node => node.id !== next.id && node.type !== "start")], edges.filter(edge => edge.target !== next.id)).filter(node => node.data.fields?.some(field => field.saveAs === "start_time") && node.data.fields.some(field => field.saveAs === "end_time"));
+    const hasTiming = history.some(message => message.sender === "client" && timingForms.some(node => node.data.fields?.filter(field => field.saveAs === "start_time" || field.saveAs === "end_time").every(field => message.body.split("\n").some(line => normal(line.split(":")[0] ?? "") === normal(field.label) && Boolean(line.slice(line.indexOf(":") + 1).trim())))));
+    if (!hasTiming && timingForms.length === 1) return timingForms[0];
+  }
+  return next?.type === "form" && next.data.fields?.length ? next : undefined;
 }

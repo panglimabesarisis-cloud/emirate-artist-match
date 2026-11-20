@@ -2,14 +2,19 @@
 import { internationalPhone } from "./whatsapp-provider";
 export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge";
 export type UrlButton = { label: string; url: string };
-export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time";
-export type FormField = { label: string; type: FieldType; saveAs?: string | undefined };
-export const FIELD_TYPES: FieldType[] = ["text", "textarea", "email", "phone", "number", "date", "time"];
+export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time" | "dropdown";
+export type FormField = { label: string; type: FieldType; saveAs?: string | undefined; options?: string[]; source?: "event_types" };
+export const FIELD_TYPES: FieldType[] = ["text", "textarea", "email", "phone", "number", "date", "time", "dropdown"];
+export function interactiveFields(fields: FormField[]): FormField[] {
+  return fields.map(field => field.saveAs === "event_type" || /^(event type|event name)$/i.test(field.label.trim())
+    ? { ...field, type: "dropdown", source: "event_types" } : field);
+}
 export type KnowledgeQA = { question: string; answer: string };
 export type FlowData = { text: string; title?: string; knowledgeQA?: KnowledgeQA[]; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[]; destinationPhone?: string; rateDescription?: string; ratePrice?: number };
 /** Variables a step can save the client's answer into; usable later as {name} in any step. */
 export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package", "artist_name", "Perform_duration", "Additonal_Request", "informasion", "job_detail", "client_occupation", "job_artis", "speciality_artis", "ratecard", "venue_name", "client_company", "sound_system_included"];
 export const FORM_FIELD_PRESETS: FormField[] = [
+  { label: "Event Type", type: "dropdown", saveAs: "event_type", source: "event_types" },
   { label: "artist_name", type: "text", saveAs: "artist_name" },
   { label: "Perform_duration", type: "text", saveAs: "Perform_duration" },
   { label: "Additonal_Request", type: "text", saveAs: "Additonal_Request" },
@@ -51,13 +56,22 @@ export function extractButtons(body: string): { text: string; buttons: string[] 
 }
 /** AI replies may end with [FORM: Name:text | Email:email]; the chat shows a fill-in form. */
 export function extractForm(body: string): { text: string; fields: FormField[] } {
+  const rich = body.match(/\[FORM_DATA:\s*([^\]]*)\]\s*$/);
+  if (rich) {
+    try {
+      const value: unknown = JSON.parse(decodeURIComponent(rich[1] ?? ""));
+      if (!Array.isArray(value)) return { text: body.slice(0, rich.index).trimEnd(), fields: [] };
+      const fields: FormField[] = value.filter((field): field is FormField => Boolean(field && typeof field === "object" && typeof field.label === "string" && FIELD_TYPES.includes(field.type) && (!field.options || (Array.isArray(field.options) && field.options.every((option: unknown) => typeof option === "string"))))).slice(0, 8);
+      return { text: body.slice(0, rich.index).trimEnd(), fields: interactiveFields(fields) };
+    } catch { return { text: body.slice(0, rich.index).trimEnd(), fields: [] }; }
+  }
   const m = body.match(/\[FORM:\s*([^\]]*)\]\s*$/);
   if (!m) return { text: body, fields: [] };
   const fields = (m[1] ?? "").split("|").map((f) => {
     const [label = "", type = "text"] = f.split(":").map((x) => x.trim());
     return { label, type: (FIELD_TYPES as string[]).includes(type) ? (type as FieldType) : "text" };
   }).filter((f) => f.label).slice(0, 8);
-  return { text: body.slice(0, m.index).trimEnd(), fields };
+  return { text: body.slice(0, m.index).trimEnd(), fields: interactiveFields(fields) };
 }
 export const kindLabel = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.label ?? k;
 export const cardTitle = (node: Pick<FlowNode, "type" | "data">) => node.data.title?.trim() || kindLabel(node.type);

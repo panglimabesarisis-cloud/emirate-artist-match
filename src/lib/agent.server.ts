@@ -1,5 +1,5 @@
 import { decodeChatMessage } from "./chat-attachments";
-import { ensureAgentForm, reachableForms } from "./agent-forms";
+import { ensureAgentForm, nextSavedForm, reachableForms } from "./agent-forms";
 import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
@@ -124,12 +124,13 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 
   try {
     let calendarCheck: CalendarCheck | undefined;
-    let requestedFormId: string | undefined;
+    const resolvedForm = artistDecisionBookingId || selectedApproval ? undefined : nextSavedForm(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges, history ?? []);
+    let requestedFormId: string | undefined = resolvedForm?.id;
     let requestedButtonsId: string | undefined;
     const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
       ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
       ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
-    let res = await generateResponse({ model: MODEL, instructions, input, tools, max_output_tokens: 600 });
+    let res = await generateResponse({ model: MODEL, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
       if (!calls.length) break;

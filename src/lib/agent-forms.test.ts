@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureAgentForm, reachableForms } from "./agent-forms";
+import { ensureAgentForm, formToken, nextSavedForm, reachableForms } from "./agent-forms";
 import { extractForm, type FlowNode } from "./ai-flow";
 
 const form: FlowNode = { id: "event", type: "form", position: { x: 0, y: 0 }, data: { text: "Event details", fields: [{ label: "Event date", type: "date" }, { label: "Special requests", type: "textarea" }] } };
@@ -30,5 +30,28 @@ describe("saved interactive agent forms", () => {
   it("preserves the selected form instead of choosing another reachable branch", () => {
     const other: FlowNode = { ...form, id: "other", data: { text: "Other", fields: [{ label: "Guests", type: "number" }] } };
     expect(extractForm(ensureAgentForm("Details", [form, other], [], "other")).fields).toEqual(other.data.fields);
+  });
+  it("preserves saved dropdown choices and variables through the chat protocol", () => {
+    const fields = [{ label: "Service", type: "dropdown" as const, options: ["Emcee", "DJ"], saveAs: "service" }];
+    expect(extractForm(formToken(fields)).fields).toEqual(fields);
+  });
+  it("uses the booking event catalog for event_type even in older text fields", () => {
+    expect(extractForm(formToken([{ label: "Event", type: "text", saveAs: "event_type" }])).fields).toEqual([{ label: "Event", type: "dropdown", saveAs: "event_type", source: "event_types" }]);
+  });
+  it("resolves the selected button to its complete saved form", () => {
+    const choice: FlowNode = { id: "choice", type: "buttons", position: { x: 0, y: 0 }, data: { text: "Ready?", buttons: ["Yes", "No"] } };
+    const edges = [{ id: "yes", source: "choice", target: form.id, sourceHandle: "b0" }];
+    expect(nextSavedForm([choice, form], edges, [{ sender: "ai", body: "Ready?\n[BUTTONS: Yes | No]" }, { sender: "client", body: "Yes" }])?.id).toBe("event");
+    expect(nextSavedForm([choice, form], edges, [{ sender: "ai", body: "Ready?\n[BUTTONS: Yes | No]" }, { sender: "client", body: "No" }])).toBeUndefined();
+  });
+  it("keeps a multi-field form active until submitted together", () => {
+    expect(nextSavedForm([form], [], [{ sender: "ai", body: formToken(form.data.fields ?? []) }, { sender: "client", body: "Event date: 2026-12-20" }])?.id).toBe("event");
+  });
+  it("collects the saved schedule form before a Calendar placed ahead of its hours", () => {
+    const date: FlowNode = { ...form, id: "date", data: { text: "Date", fields: [{ label: "Event date", type: "date" }] } };
+    const calendar: FlowNode = { id: "calendar", type: "calendar", position: { x: 0, y: 0 }, data: { text: "Check schedule" } };
+    const schedule: FlowNode = { ...form, id: "schedule", data: { text: "Schedule", fields: [{ label: "Event Type", type: "text", saveAs: "event_type" }, { label: "Start Time", type: "time", saveAs: "start_time" }, { label: "End Time", type: "time", saveAs: "end_time" }] } };
+    const edges = [{ id: "1", source: "date", target: "calendar" }, { id: "2", source: "calendar", target: "schedule", sourceHandle: "yes" }];
+    expect(nextSavedForm([date, calendar, schedule], edges, [{ sender: "ai", body: formToken(date.data.fields ?? []) }, { sender: "client", body: "Event date: 2026-12-20" }])?.id).toBe("schedule");
   });
 });
