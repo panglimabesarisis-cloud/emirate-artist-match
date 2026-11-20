@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { bookingPaymentEffects, subscriptionHasPaidBenefits, planChangePolicy, sandboxPaymentSettled } from "./payment-rules";
+import { bookingPaymentEffects, subscriptionHasPaidBenefits, planChangePolicy, sandboxPaymentSettled, invoiceIsPaid, bookingIsFullyPaid } from "./payment-rules";
 
 describe("confirmed payment policies", () => {
+  it("recognizes paid invoices only from authoritative paid status", () => {
+    expect(invoiceIsPaid("paid")).toBe(true);
+    for (const status of ["unpaid", "partial", "pending", "complete", undefined, null]) expect(invoiceIsPaid(status)).toBe(false);
+  });
+  it("recognizes full payment, not a 20% booking deposit", () => {
+    expect(bookingIsFullyPaid(5250, 5250, 0)).toBe(true);
+    expect(bookingIsFullyPaid(5250, 1050, 0)).toBe(false);
+    expect(bookingIsFullyPaid(0, 0, 0)).toBe(false);
+  });
+  it("does not recognize refunded bookings as fully paid", () => {
+    expect(bookingIsFullyPaid(5250, 5250, 1050)).toBe(false);
+    expect(bookingIsFullyPaid(5250, 5250, 5250)).toBe(false);
+  });
   const paid = { livemode: false, status: "complete", payment_status: "paid", currency: "aed", amount_total: 10500 };
   it("settles only completed paid AED sandbox payments", () => {
     expect(sandboxPaymentSettled(paid)).toBe(true);

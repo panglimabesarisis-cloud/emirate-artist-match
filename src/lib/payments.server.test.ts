@@ -32,6 +32,13 @@ describe('checkout-only IDR pricing', () => {
     }), { idempotencyKey: 'order-1' });
   });
 
+  it('omits return_url when embedded checkout never redirects', async () => {
+    await openOrder({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 }, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
+    const params = mocks.createSession.mock.calls[0]?.[0];
+    expect(params).toMatchObject({ ui_mode: 'embedded_page', redirect_on_completion: 'never' });
+    expect(params).not.toHaveProperty('return_url');
+  });
+
   it('removes the existing hundred-fold scaling only from the checkout amount', async () => {
     const order = { artist_id: 'artist-1', kind: 'deposit' as const, amount_minor: 10500 };
     await openOrder(order, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');

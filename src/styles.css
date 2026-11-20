@@ -111,6 +111,33 @@
 @utility bg-gradient-night { background-image: var(--gradient-night); }
 @utility shadow-card { box-shadow: var(--shadow-card); }
 
+.paid-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 144px;
+  height: 58px;
+  margin: 12px;
+  border: 5px double currentColor;
+  border-radius: 6px;
+  color: var(--success);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  transform: rotate(-12deg);
+  animation: paid-stamp-impact 650ms cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes paid-stamp-impact {
+  0% { opacity: 0; transform: scale(1.65) rotate(-20deg); }
+  55% { opacity: 1; transform: scale(.92) rotate(-10deg); }
+  78% { transform: scale(1.04) rotate(-13deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-12deg); }
+}
+@media (prefers-reduced-motion: reduce) { .paid-stamp { animation: none; } }
+@media print { .paid-stamp { animation: none; print-color-adjust: exact; } }
+
 /* Homepage presentation is scoped so dashboard and artist pages keep their theme. */
 .dealmaker-home {
   --radius: 1rem;

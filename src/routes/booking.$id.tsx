@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Printer, ShieldCheck, Star } from "lucide-react";
 import { getBooking, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
 import { bookingPayment } from "@/lib/booking-payment-rules";
+import { bookingIsFullyPaid } from "@/lib/payment-rules";
+import { PaidStamp } from "@/components/site/PaidStamp";
 import type { InvoiceItem } from "@/lib/invoice";
 import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
@@ -99,6 +101,7 @@ function BookingPage() {
             </tbody>
           </table>
           {b.notes && <p className="mt-4 text-sm text-muted-foreground" dir="auto">{b.notes}</p>}
+          {bookingIsFullyPaid(Number(b.total), paid, Number(b.refund_amount)) && <div className="mt-4 flex justify-end border-t pt-3"><PaidStamp /></div>}
           {b.invoice_no && <Button variant="outline" size="sm" className="mt-4 print:hidden" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Print / save PDF</Button>}
         </section>
 

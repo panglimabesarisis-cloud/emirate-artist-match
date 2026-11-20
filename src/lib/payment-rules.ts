@@ -1,4 +1,13 @@
 /** Confirmed purchase policies; invoked by payment processing once checkout is connected. */
+export function invoiceIsPaid(status: string | null | undefined) {
+  return status === "paid";
+}
+
+export function bookingIsFullyPaid(total: number, paid: number, refunded: number) {
+  return Number.isFinite(total) && Number.isFinite(paid) && Number.isFinite(refunded)
+    && total > 0 && paid >= total && refunded === 0;
+}
+
 export function sandboxPaymentSettled(session: { livemode: boolean; status: string | null; payment_status: string; currency: string | null; amount_total: number | null }) {
   return session.livemode === false && session.status === "complete" && session.payment_status === "paid" && session.currency === "aed" && Number.isSafeInteger(session.amount_total) && Number(session.amount_total) > 0;
 }
