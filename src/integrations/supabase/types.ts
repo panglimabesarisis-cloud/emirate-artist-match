@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_closure_requests: {
+        Row: {
+          created_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_closure_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_secrets: {
         Row: {
           key: string
@@ -360,6 +386,81 @@ export type Database = {
           },
         ]
       }
+      artist_subscriptions: {
+        Row: {
+          artist_id: string
+          billing_interval: string
+          cancel_at_period_end: boolean
+          created_at: string
+          customer_id: string
+          environment: string
+          id: string
+          paid_from: string | null
+          paid_until: string | null
+          pending_interval: string | null
+          pending_plan: string | null
+          period_end: string
+          period_start: string
+          plan_code: string
+          schedule_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          billing_interval: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          customer_id: string
+          environment?: string
+          id: string
+          paid_from?: string | null
+          paid_until?: string | null
+          pending_interval?: string | null
+          pending_plan?: string | null
+          period_end: string
+          period_start: string
+          plan_code: string
+          schedule_id?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          billing_interval?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          customer_id?: string
+          environment?: string
+          id?: string
+          paid_from?: string | null
+          paid_until?: string | null
+          pending_interval?: string | null
+          pending_plan?: string | null
+          period_end?: string
+          period_start?: string
+          plan_code?: string
+          schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_subscriptions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_subscriptions_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       artists: {
         Row: {
           area_id: string | null
@@ -374,11 +475,14 @@ export type Database = {
           featured: boolean
           hue: number | null
           id: string
+          intended_plan: string | null
           is_seed: boolean
           languages: string[] | null
           manager_phone: string | null
           notify_phone: string | null
+          onboarding_complete: boolean | null
           plan: string
+          registration_paid_at: string | null
           response_rate: number | null
           slug: string
           specialty_ids: string[]
@@ -403,11 +507,14 @@ export type Database = {
           featured?: boolean
           hue?: number | null
           id?: string
+          intended_plan?: string | null
           is_seed?: boolean
           languages?: string[] | null
           manager_phone?: string | null
           notify_phone?: string | null
+          onboarding_complete?: boolean | null
           plan?: string
+          registration_paid_at?: string | null
           response_rate?: number | null
           slug: string
           specialty_ids?: string[]
@@ -432,11 +539,14 @@ export type Database = {
           featured?: boolean
           hue?: number | null
           id?: string
+          intended_plan?: string | null
           is_seed?: boolean
           languages?: string[] | null
           manager_phone?: string | null
           notify_phone?: string | null
+          onboarding_complete?: boolean | null
           plan?: string
+          registration_paid_at?: string | null
           response_rate?: number | null
           slug?: string
           specialty_ids?: string[]
@@ -508,6 +618,112 @@ export type Database = {
           },
         ]
       }
+      billing_entitlement_periods: {
+        Row: {
+          artist_id: string
+          line_id: string
+          period_end: string
+          period_start: string
+          plan_code: string
+          subscription_id: string
+        }
+        Insert: {
+          artist_id: string
+          line_id: string
+          period_end: string
+          period_start: string
+          plan_code: string
+          subscription_id: string
+        }
+        Update: {
+          artist_id?: string
+          line_id?: string
+          period_end?: string
+          period_start?: string
+          plan_code?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_entitlement_periods_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_entitlement_periods_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "billing_entitlement_periods_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "artist_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_invoices: {
+        Row: {
+          amount_minor: number
+          artist_id: string
+          created_at: string
+          currency: string
+          hosted_url: string | null
+          id: string
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          amount_minor: number
+          artist_id: string
+          created_at?: string
+          currency: string
+          hosted_url?: string | null
+          id: string
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          status: string
+          subscription_id: string
+        }
+        Update: {
+          amount_minor?: number
+          artist_id?: string
+          created_at?: string
+          currency?: string
+          hosted_url?: string | null
+          id?: string
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "artist_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           access_key: string
@@ -525,6 +741,8 @@ export type Database = {
           client_name: string
           client_phone: string | null
           client_user_id: string | null
+          commission_basis: string | null
+          commission_rate: number | null
           completed_at: string | null
           contract_accepted_at: string | null
           conversation_id: string | null
@@ -571,6 +789,8 @@ export type Database = {
           client_name: string
           client_phone?: string | null
           client_user_id?: string | null
+          commission_basis?: string | null
+          commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
           conversation_id?: string | null
@@ -617,6 +837,8 @@ export type Database = {
           client_name?: string
           client_phone?: string | null
           client_user_id?: string | null
+          commission_basis?: string | null
+          commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
           conversation_id?: string | null
@@ -1171,6 +1393,78 @@ export type Database = {
           },
         ]
       }
+      payment_event_inbox: {
+        Row: {
+          attempted_at: string | null
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          payload: Json
+          status: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          created_at?: string
+          event_type: string
+          id: string
+          last_error?: string | null
+          payload: Json
+          status?: string
+        }
+        Update: {
+          attempted_at?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          status?: string
+        }
+        Relationships: []
+      }
+      payment_followups: {
+        Row: {
+          attempted_at: string | null
+          booking_id: string
+          created_at: string
+          last_error: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          booking_id: string
+          created_at?: string
+          last_error?: string | null
+          order_id: string
+          status?: string
+        }
+        Update: {
+          attempted_at?: string | null
+          booking_id?: string
+          created_at?: string
+          last_error?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_followups_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_followups_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_orders: {
         Row: {
           amount_minor: number
@@ -1179,12 +1473,21 @@ export type Database = {
           credits: number
           currency: string
           environment: string
+          exchange_rate: number | null
           id: string
           kind: string
+          last_error: string | null
           package_id: string | null
           paid_at: string | null
           plan_code: string | null
+          processor_amount_minor: number | null
+          processor_currency: string | null
+          purchase_key: string | null
+          refunded_accounting_amount: number
+          refunded_processor_amount: number
           status: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           target_id: string | null
         }
@@ -1195,12 +1498,21 @@ export type Database = {
           credits?: number
           currency?: string
           environment?: string
+          exchange_rate?: number | null
           id?: string
           kind: string
+          last_error?: string | null
           package_id?: string | null
           paid_at?: string | null
           plan_code?: string | null
+          processor_amount_minor?: number | null
+          processor_currency?: string | null
+          purchase_key?: string | null
+          refunded_accounting_amount?: number
+          refunded_processor_amount?: number
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           target_id?: string | null
         }
@@ -1211,12 +1523,21 @@ export type Database = {
           credits?: number
           currency?: string
           environment?: string
+          exchange_rate?: number | null
           id?: string
           kind?: string
+          last_error?: string | null
           package_id?: string | null
           paid_at?: string | null
           plan_code?: string | null
+          processor_amount_minor?: number | null
+          processor_currency?: string | null
+          purchase_key?: string | null
+          refunded_accounting_amount?: number
+          refunded_processor_amount?: number
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           target_id?: string | null
         }
@@ -1271,6 +1592,41 @@ export type Database = {
           },
         ]
       }
+      plan_credit_periods: {
+        Row: {
+          artist_id: string
+          created_at: string
+          credits: number
+          month_start: string
+          plan_code: string
+          source: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          credits: number
+          month_start: string
+          plan_code: string
+          source: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          credits?: number
+          month_start?: string
+          plan_code?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_credit_periods_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_tiers: {
         Row: {
           ai_credits: number
@@ -1278,6 +1634,8 @@ export type Database = {
           commission_pct: number
           features: Json
           max_photos: number
+          max_specialties: number
+          max_team_members: number
           max_videos: number
           name: string
           price_monthly: number
@@ -1291,6 +1649,8 @@ export type Database = {
           commission_pct?: number
           features?: Json
           max_photos?: number
+          max_specialties?: number
+          max_team_members?: number
           max_videos?: number
           name: string
           price_monthly?: number
@@ -1304,6 +1664,8 @@ export type Database = {
           commission_pct?: number
           features?: Json
           max_photos?: number
+          max_specialties?: number
+          max_team_members?: number
           max_videos?: number
           name?: string
           price_monthly?: number
@@ -1696,6 +2058,85 @@ export type Database = {
           },
         ]
       }
+      subscription_checkouts: {
+        Row: {
+          artist_id: string
+          attempt_key: string
+          billing_interval: string
+          created_at: string
+          customer_id: string
+          plan_code: string
+          session_id: string | null
+        }
+        Insert: {
+          artist_id: string
+          attempt_key?: string
+          billing_interval: string
+          created_at?: string
+          customer_id: string
+          plan_code: string
+          session_id?: string | null
+        }
+        Update: {
+          artist_id?: string
+          attempt_key?: string
+          billing_interval?: string
+          created_at?: string
+          customer_id?: string
+          plan_code?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_checkouts_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_refunds: {
+        Row: {
+          accounting_amount: number
+          created_at: string
+          id: string
+          last_error: string | null
+          order_id: string
+          processor_amount: number
+          status: string
+          stripe_refund_id: string | null
+        }
+        Insert: {
+          accounting_amount: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id: string
+          processor_amount: number
+          status?: string
+          stripe_refund_id?: string | null
+        }
+        Update: {
+          accounting_amount?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string
+          processor_amount?: number
+          status?: string
+          stripe_refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1797,6 +2238,10 @@ export type Database = {
     }
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
+      allocate_plan_month: {
+        Args: { _artist: string; _month: string }
+        Returns: boolean
+      }
       apply_fonnte_approval: { Args: { _event: string }; Returns: string }
       apply_fonnte_revision: {
         Args: { _amount: number; _event: string; _note: string }
@@ -1806,6 +2251,7 @@ export type Database = {
         Args: { _changes: Json; _event: string }
         Returns: Json
       }
+      apply_test_subscription: { Args: { _state: Json }; Returns: undefined }
       apply_whatsapp_status: {
         Args: { _at: string; _error: string; _message: string; _status: string }
         Returns: boolean
@@ -1853,7 +2299,66 @@ export type Database = {
         }[]
       }
       become_artist: { Args: never; Returns: undefined }
+      begin_subscription_checkout: {
+        Args: {
+          _artist: string
+          _customer: string
+          _interval: string
+          _plan: string
+        }
+        Returns: {
+          artist_id: string
+          attempt_key: string
+          billing_interval: string
+          created_at: string
+          customer_id: string
+          plan_code: string
+          session_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_checkouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      begin_test_purchase: {
+        Args: { _customer: string; _key: string; _order: Json }
+        Returns: {
+          amount_minor: number
+          artist_id: string
+          created_at: string
+          credits: number
+          currency: string
+          environment: string
+          exchange_rate: number | null
+          id: string
+          kind: string
+          last_error: string | null
+          package_id: string | null
+          paid_at: string | null
+          plan_code: string | null
+          processor_amount_minor: number | null
+          processor_currency: string | null
+          purchase_key: string | null
+          refunded_accounting_amount: number
+          refunded_processor_amount: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          target_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payment_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
+      claim_payment_followup: { Args: { _id: string }; Returns: boolean }
+      effective_artist_plan: { Args: { _artist: string }; Returns: string }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
       has_role: {
         Args: {
@@ -1866,6 +2371,10 @@ export type Database = {
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
       next_invoice_no: { Args: never; Returns: string }
+      record_test_refund: {
+        Args: { _order: string; _processor: number }
+        Returns: undefined
+      }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
       reserve_fonnte_revision_credit: {
@@ -1873,6 +2382,15 @@ export type Database = {
         Returns: boolean
       }
       settle_sandbox_order: {
+        Args: {
+          _amount: number
+          _currency: string
+          _id: string
+          _session: string
+        }
+        Returns: boolean
+      }
+      settle_test_purchase: {
         Args: {
           _amount: number
           _currency: string

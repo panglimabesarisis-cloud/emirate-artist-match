@@ -1,0 +1,11 @@
+import {createFileRoute,Link} from '@tanstack/react-router';
+import {useEffect,useState} from 'react';
+import {supabase} from '@/integrations/supabase/client';
+import {PublicLayout} from '@/components/site/PublicLayout';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+export const Route=createFileRoute('/reset-password')({head:()=>({meta:[{title:'Reset password | Dealmaker'},{name:'description',content:'Securely recover access to your Dealmaker account.'},{property:'og:title',content:'Reset password | Dealmaker'},{property:'og:description',content:'Recover your Dealmaker account password.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),component:ResetPassword});
+function ResetPassword(){const [ready,setReady]=useState(false);const [password,setPassword]=useState('');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');useEffect(()=>{void supabase.auth.getUser().then(({data})=>setReady(!!data.user));const {data:s}=supabase.auth.onAuthStateChange(e=>{if(e==='PASSWORD_RECOVERY'||e==='SIGNED_IN')setReady(true);});return()=>s.subscription.unsubscribe();},[]);
+ return <PublicLayout><main className="mx-auto max-w-md space-y-4 px-4 py-12"><h1 className="text-3xl font-semibold">Reset password</h1>{ready?<form className="space-y-4" onSubmit={async e=>{e.preventDefault();setBusy(true);const {error}=await supabase.auth.updateUser({password});setBusy(false);setMessage(error?.message??'Password updated. You can now sign in.');}}><Label htmlFor="reset-password">New password</Label><Input id="reset-password" type="password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/><Button disabled={busy}>Save password</Button></form>:<p>Open the password recovery link from your email.</p>}{message&&<p role="status">{message}</p>}<Link to="/auth" className="underline">Back to sign in</Link></main></PublicLayout>;
+}

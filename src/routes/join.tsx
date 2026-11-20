@@ -55,8 +55,8 @@ function JoinPage() {
         await supabase.rpc("become_artist");
         const m = u.user_metadata ?? {};
         setUser({ id: u.id, email: u.email ?? "", name: m["display_name"] ?? m["full_name"] ?? m["name"] ?? "" });
-        const { data: a } = await supabase.from("artists").select("id").eq("user_id", u.id).maybeSingle();
-        setHasProfile(!!a);
+        const { data: a } = await supabase.from("artists").select("id,onboarding_complete").eq("user_id", u.id).maybeSingle();
+        setHasProfile(!!a?.onboarding_complete);
       }
       setChecked(true);
     };
@@ -155,7 +155,7 @@ function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () =>
 
 function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: string; email: string; name: string }; plan: string; step: number; setStep: (n: number) => void; onChangePlan: () => void }) {
   const navigate = useNavigate();
-  const limit = specialtyLimit(plan);
+  const limit = specialtyLimit('free');
   const cat = useQuery({
     queryKey: ["join-catalog"],
     queryFn: async () => {
@@ -177,13 +177,21 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   const [emirateId, setEmirateId] = useState(""); const [areaId, setAreaId] = useState("");
   const [languages, setLanguages] = useState("English"); const [radius, setRadius] = useState("30");
   const [trn, setTrn] = useState(""); const [agree, setAgree] = useState(false); const [busy, setBusy] = useState(false);
+  const [restored,setRestored]=useState(false);const [savedPhotos,setSavedPhotos]=useState(0);
+  useEffect(()=>{let alive=true;const restore=async()=>{
+   try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);setBasePrice(d.basePrice??'');setPkgs(Array.isArray(d.pkgs)&&d.pkgs.length?d.pkgs:[{title:'Essential',description:'',duration:'60',price:''}]);setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');setStep(Number.isInteger(d.step)?Math.min(4,Math.max(0,d.step)):0);}}
+   catch{localStorage.removeItem(`join_draft:${user.id}`);}
+   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');setSpecs(a.specialty_ids??[]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(r=>({title:r.title,description:r.description??'',duration:String(r.duration_minutes??60),price:String(r.price)})));setStep((count??0)<5?1:4);}}}
+   if(alive)setRestored(true);
+  };void restore();return()=>{alive=false;};},[user.id]);
+  useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
   const previews = photos.map((f) => URL.createObjectURL(f));
 
   const validate = (): string | null => {
     if (step === 0 && (!name.trim() || !/^\+?[0-9 ]{8,16}$/.test(phone))) return "Enter your name and a valid WhatsApp number.";
     if (step === 1 && !categoryId) return "Choose your talent category.";
     if (step === 1 && specs.length > limit) return `Your plan allows up to ${limit} specialties.`;
-    if (step === 1 && photos.length !== 5) return "Upload exactly 5 photos.";
+    if (step === 1 && photos.length+savedPhotos !== 5) return "Upload exactly 5 photos in total; saved photos are retained.";
     if (step === 2 && (!Number(basePrice) || pkgs.some((p) => !p.title.trim() || !Number(p.price)))) return "Enter a starting price and a title and price for each package.";
     if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage name and base emirate.";
     if (step === 4 && !agree) return "Please accept the partnership contract.";
@@ -193,38 +201,51 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
 
   const addPhotos = (files: FileList | null) => {
     const imgs = Array.from(files ?? []).filter((f) => f.type.startsWith("image/") && f.size <= 10 * 1024 * 1024);
-    setPhotos([...photos, ...imgs].slice(0, 5));
+    setPhotos([...photos, ...imgs].slice(0, Math.max(0,5-savedPhotos)));
   };
 
   const submit = async () => {
     const e = validate(); if (e) { toast.error(e); return; }
     setBusy(true);
     try {
-      const { data: a, error } = await supabase.from("artists").insert({
+      const {data:existing}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();
+      const profile={
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
         category_id: categoryId, subcategory_id: specs[0] ?? null, specialty_ids: specs, emirate_id: emirateId, area_id: areaId || null,
         base_price: Number(basePrice), languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
         travel_radius_km: Number(radius) || null, notify_phone: phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
+        intended_plan:plan,onboarding_complete:false,
         slug: `${slugify(stage)}-${Math.random().toString(36).slice(2, 6)}`, hue: Math.floor(Math.random() * 360),
-      }).select("id").single();
+      };
+      const { data: a, error } = existing?await supabase.from('artists').update(profile).eq('id',existing.id).select('id').single():await supabase.from('artists').insert(profile).select('id').single();
       if (error || !a) throw new Error(error?.message ?? "Could not save profile");
-      await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", user.id);
-      await supabase.from("rate_cards").insert(pkgs.map((p, i) => ({ artist_id: a.id, title: p.title.trim(), description: p.description || null, duration_minutes: Number(p.duration) || null, price: Number(p.price), sort: i + 1 })));
+      const userSave=await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", user.id);if(userSave.error)throw userSave.error;
+      const {data:rates}=await supabase.from('rate_cards').select('id,sort').eq('artist_id',a.id);
+      for(const [i,p] of pkgs.entries()){const row={artist_id:a.id,title:p.title.trim(),description:p.description||null,duration_minutes:Number(p.duration)||null,price:Number(p.price),sort:i+1};const prior=rates?.find(r=>r.sort===i+1);const save=prior?await supabase.from('rate_cards').update(row).eq('id',prior.id):await supabase.from('rate_cards').insert(row);if(save.error)throw save.error;}
+      const {count:countPhotos}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');let uploaded=countPhotos??0;
       for (const [i, f] of photos.entries()) {
+        if(uploaded>=5)break;
         const path = `${a.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]/g, "_")}`;
         const up = await supabase.storage.from("artist-media").upload(path, f, { contentType: f.type });
-        if (!up.error) await supabase.from("artist_media").insert({ artist_id: a.id, kind: "photo", url: path, storage_path: path, sort: i + 1 });
+        if(up.error)throw up.error;
+        const save=await supabase.from("artist_media").insert({ artist_id: a.id, kind: "photo", url: path, storage_path: path, sort: uploaded + 1 });
+        if(save.error){await supabase.storage.from('artist-media').remove([path]);throw save.error;}uploaded++;
       }
+      setSavedPhotos(uploaded);setPhotos([]);
+      if(uploaded!==5)throw new Error('Profile details saved. Add the remaining portfolio photos to finish registration.');
+      const done=await supabase.from('artists').update({onboarding_complete:true}).eq('id',a.id);if(done.error)throw done.error;
+      localStorage.removeItem(`join_draft:${user.id}`);
       toast.success("Profile saved — one last step: payment.");
       navigate({ to: "/join/payment" });
-    } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
+    } catch (err) {const {data:a}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();if(a){const {count}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');setSavedPhotos(count??0);setPhotos([]);}toast.error((err as Error).message+' — your progress is saved.');} finally { setBusy(false); }
   };
 
   const subs = cat?.subcategories.filter((s) => s.category_id === categoryId) ?? [];
   return (
     <div className="space-y-4">
       <PlanBadge plan={plan} onChange={onChangePlan} />
+      <p className="text-sm text-muted-foreground">Registration starts on Free. Add more specialties after your separate subscription payment.</p>
       {step === 0 && <>
         <h2 className="text-xl font-semibold">Step 1 · Account</h2>
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></div>
@@ -252,7 +273,8 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
           </div>
         </div>
         <div>
-          <Label>5 portfolio photos ({photos.length}/5)</Label>
+          <Label>5 portfolio photos ({photos.length+savedPhotos}/5)</Label>
+          {savedPhotos>0&&<p className="text-xs text-muted-foreground">{savedPhotos} photos already saved.</p>}
           <p className="text-xs text-muted-foreground">The first photo becomes your cover. Max 10 MB each.</p>
           <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {previews.map((src, i) => (
@@ -261,7 +283,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
                 <button type="button" aria-label="Remove photo" onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="absolute end-1 top-1 rounded-full bg-background/90 p-1"><Trash2 className="h-3 w-3" /></button>
               </div>
             ))}
-            {photos.length < 5 && (
+            {photos.length+savedPhotos < 5 && (
               <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-accent">
                 <Plus className="h-5 w-5" /> Add
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />

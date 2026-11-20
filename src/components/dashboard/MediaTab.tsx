@@ -36,11 +36,12 @@ export function MediaTab({ artistId }: { artistId: string }) {
         const path = `${artistId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, "_")}`;
         const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
         if (error) { toast.error(`${file.name}: upload failed`); continue; }
-        await supabase.from("artist_media").insert({ artist_id: artistId, kind, url: path, storage_path: path, sort: (items?.length ?? 0) + 1 });
+        const save=await supabase.from("artist_media").insert({ artist_id: artistId, kind, url: path, storage_path: path, sort: (items?.length ?? 0) + 1 });
+        if(save.error){await supabase.storage.from(BUCKET).remove([path]);throw new Error(save.error.message);}
       }
       toast.success("Media uploaded");
       qc.invalidateQueries({ queryKey: key });
-    } finally { setBusy(false); }
+    } catch(e){toast.error(e instanceof Error?e.message:'Upload failed');} finally { setBusy(false); }
   };
 
   const addYoutube = async () => {

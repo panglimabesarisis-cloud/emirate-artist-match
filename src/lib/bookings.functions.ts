@@ -5,6 +5,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { bookingPayment } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
 import { priceBreakdown, refundAmount, canComplete, canDispute } from "./booking-rules";
+import {refundEscrowStatus} from './processor-rules';
 
 const uuid = (v: unknown) => {
   if (typeof v !== "string" || !/^[0-9a-f-]{36}$/i.test(v)) throw new Error("Invalid id");
@@ -104,9 +105,11 @@ async function doCancel(id: string, by: "client" | "artist", reason: string | nu
   const { data: b } = await db.from("bookings").select("id, status, paid_amount, event_date").eq("id", id).single();
   if (!b || !["inquiry", "quoted", "confirmed"].includes(b.status)) throw new Error("This booking cannot be cancelled");
   const refund = refundAmount(Number(b.paid_amount), by, b.event_date);
+  const {refundBookingTest}=await import('./refunds.server');
+  const stripeRefund=refund>0?await refundBookingTest(id,refund):false;
   await db.from("bookings").update({
-    status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: by, cancel_reason: reason, refund_amount: refund,
-    escrow_status: Number(b.paid_amount) > 0 ? (refund >= Number(b.paid_amount) ? "refunded" : "partially_refunded") : "none",
+    status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: by, cancel_reason: reason, ...(!stripeRefund?{refund_amount:refund}:{}),
+    escrow_status: refundEscrowStatus(Number(b.paid_amount),refund),
   }).eq("id", id);
   return { refund };
 }

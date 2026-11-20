@@ -18,7 +18,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   validateSearch: (s: Record<string, unknown>) => ({
     authorization_id: typeof s["authorization_id"] === "string" ? s["authorization_id"] : "",
   }),
-  head: () => ({ meta: [{ title: "Connect an app | Dealmaker" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Connect an app | Dealmaker" }, { name: "robots", content: "noindex" },{name:'description',content:'Review a connection requesting access to your Dealmaker account.'},{property:'og:title',content:'Connect an app | Dealmaker'},{property:'og:description',content:'Approve or decline access to your Dealmaker account.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}] }),
   beforeLoad: async ({ search, location }) => {
     if (!search.authorization_id) throw new Error("This connection link is missing or invalid.");
     const { data } = await supabase.auth.getSession();

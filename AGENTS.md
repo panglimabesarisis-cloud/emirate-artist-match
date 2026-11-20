@@ -55,7 +55,7 @@ use the editor.
 - Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.
 - Talent signup plan choice is kept in localStorage `join_plan` (survives Google OAuth redirect); specialty limits and signup deposit totals live in `src/lib/join-rules.ts` with tests; `/join/payment` uses sandbox-only Stripe checkout for the deposit.
 
-- Sandbox payment orders settle atomically through `settle_sandbox_order` only after server-side Stripe verification; invoice, credit, deposit, and booking amounts come from server-owned data, never browser totals.
+- Test payments use `settle_test_purchase` after Stripe verification; separate processor/accounting snapshots prevent currency corruption. Billing rules live in src/lib/AGENTS.md.
 - Service invoices are stored separately from chat messages so payment status stays authoritative; legacy chat-only invoices have no inferred payment state.
 - Artist invoice composition uses an item editor and read-only live document preview with shared invoice calculations; client selection only routes delivery, and invoice metadata is not editable there.
 - WhatsApp flow approvals snapshot invoice intent on the booking; `approve_flow_booking` atomically approves and posts one linked invoice, paid through the booking contract/escrow checkout to prevent duplicate charges.

@@ -15,7 +15,7 @@ export const artistCheckout=createServerFn({method:'POST'}).middleware([requireS
   if(data.kind!=='deposit')throw new Error('Invalid purchase');
   const {data:t}=await context.supabase.from('plan_tiers').select('code,ai_credits').eq('code',data.plan??a.plan).single();if(!t)throw new Error('Unknown plan');
   const {data:paid}=await context.supabase.from('payment_orders').select('id').eq('artist_id',a.id).eq('kind','deposit').eq('status','paid').maybeSingle();if(paid)throw new Error('Registration deposit already paid');
-  return await openOrder({artist_id:a.id,kind:'deposit',plan_code:t.code,credits:a.plan===t.code?0:t.ai_credits,amount_minor:Math.round(joinPaymentTotal().total*100)},'Dealmaker registration deposit (incl. VAT 5%)',{userId:context.userId,email:user?.email},returnUrl);
+  return await openOrder({artist_id:a.id,kind:'deposit',plan_code:t.code,credits:0,amount_minor:Math.round(joinPaymentTotal().total*100)},'Dealmaker registration deposit (incl. VAT 5%)',{userId:context.userId,email:user?.email},returnUrl);
  }catch(e){return {error:getStripeErrorMessage(e)};}
 });
 export const invoiceCheckout=createServerFn({method:'POST'}).inputValidator((i:{invoiceId:string;conversationId:string;key:string})=>({invoiceId:id(i.invoiceId),conversationId:id(i.conversationId),key:id(i.key)})).handler(async({data})=>{

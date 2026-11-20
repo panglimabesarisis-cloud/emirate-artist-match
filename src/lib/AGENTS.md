@@ -11,3 +11,5 @@
 - UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
 - CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.
 - Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.
+- Processor amounts/currencies are immutable order snapshots separate from accounting amounts; only verified server settlement may apply accounting amounts, and pending purchases use durable keys rather than in-memory locks.
+- Billing and quota checks derive from verified environment-scoped subscription periods; paid invoice-line periods preserve historical monthly allocations, and quote-approval commission snapshots never change with later plans.

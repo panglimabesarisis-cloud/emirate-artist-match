@@ -14,7 +14,7 @@ import { RateCardTable } from "@/components/dashboard/RateCardTable";
 import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
-import { CalendarSync } from "@/components/dashboard/TeamTabs";
+import { CalendarSync,TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -49,9 +49,9 @@ function useCatalog() {
 
 function Dashboard() {
   const { user, isArtist, loading } = useAuth();
+  const [workspace,setWorkspace]=useState('own');
   if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">Loading…</div></PublicLayout>;
-  if (isArtist) return <ArtistDash userId={user.id} email={user.email ?? ""} />;
-  return <PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id} /></div></PublicLayout>;
+  return <><div className="flex flex-wrap items-center gap-2 border-b bg-background px-4 py-2">{isArtist&&<><Button size="sm" variant={workspace==='own'?'default':'outline'} onClick={()=>setWorkspace('own')}>My talent workspace</Button><Button size="sm" variant={workspace==='teams'?'default':'outline'} onClick={()=>setWorkspace('teams')}>Invited teams & my requests</Button></>}<Button asChild size="sm" variant="ghost"><Link to="/account">Account settings</Link></Button></div>{isArtist&&workspace==='own'?<ArtistDash userId={user.id} email={user.email??''}/>:<PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id}/></div></PublicLayout>}</>;
 }
 
 /** Managers/assistants invited by an artist get a reduced artist workspace. */
@@ -68,13 +68,13 @@ function MemberOrClient({ userId }: { userId: string }) {
   const { t: tr } = useI18n();
   if (isLoading) return null;
   if (teams.length === 0) return <ClientDash userId={userId} />;
-  const t = teams[Math.min(pick, teams.length - 1)]!;
-  const a = t.artists!;
+  const t = teams[Math.min(pick, teams.length - 1)];
+  const a = t?.artists;if(!t||!a)return <ClientDash userId={userId}/>;
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-3xl font-semibold">{a.stage_name}</h1><p className="text-sm text-muted-foreground">You are a {t.role} on this team</p></div>
-        {teams.length > 1 && <Select value={String(pick)} onValueChange={(v) => setPick(Number(v))}><SelectTrigger className="w-56"><SelectValue /></SelectTrigger><SelectContent>{teams.map((x, i) => <SelectItem key={x.artists!.id} value={String(i)}>{x.artists!.stage_name}</SelectItem>)}</SelectContent></Select>}
+        {teams.length > 1 && <Select value={String(pick)} onValueChange={(v) => setPick(Number(v))}><SelectTrigger className="w-56"><SelectValue /></SelectTrigger><SelectContent>{teams.map((x, i) => <SelectItem key={x.artists?.id??i} value={String(i)}>{x.artists?.stage_name}</SelectItem>)}</SelectContent></Select>}
       </div>
       <Tabs key={a.id} defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
@@ -207,7 +207,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "verify" && <Verification artistId={artist.id} userId={userId} />}
           {section === "agent" && <AgentSettings artistId={artist.id} />}
           {section === "flow" && <FlowBuilder artistId={artist.id} />}
-          {section === "team" && <TeamPhones artistId={artist.id} />}
+          {section === "team" && <><TeamTab artistId={artist.id}/><TeamPhones artistId={artist.id}/></>}
         </main>
       </div>
     </div>

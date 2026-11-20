@@ -20,6 +20,8 @@ export const Route = createFileRoute("/$category/")({
         { name: "description", content: `Compare verified ${name.toLowerCase()} across Dubai and the UAE. Prices in AED, real reviews, instant AI quotes.` },
         { property: "og:title", content: `${name} for hire in the UAE` },
         { property: "og:description", content: `Verified ${name.toLowerCase()} with real reviews and instant AI quotes.` },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
       ],
     };
   },

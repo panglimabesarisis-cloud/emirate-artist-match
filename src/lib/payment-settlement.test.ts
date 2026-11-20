@@ -1,0 +1,13 @@
+import {beforeEach,describe,it,expect,vi} from 'vitest';
+import {reconcileOrder} from './payments.server';
+const m=vi.hoisted(()=>({order:{id:'order1',status:'pending',kind:'deposit',target_id:null,amount_minor:10500,processor_amount_minor:51450000,processor_currency:'idr',stripe_session_id:'session1',stripe_customer_id:'customer1'} as Record<string,unknown>,session:{id:'session1',metadata:{orderId:'order1'},livemode:false,mode:'payment',status:'complete',payment_status:'paid',currency:'idr',amount_total:51450000,customer:'customer1',payment_intent:'pi1'} as Record<string,unknown>,rpc:vi.fn()}));
+vi.mock('./stripe.server',()=>({createStripeClient:()=>({checkout:{sessions:{retrieve:async()=>m.session}}})}));
+vi.mock('@/integrations/supabase/client.server',()=>({supabaseAdmin:{rpc:m.rpc,from:(table:string)=>{const builder:any={select:()=>builder,eq:()=>builder,update:()=>builder,neq:()=>builder,single:async()=>({data:table==='payment_orders'?m.order:null}),maybeSingle:async()=>({data:null})};return builder;}}}));
+beforeEach(()=>{vi.clearAllMocks();m.session['livemode']=false;m.session['currency']='idr';m.session['customer']='customer1';m.session['amount_total']=51450000;m.session['payment_status']='paid';m.rpc.mockResolvedValue({data:true,error:null});});
+describe('verified processor settlement',()=>{
+ it('passes exact IDR units to the guarded accounting transition',async()=>{expect(await reconcileOrder('order1')).toEqual({status:'paid'});expect(m.rpc).toHaveBeenCalledWith('settle_test_purchase',{_id:'order1',_session:'session1',_amount:51450000,_currency:'idr'});});
+ it('never settles a live payment',async()=>{m.session['livemode']=true;expect(await reconcileOrder('order1')).toEqual({status:'pending'});expect(m.rpc).not.toHaveBeenCalled();});
+ it('rejects a different customer',async()=>{m.session['customer']='other';await expect(reconcileOrder('order1')).rejects.toThrow('identity mismatch');expect(m.rpc).not.toHaveBeenCalled();});
+ it('surfaces a database amount mismatch rather than showing paid',async()=>{m.rpc.mockResolvedValue({error:{message:'Payment does not match order'}});await expect(reconcileOrder('order1')).rejects.toThrow('Payment does not match order');});
+ it('does not grant payment effects for unpaid sessions',async()=>{m.session['payment_status']='unpaid';expect(await reconcileOrder('order1')).toEqual({status:'pending'});expect(m.rpc).not.toHaveBeenCalled();});
+});

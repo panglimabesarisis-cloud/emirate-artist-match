@@ -13,6 +13,7 @@ export type ArtistCard = {
   hue: number;
   category: { slug: string; name: string } | null;
   subcategory: { slug: string; name: string } | null;
+  specialty_slugs?:string[];
   emirate: { slug: string; name: string } | null;
   area: { slug: string; name: string } | null;
   badges: string[];
@@ -33,13 +34,15 @@ async function loadCards(filter?: { artistSlug?: string }) {
   let q = sb
     .from("artists")
     .select(
-      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
+      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, specialty_ids, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
     )
     .eq("status", "approved");
   if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
   const [{ data: artists, error }, { data: stats }] = await Promise.all([q, sb.rpc("artist_public_stats")]);
   if (error) throw new Error(error.message);
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
+  const {data:specialties}=await sb.from('subcategories').select('id,slug');
+  const slugMap=new Map((specialties??[]).map(s=>[s.id,s.slug]));
   return (artists ?? []).map((a): ArtistCard => {
     const s = statMap.get(a.id);
     return {
@@ -55,6 +58,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
       hue: a.hue ?? 30,
       category: a.category,
       subcategory: a.subcategory,
+      specialty_slugs:(a.specialty_ids??[]).flatMap(id=>{const slug=slugMap.get(id);return slug?[slug]:[];}),
       emirate: a.emirate,
       area: a.area,
       badges: (a.artist_badges ?? []).map((b) => b.badge),
@@ -116,7 +120,7 @@ export const searchArtists = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     let cards = await loadCards();
     if (data.category) cards = cards.filter((c) => c.category?.slug === data.category);
-    if (data.sub) cards = cards.filter((c) => c.subcategory?.slug === data.sub);
+    if (data.sub) cards = cards.filter((c) => c.subcategory?.slug === data.sub||c.specialty_slugs?.includes(data.sub??''));
     if (data.emirate) cards = cards.filter((c) => c.emirate?.slug === data.emirate);
     if (data.area) cards = cards.filter((c) => c.area?.slug === data.area);
     if (data.event) cards = cards.filter((c) => c.event_type_slugs.includes(data.event!));

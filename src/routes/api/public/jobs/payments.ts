@@ -1,0 +1,3 @@
+import {createFileRoute} from '@tanstack/react-router';
+import {authenticateCronRequest} from '@/integrations/supabase/cron-auth';
+export const Route=createFileRoute('/api/public/jobs/payments')({server:{handlers:{POST:async({request})=>{const denied=await authenticateCronRequest(request);if(denied)return denied;const {runPaymentRecovery}=await import('@/lib/payment-events.server');await runPaymentRecovery();return Response.json({ok:true});}}}});

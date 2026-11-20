@@ -24,6 +24,8 @@ export const Route = createFileRoute("/$category/$emirate/$area")({
         { name: "description", content: `Hire ${t.toLowerCase()} and nearby areas. Verified talent with AED pricing.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} and nearby.` },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
       ],
     };
   },

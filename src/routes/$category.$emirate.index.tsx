@@ -21,6 +21,8 @@ export const Route = createFileRoute("/$category/$emirate/")({
         { name: "description", content: `Book ${t.toLowerCase()}: verified profiles, AED pricing and instant quotes.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} with real reviews.` },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
       ],
     };
   },

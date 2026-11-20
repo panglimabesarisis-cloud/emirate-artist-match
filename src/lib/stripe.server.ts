@@ -51,5 +51,7 @@ export async function verifyWebhook(req: Request, env: StripeEnv) {
   const expected = Array.from(new Uint8Array(signed), b=>b.toString(16).padStart(2,'0')).join('');
   const valid = parts.filter(p=>p.startsWith('v1=')).some(p=>{const actual=p.slice(3); if(actual.length!==expected.length)return false; let diff=0; for(let i=0;i<expected.length;i++)diff|=actual.charCodeAt(i)^expected.charCodeAt(i); return diff===0;});
   if(!valid)throw new Error('Invalid webhook signature');
-  return JSON.parse(body) as { type: string; data: {object: {id:string}} };
+  const event=JSON.parse(body) as {id?:unknown;type?:unknown;data?:{object?:{id?:unknown}}};
+  if(typeof event.id!=='string'||typeof event.type!=='string'||typeof event.data?.object?.id!=='string')throw new Error('Invalid Stripe event');
+  return {id:event.id,type:event.type,data:{object:{id:event.data.object.id}}};
 }

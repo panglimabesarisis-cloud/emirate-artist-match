@@ -15,8 +15,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as CategoryIndexRouteImport } from './routes/$category.index'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ApproveIdRouteImport } from './routes/approve.$id'
@@ -31,6 +33,7 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
+import { Route as ApiPublicJobsPaymentsRouteImport } from './routes/api/public/jobs/payments'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicWhatsappFonnteWebhookRouteImport } from './routes/api/public/whatsapp/fonnte-webhook'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -64,6 +67,11 @@ const McpRoute = McpRouteImport.update({
   path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryIndexRoute = CategoryIndexRouteImport.update({
   id: '/$category/',
   path: '/$category/',
@@ -75,6 +83,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -147,6 +160,11 @@ const ApiPublicJobsBookingRemindersRoute =
     path: '/api/public/jobs/booking-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicJobsPaymentsRoute = ApiPublicJobsPaymentsRouteImport.update({
+  id: '/api/public/jobs/payments',
+  path: '/api/public/jobs/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -172,7 +190,9 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -188,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -198,7 +219,9 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -214,6 +237,7 @@ export interface FileRoutesByTo {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -226,7 +250,9 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/approve/$id': typeof ApproveIdRoute
@@ -242,6 +268,7 @@ export interface FileRoutesById {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -254,7 +281,9 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/join'
     | '/mcp'
+    | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/account'
     | '/admin'
     | '/dashboard'
     | '/approve/$id'
@@ -270,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -280,7 +310,9 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/join'
     | '/mcp'
+    | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/account'
     | '/admin'
     | '/dashboard'
     | '/approve/$id'
@@ -296,6 +328,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -307,7 +340,9 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/join'
     | '/mcp'
+    | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/approve/$id'
@@ -323,6 +358,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -335,6 +371,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   JoinRoute: typeof JoinRoute
   McpRoute: typeof McpRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApproveIdRoute: typeof ApproveIdRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
@@ -349,6 +386,7 @@ export interface RootRouteChildren {
   ApiOauthGoogle_calendarReturnRoute: typeof ApiOauthGoogle_calendarReturnRoute
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicJobsBookingRemindersRoute: typeof ApiPublicJobsBookingRemindersRoute
+  ApiPublicJobsPaymentsRoute: typeof ApiPublicJobsPaymentsRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicWhatsappFonnteWebhookRoute: typeof ApiPublicWhatsappFonnteWebhookRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -398,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$category/': {
       id: '/$category/'
       path: '/$category'
@@ -411,6 +456,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -510,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicJobsBookingRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/payments': {
+      id: '/api/public/jobs/payments'
+      path: '/api/public/jobs/payments'
+      fullPath: '/api/public/jobs/payments'
+      preLoaderRoute: typeof ApiPublicJobsPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -535,11 +594,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
 }
@@ -554,6 +615,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   JoinRoute: JoinRoute,
   McpRoute: McpRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApproveIdRoute: ApproveIdRoute,
@@ -569,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOauthGoogle_calendarReturnRoute: ApiOauthGoogle_calendarReturnRoute,
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicJobsBookingRemindersRoute: ApiPublicJobsBookingRemindersRoute,
+  ApiPublicJobsPaymentsRoute: ApiPublicJobsPaymentsRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicWhatsappFonnteWebhookRoute: ApiPublicWhatsappFonnteWebhookRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Plan = { code: string; name: string; price_monthly: number; price_yearly: number; ai_credits: number; max_photos: number; max_videos: number; commission_pct: number; features: string[] };
+type Plan = { code: string; name: string; price_monthly: number; price_yearly: number; ai_credits: number; max_photos: number; max_videos: number; max_specialties:number; max_team_members:number; commission_pct: number; features: string[] };
 
 export function AdminPlans() {
   const { data } = useQuery({ queryKey: ["admin-plans"], queryFn: async () => (await supabase.from("plan_tiers").select("*").order("sort")).data ?? [] });
@@ -43,6 +43,8 @@ function PlanCard({ plan, count }: { plan: Plan; count: number }) {
         <F label="Commission %"><Input type="number" value={p.commission_pct} onChange={num("commission_pct")} /></F>
         <F label="Max photos"><Input type="number" value={p.max_photos} onChange={num("max_photos")} /></F>
         <F label="Max videos"><Input type="number" value={p.max_videos} onChange={num("max_videos")} /></F>
+        <F label="Max specialties"><Input type="number" min={1} value={p.max_specialties} onChange={num("max_specialties")} /></F>
+        <F label="Max team members (-1 unlimited)"><Input type="number" min={-1} value={p.max_team_members} onChange={num("max_team_members")} /></F>
       </div>
       <div>
         <Label className="text-xs">Features</Label>

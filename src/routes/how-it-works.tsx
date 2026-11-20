@@ -8,6 +8,8 @@ export const Route = createFileRoute("/how-it-works")({
       { name: "description", content: "How clients book talent and how artists get an AI manager on Dealmaker." },
       { property: "og:title", content: "How Dealmaker works" },
       { property: "og:description", content: "Search, request a free quote, book with confidence." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: () => (

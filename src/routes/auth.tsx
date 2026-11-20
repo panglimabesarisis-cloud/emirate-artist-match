@@ -24,6 +24,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Sign in or create your artist or client account." },
       { property: "og:title", content: "Sign in to Dealmaker" },
       { property: "og:description", content: "Artists and clients sign in here." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -44,11 +46,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recovery,setRecovery]=useState(false);
   const dest = search.redirect ?? "/dashboard";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    if(recovery){const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/reset-password'});setBusy(false);if(error){toast.error(error.message);return;}toast.success('If this email has an account, a recovery link will be sent.');return;}
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email, password,
@@ -76,7 +80,7 @@ function AuthPage() {
   return (
     <PublicLayout>
       <div className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-3xl font-semibold">{mode === "signup" ? "Create your account" : "Welcome back"}</h1>
+        <h1 className="text-3xl font-semibold">{recovery?'Recover your account':mode === "signup" ? "Create your account" : "Welcome back"}</h1>
         <div className="mt-6 grid gap-2">
           <Button type="button" variant="outline" onClick={() => oauth("google")} className="h-11"><GoogleG /> Continue with Google</Button>
           <Button type="button" variant="outline" onClick={() => oauth("lovable")} className="h-11"><LovableMark /> Continue with Lovable</Button>
@@ -97,11 +101,12 @@ function AuthPage() {
             </>
           )}
           <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-          <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>
+          {!recovery&&<div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>}
           <Button type="submit" disabled={busy} className="w-full h-11 bg-gradient-gold text-gold-foreground hover:opacity-90">
-            {busy ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
+            {busy ? "Please wait…" : recovery?'Send recovery email':mode === "signup" ? "Create account" : "Sign in"}
           </Button>
         </form>
+        {mode==='signin'&&<Button variant="link" className="mt-2 px-0" onClick={()=>setRecovery(!recovery)}>{recovery?'Back to sign in':'Forgot password?'}</Button>}
         <button className="mt-4 text-sm text-muted-foreground underline" onClick={() => setMode(mode === "signup" ? "signin" : "signup")}>
           {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
         </button>

@@ -4,6 +4,7 @@ import { openOrder } from './payments.server';
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   insert: vi.fn(),
+  rpc:vi.fn(),
 }));
 
 vi.mock('./stripe.server', () => ({
@@ -11,6 +12,7 @@ vi.mock('./stripe.server', () => ({
 }));
 vi.mock('@/integrations/supabase/client.server', () => ({
   supabaseAdmin: {
+    rpc:mocks.rpc,
     from: () => ({
       insert: mocks.insert,
       update: () => ({ eq: async () => ({ error: null }) }),
@@ -22,6 +24,7 @@ describe('checkout-only IDR pricing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.insert.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: 'order-1' }, error: null }) }) });
+    mocks.rpc.mockImplementation(async(_name:string,args:{_order?:{processor_amount_minor:number}})=>({data:{id:'order-1',processor_amount_minor:args._order?.processor_amount_minor},error:null}));
     mocks.createSession.mockResolvedValue({ id: 'session-1', client_secret: 'test-client-secret' });
   });
 
@@ -50,8 +53,8 @@ describe('checkout-only IDR pricing', () => {
     const order = { artist_id: 'artist-1', kind: 'deposit' as const, amount_minor: 10500 };
     await openOrder(order, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
-      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 514500 }) })],
+      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 51450000 }) })],
     }), { idempotencyKey: 'order-1' });
-    expect(mocks.insert).toHaveBeenCalledWith({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 });
+    expect(mocks.rpc).toHaveBeenCalledWith('begin_test_purchase',expect.objectContaining({_order:expect.objectContaining({artist_id:'artist-1',kind:'deposit',amount_minor:10500,processor_amount_minor:51450000,processor_currency:'idr'})}));
   });
 });

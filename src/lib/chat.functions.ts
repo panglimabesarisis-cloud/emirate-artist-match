@@ -161,17 +161,8 @@ export const subscribePlanDemo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { code: string; cycle: "monthly" | "yearly" }) => ({ code: str(i.code, 30, true)!, cycle: i.cycle === "yearly" ? "yearly" as const : "monthly" as const }))
   .handler(async ({ data, context }) => {
-    const { data: artist } = await context.supabase.from("artists").select("id, plan").eq("user_id", context.userId).maybeSingle();
-    if (!artist) throw new Error("No artist profile");
-    const { data: tier } = await context.supabase.from("plan_tiers").select("*").eq("code", data.code).maybeSingle();
-    if (!tier) throw new Error("Unknown plan");
-    if (artist.plan === tier.code) throw new Error("Already on this plan");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("artists").update({ plan: tier.code as never }).eq("id", artist.id);
-    if (error) throw new Error(error.message);
-    const price = data.cycle === "yearly" ? tier.price_yearly : tier.price_monthly;
-    if (tier.ai_credits > 0) await supabaseAdmin.from("credit_ledger").insert({ artist_id: artist.id, delta: tier.ai_credits, reason: "plan_allocation", ref: `demo:${tier.code}:${data.cycle}:AED${price}` });
-    return { ok: true, name: tier.name };
+    void data; void context;
+    throw new Error('Demo plan switching is disabled. Use verified test subscription checkout.');
   });
 
 /** Public: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
