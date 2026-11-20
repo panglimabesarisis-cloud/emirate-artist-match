@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { internationalPhone } from './whatsapp-provider';
 
 export const fonntePayload = z.object({
-  secret: z.string().min(16).max(512),
+  secret: z.string().min(16).max(512).optional(),
   device: z.string().min(8).max(32),
   sender: z.string().min(8).max(32),
   message: z.string().max(5000).default(''),

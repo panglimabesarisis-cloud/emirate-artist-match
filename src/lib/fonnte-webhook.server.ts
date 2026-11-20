@@ -20,8 +20,16 @@ export async function authenticateFonnte(request: Request, secret: string | unde
   const parsed=fonntePayload.safeParse(input);
   if(!parsed.success) return {error:'Invalid payload',status:400} as const;
   const data=parsed.data;
+  // Device webhooks may omit a body secret. Use a dedicated webhook credential,
+  // never the outbound Fonnte API token or a claimed device/sender number.
+  const urlSecrets=new URL(request.url).searchParams.getAll('secret');
+  const supplied=[data.secret, request.headers.get('x-fonnte-webhook-secret'), ...urlSecrets].filter((value):value is string=>value!==undefined && value!==null);
+  if(urlSecrets.length>1 || supplied.length===0 || supplied.some(value=>value.length<16 || value.length>512))return {error:'Unauthorized',status:401} as const;
   const hash=async(text:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)));
-  if(!timingSafeEqual(await hash(data.secret),await hash(secret)))return {error:'Unauthorized',status:401} as const;
+  const expected=await hash(secret);
+  for(const credential of supplied){
+    if(!timingSafeEqual(await hash(credential),expected))return {error:'Unauthorized',status:401} as const;
+  }
   // No group member can approve on behalf of a registered artist.
   if(data.member || data.sender.includes('@') || data.sender.includes('-'))return {ignored:true} as const;
   const decision=fonnteDecision(data.message || data.text);

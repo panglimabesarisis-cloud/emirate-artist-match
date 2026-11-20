@@ -11,6 +11,35 @@ afterAll(()=>vi.unstubAllGlobals());
 describe('authenticated Fonnte webhook',()=>{
   it('fails closed when no shared secret is configured',async()=>expect(await authenticateFonnte(request(fixture),undefined)).toEqual({error:'Not configured',status:503}));
   it('rejects incorrect shared secret',async()=>expect(await authenticateFonnte(request({...fixture,secret:'incorrect-fixture-secret'}),fixtureSecret)).toEqual({error:'Unauthorized',status:401}));
+  it('accepts standard payload without body secret using dedicated URL credential',async()=>{
+    const {secret: _secret,...payload}=fixture;
+    const req=new Request(`http://localhost/api/public/whatsapp/fonnte-webhook?secret=${fixtureSecret}`,{method:'POST',body:JSON.stringify(payload)});
+    const result=await authenticateFonnte(req,fixtureSecret);
+    expect(result.event?.decision).toBe('yes');
+    expect(JSON.stringify(result)).not.toContain(fixtureSecret);
+  });
+  it('accepts a dedicated header credential without a body secret',async()=>{
+    const {secret: _secret,...payload}=fixture;
+    const req=new Request('http://localhost/api/public/whatsapp/fonnte-webhook',{method:'POST',headers:{'x-fonnte-webhook-secret':fixtureSecret},body:JSON.stringify(payload)});
+    expect((await authenticateFonnte(req,fixtureSecret)).event?.sender).toBe('971501234567');
+  });
+  it('rejects a standard payload without authentication even with a known device',async()=>{
+    const {secret: _secret,...payload}=fixture;
+    expect(await authenticateFonnte(request(payload),fixtureSecret)).toEqual({error:'Unauthorized',status:401});
+  });
+  it('never uses the outbound API token query parameter as authentication',async()=>{
+    const {secret: _secret,...payload}=fixture;
+    const req=new Request(`http://localhost/api/public/whatsapp/fonnte-webhook?token=${fixtureSecret}`,{method:'POST',body:JSON.stringify(payload)});
+    expect(await authenticateFonnte(req,fixtureSecret)).toEqual({error:'Unauthorized',status:401});
+  });
+  it('rejects conflicting credentials rather than bypassing an incorrect body secret',async()=>{
+    const req=new Request(`http://localhost/api/public/whatsapp/fonnte-webhook?secret=${fixtureSecret}`,{method:'POST',body:JSON.stringify({...fixture,secret:'incorrect-fixture-secret'})});
+    expect(await authenticateFonnte(req,fixtureSecret)).toEqual({error:'Unauthorized',status:401});
+  });
+  it('rejects duplicate URL credentials',async()=>{
+    const req=new Request(`http://localhost/api/public/whatsapp/fonnte-webhook?secret=${fixtureSecret}&secret=${fixtureSecret}`,{method:'POST',body:JSON.stringify(fixture)});
+    expect(await authenticateFonnte(req,fixtureSecret)).toEqual({error:'Unauthorized',status:401});
+  });
   it('accepts and normalizes a verified UAE artist reply',async()=>{
     const result=await authenticateFonnte(request(fixture),fixtureSecret);
     expect(result.event).toEqual({delivery_id:'628123456789:fixture-1',sender:'971501234567',decision:'yes',reference:'a1234567',message_at:new Date(fixture.timestamp*1000).toISOString()});
