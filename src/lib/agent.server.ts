@@ -12,7 +12,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
-import { formatBookingConfirm } from "./booking-message";
+import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
@@ -215,8 +215,30 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   const c = await artistContact(artistId);
   if (action?.phone) c.phone = action.phone;
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
+  const approvalBody = approvalMessageBody({
+    subtotal: p.subtotal,
+    name: q?.name, email: q?.email, phone: q?.phone, guests: q?.guests,
+    title: d.title, date: d.date,
+    startTime: calendar.window.startTime, endTime: calendar.window.endTime,
+    jobDetail: d.jobDetail,
+  });
   await notifyBooking(b.id, "artist", "approval_request", c, `${invoiceAction ? "Fill invoice for booking" : "New booking to approve"}: ${d.title} on ${d.date}`,
-    `Client ${q?.name ?? "Client"}, AED ${p.subtotal.toLocaleString("en-US")} + VAT, ${d.notes}`, link);
+    approvalBody, link);
+}
+
+/** Artist approval message: labelled lines, empty values dropped, sections split by "-----". */
+function approvalMessageBody(f: { subtotal: number; name: string | null | undefined; email: string | null | undefined; phone: string | null | undefined; guests: number | null | undefined; title: string; date: string; startTime: string | null | undefined; endTime: string | null | undefined; jobDetail: string | null | undefined }) {
+  const line = (label: string, value: unknown) => {
+    const v = String(value ?? "").trim();
+    return v ? `${label}: ${v}` : "";
+  };
+  const time = f.startTime || f.endTime ? `${f.startTime ?? ""}-${f.endTime ?? ""}` : "";
+  return [
+    [`Payment: AED ${f.subtotal.toLocaleString("en-US")} + 5% VAT`],
+    [line("PIC", f.name), line("Email", f.email), line("Phone", f.phone)],
+    [line("Guests", f.guests), line("Event", f.title), line("Date", formatEventDate(f.date)), line("Time", time)],
+    [line("Job Detail", f.jobDetail)],
+  ].map((section) => section.filter(Boolean).join("\n")).filter(Boolean).join("\n-----\n");
 }
 
 function invoiceText(body: string) {

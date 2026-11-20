@@ -4,7 +4,7 @@ import { calendarWindow } from './calendar-rules';
 const mocks = vi.hoisted(() => ({
   generate: vi.fn(), calendar: vi.fn(), notify: vi.fn(), contact: vi.fn(),
   writes: [] as { table: string; value: unknown }[],
-  existing: false,
+  existing: false, sparseQuote: false,
 }));
 
 const flow = {
@@ -18,7 +18,7 @@ const flow = {
 };
 function result(table: string, inserting: boolean) {
   const data: Record<string, unknown> = {
-    conversations: { id: 'conversation-fixture', artist_id: 'artist-fixture', mode: 'ai', ai_replies: 2 },
+    conversations: { id: 'conversation-fixture', artist_id: 'artist-fixture', mode: 'ai', ai_replies: 2, quote_requests: mocks.sparseQuote ? { name: 'Maya' } : { name: 'Maya', email: 'maya@example.com', phone: '0501234567', guests: 1000 } },
     artists: { user_id: 'owner-fixture', stage_name: 'Dede', base_price: 5000 },
     agent_settings: { enabled: true }, credit_wallets: { balance: 100 }, rate_cards: [], ai_flows: [flow],
     messages: [
@@ -54,7 +54,7 @@ vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('
 import { runAgent } from './agent.server';
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false;
+  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.sparseQuote = false;
   mocks.calendar.mockResolvedValue({ status: 'available', window: calendarWindow({ date: '2026-11-29', startTime: '19:00', endTime: '21:00' }) });
   mocks.contact.mockResolvedValue({ phone: '+971509999999', email: null });
   mocks.notify.mockResolvedValue(undefined);
@@ -69,6 +69,36 @@ describe('Book Now → artist WhatsApp dispatch', () => {
     expect(mocks.writes.find(write => write.table === 'bookings')?.value).toMatchObject({ status: 'inquiry', amount: 5000, total: 5250, start_time: '19:00', end_time: '21:00', artist_invoice_required: false });
     expect(mocks.notify).toHaveBeenCalledTimes(1);
     expect(mocks.notify).toHaveBeenCalledWith('booking-fixture', 'artist', 'approval_request', { phone: '+971501234567', email: null }, expect.any(String), expect.any(String), 'http://localhost:8080/approve/booking-fixture?k=fixture-key');
+    expect(mocks.notify.mock.calls[0]?.[5]).toBe([
+      'Payment: AED 5,000 + 5% VAT',
+      '-----',
+      'PIC: Maya',
+      'Email: maya@example.com',
+      'Phone: 0501234567',
+      '-----',
+      'Guests: 1000',
+      'Event: Emcee',
+      'Date: 29 November 2026',
+      'Time: 19:00-21:00',
+      '-----',
+      'Job Detail: Emcee',
+    ].join('\n'));
+  });
+  it('drops lines whose value is empty instead of sending blank labels', async () => {
+    mocks.sparseQuote = true;
+    await runAgent('conversation-fixture');
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
+    expect(mocks.notify.mock.calls[0]?.[5]).toBe([
+      'Payment: AED 5,000 + 5% VAT',
+      '-----',
+      'PIC: Maya',
+      '-----',
+      'Event: Emcee',
+      'Date: 29 November 2026',
+      'Time: 19:00-21:00',
+      '-----',
+      'Job Detail: Emcee',
+    ].join('\n'));
   });
   it('never dispatches a busy slot', async () => {
     mocks.calendar.mockResolvedValue({ status: 'busy', window: calendarWindow({ date: '2026-11-29', startTime: '19:00', endTime: '21:00' }) });
