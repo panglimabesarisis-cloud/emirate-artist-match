@@ -1,4 +1,5 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
+import { internationalPhone } from "./whatsapp-provider";
 export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge";
 export type UrlButton = { label: string; url: string };
 export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time";
@@ -126,8 +127,8 @@ export function approvalAction(nodes: FlowNode[], edges: FlowEdge[]) {
     if (!node || seen.has(node.id)) continue;
     seen.add(node.id);
     if (node.type === "whatsapp") {
-      const phone = node.data.destinationPhone?.trim() ?? "";
-      if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error("Use an international WhatsApp number, e.g. +971501234567");
+      const raw = node.data.destinationPhone?.trim() ?? "";
+      const phone = raw ? `+${internationalPhone(raw)}` : "";
       return { nodeId: node.id, phone: phone || null, sendInvoice: true };
     }
     for (const edge of edges.filter(e => e.source === node.id)) {

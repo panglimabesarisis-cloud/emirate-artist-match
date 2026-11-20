@@ -21,6 +21,23 @@ describe("WhatsApp provider selection", () => {
     expect(internationalPhone("+62 812-3456-7890")).toBe("6281234567890");
     expect(() => internationalPhone("081234567890")).toThrow();
   });
+  it.each(["0501234567", "50 123 4567", "971501234567", "+971501234567", "00971501234567"])("normalizes UAE mobile %s", (phone) => {
+    expect(internationalPhone(phone)).toBe("971501234567");
+  });
+  it.each(["050123456", "9715012345678", "0511234567", "0501234567abc"])("rejects malformed UAE mobile %s", (phone) => {
+    expect(() => internationalPhone(phone)).toThrow();
+  });
+  it.each(["0521234567", "0541234567", "0551234567", "0561234567", "0581234567"])("retains UAE mobile prefix in %s", (phone) => {
+    expect(internationalPhone(phone)).toBe(`971${phone.slice(1)}`);
+  });
+  it("sends a local UAE number to Fonnte with its full country code", async () => {
+    mocks.config.mockResolvedValue({ data: [{ key: "whatsapp_provider", value: "fonnte" }, { key: "fonnte_token", value: "fixture-token" }] });
+    mocks.fetch.mockResolvedValue(new Response(JSON.stringify({ status: true, id: [1234] })));
+    expect((await sendWhatsApp("0501234567", "Booking", "Please approve", "")).status).toBe("accepted");
+    const request = mocks.fetch.mock.calls[0]?.[1];
+    expect(request?.body.get("target")).toBe("971501234567");
+    expect(request?.body.get("countryCode")).toBe("0");
+  });
   it("routes Fonnte only to Fonnte with unmodified country code and approval link", async () => {
     mocks.config.mockResolvedValue({ data: [{ key: "whatsapp_provider", value: "fonnte" }, { key: "fonnte_token", value: "fixture-token" }] });
     mocks.fetch.mockResolvedValue(new Response(JSON.stringify({ status: true, id: [1234] })));

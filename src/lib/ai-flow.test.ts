@@ -30,8 +30,8 @@ describe("WhatsApp artist approval", () => {
   it("uses the artist's saved number when the field is empty", () => {
     expect(approvalAction([{ ...approval, data: { text: "Approve" } }], [])?.phone).toBeNull();
   });
-  it("rejects a destination without an international country code", () => {
-    expect(() => approvalAction([{ ...approval, data: { text: "Approve", destinationPhone: "0501234567" } }], [])).toThrow();
+  it.each(["0501234567", "501234567", "971501234567", "+971 50 123 4567", "00971501234567"])("normalizes UAE approval destination %s", (destinationPhone) => {
+    expect(approvalAction([{ ...approval, data: { text: "Approve", destinationPhone } }], [])?.phone).toBe("+971501234567");
   });
 });
 
