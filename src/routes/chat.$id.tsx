@@ -56,7 +56,7 @@ function ChatPage() {
   const [pending, setPending] = useState<{ body: string; previousIds: string[] } | null>(null);
   const { t: tr } = useI18n();
   const box = useRef<HTMLDivElement>(null);
-  const { data, error } = useQuery({
+  const { data, error, refetch } = useQuery({
     queryKey: ["chat", id],
     queryFn: () => get$({ data: { id, key: k } }),
     refetchInterval: 5000,
@@ -81,7 +81,7 @@ function ChatPage() {
     finally { setPending(null); setBusy(false); }
   };
 
-  if (error) return <PublicLayout><div className="p-16 text-center">{tr("This conversation link is invalid.")}</div></PublicLayout>;
+  if (error && !data) return <PublicLayout><div className="space-y-4 p-16 text-center"><p>{tr("This conversation could not load. Check your connection and try again.")}</p><Button onClick={() => { void refetch(); }}>{tr("Try again")}</Button></div></PublicLayout>;
   const a = data?.artist;
   return (
     <div className="flex h-dvh flex-col bg-background">
