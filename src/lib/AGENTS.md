@@ -1,4 +1,5 @@
 # Booking workflow rules
+- Resolve displayed button selections against saved edges before WhatsApp hand-off; artist review never implies client price consent, and existing Calendar, invoice and payment checks still apply.
 - Fonnte replies require a shared secret and private deduplicated inbox; atomic decisions match logged approval recipients/references, preserve invoice-item approval, and durably claim follow-up work without blindly retrying ambiguous sends.
 
 - Reachable Rate Card flow blocks enable artist-item invoice approval; snapshot event hours and job details on the booking, approve items atomically, and never treat draft prices or AI payment claims as settlement.
