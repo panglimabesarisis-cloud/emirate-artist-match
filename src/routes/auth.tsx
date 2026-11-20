@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
 
 type S = { mode?: "signin" | "signup" | undefined; redirect?: string | undefined };
 
@@ -78,8 +80,10 @@ function AuthPage() {
   };
 
   return (
-    <PublicLayout>
-      <div className="mx-auto max-w-md px-4 py-16">
+    <ReferenceTheme><PublicLayout>
+      <div className="reference-auth">
+        <section className="reference-auth-art"><SceneBackground /><div><span className="reference-eyebrow">Dealmaker · Dubai & the UAE</span><h2>Welcome<br /><em className="reference-gradient-text">back.</em></h2><p>Your next great performance starts here.</p></div></section>
+      <div className="reference-auth-form">
         <h1 className="text-3xl font-semibold">{recovery?'Recover your account':mode === "signup" ? "Create your account" : "Welcome back"}</h1>
         <div className="mt-6 grid gap-2">
           <Button type="button" variant="outline" onClick={() => oauth("google")} className="h-11"><GoogleG /> Continue with Google</Button>
@@ -107,12 +111,13 @@ function AuthPage() {
           </Button>
         </form>
         {mode==='signin'&&<Button variant="link" className="mt-2 px-0" onClick={()=>setRecovery(!recovery)}>{recovery?'Back to sign in':'Forgot password?'}</Button>}
-        <button className="mt-4 text-sm text-muted-foreground underline" onClick={() => setMode(mode === "signup" ? "signin" : "signup")}>
+        <Button variant="link" className="mt-4 px-0 text-sm text-muted-foreground underline" onClick={() => setMode(mode === "signup" ? "signin" : "signup")}>
           {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
-        </button>
+        </Button>
         <PostAuthRedirect />
       </div>
-    </PublicLayout>
+      </div>
+    </PublicLayout></ReferenceTheme>
   );
 }
 
