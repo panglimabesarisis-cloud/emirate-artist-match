@@ -323,3 +323,17 @@
 }
 
 :root { --dm-starlight: #f0c062; --dm-light: #fff; }
+
+/* Shared reference theme; scoped consumers leave dashboard colors untouched. */
+:root {
+ --scene-city-far:#10162a; --scene-city-near:#0a0e1a; --scene-palm:#12071a; --scene-dune:#120a1c;
+ --scene-sky-0-0:#4a2f6a; --scene-sky-0-1:#d8664e; --scene-sky-0-2:#ffc469;
+ --scene-sky-1-0:#2b1a44; --scene-sky-1-1:#8f3556; --scene-sky-1-2:#f07b3d;
+ --scene-sky-2-0:#141a33; --scene-sky-2-1:#352349; --scene-sky-2-2:#6e2f48;
+ --scene-sky-3-0:#0a0f1f; --scene-sky-3-1:#0d1327; --scene-sky-3-2:#11182c;
+ --scene-water-light:#ffdcaa; --scene-water-deep:#0c0916; --scene-water-mid:#281428;
+ --scene-sun:radial-gradient(circle,#fff7e0 0%,#ffe2a0 30%,#ffb565 52%,rgba(255,150,80,.55) 62%,transparent 71%);
+ --scene-sun-red:radial-gradient(circle,#ffb27a 0%,#ff6e45 40%,#d93d3d 58%,transparent 71%);
+ --scene-halo:radial-gradient(circle,rgba(255,196,120,.55),rgba(255,150,90,.28) 22%,rgba(240,110,90,.12) 42%,transparent 62%);
+ --scene-scrim:linear-gradient(0deg,var(--dm-tone-1),var(--dm-tone-7) 42%,var(--dm-tone-20) 70%);
+}
