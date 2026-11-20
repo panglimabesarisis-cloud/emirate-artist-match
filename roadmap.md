@@ -74,3 +74,5 @@
 - [ ] Subscription upgrades: immediate, prorated; downgrades: next renewal — connect after AED checkout is available.
 - [x] Tested pure settlement and subscription benefit predicates; not yet connected to payment processing.
 - [x] Demo payment mode: booking escrow + artist plan switch (simulated, no real money) while live checkout waits on AED
+
+- [x] Replace only the homepage with the uploaded Arabian design: original getCatalog/getFeatured and footer retained, catalog menus/marquee, existing specialty/area listing navigation and real artist quote form verified, desktop 1917×823/mobile 390×844 without horizontal scroll, scrolling stories/notification animation and reduced-motion (zero animations) checked; 20 tests pass, build OK. Existing listing has no free-text artist filter, so text resolves supported category/specialty/area names only; existing auth hook/sign-out preserved, signed-in UI check unavailable because requesting user has no matching auth account. No other route/backend/hook changed.

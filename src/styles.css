@@ -230,3 +230,96 @@
 @media (prefers-reduced-motion: reduce) {
   .dealmaker-home * { scroll-behavior: auto; transition: none; }
 }
+
+/* Homepage-only Arabian design tokens; other pages do not consume these. */
+:root {
+
+  --dm-ink:#07090f; --dm-ink-2:#0c1120; --dm-ink-3:#141a2c; --dm-line:rgba(246,239,226,.12);
+  --dm-cream:#f6efe2; --dm-cream-2:#ece3d1; --dm-mute:rgba(246,239,226,.58); --dm-mute-d:rgba(7,9,15,.58);
+  --dm-gold:#e8b04a; --dm-gold-2:#d4842a; --dm-grad:linear-gradient(100deg,#f0c062 0%,#e8a33f 45%,#d4842a 100%);
+  --dm-serif:"Instrument Serif",Georgia,serif; --dm-sans:"Manrope",system-ui,sans-serif;
+  --dm-ease:cubic-bezier(.22,1,.36,1); --dm-pad:clamp(20px,4vw,64px); --dm-max:1440px;
+
+  --dm-tone-1: rgba(7,9,15,.78);
+  --dm-tone-2: rgba(232,164,63,.18);
+  --dm-tone-3: rgba(246,239,226,.06);
+  --dm-tone-4: rgba(246,239,226,.92);
+  --dm-tone-5: rgba(255,255,255,.18);
+  --dm-tone-6: rgba(7,9,15,.12);
+  --dm-tone-7: rgba(7,9,15,.45);
+  --dm-tone-8: rgba(246,239,226,.45);
+  --dm-tone-9: rgba(7,9,15,.5);
+  --dm-tone-10: rgba(246,239,226,.25);
+  --dm-tone-11: rgba(255,226,170,.22);
+  --dm-tone-12: rgba(12,17,32,.97);
+  --dm-tone-13: rgba(0,0,0,.5);
+  --dm-tone-14: rgba(232,176,74,.1);
+  --dm-tone-15: rgba(232,176,74,.22);
+  --dm-tone-16: rgba(212,132,42,.05);
+  --dm-tone-17: rgba(232,176,74,.25);
+  --dm-tone-18: rgba(12,17,32,.98);
+  --dm-tone-19: rgba(0,0,0,.55);
+  --dm-tone-20: rgba(232,176,74,.12);
+  --dm-tone-21: rgba(232,164,63,.1);
+  --dm-tone-22: rgba(246,239,226,.05);
+  --dm-tone-23: rgba(246,239,226,.01);
+  --dm-tone-24: rgba(232,176,74,.6);
+  --dm-tone-25: rgba(232,176,74,0);
+  --dm-tone-26: rgba(232,164,63,.35);
+  --dm-tone-27: rgba(232,176,74,.06);
+  --dm-tone-28: #e7ddc9;
+  --dm-tone-29: #9a3b1c;
+  --dm-tone-30: #fff;
+  --dm-tone-31: rgba(246,239,226,.04);
+  --dm-tone-32: rgba(232,176,74,.55);
+  --dm-tone-33: rgba(7,9,15,.15);
+  --dm-tone-34: rgba(232,164,63,.09);
+  --dm-tone-35: rgba(232,176,74,.35);
+  --dm-tone-36: #7bd88f;
+  --dm-tone-37: rgba(246,239,226,.9);
+  --dm-tone-38: #151b30;
+  --dm-tone-39: rgba(13,17,32,.9);
+  --dm-tone-40: #f0c062;
+  --dm-tone-41: rgba(240,192,98,.55);
+  --dm-tone-42: rgba(240,192,98,.75);
+  --dm-tone-43: rgba(12,17,32,.72);
+  --dm-tone-44: rgba(0,0,0,.45);
+  --dm-tone-45: rgba(232,176,74,.15);
+  --dm-tone-46: rgba(246,239,226,.42);
+  --dm-tone-47: #121829;
+  --dm-tone-48: rgba(0,0,0,.35);
+  --dm-tone-49: #171e33;
+  --dm-tone-50: rgba(255,236,196,.95);
+  --dm-tone-51: rgba(240,192,98,.5);
+  --dm-tone-52: #fff7e4;
+  --dm-tone-53: rgba(255,220,150,.6);
+  --dm-tone-54: rgba(255,214,140,.8);
+  --dm-surface-1: radial-gradient(circle,var(--dm-tone-2),transparent 60%);
+  --dm-surface-2: linear-gradient(var(--dm-gold),transparent);
+  --dm-surface-3: radial-gradient(circle at 30% 20%,var(--dm-tone-5),transparent 55%);
+  --dm-shadow-4: 0 10px 30px var(--dm-tone-6);
+  --dm-shadow-5: 0 40px 80px -20px var(--dm-tone-7);
+  --dm-surface-6: radial-gradient(420px circle at var(--gx,50%) var(--gy,50%),var(--dm-tone-11),transparent 45%);
+  --dm-shadow-7: 0 40px 80px var(--dm-tone-13);
+  --dm-surface-8: linear-gradient(160deg,var(--dm-tone-15),var(--dm-tone-16));
+  --dm-shadow-9: 0 30px 70px var(--dm-tone-19);
+  --dm-surface-10: radial-gradient(ellipse at 80% 0%,var(--dm-tone-21),transparent 55%),var(--dm-ink);
+  --dm-surface-11: linear-gradient(160deg,var(--dm-tone-22),var(--dm-tone-23));
+  --dm-shadow-12: 0 0 0 0 var(--dm-tone-24);
+  --dm-shadow-13: 0 0 0 10px var(--dm-tone-25);
+  --dm-shadow-14: 0 0 0 0 var(--dm-tone-25);
+  --dm-shadow-15: 0 0 0 6px var(--dm-tone-20),0 10px 30px var(--dm-tone-26);
+  --dm-shadow-16: 0 0 0 12px var(--dm-tone-27),0 10px 30px var(--dm-tone-26);
+  --dm-surface-17: radial-gradient(ellipse at 15% 0%,var(--dm-tone-34),transparent 55%),var(--dm-ink-2);
+  --dm-surface-18: linear-gradient(180deg,var(--dm-tone-37),var(--dm-tone-31));
+  --dm-surface-19: radial-gradient(ellipse at 50% 0%,var(--dm-tone-38) 0%,var(--dm-ink) 65%);
+  --dm-shadow-20: 0 30px 80px var(--dm-tone-44),inset 0 0 0 1px var(--dm-tone-45);
+  --dm-shadow-21: 0 -20px 50px var(--dm-tone-48);
+  --dm-surface-22: linear-gradient(100deg,transparent 40%,var(--dm-tone-50) 50%,transparent 60%) no-repeat,linear-gradient(180deg,var(--dm-tone-37),var(--dm-tone-31));
+  --dm-shadow-23: 0 0 30px var(--dm-tone-51);
+  --dm-surface-24: radial-gradient(closest-side,var(--dm-tone-52),var(--dm-tone-53) 30%,transparent 70%);
+  --dm-shadow-25: 0 0 12px 4px var(--dm-tone-54),0 0 30px 8px var(--dm-tone-35);
+  --dm-surface-26: linear-gradient(180deg,var(--dm-tone-37),var(--dm-tone-31));
+}
+
+:root { --dm-starlight: #f0c062; --dm-light: #fff; }
