@@ -237,9 +237,9 @@ function approvalMessageBody(f: BookingDraft & { subtotal: number; name: string 
     ["Dealmaker Management"],
     [`Payment: AED ${f.subtotal.toLocaleString("en-US")} + 5% VAT`, line("PIC", f.name), line("Email", f.email), line("Phone", f.phone)],
     [line("Client", f.organizing), line("Organization", f.clientOccupation)],
-    [line("Job Detail", f.jobDetail)],
-    [line("Venue Name", f.venueName), line("Event Name", f.eventType), line("Date Event", formatEventDate(f.date)), line("Event Time", time), line("Event Type", f.indoorOutdoor), line("Venue Address", f.venueAddress)],
-    [line("Artist Perform Duration", f.performDuration), line("Wardrobe", f.wardrobe), line("DressCode", f.dresscode), line("Wardrobe request", f.wardrobeRequest)],
+    [line("Job Detail", f.jobDetail?.replace(/,\s*(?=(?:durasi\s+performa|\d[\d,.]*\s+tamu|pukul)\b)/gi, "\n" ).replace(/\n(?=durasi\s+performa)/i, "\n-----\n"))],
+    [line("Venue Name", f.venueName), line("Event Name", f.eventType), line("Date Event", formatEventDate(f.date)), line("Event Time", time), line("Event Type", f.indoorOutdoor), line("Venue Address", f.venueAddress), line("Artist Perform Duration", f.performDuration)],
+    [line("Wardrobe", f.wardrobe), line("DressCode", f.dresscode), line("Wardrobe request", f.wardrobeRequest)],
     [line("Pre-Event Meeting", f.preEventMeeting)],
     [line("Rehearsal Date", f.rehearsalDate), line("Time Start", f.rehearsalStart), line("End Time", f.rehearsalEnd), line("Location", f.rehearsalLocation)],
   ].map((section) => section.filter(Boolean).join("\n")).filter(Boolean).join("\n-----\n");

@@ -31,8 +31,8 @@ export async function notifyBooking(bookingId: string, audience: "client" | "art
           const {data:b,error}=await supabaseAdmin.from('bookings').select('artist_invoice_required').eq('id',bookingId).single();
           if(error) throw error;
           replyInstructions = b?.artist_invoice_required
-            ? `Reference: ${bookingId.slice(0,8)}. Reply NO ${bookingId.slice(0,8)} to decline. Reply YES ${bookingId.slice(0,8)} to confirm availability; invoice items must still be completed using the link.`
-            : `Reference: ${bookingId.slice(0,8)}. Reply YES ${bookingId.slice(0,8)} to approve or NO ${bookingId.slice(0,8)} to decline. YES/NO alone works only when you have one pending request. Use the link to edit details.`;
+            ? `-----\nReference Order: ${bookingId.slice(0,8)}\n-----\nReply YES\nto confirm availability only; complete invoice items using the link.\n-----\nReply NO\nto decline.\n-----\nUse the link to edit details.`
+            : `-----\nReference Order: ${bookingId.slice(0,8)}\n-----\nReply YES\nto approve\n-----\nReply NO\nto decline.\n-----\nUse the link to edit details.`;
         }
       }
       const r = await sendWhatsApp(to.phone, subject, [details,replyInstructions].filter(Boolean).join('\n\n'), link);

@@ -47,6 +47,12 @@ describe('authenticated Fonnte webhook',()=>{
   });
   it('ignores replies from group members',async()=>expect(await authenticateFonnte(request({...fixture,member:'628111111111'}),fixtureSecret)).toEqual({ignored:true}));
   it('ignores unrelated chat text',async()=>expect(await authenticateFonnte(request({...fixture,message:'Hello there'}),fixtureSecret)).toEqual({ignored:true}));
+  it('accepts a verified price revision without treating it as approval', async () => {
+    const result = await authenticateFonnte(request({...fixture,message:'Ubah harga jadi AED 7,000, tambah notes: biaya transport'}),fixtureSecret);
+    expect(result.event).toBeUndefined();
+    expect(result.revision?.sender).toBe('971501234567');
+    expect(result.revision?.message).toBe('Ubah harga jadi AED 7,000, tambah notes: biaya transport');
+  });
   it('ignores stale replies',async()=>expect(await authenticateFonnte(request({...fixture,timestamp:fixture.timestamp-3600}),fixtureSecret)).toEqual({ignored:true}));
   it('ignores future-dated replies',async()=>expect(await authenticateFonnte(request({...fixture,timestamp:fixture.timestamp+3600}),fixtureSecret)).toEqual({ignored:true}));
   it('requires a provider inbox ID for replay protection',async()=>expect(await authenticateFonnte(request({...fixture,inboxid:''}),fixtureSecret)).toEqual({error:'Invalid payload',status:400}));

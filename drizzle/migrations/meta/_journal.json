@@ -204,6 +204,20 @@
       "when": 1795187431536,
       "tag": "0028_restrict_fonnte_inbox_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795203445270,
+      "tag": "0029_verified_whatsapp_booking_revisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795203577727,
+      "tag": "0030_whatsapp_revision_credit_and_payload_guards",
+      "breakpoints": true
     }
   ]
 }

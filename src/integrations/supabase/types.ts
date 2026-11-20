@@ -1018,6 +1018,65 @@ export type Database = {
           },
         ]
       }
+      fonnte_revision_events: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          delivery_id: string
+          id: string
+          message: string
+          message_at: string
+          outcome: string | null
+          proposed_amount: number | null
+          proposed_note: string | null
+          reference: string | null
+          reply_id: string | null
+          reply_status: string | null
+          sender: string
+          state: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          delivery_id: string
+          id?: string
+          message: string
+          message_at: string
+          outcome?: string | null
+          proposed_amount?: number | null
+          proposed_note?: string | null
+          reference?: string | null
+          reply_id?: string | null
+          reply_status?: string | null
+          sender: string
+          state?: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          delivery_id?: string
+          id?: string
+          message?: string
+          message_at?: string
+          outcome?: string | null
+          proposed_amount?: number | null
+          proposed_note?: string | null
+          reference?: string | null
+          reply_id?: string | null
+          reply_status?: string | null
+          sender?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fonnte_revision_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string
@@ -1739,6 +1798,14 @@ export type Database = {
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
       apply_fonnte_approval: { Args: { _event: string }; Returns: string }
+      apply_fonnte_revision: {
+        Args: { _amount: number; _event: string; _note: string }
+        Returns: Json
+      }
+      apply_fonnte_revision_change: {
+        Args: { _changes: Json; _event: string }
+        Returns: Json
+      }
       apply_whatsapp_status: {
         Args: { _at: string; _error: string; _message: string; _status: string }
         Returns: boolean
@@ -1786,6 +1853,7 @@ export type Database = {
         }[]
       }
       become_artist: { Args: never; Returns: undefined }
+      claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
       has_role: {
         Args: {
@@ -1800,6 +1868,10 @@ export type Database = {
       next_invoice_no: { Args: never; Returns: string }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
+      reserve_fonnte_revision_credit: {
+        Args: { _event: string }
+        Returns: boolean
+      }
       settle_sandbox_order: {
         Args: {
           _amount: number

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { fonntePayload, fonnteDecision, fonnteTimestamp } from './fonnte-rules';
 import { internationalPhone } from './whatsapp-provider';
+import { revisionIntent, revisionReference } from './whatsapp-revision';
 
 export async function authenticateFonnte(request: Request, secret: string | undefined) {
   if(!secret) return {error:'Not configured',status:503} as const;
@@ -33,12 +34,18 @@ export async function authenticateFonnte(request: Request, secret: string | unde
   // No group member can approve on behalf of a registered artist.
   if(data.member || data.sender.includes('@') || data.sender.includes('-'))return {ignored:true} as const;
   const decision=fonnteDecision(data.message || data.text);
-  if(!decision)return {ignored:true} as const;
+  const revision = !decision && revisionIntent(data.message || data.text);
+  if(!decision && !revision)return {ignored:true} as const;
   try {
     const messageAt=fonnteTimestamp(data.timestamp);
     const age=Date.now()-Date.parse(messageAt);
     if(age < -120000 || age>15*60000)return {ignored:true} as const;
-    return {event:{delivery_id:`${data.device}:${data.inboxid}`,sender:internationalPhone(data.sender),decision:decision.decision,reference:decision.code,message_at:messageAt}} as const;
+    const common = {delivery_id:`${data.device}:${data.inboxid}`,sender:internationalPhone(data.sender),message_at:messageAt};
+    if (!decision) {
+      const { maskContacts } = await import('./masking');
+      return { revision: { ...common, message: maskContacts(data.message || data.text), reference: revisionReference(data.message || data.text) } } as const;
+    }
+    return {event:{...common,decision:decision.decision,reference:decision.code}} as const;
   } catch {return {error:'Invalid payload',status:400} as const;}
 }
 
