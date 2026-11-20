@@ -1,5 +1,6 @@
 import { createStripeClient } from './stripe.server';
 import { sandboxPaymentSettled } from './payment-rules';
+const AED_TO_IDR = 4900;
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
   options: { email?: string | undefined; userId?: string | undefined },
@@ -29,7 +30,7 @@ export async function openOrder(order: {artist_id:string; kind:'credits'|'deposi
   if(error||!o)throw new Error(error?.message??'Could not create payment');
   try {
     const session=await stripe.checkout.sessions.create({mode:'payment',ui_mode:'embedded_page',redirect_on_completion:'never',...(customer ? {customer} : {}),
-      line_items:[{price_data:{currency:'aed',product_data:{name:description},unit_amount:order.amount_minor,tax_behavior:'inclusive'},quantity:1}],
+      line_items:[{price_data:{currency:'idr',product_data:{name:description},unit_amount:Math.round((order.amount_minor / 100) * AED_TO_IDR),tax_behavior:'inclusive'},quantity:1}],
       payment_intent_data:{description},metadata:{orderId:o.id,...(identity.userId?{userId:identity.userId}:{})}}, {idempotencyKey:o.id});
     const {error:saveError}=await db.from('payment_orders').update({stripe_session_id:session.id}).eq('id',o.id);
     if(saveError)throw new Error(saveError.message);

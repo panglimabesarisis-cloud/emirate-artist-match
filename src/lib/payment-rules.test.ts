@@ -15,8 +15,8 @@ describe("confirmed payment policies", () => {
     expect(bookingIsFullyPaid(5250, 5250, 1050)).toBe(false);
     expect(bookingIsFullyPaid(5250, 5250, 5250)).toBe(false);
   });
-  const paid = { livemode: false, status: "complete", payment_status: "paid", currency: "aed", amount_total: 10500 };
-  it("settles only completed paid AED sandbox payments", () => {
+  const paid = { livemode: false, status: "complete", payment_status: "paid", currency: "idr", amount_total: 514500 };
+  it("recognizes only completed paid IDR sandbox payments", () => {
     expect(sandboxPaymentSettled(paid)).toBe(true);
     expect(sandboxPaymentSettled({ ...paid, payment_status: "unpaid" })).toBe(false);
     expect(sandboxPaymentSettled({ ...paid, status: "open" })).toBe(false);
@@ -24,8 +24,8 @@ describe("confirmed payment policies", () => {
   it("never settles live payments through sandbox", () => {
     expect(sandboxPaymentSettled({ ...paid, livemode: true })).toBe(false);
   });
-  it("never converts AED orders to IDR", () => {
-    expect(sandboxPaymentSettled({ ...paid, currency: "idr" })).toBe(false);
+  it("rejects AED sessions from the IDR sandbox predicate", () => {
+    expect(sandboxPaymentSettled({ ...paid, currency: "aed" })).toBe(false);
   });
   it("applies upgrades immediately with proration", () => {
     expect(planChangePolicy("upgrade")).toEqual({ effective: "immediate", prorate: true });

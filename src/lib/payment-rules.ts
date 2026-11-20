@@ -9,7 +9,7 @@ export function bookingIsFullyPaid(total: number, paid: number, refunded: number
 }
 
 export function sandboxPaymentSettled(session: { livemode: boolean; status: string | null; payment_status: string; currency: string | null; amount_total: number | null }) {
-  return session.livemode === false && session.status === "complete" && session.payment_status === "paid" && session.currency === "aed" && Number.isSafeInteger(session.amount_total) && Number(session.amount_total) > 0;
+  return session.livemode === false && session.status === "complete" && session.payment_status === "paid" && session.currency === "idr" && Number.isSafeInteger(session.amount_total) && Number(session.amount_total) > 0;
 }
 
 export function bookingPaymentEffects(paymentStatus: string) {

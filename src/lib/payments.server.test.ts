@@ -18,17 +18,17 @@ vi.mock('@/integrations/supabase/client.server', () => ({
   },
 }));
 
-describe('checkout-only AED pricing', () => {
+describe('checkout-only IDR pricing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.insert.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: 'order-1' }, error: null }) }) });
     mocks.createSession.mockResolvedValue({ id: 'session-1', client_secret: 'test-client-secret' });
   });
 
-  it('uses AED only in checkout price_data', async () => {
+  it('uses IDR only in checkout price_data', async () => {
     await openOrder({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 }, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
-      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ currency: 'aed' }) })],
+      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ currency: 'idr' }) })],
     }), { idempotencyKey: 'order-1' });
   });
 
@@ -46,11 +46,11 @@ describe('checkout-only AED pricing', () => {
     expect(params).not.toHaveProperty('return_url');
   });
 
-  it('sends the stored minor amount to checkout unchanged', async () => {
+  it('converts AED fils at 4900 IDR per AED while preserving the stored AED amount', async () => {
     const order = { artist_id: 'artist-1', kind: 'deposit' as const, amount_minor: 10500 };
     await openOrder(order, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
-      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 10500 }) })],
+      line_items: [expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 514500 }) })],
     }), { idempotencyKey: 'order-1' });
     expect(mocks.insert).toHaveBeenCalledWith({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 });
   });
