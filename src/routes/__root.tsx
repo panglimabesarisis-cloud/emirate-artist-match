@@ -58,6 +58,11 @@ export function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <Button
             onClick={async () => {
+              if (error instanceof TypeError && /failed to fetch|networkerror|load failed/i.test(error.message)) {
+                // Reload the document and fresh RPC manifest after an interrupted deploy or offline navigation.
+                window.location.reload();
+                return;
+              }
               try {
                 await router.invalidate();
                 reset();

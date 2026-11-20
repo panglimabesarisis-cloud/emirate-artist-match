@@ -20,10 +20,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { recoverPublicRead } from "@/lib/public-read-recovery";
+import { ErrorComponent } from "./__root";
 
 export const Route = createFileRoute("/artist/$slug")({
   loader: async ({ params }) => {
-    const [artist, catalog] = await Promise.all([getArtist({ data: { slug: params.slug } }), getCatalog()]);
+    const [artist, catalog] = await Promise.all([
+      recoverPublicRead(() => getArtist({ data: { slug: params.slug } })),
+      recoverPublicRead(() => getCatalog()),
+    ]);
     if (!artist) throw notFound();
     return { artist, catalog };
   },
@@ -37,10 +42,14 @@ export const Route = createFileRoute("/artist/$slug")({
         { name: "description", content: a.tagline ?? t },
         { property: "og:title", content: t },
         { property: "og:description", content: a.tagline ?? t },
+        { property: "og:type", content: "profile" },
+        { name: "twitter:card", content: "summary_large_image" },
       ],
     };
   },
   component: ArtistPage,
+  errorComponent: ErrorComponent,
+  notFoundComponent: () => <PublicLayout><div className="mx-auto max-w-7xl px-4 py-16"><h1 className="text-2xl font-semibold">Artist unavailable</h1></div></PublicLayout>,
 });
 
 function ArtistPage() {
