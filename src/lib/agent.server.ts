@@ -56,14 +56,17 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
   let decisionInstruction = "";
-  if (artistDecisionBookingId) {
-    const { data: verified, error } = await supabaseAdmin.from("bookings").select("id,status,cancelled_by,cancel_reason,package_title,event_date,paid_amount,total").eq("id", artistDecisionBookingId).eq("conversation_id", conversationId).eq("artist_id", convo.artist_id).maybeSingle();
-    if (error || !verified) throw new Error("Artist decision unavailable");
+  {
+    let decisionQuery = supabaseAdmin.from("bookings").select("id,status,cancelled_by,cancel_reason,package_title,event_date,paid_amount,total").eq("conversation_id", conversationId).eq("artist_id", convo.artist_id);
+    if (artistDecisionBookingId) decisionQuery = decisionQuery.eq("id", artistDecisionBookingId);
+    const { data: verified, error } = await decisionQuery.order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) throw new Error("Artist decision unavailable");
+    if (artistDecisionBookingId && !verified) throw new Error("Artist decision unavailable");
+    if (verified && flow) {
     const decision = verifiedArtistDecision(verified);
-    if (!decision || !flow) return;
-    const branch = artistDecisionBranch(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision);
-    if (!branch) return;
-    decisionInstruction = `VERIFIED ARTIST RESPONSE: ${decision.toUpperCase()} for ${verified.package_title} on ${verified.event_date}. ${decision === "no" ? `Decline reason: ${verified.cancel_reason}. No invoice or payment is allowed for this cancelled booking.` : "The artist approved the invoice; payment is not confirmed."} Resume the WhatsApp ${decision.toUpperCase()} branch now, starting with this saved step: ${JSON.stringify({ type: branch.type, instructions: branch.data.text, fields: branch.data.fields, buttons: branch.data.buttons })}. Do not restart the greeting, request approval again, or follow the opposite branch. Follow its outgoing steps. All pricing, invoice and payment safety rules still apply.`;
+    const branch = decision ? artistDecisionBranch(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision) : null;
+    if (decision && branch) decisionInstruction = `VERIFIED ARTIST RESPONSE: ${decision.toUpperCase()} for ${verified.package_title} on ${verified.event_date}. ${decision === "no" ? `Decline reason: ${verified.cancel_reason}. No invoice or payment is allowed for this cancelled booking.` : "The artist approved the invoice; payment is not confirmed."} ${artistDecisionBookingId ? "Resume now" : "Continue from the conversation's progress"} on the WhatsApp ${decision.toUpperCase()} branch, starting with this saved step: ${JSON.stringify({ type: branch.type, instructions: branch.data.text, fields: branch.data.fields, buttons: branch.data.buttons })}. Do not restart the greeting, request approval again for this booking, or follow the opposite branch. Follow its outgoing steps. All pricing, invoice and payment safety rules still apply.`;
+    }
   }
 
   const invoiceAction = invoiceWorkflow(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);

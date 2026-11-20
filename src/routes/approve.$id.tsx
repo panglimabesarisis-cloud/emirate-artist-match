@@ -7,6 +7,7 @@ import { Bot, Check, PencilLine, X } from "lucide-react";
 import { getApproval, approveBooking, declineBooking } from "@/lib/bookings.functions";
 import { priceBreakdown } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/approve/$id")({
 });
 
 function ApprovePage() {
+  const { t } = useI18n();
   const { id } = Route.useParams();
   const { k } = Route.useSearch();
   const qc = useQueryClient();
@@ -94,12 +96,12 @@ function ApprovePage() {
           </section>
         )}
 
-        {pending && b.artist_invoice_required && mode === "view" && <><ApprovalInvoiceEditor id={id} linkKey={k} initial={Array.isArray(b.invoice_items)? b.invoice_items as InvoiceItem[]:[]} onSent={()=>qc.invalidateQueries({queryKey:["approval",id]})} /><Button disabled={busy} variant="outline" onClick={() => setMode("decline")}><X className="size-4" />No · Decline</Button></>}
+        {pending && b.artist_invoice_required && mode === "view" && <><ApprovalInvoiceEditor id={id} linkKey={k} initial={Array.isArray(b.invoice_items)? b.invoice_items as InvoiceItem[]:[]} onSent={()=>qc.invalidateQueries({queryKey:["approval",id]})} /><Button disabled={busy} variant="outline" onClick={() => setMode("decline")}><X className="size-4" />{t("No · Decline")}</Button></>}
         {pending && !b.artist_invoice_required && mode === "view" && (
           <div className="grid gap-3 sm:grid-cols-3">
-            <Button disabled={busy} className="bg-gradient-gold text-gold-foreground" onClick={() => run(() => approve$({ data: { id, key: k, ...f, amount: Number(f.amount) } }), "Approved — payment link sent to the client")}><Check className="mr-2 h-4 w-4" />Yes · Approve</Button>
+            <Button disabled={busy} className="bg-gradient-gold text-gold-foreground" onClick={() => run(() => approve$({ data: { id, key: k, ...f, amount: Number(f.amount) } }), "Approved — payment link sent to the client")}><Check className="mr-2 h-4 w-4" />{t("Yes · Approve")}</Button>
             <Button variant="outline" onClick={() => setMode("edit")}><PencilLine className="mr-2 h-4 w-4" />Edit details</Button>
-            <Button disabled={busy} variant="ghost" onClick={() => setMode("decline")}><X className="mr-2 h-4 w-4" />No · Decline</Button>
+            <Button disabled={busy} variant="ghost" onClick={() => setMode("decline")}><X className="mr-2 h-4 w-4" />{t("No · Decline")}</Button>
           </div>
         )}
 
@@ -124,7 +126,7 @@ function ApprovePage() {
           <section className="rounded-2xl bg-card p-6 shadow-card space-y-3">
             <h2 className="font-semibold">What should the client change?</h2>
             <Textarea rows={3} maxLength={600} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'm only free until 10pm that night — could we start at 7pm?" />
-            <p className="text-xs text-muted-foreground">Your response is sent to the client chat.</p>
+            <p className="text-xs text-muted-foreground">{t("Your response is sent to the client chat.")}</p>
             <div className="flex gap-2">
               <Button disabled={busy || note.trim().length < 5} onClick={() => run(() => decline$({ data: { id, key: k, note } }), "Message sent to the client")}>Send to client</Button>
               <Button variant="ghost" onClick={() => setMode("view")}>Back</Button>
