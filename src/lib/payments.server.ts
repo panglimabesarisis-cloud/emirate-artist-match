@@ -28,7 +28,7 @@ export async function openOrder(order: {artist_id:string; kind:'credits'|'deposi
   const {data:o,error}=await db.from('payment_orders').insert(order).select('id').single();
   if(error||!o)throw new Error(error?.message??'Could not create payment');
   try {
-    const session=await stripe.checkout.sessions.create({mode:'payment',ui_mode:'embedded_page',redirect_on_completion:'never',payment_method_types:['card'],...(customer ? {customer} : {}),
+    const session=await stripe.checkout.sessions.create({mode:'payment',ui_mode:'embedded_page',redirect_on_completion:'never',...(customer ? {customer} : {}),
       line_items:[{price_data:{currency:'idr',product_data:{name:description},unit_amount:Math.round(order.amount_minor/100),tax_behavior:'inclusive'},quantity:1}],
       payment_intent_data:{description},metadata:{orderId:o.id,...(identity.userId?{userId:identity.userId}:{})}}, {idempotencyKey:o.id});
     const {error:saveError}=await db.from('payment_orders').update({stripe_session_id:session.id}).eq('id',o.id);

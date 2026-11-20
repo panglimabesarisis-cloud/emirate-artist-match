@@ -32,6 +32,13 @@ describe('checkout-only IDR pricing', () => {
     }), { idempotencyKey: 'order-1' });
   });
 
+  it('lets Stripe select eligible payment methods rather than forcing card', async () => {
+    await openOrder({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 }, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
+    const params = mocks.createSession.mock.calls[0]?.[0];
+    expect(params).toMatchObject({ mode: 'payment', ui_mode: 'embedded_page', redirect_on_completion: 'never' });
+    expect(params).not.toHaveProperty('payment_method_types');
+  });
+
   it('omits return_url when embedded checkout never redirects', async () => {
     await openOrder({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 }, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
     const params = mocks.createSession.mock.calls[0]?.[0];
