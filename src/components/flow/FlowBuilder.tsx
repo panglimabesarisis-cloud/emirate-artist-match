@@ -7,7 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { cardTitle, FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
 import { collectFlowVariables } from "@/lib/flow-variables";
 import { FlowVariableSelect } from "./FlowVariableSelect";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,10 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
       {k !== "start" && <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border !border-border !bg-background" />}
       <div className="flex items-center gap-2 px-3 pt-2.5 text-xs font-semibold">
         <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: color }}>{kindLabel(k)[0]}</span>
-        <span className="truncate">{kindLabel(k)}</span>
+        <span className="truncate" title={cardTitle({ type: k, data })}>{cardTitle({ type: k, data })}</span>
       </div>
       <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || "Click to edit…"}</div>
+      {k === "knowledge" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{data.knowledgeQA?.length ?? 0} Q&A</div>}
       {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || "Artist's WhatsApp"}</div><div>Approval → Invoice</div></div>}
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
       {k === "form" && (
@@ -160,6 +161,8 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
   const save = () => onSave({
     nodes: nodes.map((x) => {
       const d: FlowNode["data"] = { text: x.data.text };
+      if (x.data.title?.trim()) d.title = x.data.title.trim();
+      if (x.type === "knowledge") d.knowledgeQA = (x.data.knowledgeQA ?? []).map(pair => ({ question: pair.question.trim(), answer: pair.answer.trim() })).filter(pair => pair.question && pair.answer);
       if (x.data.buttons) d.buttons = x.data.buttons.map((b) => b.trim()).filter(Boolean);
       const urls = (x.data.urlButtons ?? []).filter((u) => u.label.trim() && /^https?:\/\//.test(u.url));
       if (urls.length) d.urlButtons = urls;
@@ -173,7 +176,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })),
   });
   const blocks = FLOW_KINDS.filter((k) => (tab === "All" || k.group === tab) && k.label.toLowerCase().includes(q.toLowerCase()));
-  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp"].includes(selected.type as string);
+  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge"].includes(selected.type as string);
 
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -226,9 +229,24 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
               <div className="mt-1 flex items-center gap-2 text-sm font-semibold"><span className="grid h-6 w-6 place-items-center rounded text-[11px] text-primary-foreground" style={{ background: `var(${kindColor(selected.type as FlowKind)})` }}>{kindLabel(selected.type as FlowKind)[0]}</span>{kindLabel(selected.type as FlowKind)}</div>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="flow-card-title" className="text-xs">{t("Card title")}</Label>
+              <Input id="flow-card-title" maxLength={80} disabled={!!readOnly} placeholder={kindLabel(selected.type as FlowKind)} value={selected.data.title ?? ""} onChange={e => patch(selected.id, d => ({ ...d, title: e.target.value }))} />
+            </div>
+            {selected.type === "knowledge" ? <div className="space-y-4">
+              <div className="space-y-1.5"><Label htmlFor="knowledge-facts" className="text-xs">{t("General information")}</Label><Textarea id="knowledge-facts" rows={7} disabled={!!readOnly} value={selected.data.text} onChange={e => patch(selected.id, d => ({ ...d, text: e.target.value }))} /></div>
+              <div className="space-y-3"><Label className="text-xs">{t("Questions & answers")}</Label>
+                {(selected.data.knowledgeQA ?? []).map((pair, index) => <div key={index} className="space-y-2 border-b pb-3">
+                  <div className="flex items-center justify-between"><Label htmlFor={`knowledge-question-${index}`} className="text-xs">{t("Question")} {index + 1}</Label>{!readOnly && <Button size="icon" variant="ghost" aria-label={`${t("Delete question")} ${index + 1}`} title={t("Delete question")} onClick={() => patch(selected.id, d => ({ ...d, knowledgeQA: (d.knowledgeQA ?? []).filter((_, i) => i !== index) }))}><Trash2 className="size-4" /></Button>}</div>
+                  <Input id={`knowledge-question-${index}`} disabled={!!readOnly} value={pair.question} onChange={e => patch(selected.id, d => ({ ...d, knowledgeQA: (d.knowledgeQA ?? []).map((item, i) => i === index ? { ...item, question: e.target.value } : item) }))} />
+                  <Label htmlFor={`knowledge-answer-${index}`} className="text-xs">{t("Answer")} {index + 1}</Label>
+                  <Textarea id={`knowledge-answer-${index}`} disabled={!!readOnly} value={pair.answer} onChange={e => patch(selected.id, d => ({ ...d, knowledgeQA: (d.knowledgeQA ?? []).map((item, i) => i === index ? { ...item, answer: e.target.value } : item) }))} />
+                </div>)}
+                {!readOnly && <Button size="sm" variant="outline" className="w-full" onClick={() => patch(selected.id, d => ({ ...d, knowledgeQA: [...(d.knowledgeQA ?? []), { question: "", answer: "" }] }))}>{t("Add question & answer")}</Button>}
+              </div>
+            </div> : <div className="space-y-1.5">
               <Label className="text-xs">Bot asks / does this</Label>
               <RichText variables={variables} disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
-            </div>
+            </div>}
             {selected.type === "form" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Fields included in the form</Label>

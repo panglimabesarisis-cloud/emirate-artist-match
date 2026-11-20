@@ -4,6 +4,7 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Card title": "عنوان البطاقة", "General information": "معلومات عامة", "Questions & answers": "أسئلة وأجوبة", "Question": "السؤال", "Answer": "الإجابة", "Delete question": "حذف السؤال", "Add question & answer": "إضافة سؤال وإجابة",
   Ratecard: "قائمة الأسعار", Invoice: "فاتورة", Contract: "عقد", Artist: "الفنان", Client: "العميل", Total: "الإجمالي", Payment: "الدفع", Balance: "الرصيد", View: "عرض", Service: "الخدمة", Time: "الوقت",
   "Job type": "نوع العمل", "Add ratecard": "إضافة سعر", "Edit ratecard": "تعديل السعر", "Search ratecards": "البحث في الأسعار", "No ratecards yet.": "لا توجد أسعار بعد.", "All artists": "كل الفنانين",
   "Search invoices": "البحث في الفواتير", "Payment status": "حالة الدفع", "All payments": "كل المدفوعات", Unpaid: "غير مدفوع", Paid: "مدفوع", "Paid 100%": "مدفوع 100%", "Partially paid": "مدفوع جزئياً", "Paid at": "تاريخ الدفع", "No invoices yet.": "لا توجد فواتير بعد.", "Invoice preview": "معاينة الفاتورة",

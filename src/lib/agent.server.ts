@@ -10,7 +10,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm } from "./booking-message";
-import { invoiceWorkflow, approvalAction, flowToPrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
+import { invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-5.6-luna" as const;
@@ -86,6 +86,7 @@ QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token 
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
+${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
 BOOKING CONFIRMATION: ${confirm ? 'Your first message showed the booking details. When the client confirms, check_calendar and continue the flow in the same turn; do not promise a background check that never runs.' : 'This is a direct chat; collect the missing details following the flow. When details are confirmed, check_calendar and continue in the same turn.'}
 CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
 ${flowSteps}
