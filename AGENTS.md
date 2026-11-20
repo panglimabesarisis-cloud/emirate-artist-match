@@ -41,8 +41,6 @@ use the editor.
 - Booking notifications use `notify.server.ts` and log every attempt. Server dispatch reads provider/token from admin-only `admin_secrets`; settings return only token presence. Meta retains approved templates and signed status inbox; Fonnte IDs are prefixed and acceptance is not delivery. Artist approval retains its secret link.
 - Artist team access goes through `is_artist_team()` (owner or active `artist_members` row) in RLS and server checks; owner-only areas (profile, credits, AI settings, team, calendar link) use `is_artist_owner()`.
 - Calendar feeds are served from `/api/public/calendar/<token>.ics`; the token lives in owner-only `artist_calendar` because `artists` rows are publicly readable.
-- UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
-- CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.
 - Artist photos/videos live in the private `artist-media` bucket (public buckets are blocked by workspace policy); public pages show them via short-lived signed URLs created in `getArtist`.
 - Agent integrations (MCP) live in `src/lib/mcp/` with OAuth via the managed auth issuer; tools query as the caller (RLS applies), never with admin keys. Approval page is `/.lovable/oauth/consent`.
 - Admin-editable site config lives in `site_settings` (public read, admin write) and `plan_tiers`; admin-entered API keys go in admin-only `admin_secrets` — never put keys in `site_settings`, which is publicly readable.
@@ -54,7 +52,6 @@ use the editor.
 - AI drafts require live Google freeBusy for the artist owner; never manual blocks, since prompt-only checks cannot enforce availability.
 - Artist wallet numbers come only from the `artist_wallet()` SQL function (completed bookings minus plan commission minus payouts); withdrawals are `payout_requests` rows guarded by a trigger (amount ≤ available, only admins change status).
 - Paid-booking WhatsApp details go to the artist's `notify_phone` and `manager_phone` via `notifyTeamPaid` in bookings.functions.
-- Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.
 - Talent signup plan choice is kept in localStorage `join_plan` (survives Google OAuth redirect); specialty limits and signup deposit totals live in `src/lib/join-rules.ts` with tests; `/join/payment` uses sandbox-only Stripe checkout for the deposit.
 
 - Sandbox payment orders settle atomically through `settle_sandbox_order` only after server-side Stripe verification; invoice, credit, deposit, and booking amounts come from server-owned data, never browser totals.
@@ -63,4 +60,4 @@ use the editor.
 - WhatsApp flow approvals snapshot invoice intent on the booking; `approve_flow_booking` atomically approves and posts one linked invoice, paid through the booking contract/escrow checkout to prevent duplicate charges.
 - Flow builder previews and client chats share ChatFlowControls so buttons and form dates render identically; a standalone date picker is a single-date-field form, preserving the existing agent contract. These structured controls use shadcn rather than AI Elements because they submit the existing flow text protocol, not an AI SDK transcript.
 
-- Booking invoice approval, partial settlement, calendar and reminder invariants are documented in src/lib/AGENTS.md.
+- Booking invoice approval, partial settlement, calendar and reminder invariants are documented in src/lib/AGENTS.md. UI translation, CSV export and payment-rules conventions are there too.
