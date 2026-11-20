@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryEditor, type CategoryDraft } from "./CategoryEditor";
+import { SpecialitiesManager } from "./SpecialitiesManager";
 
 type Patch = { status?: string; featured?: boolean; plan?: string; category_id?: string };
 
@@ -115,21 +117,14 @@ export function ArtistRequests() {
   );
 }
 
-type Cat = { id?: string; name: string; name_ar: string | null; slug: string; icon: string | null; description: string | null; sort: number | null };
+type Cat = CategoryDraft;
 export function CategoryManager() {
   const qc = useQueryClient();
   const cats = useCategories().data ?? [];
   const artists = useArtists().data ?? [];
   const [edit, setEdit] = useState<Cat | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-categories"] });
-  const save = async () => {
-    if (!edit?.name.trim()) return;
-    const row = { name: edit.name.trim(), name_ar: edit.name_ar || null, slug: edit.slug || slugify(edit.name), icon: edit.icon || null, description: edit.description || null, sort: edit.sort ?? 100 };
-    const { error } = edit.id ? await supabase.from("categories").update(row).eq("id", edit.id) : await supabase.from("categories").insert(row);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Category saved"); setEdit(null); refresh();
-  };
+  const refresh = () => Promise.all(["admin-categories", "admin-specialities", "join-catalog", "catalog-client"].map((key) => qc.invalidateQueries({ queryKey: [key] })));
   const remove = async (id: string, count: number) => {
     if (count > 0) { toast.error(`Move the ${count} artist(s) to another category first.`); return; }
     if (!confirm("Delete this category?")) return;
@@ -169,22 +164,11 @@ export function CategoryManager() {
           </TableBody>
         </Table>
       </div>
+      <SpecialitiesManager categories={cats} />
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{edit?.id ? "Edit category" : "New category"}</DialogTitle></DialogHeader>
-          {edit && (
-            <div className="grid gap-3">
-              <div><Label>Name (English)</Label><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
-              <div><Label>Name (Arabic)</Label><Input dir="rtl" value={edit.name_ar ?? ""} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Slug</Label><Input value={edit.slug} placeholder={slugify(edit.name)} onChange={(e) => setEdit({ ...edit, slug: slugify(e.target.value) })} /></div>
-                <div><Label>Sort</Label><Input type="number" value={edit.sort ?? 100} onChange={(e) => setEdit({ ...edit, sort: Number(e.target.value) })} /></div>
-              </div>
-              <div><Label>Icon (emoji)</Label><Input value={edit.icon ?? ""} onChange={(e) => setEdit({ ...edit, icon: e.target.value })} /></div>
-              <div><Label>Description</Label><Textarea value={edit.description ?? ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
-            </div>
-          )}
-          <DialogFooter><Button onClick={save}>Save</Button></DialogFooter>
+          {edit && <CategoryEditor initial={edit} onSaved={() => { setEdit(null); refresh(); }} />}
         </DialogContent>
       </Dialog>
     </div>

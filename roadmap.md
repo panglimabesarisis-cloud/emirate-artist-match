@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Categories: automatic Arabic translation and English-name slug; Specialities table with category selection, name and /category/speciality slug. Signed-in create/save/reload verified, tablet/mobile dialogs checked, 3 tests pass; test entries removed.
 - [x] Add shared AI response variables and Ratecard/Invoice/Contract menus for admin and artists; ratecard saved/read back, invoice Paid 20% and contract preview verified signed-in, mobile checked, 38 tests pass. Added admin-only invoice SELECT; existing Stripe/payment blockers unchanged.
 - [x] Match homepage to uploaded HTML: centered search, compact categories/cards, benefits and organiser/performer sections; preserved booking links, verified desktop/mobile filtering, profile navigation, search and RTL.
 - [ ] Connect user's own Stripe test account for AED checkout/webhook: own-account key validated and securely saved via Stripe setup, but runtime remains on managed test account. Blocked: Stripe connector refuses own-account linking as Payments-managed; setup does not supply an own-account gateway connection/client token. No checkout or webhook changes made; test purchase unverified.
