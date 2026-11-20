@@ -7,7 +7,9 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, FLOW_VARIABLES, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { collectFlowVariables } from "@/lib/flow-variables";
+import { FlowVariableSelect } from "./FlowVariableSelect";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -73,7 +75,7 @@ const toRF = (f: { nodes: FlowNode[]; edges: FlowEdge[] }) => ({
 });
 
 /** Rich text box with a WotNot/TinyMCE-style toolbar; formatting is saved as simple markdown. */
-function RichText({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+function RichText({ value, onChange, disabled, variables }: { value: string; onChange: (v: string) => void; disabled?: boolean; variables: string[] }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const wrapSel = (before: string, after = before, fallback = "text") => {
     const el = ref.current; if (!el) return;
@@ -104,7 +106,7 @@ function RichText({ value, onChange, disabled }: { value: string; onChange: (v: 
         <Tb label="🔗" title="Link" onClick={() => wrapSel("[", "](https://)", "link")} />
         <Popover>
           <PopoverTrigger asChild><button type="button" disabled={disabled} title="Insert variable" className="grid h-7 place-items-center rounded px-1.5 font-mono text-xs hover:bg-muted">{"{x}"}</button></PopoverTrigger>
-          <PopoverContent className="w-48 p-1">{FLOW_VARIABLES.map((v) => <button key={v} type="button" onClick={() => insert(`{${v}}`)} className="block w-full rounded px-2 py-1 text-start font-mono text-xs hover:bg-muted">{v}</button>)}</PopoverContent>
+          <PopoverContent className="max-h-72 w-60 overflow-y-auto p-1">{variables.map((v) => <Button key={v} type="button" variant="ghost" onClick={() => insert(`{${v}}`)} className="h-auto w-full justify-start break-all px-2 py-1 font-mono text-xs">{v}</Button>)}</PopoverContent>
         </Popover>
         <Popover>
           <PopoverTrigger asChild><button type="button" disabled={disabled} title="Emoji" className="ms-auto grid h-7 w-7 place-items-center rounded hover:bg-muted">☺</button></PopoverTrigger>
@@ -144,6 +146,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     setSel(id);
   };
   const selected = nodes.find((x) => x.id === sel);
+  const variables = useMemo(() => collectFlowVariables(nodes), [nodes]);
   const selectedEdge = edges.find((edge) => edge.id === edgeId);
   const deleteConnection = () => {
     if (readOnly || !selectedEdge) return;
@@ -224,7 +227,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Bot asks / does this</Label>
-              <RichText disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
+              <RichText variables={variables} disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
             </div>
             {selected.type === "form" && (
               <div className="space-y-1.5">
@@ -250,10 +253,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                         <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{FIELD_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Select disabled={!!readOnly} value={f.saveAs ?? "none"} onValueChange={(v) => setFields(selected.id, (fs) => fs.map((x, j) => (j === i ? { ...x, saveAs: v === "none" ? undefined : v } : x)))}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Save to" /></SelectTrigger>
-                        <SelectContent><SelectItem value="none">Don't save</SelectItem>{FLOW_VARIABLES.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <FlowVariableSelect key={`${selected.id}-${i}`} compact label={`Save to ${f.label}`} variables={variables} disabled={!!readOnly} value={f.saveAs} onChange={v => setFields(selected.id, fs => fs.map((x, j) => j === i ? { ...x, saveAs: v } : x))} />
                     </div>
                   </div>
                 ))}
@@ -297,10 +297,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             {canSave && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Save response</Label>
-                <Select disabled={!!readOnly} value={selected.data.saveAs ?? "none"} onValueChange={(v) => patch(selected.id, (d) => ({ ...d, saveAs: v === "none" ? undefined : v }))}>
-                  <SelectTrigger className="h-8"><SelectValue placeholder="Select variable" /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">Don't save</SelectItem>{FLOW_VARIABLES.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                </Select>
+                <FlowVariableSelect key={selected.id} variables={variables} disabled={!!readOnly} value={selected.data.saveAs} onChange={v => patch(selected.id, d => ({ ...d, saveAs: v }))} />
                 <p className="text-[11px] text-muted-foreground">Use it later in any step as {"{"}variable{"}"}, e.g. "Hi {"{client_name}"}".</p>
               </div>
             )}

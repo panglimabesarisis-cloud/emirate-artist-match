@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Custom AI Flow variables use the shared selector and are derived from saved node/field saveAs names; this preserves existing names and carries custom variables through templates and reloads without a separate catalog.
 - Public pages read data through `createServerFn` in `src/lib/public.functions.ts` using a publishable-key client; signed-in dashboards use the browser client under `_authenticated` so RLS enforces ownership.
 - Public artist stats come only from the `artist_public_stats()` SQL function, which computes from bookings/reviews and applies each artist's visibility settings — never store or type stat numbers.
 - Roles live in `user_roles`; signup may only self-assign artist or client, admin is granted manually.
