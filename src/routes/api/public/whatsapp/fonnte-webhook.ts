@@ -5,6 +5,8 @@ export const Route=createFileRoute('/api/public/whatsapp/fonnte-webhook')({serve
   const result=await authenticateFonnte(request,process.env['FONNTE_WEBHOOK_SECRET']);
   if(result.error)return Response.json({error:result.error},{status:result.status ?? 400});
   if('ignored' in result)return Response.json({received:true});
+  const {readWhatsAppConfig}=await import('@/lib/whatsapp-provider.server');
+  if((await readWhatsAppConfig()).provider!=='fonnte')return Response.json({error:'Fonnte is not active'},{status:409});
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const {error:insertError}=await db.from('fonnte_approval_events').upsert(result.event,{onConflict:'delivery_id',ignoreDuplicates:true});
   if(insertError)return Response.json({error:'Storage failed'},{status:500});
