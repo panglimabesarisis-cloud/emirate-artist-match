@@ -1,5 +1,5 @@
 # Roadmap
-- [x] Custom Save response/Form variables shared by admin and artist AI Flow; admin create/insert/save/reload and tablet dialog verified, 30 tests pass. Temporary test blocks and admin access removed.
+- [x] Custom Save response/Form variables shared by admin and artist AI Flow; admin create/insert/save/reload verified, both dashboards and all seven form fields tested at desktop/phone widths with light/dark class states; tablet dialog checked, 30 tests pass. Temporary profiles, flows, blocks and roles removed.
 - [x] Categories: automatic Arabic translation and English-name slug; Specialities table with category selection, name and /category/speciality slug. Signed-in create/save/reload verified, tablet/mobile dialogs checked, 3 tests pass; test entries removed.
 - [x] Add shared AI response variables and Ratecard/Invoice/Contract menus for admin and artists; ratecard saved/read back, invoice Paid 20% and contract preview verified signed-in, mobile checked, 38 tests pass. Added admin-only invoice SELECT; existing Stripe/payment blockers unchanged.
 - [x] Match homepage to uploaded HTML: centered search, compact categories/cards, benefits and organiser/performer sections; preserved booking links, verified desktop/mobile filtering, profile navigation, search and RTL.
