@@ -4,7 +4,8 @@ import { Search, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n, localName } from "@/lib/i18n";
-import { HeroArtwork } from "./HeroArtwork";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import { RotatingWord } from "./RotatingWord";
 import { resolveHomeSearch } from "./search";
 import type { HomeCatalog } from "./types";
 
@@ -23,10 +24,10 @@ export function HomeHero({ catalog }: { catalog: HomeCatalog }) {
     else void navigate({ to: "/$category/$emirate", params: { category: result.category, emirate: result.emirate }, search: "sub" in result && result.sub ? { sub: result.sub } : {} });
   };
   return <section className="hero" aria-labelledby="home-title">
-    <HeroArtwork /><canvas className="home-sky" aria-hidden="true" />
+    <SceneBackground />
     <div className="wrap hero-in">
       <p className="eyebrow rv">{t("Dubai · Abu Dhabi · Sharjah")}</p>
-      <h1 className="serif rv" id="home-title"><span className="line"><span>{t("Book the talent")}</span></span><span className="line"><span>{t("that makes")} <em className="it">{t("the night.")}</em></span></span></h1>
+      <h1 className="serif rv" id="home-title"><span className="line"><span>{t("Book the talent")}</span></span><span className="line"><span>{t("that makes")} <RotatingWord /></span></span></h1>
       <p className="hero-sub rv d2"><strong>{t("Verified singers, DJs and cultural acts")}</strong>{t(", with an AI booking agent that quotes you in seconds.")}</p>
       <form className="search rv d3" role="search" onSubmit={(e) => { e.preventDefault(); go(); }}>
         <div className="s-f s-q"><label className="s-l" htmlFor="home-query">{t("Search")}</label><div className="s-in"><Search className="h-4 w-4 shrink-0" /><input id="home-query" type="search" placeholder={t("Talent, specialty or area")} autoComplete="off" list="home-search-suggestions" value={text} onChange={(e) => { setText(e.target.value); setError(""); }} aria-describedby={error ? "home-search-error" : undefined} /></div></div>
