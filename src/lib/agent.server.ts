@@ -1,5 +1,6 @@
 import { decodeChatMessage } from "./chat-attachments";
 import { ensureAgentForm, reachableForms } from "./agent-forms";
+import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
 import { agentRates } from "./agent-pricing";
@@ -35,9 +36,10 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
       convo.quote_request_id
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),
-      supabaseAdmin.from("messages").select("sender, body").eq("conversation_id", conversationId).order("created_at").limit(40),
+      supabaseAdmin.from("messages").select("sender, body").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(100),
     ]);
 
+  history?.reverse(); // Retain the latest progress instead of freezing at the first forty messages.
   const handover = async (why: string) => {
     await supabaseAdmin.from("conversations").update({ mode: "human" }).eq("id", conversationId);
     await addMessage(conversationId, "system", why);
@@ -54,6 +56,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const master = flows?.find((f) => f.artist_id === null && Array.isArray(f.nodes) && f.nodes.length);
   const flow = own ?? master;
   const forms = reachableForms(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
+  const buttons = reachableButtons(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
@@ -87,7 +90,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   }
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
-Goal: collect missing event details (date, venue area, guest count, timing, event type), recommend a package and quote a price.
+Goal: ${flow ? "Follow the active saved CONVERSATION FLOW, one client-facing step per reply. Do not collect event details, offer packages, or request approval ahead of the card that asks for them. Generic booking goals do not override this flow." : "Collect missing event details following the default conversation flow, one interactive step at a time."}
 PRICING RULES (strict):
 ${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}
 - Only quote the stored prices above, in AED. Prices exclude 5% VAT.
@@ -98,15 +101,15 @@ Never share or ask for phone numbers, emails or social handles — all communica
 BOOKING HAND-OFF: ${invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
-QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise.
+QUICK REPLIES (strict): When reaching a saved Buttons step, call show_buttons with its nodeId and write only that card's question. The server displays its exact saved choices. NEVER turn choices into a prose list, merge in later event questions, or advance before the client selects an option. If no tool call is used, put the exact [BUTTONS: ...] token on the last line. Available saved buttons: ${JSON.stringify(buttons.map(node => ({ nodeId: node.id, choices: node.data.buttons })))}.
 INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
 VARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
 ${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
-BOOKING CONFIRMATION: ${confirm ? 'Your first message showed the booking details. When the client confirms, check_calendar and continue the flow in the same turn; do not promise a background check that never runs.' : 'This is a direct chat; collect the missing details following the flow. When details are confirmed, check_calendar and continue in the same turn.'}
-CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
+BOOKING CONFIRMATION: ${confirm ? 'Your first message showed booking details; continue from the saved flow using those known values.' : 'This is a direct chat; start at the saved greeting and follow its connections.'} Check Calendar at its saved step, not ahead of earlier questions or forms.
+CONVERSATION FLOW (controls the order of questions; follow outgoing connections, exactly one client-facing step per reply. A greeting may introduce the first question, but STOP at every Question, Form or Buttons card and wait for its answer. Do not skip a form because only one field is known. Do not ask questions from future cards. Reply instructions may change tone but not flow order. Pricing, privacy, verified Calendar, artist approval and payment safety rules above always win):
 ${flowSteps}
 ${decisionInstruction}
 Original request: ${JSON.stringify(quote ?? {})}`;
@@ -118,8 +121,10 @@ Original request: ${JSON.stringify(quote ?? {})}`;
   try {
     let calendarCheck: CalendarCheck | undefined;
     let requestedFormId: string | undefined;
+    let requestedButtonsId: string | undefined;
     const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
-      ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
+      ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
+      ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
     let res = await generateResponse({ model: MODEL, instructions, input, tools, max_output_tokens: 600 });
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
@@ -127,9 +132,20 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       for (const call of calls) {
         input.push({ type: "function_call", name: call.name, call_id: call.call_id, arguments: call.arguments });
         let output: unknown = { status: "unknown", reason: "Invalid calendar request" };
+        if (requestedFormId || requestedButtonsId) {
+          input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify({ paused: true, instruction: "An interactive card is already displayed. Wait for the client; do not advance or run actions." }) });
+          continue;
+        }
         if (call.name === "check_calendar") calendarCheck = undefined;
         try {
           const args: unknown = JSON.parse(call.arguments);
+          if (call.name === "show_buttons" && args && typeof args === "object" && "nodeId" in args && typeof args.nodeId === "string") {
+            const saved = buttons.find(node => node.id === args.nodeId);
+            if (saved) {
+              requestedButtonsId = saved.id;
+              output = { displayed: true, question: saved.data.text, choices: saved.data.buttons, instruction: "Write only this card's question. The server appends its saved choices. Stop and wait for the client's selection. Do not ask anything from later cards." };
+            }
+          }
           if (call.name === "show_form" && args && typeof args === "object" && "nodeId" in args && typeof args.nodeId === "string") {
             const saved = forms.find(node => node.id === args.nodeId);
             if (saved) {
@@ -144,13 +160,13 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         } catch { /* Invalid arguments are not evidence of availability. */ }
         input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
       }
-      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 || requestedFormId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
     }
     let text = "";
     for (const item of res.output ?? []) {
       if (item.type === "message") for (const c of item.content) if (c.type === "output_text") text += c.text;
     }
-    text = ensureAgentForm(text.trim(), forms, history ?? [], requestedFormId);
+    text = requestedButtonsId ? ensureAgentButtons(text.trim(), buttons, requestedButtonsId) : ensureAgentButtons(ensureAgentForm(text.trim(), forms, history ?? [], requestedFormId), buttons);
     const ex = extractDraft(text);
     if (ex.draft && !artistApprovalDraft(ex.draft.date, calendarCheck)) {
       await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");

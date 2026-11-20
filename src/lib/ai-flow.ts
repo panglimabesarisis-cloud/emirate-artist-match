@@ -161,7 +161,7 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
       const bs = x.data.buttons;
       const routes = bs.map((b, i) => { const e = outs.find((o) => o.sourceHandle === `b${i}`); return e ? `"${b}" go to step ${num.get(e.target)}` : null; }).filter(Boolean);
       const def = outs.find((o) => !o.sourceHandle?.startsWith("b"));
-      next = [`end your reply with exactly [BUTTONS: ${bs.join(" | ")}]`, ...routes, def && `otherwise step ${num.get(def.target)}`].filter(Boolean).join("; ");
+      next = [`REQUIRED: call show_buttons with nodeId ${JSON.stringify(x.id)} to display these saved choices; end your reply with exactly [BUTTONS: ${bs.join(" | ")}]`, "STOP here and wait for the client's selection; do not merge questions from later steps", ...routes, def && `otherwise step ${num.get(def.target)}`].filter(Boolean).join("; ");
     } else if (x.type === "form" && x.data.fields?.length) {
       const fs = x.data.fields;
       next = [`REQUIRED: call show_form with nodeId ${JSON.stringify(x.id)} to display this saved form; never replace it with a plain-text question list. If using text, end your reply with exactly [FORM: ${fs.map((f) => `${f.label}:${f.type}`).join(" | ")}]`,
