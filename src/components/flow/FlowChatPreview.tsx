@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bot, RotateCcw, ArrowRight } from "lucide-react";
-import { cardTitle, type FlowNode, type FlowEdge } from "@/lib/ai-flow";
+import { cardTitle, whatsappEdges, type FlowNode, type FlowEdge } from "@/lib/ai-flow";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { ChatFlowButtons, ChatFlowForm } from "./ChatFlowControls";
@@ -13,7 +13,8 @@ export function FlowChatPreview({ nodes, edges, selectedId }: { nodes: FlowNode[
   const advance = (answer: string, handle?: string) => {
     if (!node) return;
     setAnswers((current) => [...current, answer]);
-    const next = edges.find((edge) => edge.source === node.id && edge.sourceHandle === handle) ?? edges.find((edge) => edge.source === node.id && !edge.sourceHandle);
+    const routes = whatsappEdges(nodes, edges);
+    const next = routes.find((edge) => edge.source === node.id && edge.sourceHandle === handle) ?? routes.find((edge) => edge.source === node.id && !edge.sourceHandle);
     if (next) setActiveId(next.target);
   };
   return <section aria-label="Chat preview" className="flex min-h-[460px] flex-col">
@@ -28,7 +29,7 @@ export function FlowChatPreview({ nodes, edges, selectedId }: { nodes: FlowNode[
           {node.type === "payment" && <div className="mt-2 rounded-md border p-3 text-xs">DP 20% · Stripe sandbox<br/>Calendar reserved after verified payment<br/>Balance reminder H-7</div>}
           {node.type === "buttons" && <ChatFlowButtons buttons={node.data.buttons ?? []} onSelect={(answer) => advance(answer, `b${node.data.buttons?.indexOf(answer)}`)} />}
           {node.type === "form" && <ChatFlowForm fields={node.data.fields ?? []} onSubmit={(answer) => advance(answer)} />}
-          {["calendar", "condition"].includes(node.type) ? <div className="mt-2 flex gap-2"><Button size="sm" variant="outline" onClick={() => advance(node.type === "calendar" ? "Available" : "Yes", "yes")}>{t(node.type === "calendar" ? "Available" : "Yes")}</Button><Button size="sm" variant="outline" onClick={() => advance(node.type === "calendar" ? "Busy" : "No", "no")}>{t(node.type === "calendar" ? "Busy" : "No")}</Button></div> : !["buttons", "form"].includes(node.type) && edges.some(edge => edge.source === node.id) && <Button size="sm" variant="outline" className="mt-2" onClick={() => advance("Continue")}><ArrowRight className="size-4" />{t("Continue")}</Button>}
+          {["calendar", "condition", "whatsapp"].includes(node.type) ? <div className="mt-2 flex gap-2"><Button size="sm" variant="outline" onClick={() => advance(node.type === "calendar" ? "Available" : "Yes", "yes")}>{t(node.type === "calendar" ? "Available" : "Yes")}</Button><Button size="sm" variant="outline" onClick={() => advance(node.type === "calendar" ? "Busy" : "No", "no")}>{t(node.type === "calendar" ? "Busy" : "No")}</Button></div> : !["buttons", "form"].includes(node.type) && edges.some(edge => edge.source === node.id) && <Button size="sm" variant="outline" className="mt-2" onClick={() => advance("Continue")}><ArrowRight className="size-4" />{t("Continue")}</Button>}
           {node.data.urlButtons?.map((link, i) => /^https?:\/\//.test(link.url) && <Button key={i} asChild variant="outline" className="mt-2 h-auto w-full whitespace-normal text-primary"><a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a></Button>)}
         </div>
       </div>}

@@ -94,7 +94,27 @@ export const DEFAULT_FLOW: { nodes: FlowNode[]; edges: FlowEdge[] } = {
   ],
 };
 
-export const isBranching = (k: FlowKind) => k === "condition" || k === "calendar";
+export const isBranching = (k: FlowKind) => k === "condition" || k === "calendar" || k === "whatsapp";
+
+export function verifiedArtistDecision(booking: { status: string; cancelled_by: string | null }): "yes" | "no" | null {
+  if (booking.status === "quoted") return "yes";
+  if (booking.status === "cancelled" && booking.cancelled_by === "artist") return "no";
+  return null;
+}
+
+/** Existing single-output WhatsApp edges remain the approval (Yes) path. */
+export function whatsappEdges(nodes: FlowNode[], edges: FlowEdge[]): FlowEdge[] {
+  const ids = new Set(nodes.filter(n => n.type === "whatsapp").map(n => n.id));
+  return edges.map(e => ids.has(e.source) && !e.sourceHandle ? { ...e, sourceHandle: "yes" } : e);
+}
+
+/** Resolve only a server-verified artist decision, never a client's Yes/No. */
+export function artistDecisionBranch(nodes: FlowNode[], edges: FlowEdge[], decision: "yes" | "no") {
+  const action = approvalAction(nodes, edges);
+  if (!action) return null;
+  const targetId = whatsappEdges(nodes, edges).find(e => e.source === action.nodeId && e.sourceHandle === decision)?.target;
+  return nodes.find(n => n.id === targetId) ?? null;
+}
 
 /** Only connected approval blocks may change a booking's notification destination. */
 export function approvalAction(nodes: FlowNode[], edges: FlowEdge[]) {
@@ -108,7 +128,7 @@ export function approvalAction(nodes: FlowNode[], edges: FlowEdge[]) {
     if (node.type === "whatsapp") {
       const phone = node.data.destinationPhone?.trim() ?? "";
       if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error("Use an international WhatsApp number, e.g. +971501234567");
-      return { phone: phone || null, sendInvoice: true };
+      return { nodeId: node.id, phone: phone || null, sendInvoice: true };
     }
     for (const edge of edges.filter(e => e.source === node.id)) {
       const next = nodes.find(x => x.id === edge.target);
@@ -121,6 +141,7 @@ export function approvalAction(nodes: FlowNode[], edges: FlowEdge[]) {
 /** Turns a flow into numbered conversation steps for the AI agent prompt. */
 export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
   if (!nodes.length) return "";
+  edges = whatsappEdges(nodes, edges);
   const start = nodes.find((x) => x.type === "start") ?? nodes.find((x) => !edges.some((e) => e.target === x.id)) ?? nodes[0];
   const order: FlowNode[] = [];
   const seen = new Set<string>();

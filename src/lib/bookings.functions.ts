@@ -5,6 +5,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { bookingPayment } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
 import { priceBreakdown, refundAmount, canComplete, canDispute } from "./booking-rules";
+import { artistDecisionBranch, type FlowNode, type FlowEdge } from "./ai-flow";
 
 const uuid = (v: unknown) => {
   if (typeof v !== "string" || !/^[0-9a-f-]{36}$/i.test(v)) throw new Error("Invalid id");
@@ -202,6 +203,23 @@ async function bookingByArtistKey(id: string, key: string) {
   return data;
 }
 
+/** Called only after the secret artist link has committed an approval/decline. */
+async function resumeArtistDecision(b: { id: string; artist_id: string; conversation_id: string | null }, decision: "yes" | "no") {
+  if (!b.conversation_id) return false;
+  const db = await admin();
+  const { data: flows, error } = await db.from("ai_flows").select("artist_id,enabled,nodes,edges").or(`artist_id.is.null,artist_id.eq.${b.artist_id}`);
+  if (error) throw new Error("Could not load artist flow");
+  const flow = flows?.find(f => f.artist_id === b.artist_id && f.enabled) ?? flows?.find(f => f.artist_id === null);
+  if (!flow || !Array.isArray(flow.nodes) || !Array.isArray(flow.edges)) return false;
+  const branch = artistDecisionBranch(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision);
+  if (!branch) return false;
+  const { error: modeError } = await db.from("conversations").update({ mode: "ai", last_message_at: new Date().toISOString() }).eq("id", b.conversation_id);
+  if (modeError) throw new Error("Could not resume chat");
+  const { runAgent } = await import("./agent.server");
+  await runAgent(b.conversation_id, b.id);
+  return true;
+}
+
 /** Artist approval link (from email/WhatsApp): view the AI-drafted booking. */
 export const getApproval = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string; key: string }) => ({ id: uuid(i.id), key: uuid(i.key) }))
@@ -231,6 +249,7 @@ export const approveBooking = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!changed) throw new Error("This booking was already handled");
     await sendClientLink(b.id);
+    await resumeArtistDecision(b, "yes");
     return { ok: true };
   });
 
@@ -245,10 +264,15 @@ export const declineBooking = createServerFn({ method: "POST" })
     const b = await bookingByArtistKey(data.id, data.key);
     if (b.status !== "inquiry") throw new Error("This booking was already handled");
     const db = await admin();
-    await db.from("bookings").update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: "artist", cancel_reason: data.note, revision_note: data.note }).eq("id", b.id);
+    const { data: changed, error } = await db.from("bookings").update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: "artist", cancel_reason: data.note, revision_note: data.note }).eq("id", b.id).eq("status", "inquiry").select("id").maybeSingle();
+    if (error || !changed) throw new Error(error?.message ?? "This booking was already handled");
     if (b.conversation_id) {
-      await db.from("messages").insert({ conversation_id: b.conversation_id, sender: "artist", body: data.note });
-      await db.from("conversations").update({ mode: "human", last_message_at: new Date().toISOString() }).eq("id", b.conversation_id);
+      const { error: messageError } = await db.from("messages").insert({ conversation_id: b.conversation_id, sender: "artist", body: data.note });
+      if (messageError) throw new Error("Could not post artist response");
+      if (!await resumeArtistDecision(b, "no")) {
+        const { error: chatError } = await db.from("conversations").update({ mode: "human", last_message_at: new Date().toISOString() }).eq("id", b.conversation_id);
+        if (chatError) throw new Error("Could not update chat");
+      }
     }
     return { ok: true };
   });
@@ -346,5 +370,6 @@ export const approveArtistInvoice = createServerFn({method:"POST"})
   if(check.status!=="available")throw new Error("Google Calendar must confirm this schedule before invoice approval");
   const {error,data:changed}=await db.rpc("approve_invoice_booking",{_id:b.id,_key:data.key,_items:data.items});
   if(error||!changed)throw new Error(error?.message??"Already handled");
-  await sendClientLink(b.id); return {ok:true};
+  await sendClientLink(b.id);
+  await resumeArtistDecision(b, "yes"); return {ok:true};
  });

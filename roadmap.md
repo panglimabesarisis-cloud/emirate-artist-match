@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Editable artist WhatsApp destination, Yes/No flow branches and secure approval-link responses returned to the AI chat; real provider delivery depends on existing WhatsApp setup.
 - [x] AI Knowledge cards with editable titles, general facts and Q&A mapping shared by admin/artist templates; saved/read back in admin UI, tablet layout and live client Q&A verified; 35 tests pass. Knowledge never overrides verified prices, Calendar or payment rules; QA flow/chat removed and consumed credit refunded.
 - [x] Textarea AI forms, sidebar quick chat, growing composer/private JPG-PDF-video attachments, and pending artist confirmation without Calendar; client upload/send/reload, signed-in team Inbox and phone layouts verified, 44 tests pass. AI reads attachment names only, not contents; fixtures removed. Existing payment/WhatsApp blockers below remain.
 - [x] Custom Save response/Form variables shared by admin and artist AI Flow; admin create/insert/save/reload verified, both dashboards and all seven form fields tested at desktop/phone widths with light/dark class states; tablet dialog checked, 30 tests pass. Temporary profiles, flows, blocks and roles removed.

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { approvalAction } from "@/lib/ai-flow";
+import { approvalAction, whatsappEdges } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
 import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
@@ -72,7 +72,7 @@ const nodeTypes = Object.fromEntries(FLOW_KINDS.map((k) => [k.kind, StepNode]));
 
 const toRF = (f: { nodes: FlowNode[]; edges: FlowEdge[] }) => ({
   nodes: f.nodes as Node<Data>[],
-  edges: f.edges.map((e) => ({ ...e, type: "smoothstep", label: e.sourceHandle === "yes" ? "Yes" : e.sourceHandle === "no" ? "No" : undefined })) as Edge[],
+  edges: whatsappEdges(f.nodes, f.edges).map((e) => ({ ...e, type: "smoothstep", label: e.sourceHandle === "yes" ? "Yes" : e.sourceHandle === "no" ? "No" : undefined })) as Edge[],
 });
 
 /** Rich text box with a WotNot/TinyMCE-style toolbar; formatting is saved as simple markdown. */
@@ -283,8 +283,8 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             {selected.type === "whatsapp" && <div className="space-y-4">
               <div className="space-y-1.5"><Label htmlFor="approval-phone">{t("Artist WhatsApp number")}</Label><Input id="approval-phone" aria-label="Artist WhatsApp number" type="tel" dir="ltr" maxLength={16} placeholder="+971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d]/g, "") }))} /></div>
               <div className="space-y-1.5"><Label>{t("Destination")}</Label><div className="text-sm text-muted-foreground">{selected.data.destinationPhone || t("Artist's saved WhatsApp number")}</div></div>
-              <div className="space-y-1.5"><Label>{t("On approval")}</Label><div className="text-sm">{t("Send invoice to client chat")}</div></div>
-              <div className="space-y-1.5"><Label>{t("If declined")}</Label><div className="text-sm text-muted-foreground">{t("No invoice · artist takes over")}</div></div>
+              <div className="space-y-1.5"><Label>{t("Yes · Artist approves")}</Label><div className="text-sm">{t("Continue Yes branch")}</div></div>
+              <div className="space-y-1.5"><Label>{t("No · Artist declines")}</Label><div className="text-sm text-muted-foreground">{t("Continue No branch")}</div></div>
             </div>}
             {selected.type === "buttons" && (
               <div className="space-y-1.5">
@@ -379,15 +379,15 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
         {artistId ? (
           <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
             <div>
-              <div className="font-medium">Custom conversation flow</div>
-              <p className="text-sm text-muted-foreground">{custom ? "Your AI assistant follows your own flow below." : "Off: your AI assistant follows the standard Dealmaker flow (shown below, read-only). Turn on to customise it."}</p>
+              <div className="font-medium">{t("Custom conversation flow")}</div>
+              <p className="text-sm text-muted-foreground">{t(custom ? "Custom flow active" : "Standard flow active")}</p>
             </div>
             <Switch disabled={!canEdit || saving} checked={custom} onCheckedChange={(on) => persist(parse(data.own) ?? masterFlow, on)} />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">This is the standard flow every artist's AI assistant follows unless the artist turns on their own custom flow.</p>
         )}
-        <Canvas initial={draft ?? savedFlow} readOnly={!canEdit || (!!artistId && !custom && !draft)} onSave={(f) => persist(f, true)} saving={saving} />
+        <Canvas initial={draft ?? savedFlow} readOnly={!canEdit} onSave={(f) => persist(f, true)} saving={saving} />
       </div>
     </ReactFlowProvider>
   );

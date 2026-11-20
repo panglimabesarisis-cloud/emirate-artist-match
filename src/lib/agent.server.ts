@@ -10,7 +10,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm } from "./booking-message";
-import { invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
+import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 const MODEL = "openai/gpt-5.6-luna" as const;
@@ -21,7 +21,7 @@ export async function addMessage(conversationId: string, sender: string, body: s
 }
 
 /** Runs the artist's AI agent for one reply, charging the artist's credit wallet. */
-export async function runAgent(conversationId: string) {
+export async function runAgent(conversationId: string, artistDecisionBookingId?: string) {
   const { data: convo } = await supabaseAdmin.from("conversations").select("*").eq("id", conversationId).single();
   if (!convo || convo.mode !== "ai") return;
 
@@ -55,6 +55,17 @@ export async function runAgent(conversationId: string) {
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
 
+  let decisionInstruction = "";
+  if (artistDecisionBookingId) {
+    const { data: verified, error } = await supabaseAdmin.from("bookings").select("id,status,cancelled_by,cancel_reason,package_title,event_date,paid_amount,total").eq("id", artistDecisionBookingId).eq("conversation_id", conversationId).eq("artist_id", convo.artist_id).maybeSingle();
+    if (error || !verified) throw new Error("Artist decision unavailable");
+    const decision = verifiedArtistDecision(verified);
+    if (!decision || !flow) return;
+    const branch = artistDecisionBranch(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision);
+    if (!branch) return;
+    decisionInstruction = `VERIFIED ARTIST RESPONSE: ${decision.toUpperCase()} for ${verified.package_title} on ${verified.event_date}. ${decision === "no" ? `Decline reason: ${verified.cancel_reason}. No invoice or payment is allowed for this cancelled booking.` : "The artist approved the invoice; payment is not confirmed."} Resume the WhatsApp ${decision.toUpperCase()} branch now, starting with this saved step: ${JSON.stringify({ type: branch.type, instructions: branch.data.text, fields: branch.data.fields, buttons: branch.data.buttons })}. Do not restart the greeting, request approval again, or follow the opposite branch. Follow its outgoing steps. All pricing, invoice and payment safety rules still apply.`;
+  }
+
   const invoiceAction = invoiceWorkflow(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
   const {data: existingBooking} = await supabaseAdmin.from("bookings").select("status,artist_invoice_required,paid_amount,total").eq("conversation_id",conversationId).in("status",["inquiry","quoted","confirmed"]).limit(1).maybeSingle();
   const maxDiscount = settings?.max_discount_pct ?? 10;
@@ -65,7 +76,7 @@ export async function runAgent(conversationId: string) {
     startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;
   const aiCount = (history ?? []).filter((m) => m.sender === "ai").length;
   // First reply is a fixed confirmation of the booking details; no AI call needed.
-  if (confirm && aiCount === 0) {
+  if (confirm && aiCount === 0 && !artistDecisionBookingId) {
     await addMessage(conversationId, "ai", maskContacts(confirm));
     return;
   }
@@ -90,6 +101,7 @@ ${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
 BOOKING CONFIRMATION: ${confirm ? 'Your first message showed the booking details. When the client confirms, check_calendar and continue the flow in the same turn; do not promise a background check that never runs.' : 'This is a direct chat; collect the missing details following the flow. When details are confirmed, check_calendar and continue in the same turn.'}
 CONVERSATION FLOW (follow these steps in order, one or two at a time, skipping details the client already gave; pricing and safety rules above always win):
 ${flowSteps}
+${decisionInstruction}
 Original request: ${JSON.stringify(quote ?? {})}`;
 
   const input: ResponsesInputItem[] = (history ?? [])

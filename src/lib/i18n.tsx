@@ -4,6 +4,8 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Custom conversation flow": "مسار المحادثة المخصص", "Custom flow active": "المسار المخصص نشط", "Standard flow active": "المسار القياسي نشط",
+  "Yes · Artist approves": "نعم · يوافق الفنان", "No · Artist declines": "لا · يرفض الفنان", "Continue Yes branch": "متابعة فرع نعم", "Continue No branch": "متابعة فرع لا",
   "Card title": "عنوان البطاقة", "General information": "معلومات عامة", "Questions & answers": "أسئلة وأجوبة", "Question": "السؤال", "Answer": "الإجابة", "Delete question": "حذف السؤال", "Add question & answer": "إضافة سؤال وإجابة",
   Ratecard: "قائمة الأسعار", Invoice: "فاتورة", Contract: "عقد", Artist: "الفنان", Client: "العميل", Total: "الإجمالي", Payment: "الدفع", Balance: "الرصيد", View: "عرض", Service: "الخدمة", Time: "الوقت",
   "Job type": "نوع العمل", "Add ratecard": "إضافة سعر", "Edit ratecard": "تعديل السعر", "Search ratecards": "البحث في الأسعار", "No ratecards yet.": "لا توجد أسعار بعد.", "All artists": "كل الفنانين",
