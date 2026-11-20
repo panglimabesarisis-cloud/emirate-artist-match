@@ -1,3 +1,6 @@
+import { decodeChatMessage } from "@/lib/chat-attachments";
+import { ChatAttachments } from "@/components/chat/ChatAttachments";
+import { artistChatFiles } from "@/lib/chat-files.functions";
 import { decodeInvoice } from "@/lib/invoice";
 import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 export function Inbox({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const reply$ = useServerFn(artistReply);
+  const files$ = useServerFn(artistChatFiles);
   const [open, setOpen] = useState<string | null>(null);
   const [text, setText] = useState("");
   const { data: convos } = useQuery({
@@ -42,6 +46,7 @@ export function Inbox({ artistId }: { artistId: string }) {
     },
     refetchInterval: 5000,
   });
+  const { data: attachments } = useQuery({ queryKey: ["inbox-files", open, msgs?.length], enabled: !!open, queryFn: () => open ? files$({ data: { id: open } }) : Promise.resolve([]), refetchInterval: 300000 });
   const current = convos?.find((c) => c.id === open);
   const setMode = async (mode: string) => {
     if (!open) return;
@@ -87,7 +92,7 @@ export function Inbox({ artistId }: { artistId: string }) {
               <div key={m.id} className={`flex ${m.sender === "client" ? "justify-start" : "justify-end"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.sender === "client" ? "bg-muted" : m.sender === "ai" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}`} dir="auto">
                   <div className="text-[10px] uppercase opacity-70">{m.sender === "ai" ? "AI assistant" : m.sender === "artist" ? "You" : "Client"}</div>
-                  {inv ? <InvoiceCard inv={inv} /> : m.body}
+                  {inv ? <InvoiceCard inv={inv} /> : <>{decodeChatMessage(m.body).text}<ChatAttachments files={attachments?.find(item => item.id === m.id)?.files ?? []} /></>}
                 </div>
               </div>
             ); })}

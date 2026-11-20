@@ -53,6 +53,9 @@ describe("buttons", () => {
 });
 
 describe("form", () => {
+  it("retains multiline textarea fields in the form protocol", () => {
+    expect(extractForm("[FORM: Job details:textarea]").fields).toEqual([{ label: "Job details", type: "textarea" }]);
+  });
   it.each(["artist_name", "Perform_duration", "Additonal_Request", "informasion", "client_occupation", "job_artis", "speciality_artis", "ratecard", "venue_name", "client_company", "sound_system_included"])("preserves %s through the agent form and saves its answer", (variable) => {
     const preset = FORM_FIELD_PRESETS.find((field) => field.saveAs === variable);
     expect(preset).toBeDefined();

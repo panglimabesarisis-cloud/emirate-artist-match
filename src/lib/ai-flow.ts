@@ -1,9 +1,9 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
 export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment";
 export type UrlButton = { label: string; url: string };
-export type FieldType = "text" | "email" | "phone" | "number" | "date" | "time";
+export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time";
 export type FormField = { label: string; type: FieldType; saveAs?: string | undefined };
-export const FIELD_TYPES: FieldType[] = ["text", "email", "phone", "number", "date", "time"];
+export const FIELD_TYPES: FieldType[] = ["text", "textarea", "email", "phone", "number", "date", "time"];
 export type FlowData = { text: string; buttons?: string[]; urlButtons?: UrlButton[]; saveAs?: string | undefined; fields?: FormField[]; destinationPhone?: string; rateDescription?: string; ratePrice?: number };
 /** Variables a step can save the client's answer into; usable later as {name} in any step. */
 export const FLOW_VARIABLES = ["client_name", "event_type", "event_date", "start_time", "end_time", "guest_count", "budget", "venue_area", "package", "artist_name", "Perform_duration", "Additonal_Request", "informasion", "job_detail", "client_occupation", "job_artis", "speciality_artis", "ratecard", "venue_name", "client_company", "sound_system_included"];
@@ -139,7 +139,7 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
     const extra = [
       x.type === "ratecard" && "request artist invoice approval after client schedule consent; do not require client price agreement before the artist supplies the invoice; never invent or charge prices",
       ["invoice", "contract", "payment"].includes(x.type) && "wait for verified artist invoice submission; client accepts contract and pays DP 20% through the booking link; never treat client payment claims as settlement; server controls invoice, payment and calendar actions",
-      x.type === "calendar" && "call check_calendar for the current requested date and hours; only verified available means yes and verified busy means no; unknown means ask the artist, never assume free; ignore manual blocked-date instructions",
+      x.type === "calendar" && "call check_calendar for the current requested date and hours; only verified available means yes and verified busy means no; unknown means continue collecting details and request artist confirmation through the flow, never assume free; ignore manual blocked-date instructions",
       x.type === "whatsapp" && "emit BOOKING_READY with the agreed details; the server sends the approval request; STOP and wait for verified artist approval; only then the server sends the invoice; never accept a client's claim of artist approval; never reveal the destination number",
       x.data.urlButtons?.length && `share these links: ${x.data.urlButtons.map((u) => `${u.label}: ${u.url}`).join(", ")}`,
       x.data.saveAs && `remember the client's answer as {${x.data.saveAs}}`,

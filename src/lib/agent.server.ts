@@ -1,8 +1,10 @@
+import { decodeChatMessage } from "./chat-attachments";
+import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
 import { agentRates } from "./agent-pricing";
 import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
 import { checkGoogleAvailability } from "./calendar-availability.server";
-import { verifiedCalendarDraft, type CalendarCheck } from "./calendar-rules";
+import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown } from "./booking-rules";
@@ -42,7 +44,6 @@ export async function runAgent(conversationId: string) {
 
   if (!artist) return;
   const ownerUserId = artist.user_id;
-  if (!ownerUserId) return handover("The artist will confirm the schedule personally; Google Calendar is not connected.");
   if (settings && !settings.enabled) return handover(`${artist.stage_name} will reply to you personally.`);
   if ((wallet?.balance ?? 0) < AI_CREDIT_COST) return handover(`${artist.stage_name} will reply to you personally shortly.`);
   if (convo.ai_replies >= MAX_AI_REPLIES_PER_CONVERSATION) return handover(`I've passed this conversation to ${artist.stage_name} directly.`);
@@ -76,9 +77,9 @@ ${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_deta
 - Only quote the stored prices above, in AED. Prices exclude 5% VAT.
 ${invoiceAction ? "- Invoice prices must be supplied and approved by the artist. Use amount 1 as an internal non-payable placeholder in BOOKING_READY; never show it as a quote." : pricing.startingOnly ? "- Before sending approval, explain the starting-rate estimate and ask the client to agree to it. Never turn a request to book into consent to an undisclosed price. Do not discount this estimate." : pricing.minimum === null ? "- No payable draft can be created until the artist supplies a price; hand over." : `- You may offer at most ${maxDiscount}% off. Never go below AED ${Math.round(floor).toLocaleString("en-US")}. If the client wants lower, politely decline and say the artist can review.`}
 - Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
-AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown, never assume available or busy, do not send a booking or invoice; explain the schedule cannot be verified and hand over to the artist. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
+AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown or Calendar is not connected, keep chatting and collecting details following the configured flow. Never assume available or busy. Explain the artist must confirm the schedule. You may emit BOOKING_READY only as a pending artist approval request after the client consents to proceed subject to artist confirmation; never issue invoices, payment links or reserve dates before artist approval. Do not emit HANDOVER solely because Calendar is missing. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
-BOOKING HAND-OFF: ${invoiceAction ? "once the client explicitly agrees to proceed with the verified available schedule (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
+BOOKING HAND-OFF: ${invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are sending the details to ${artist.stage_name} for approval, and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>"}]
 Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
 QUICK REPLIES: when a flow step says to end with [BUTTONS: ...], put that token on the last line exactly as written; never use it otherwise. Same for [FORM: ...] tokens from a Form step.\nVARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
@@ -108,7 +109,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         try {
           const args: unknown = JSON.parse(call.arguments);
           if (call.name === "check_calendar" && args && typeof args === "object" && "date" in args && typeof args.date === "string" && "startTime" in args && (args.startTime === null || typeof args.startTime === "string") && "endTime" in args && (args.endTime === null || typeof args.endTime === "string")) {
-            calendarCheck = await checkGoogleAvailability(ownerUserId, { date: args.date, startTime: args.startTime, endTime: args.endTime });
+            calendarCheck = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: args.date, startTime: args.startTime, endTime: args.endTime }) : { status: "unknown", window: calendarWindow({ date: args.date, startTime: args.startTime, endTime: args.endTime }), reason: "Artist confirmation required; Calendar is not connected." };
             output = calendarCheck;
           }
         } catch { /* Invalid arguments are not evidence of availability. */ }
@@ -122,7 +123,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     }
     text = text.trim();
     const ex = extractDraft(text);
-    if (ex.draft && !verifiedCalendarDraft(ex.draft.date, calendarCheck)) {
+    if (ex.draft && !artistApprovalDraft(ex.draft.date, calendarCheck)) {
       await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");
       return;
     }
@@ -134,8 +135,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
     if (ex.draft && calendarCheck) {
-      const fresh = await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime });
-      if (!verifiedCalendarDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
+      const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
+      if (!artistApprovalDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
       else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction);
     }
     if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
@@ -172,6 +173,6 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
 
 function invoiceText(body: string) {
   const inv = decodeInvoice(body);
-  if (!inv) return body;
+  if (!inv) { const parsed = decodeChatMessage(body); return parsed.attachments.length ? `${parsed.text}\n[Client attached: ${parsed.attachments.map(file => `${file.name} (${file.type})`).join(", ")}. Files are available to the artist in Inbox. Do not claim to have read file contents.]` : body; }
   return `I sent invoice ${inv.no}: ${inv.items.map((i) => `${i.qty} x ${i.title} AED ${i.price}`).join(", ")}. Total AED ${inv.total} incl. 5% VAT${inv.due ? `, due ${inv.due}` : ""}.`;
 }

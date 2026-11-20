@@ -1,3 +1,4 @@
+import { ChatComposer } from "@/components/chat/ChatComposer";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -156,9 +157,10 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
   const submit$ = useServerFn(submitQuote);
   const chat$ = useServerFn(startChat);
   const [chatting, setChatting] = useState(false);
-  const openChat = async () => {
+  const [quickText, setQuickText] = useState("");
+  const openChat = async (text?: string) => {
     setChatting(true);
-    try { const r = await chat$({ data: { artistId } }); navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); }
+    try { const r = await chat$({ data: { artistId, ...(text ? { text } : {}) } }); navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); }
     catch { toast.error(t("Could not open the chat. Please try again.")); setChatting(false); }
   };
   const { data: orderForm } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
@@ -175,7 +177,6 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
     e.preventDefault();
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
     if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
-    if (f.date && blocked.includes(f.date)) { toast.error(t("The artist is unavailable on that date.")); return; }
     const missing = customFields.find((c) => c.required && !(answers[c.id] ?? "").trim());
     if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
     const extraLines = customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
@@ -189,7 +190,6 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });
-      if ("error" in r) { toast.error(r.error); return; }
       if (extra.length === 0) { navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); return; }
       const list: Sent[] = [{ name: artistName, ...r }];
       const others = await Promise.allSettled(extra.map((xid) => submit$({ data: { ...payload, artistId: xid } })));
@@ -286,12 +286,13 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
-          <Button type="button" variant="outline" disabled={chatting} onClick={openChat} className="w-full">
+          <Button type="button" variant="outline" disabled={chatting} onClick={() => openChat()} className="w-full">
             {chatting ? t("Opening chat…") : t("Chat With Us")}
           </Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
+      <div className="mt-5 border-t pt-4"><div className="mb-2 text-sm font-semibold">{t("Chat With Us")}</div><ChatComposer text={quickText} onChange={setQuickText} busy={chatting} onSend={() => { if (quickText.trim()) void openChat(quickText); }} /></div>
     </aside>
   );
 }

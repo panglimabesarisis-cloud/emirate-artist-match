@@ -11,7 +11,10 @@ import { PublicLayout } from "@/components/site/PublicLayout";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { ChatComposer } from "@/components/chat/ChatComposer";
+import { ChatAttachments } from "@/components/chat/ChatAttachments";
+import { uploadChatFile } from "@/lib/chat-files.functions";
+import { validateAttachment, type ChatAttachment } from "@/lib/chat-attachments";
 import { useI18n } from "@/lib/i18n";
 import { decodeInvoice } from "@/lib/invoice";
 import { PayableInvoice } from "@/components/site/PayableInvoice";
@@ -32,6 +35,22 @@ function ChatPage() {
   const qc = useQueryClient();
   const get$ = useServerFn(getChat);
   const send$ = useServerFn(sendClientMessage);
+  const upload$ = useServerFn(uploadChatFile);
+  const [files, setFiles] = useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const addFiles = async (list: FileList) => {
+    if (files.length + list.length > 3) { toast.error(tr("Maximum three attachments per message.")); return; }
+    setUploading(true);
+    try {
+      for (const file of Array.from(list)) {
+        validateAttachment(file);
+        const form = new FormData(); form.set("id", id); form.set("key", k); form.set("file", file);
+        const uploaded = await upload$({ data: form });
+        setFiles(current => [...current, uploaded]);
+      }
+    } catch (error) { toast.error(error instanceof Error ? error.message : tr("Upload failed")); }
+    finally { setUploading(false); }
+  };
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<{ body: string; previousIds: string[] } | null>(null);
@@ -49,13 +68,14 @@ function ChatPage() {
 
   const send = async (preset?: string) => {
     const t = (preset ?? text).trim();
-    if (!t || busy) return;
+    if ((!t && !files.length) || busy || uploading) return;
     setBusy(true);
     setPending({ body: maskContacts(t), previousIds: data?.messages.map(m => m.id) ?? [] });
     setText("");
     try {
-      const r = await send$({ data: { id, key: k, text: t } });
+      const r = await send$({ data: { id, key: k, text: t, attachments: preset ? [] : files } });
       if ("error" in r && r.error) { toast.error(r.error); setText(t); }
+      if (!("error" in r)) setFiles([]);
       await qc.invalidateQueries({ queryKey: ["chat", id] });
     } catch { toast.error(tr("Message failed. Please try again.")); setText(t); }
     finally { setPending(null); setBusy(false); }
@@ -100,7 +120,7 @@ function ChatPage() {
               <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>
             ) : m.sender === "client" ? (
               <div key={m.id} className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{m.body}</div>
+                <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{m.body}<ChatAttachments files={m.attachments} /></div>
               </div>
             ) : (
               <div key={m.id} className="flex gap-3">
@@ -138,12 +158,7 @@ function ChatPage() {
       </div>
       <div className="bg-background px-4 pb-4 pt-2">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-end gap-2 rounded-3xl border bg-card p-2 shadow-card focus-within:border-gold">
-            <Textarea autoFocus rows={1} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder={tr("Type your message…")}
-              className="max-h-40 min-h-[44px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-            <Button onClick={() => send()} disabled={busy || !text.trim()} size="icon" aria-label="Send" className="h-10 w-10 shrink-0 rounded-full bg-gradient-gold text-gold-foreground"><Send className="h-4 w-4" /></Button>
-          </div>
+          <ChatComposer text={text} onChange={setText} onSend={() => void send()} busy={busy || uploading} files={files} onFiles={list => void addFiles(list)} onRemove={path => setFiles(current => current.filter(file => file.path !== path))} />
           <p className="mt-2 text-center text-[11px] text-muted-foreground">{tr("DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.")}</p>
         </div>
       </div>

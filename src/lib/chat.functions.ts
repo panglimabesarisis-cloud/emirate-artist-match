@@ -1,3 +1,4 @@
+import { CHAT_BUCKET, decodeChatMessage, encodeChatMessage, validateAttachment, attachmentInConversation, type ChatAttachment } from "./chat-attachments";
 import { formatBookingMessage } from "./booking-message";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -40,10 +41,6 @@ export const submitQuote = createServerFn({ method: "POST" })
     const { addMessage, runAgent } = await import("./agent.server");
     const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
-    if (data.eventDate) {
-      const { data: b } = await supabaseAdmin.from("availability").select("id").eq("artist_id", data.artistId).eq("date", data.eventDate).maybeSingle();
-      if (b) return { error: "The artist is unavailable on that date." as const };
-    }
     const { data: q, error } = await supabaseAdmin.from("quote_requests").insert({
       artist_id: data.artistId, name: data.name, email: data.email, phone: data.phone, event_type_id: data.eventTypeId,
       event_date: data.eventDate, area_id: data.areaId, guests: data.guests, budget: data.budget, message: data.message,
@@ -80,12 +77,25 @@ export const getChat = createServerFn({ method: "GET" })
     const { supabaseAdmin, convo } = await verifyKey(data.id, data.key);
     const { data: msgs } = await supabaseAdmin.from("messages").select("id, sender, body, created_at").eq("conversation_id", data.id).order("created_at");
     const { data: invoices } = await supabaseAdmin.from("service_invoices").select("id,status,paid_at").eq("conversation_id", data.id);
-    return { mode: convo.mode, artist: convo.artists, messages: msgs ?? [], invoices: invoices ?? [] };
+    return { mode: convo.mode, artist: convo.artists, messages: await Promise.all((msgs ?? []).map(async message => {
+      const parsed = decodeChatMessage(message.body);
+      const attachments = await Promise.all(parsed.attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {
+        const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 3600);
+        return { ...file, ...(signed?.signedUrl ? { url: signed.signedUrl } : {}) };
+      }));
+      return { ...message, body: parsed.text, attachments };
+    })), invoices: invoices ?? [] };
   });
 
 /** Public with secret link key: client sends a message; AI replies if in AI mode. */
 export const sendClientMessage = createServerFn({ method: "POST" })
-  .inputValidator((i: { id: string; key: string; text: string }) => ({ id: uuid(i.id), key: uuid(i.key), text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH, true)! }))
+  .inputValidator((i: { id: string; key: string; text: string; attachments?: ChatAttachment[] }) => {
+    const attachments = (i.attachments ?? []).map(file => ({ path: file.path, ...validateAttachment(file) }));
+    if (attachments.length > 3 || attachments.some(file => !attachmentInConversation(file.path, i.id))) throw new Error("Invalid attachments");
+    const text = str(i.text, MAX_CLIENT_MESSAGE_LENGTH) ?? "";
+    if (!text && !attachments.length) throw new Error("Missing message");
+    return { id: uuid(i.id), key: uuid(i.key), text, attachments };
+  })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await verifyKey(data.id, data.key);
     // anti-abuse: max 10 client messages per minute per conversation
@@ -93,7 +103,11 @@ export const sendClientMessage = createServerFn({ method: "POST" })
     const { count } = await supabaseAdmin.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", data.id).eq("sender", "client").gte("created_at", since);
     if ((count ?? 0) >= 10) return { error: "You're sending messages too fast. Please wait a moment." };
     const { addMessage, runAgent } = await import("./agent.server");
-    await addMessage(data.id, "client", maskContacts(data.text));
+    for (const file of data.attachments) {
+      const { data: stored, error } = await supabaseAdmin.storage.from(CHAT_BUCKET).info(file.path);
+      if (error || !stored || Number(stored.size ?? stored.metadata?.['size']) !== file.size || (stored.contentType ?? stored.metadata?.['mimetype']) !== file.type) throw new Error("Attachment not found");
+    }
+    await addMessage(data.id, "client", encodeChatMessage(data.text, data.attachments));
     await runAgent(data.id);
     return { ok: true };
   });
@@ -162,7 +176,7 @@ export const subscribePlanDemo = createServerFn({ method: "POST" })
 
 /** Public: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
 export const startChat = createServerFn({ method: "POST" })
-  .inputValidator((i: { artistId: string }) => ({ artistId: uuid(i.artistId) }))
+  .inputValidator((i: { artistId: string; text?: string }) => ({ artistId: uuid(i.artistId), text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH) }))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { addMessage, runAgent } = await import("./agent.server");
@@ -170,7 +184,7 @@ export const startChat = createServerFn({ method: "POST" })
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
     const { data: c } = await supabaseAdmin.from("conversations").insert({ artist_id: data.artistId }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
-    await addMessage(c.id, "client", "Hi, I'd like to chat about a booking.");
+    await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
     await runAgent(c.id);
     return { conversationId: c.id, key: c.access_key };
   });

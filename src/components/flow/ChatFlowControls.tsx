@@ -5,6 +5,7 @@ import type { FormField } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -40,7 +41,7 @@ export function ChatFlowForm({ fields, busy = false, onSubmit }: { fields: FormF
     {fields.map((field, i) => <div key={i} className="min-w-0 space-y-1">
       <label htmlFor={`flow-field-${i}`} className="block break-words text-xs font-medium">{field.label}<span className="ms-1 text-destructive">*</span></label>
       {field.type === "date" ? <DateField label={field.label} value={values[i] ?? ""} disabled={busy} inline={inlineDate} onChange={(value) => setValues((current) => ({ ...current, [i]: value }))} /> :
-        <Input id={`flow-field-${i}`} aria-label={field.label} required disabled={busy} type={types[field.type] ?? "text"} value={values[i] ?? ""} placeholder={field.type === "phone" ? "+971" : field.label} maxLength={200} onChange={(event) => setValues((current) => ({ ...current, [i]: event.target.value }))} className="h-10 rounded-md bg-background text-sm" dir={field.type === "phone" ? "ltr" : "auto"} />}
+        field.type === "textarea" ? <Textarea id={`flow-field-${i}`} aria-label={field.label} required disabled={busy} rows={3} maxLength={1000} value={values[i] ?? ""} placeholder={field.label} onChange={(event) => setValues((current) => ({ ...current, [i]: event.target.value }))} className="min-h-24 rounded-md bg-background text-sm" dir="auto" /> : <Input id={`flow-field-${i}`} aria-label={field.label} required disabled={busy} type={types[field.type] ?? "text"} value={values[i] ?? ""} placeholder={field.type === "phone" ? "+971" : field.label} maxLength={200} onChange={(event) => setValues((current) => ({ ...current, [i]: event.target.value }))} className="h-10 rounded-md bg-background text-sm" dir={field.type === "phone" ? "ltr" : "auto"} />}
     </div>)}
     <Button type="submit" disabled={busy || !complete} className="h-9 w-full rounded-md">{t("Submit")}</Button>
   </form>;

@@ -23,3 +23,7 @@ export function busyOverlaps(window: CalendarWindow, busy: { start: string; end:
 export function verifiedCalendarDraft(date: string, check: CalendarCheck | undefined): boolean {
   return check?.status === "available" && check.window.date === date && check.window.startTime !== null && check.window.endTime !== null;
 }
+/** Unknown availability may request approval, but never confirms or reserves a slot. */
+export function artistApprovalDraft(date: string, check: CalendarCheck | undefined): boolean {
+  return !!check && check.status !== "busy" && check.window.date === date && check.window.startTime !== null && check.window.endTime !== null;
+}

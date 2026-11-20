@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarWindow, busyOverlaps, verifiedCalendarDraft } from "./calendar-rules";
+import { calendarWindow, busyOverlaps, verifiedCalendarDraft, artistApprovalDraft } from "./calendar-rules";
 
 describe("Google Calendar availability", () => {
   const window = calendarWindow({ date: "2026-11-19", startTime: "18:00", endTime: "20:00" });
@@ -24,6 +24,13 @@ describe("Google Calendar availability", () => {
     expect(verifiedCalendarDraft("2026-11-19", { status: "unknown", window })).toBe(false);
     expect(verifiedCalendarDraft("2026-11-19", undefined)).toBe(false);
     expect(verifiedCalendarDraft("2026-11-19", { status: "available", window: calendarWindow({ date: "2026-11-19" }) })).toBe(false);
+  });
+  it("allows unknown schedules only as pending artist approval", () => {
+    expect(artistApprovalDraft("2026-11-19", { status: "unknown", window })).toBe(true);
+    expect(artistApprovalDraft("2026-11-19", { status: "busy", window })).toBe(false);
+    expect(artistApprovalDraft("2026-11-19", undefined)).toBe(false);
+    expect(artistApprovalDraft("2026-11-20", { status: "unknown", window })).toBe(false);
+    expect(artistApprovalDraft("2026-11-19", { status: "unknown", window: calendarWindow({ date: "2026-11-19" }) })).toBe(false);
   });
   it("rejects invalid dates and partial hours", () => {
     expect(() => calendarWindow({ date: "2026-02-30" })).toThrow();
