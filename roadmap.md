@@ -1,4 +1,11 @@
 # Roadmap
+- [x] Audit purchases, account updates, entitlements and renewals: hosted auth settings and settlement function checked, runtime Stripe account mismatch verified, 267 tests pass, public signup/payment screens render without errors; findings and implementation/test plan prepared. No successful purchase claimed.
+- [ ] Implement the purchase/account audit fix plan after review; all five policy questions answered, runtime Stripe account connection remains pending.
+- [ ] Snapshot commission at quote approval and preserve historical earnings across plan changes, with auditable treatment of legacy bookings.
+- [ ] Preserve existing content/team on downgrade and block additions until usage is below the new plan limits.
+- [ ] Separate registration payment from paid-plan activation: confirmed deposit covers registration only; paid benefits require a separate subscription payment.
+- [ ] Correct IDR processor units at the confirmed 4,900 IDR/AED rate while retaining AED accounting and display totals; snapshot both amounts for exact verified settlement.
+- [ ] Implement monthly plan credit allocations with rollover for monthly and annual subscribers, separate from purchased top-ups.
 - [x] Artist profile recovery from interrupted public reads: retry transport failures once and reload stale RPC assets on manual retry. Three tests pass; browser verified one aborted RPC recovers, sustained offline shows a usable error screen, and Try again restores the real Dede profile at 793×823; build OK.
 - [x] Format artist WhatsApp sections/footer and support verified, deduplicated artist price/notes revisions with automatic replies; preserve single-pending YES/NO, invoice/payment safeguards and atomic credit reservation. 92 tests pass; live AI extracted AED 7,000 and verbatim transport note; build OK and private function grants verified.
 - [ ] Verify new WhatsApp format and real artist price/notes reply: requires Publish and an incoming message from the notified artist's Fonnte phone; delivery, real booking mutation/readback and automatic WhatsApp reply remain unverified.
