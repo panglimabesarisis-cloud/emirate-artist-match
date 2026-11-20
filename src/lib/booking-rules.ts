@@ -46,7 +46,19 @@ export function canDispute(status: string, escrowStatus: string) {
   return status === "confirmed" || (status === "completed" && escrowStatus === "release_pending");
 }
 
-export type BookingDraft = { title: string; amount: number; date: string; notes: string; clientName?: string; jobDetail?: string };
+export type BookingDraft = {
+  title: string; amount: number; date: string; notes: string; clientName?: string; jobDetail?: string;
+  organizing?: string; clientOccupation?: string; venueName?: string; venueAddress?: string;
+  eventType?: string; indoorOutdoor?: string; performDuration?: string; wardrobe?: string;
+  dresscode?: string; wardrobeRequest?: string; preEventMeeting?: string; rehearsalDate?: string;
+  rehearsalStart?: string; rehearsalEnd?: string; rehearsalLocation?: string;
+};
+
+const OPTIONAL_DETAIL_KEYS = [
+  "organizing", "clientOccupation", "venueName", "venueAddress", "eventType", "indoorOutdoor",
+  "performDuration", "wardrobe", "dresscode", "wardrobeRequest", "preEventMeeting",
+  "rehearsalDate", "rehearsalStart", "rehearsalEnd", "rehearsalLocation",
+] as const;
 
 /** Parses the AI agent's `[BOOKING_READY {...}]` token. Returns the text without the token plus the draft (if valid). */
 export function extractDraft(text: string): { text: string; draft: BookingDraft | null } {
@@ -58,6 +70,11 @@ export function extractDraft(text: string): { text: string; draft: BookingDraft 
     const amount = Number(j["amount"]);
     const date = String(j["date"] ?? "");
     if (!(amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { text: clean, draft: null };
-    return { text: clean, draft: { title: String(j["title"] ?? "Performance").slice(0, 120), amount, date, ...(j["clientName"] ? {clientName:String(j["clientName"]).slice(0,120)} : {}), ...(j["jobDetail"] ? {jobDetail:String(j["jobDetail"]).slice(0,1000)} : {}), notes: String(j["notes"] ?? "").slice(0, 1000) } };
+    const details: Partial<BookingDraft> = {};
+    for (const key of OPTIONAL_DETAIL_KEYS) {
+      const value = String(j[key] ?? "").slice(0, 200);
+      if (value.trim()) details[key] = value;
+    }
+    return { text: clean, draft: { title: String(j["title"] ?? "Performance").slice(0, 120), amount, date, ...(j["clientName"] ? {clientName:String(j["clientName"]).slice(0,120)} : {}), ...(j["jobDetail"] ? {jobDetail:String(j["jobDetail"]).slice(0,1000)} : {}), notes: String(j["notes"] ?? "").slice(0, 1000), ...details } };
   } catch { return { text: clean, draft: null }; }
 }

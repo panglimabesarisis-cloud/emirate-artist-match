@@ -10,7 +10,7 @@ import { checkGoogleAvailability } from "./calendar-availability.server";
 import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
-import { extractDraft, priceBreakdown } from "./booking-rules";
+import { extractDraft, priceBreakdown, type BookingDraft } from "./booking-rules";
 import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
@@ -101,7 +101,8 @@ ${approvalPriceRule(!!action, !!invoiceAction, pricing.startingOnly, pricing.min
 AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown or Calendar is not connected, keep chatting and collecting details following the configured flow. Never assume available or busy. Explain the artist must confirm the schedule. You may emit BOOKING_READY only as a pending artist approval request after the client consents to proceed subject to artist confirmation; never issue invoices, payment links or reserve dates before artist approval. Do not emit HANDOVER solely because Calendar is missing. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
 BOOKING HAND-OFF: ${action ? "when the client selects the saved choice leading to Send to WhatsApp (for example Book Now), immediately request artist review, without asking for price agreement. Use all previously supplied event/venue details; do not ask again for an area when a venue/address already identifies it" : invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are requesting ${artist.stage_name}'s approval (do not claim WhatsApp delivery), and end your reply with exactly:
-[BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>"}]
+[BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>","organizing":"<client or organizer>","clientOccupation":"<organization or occupation>","venueName":"<venue name>","venueAddress":"<venue address>","eventType":"<event name/category>","indoorOutdoor":"<indoor or outdoor>","performDuration":"<artist performance duration>","wardrobe":"<wardrobe>","dresscode":"<dress code>","wardrobeRequest":"<wardrobe request>","preEventMeeting":"<pre-event meeting details>","rehearsalDate":"<rehearsal date>","rehearsalStart":"<rehearsal start time>","rehearsalEnd":"<rehearsal end time>","rehearsalLocation":"<rehearsal location>"}]
+The keys organizing, clientOccupation, venueName, venueAddress, eventType, indoorOutdoor, performDuration, wardrobe, dresscode, wardrobeRequest, preEventMeeting, rehearsalDate, rehearsalStart, rehearsalEnd and rehearsalLocation are OPTIONAL strings. Fill each only from details the client already gave in this conversation, including saved form answers. Omit a key when unknown; never invent a value or ask extra questions to fill these optional keys. Keep title, amount, date, clientName, jobDetail and notes.
 Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
 QUICK REPLIES (strict): When reaching a saved Buttons step, call show_buttons with its nodeId and write only that card's question. The server displays its exact saved choices. NEVER turn choices into a prose list, merge in later event questions, or advance before the client selects an option. If no tool call is used, put the exact [BUTTONS: ...] token on the last line. Available saved buttons: ${JSON.stringify(buttons.map(node => ({ nodeId: node.id, choices: node.data.buttons })))}.
 INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
@@ -195,7 +196,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: { title: string; amount: number; date: string; notes: string; clientName?: string; jobDetail?: string }, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>) {
+async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
   if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
@@ -216,28 +217,31 @@ async function createDraft(conversationId: string, artistId: string, d: { title:
   if (action?.phone) c.phone = action.phone;
   const link = `${siteOrigin(getRequest())}/approve/${b.id}?k=${b.artist_key}`;
   const approvalBody = approvalMessageBody({
+    ...d,
     subtotal: p.subtotal,
-    name: q?.name, email: q?.email, phone: q?.phone, guests: q?.guests,
-    title: d.title, date: d.date,
+    name: q?.name, email: q?.email, phone: q?.phone,
     startTime: calendar.window.startTime, endTime: calendar.window.endTime,
-    jobDetail: d.jobDetail,
   });
   await notifyBooking(b.id, "artist", "approval_request", c, `${invoiceAction ? "Fill invoice for booking" : "New booking to approve"}: ${d.title} on ${d.date}`,
     approvalBody, link);
 }
 
 /** Artist approval message: labelled lines, empty values dropped, sections split by "-----". */
-function approvalMessageBody(f: { subtotal: number; name: string | null | undefined; email: string | null | undefined; phone: string | null | undefined; guests: number | null | undefined; title: string; date: string; startTime: string | null | undefined; endTime: string | null | undefined; jobDetail: string | null | undefined }) {
+function approvalMessageBody(f: BookingDraft & { subtotal: number; name: string | null | undefined; email: string | null | undefined; phone: string | null | undefined; startTime: string | null | undefined; endTime: string | null | undefined }) {
   const line = (label: string, value: unknown) => {
     const v = String(value ?? "").trim();
     return v ? `${label}: ${v}` : "";
   };
   const time = f.startTime || f.endTime ? `${f.startTime ?? ""}-${f.endTime ?? ""}` : "";
   return [
-    [`Payment: AED ${f.subtotal.toLocaleString("en-US")} + 5% VAT`],
-    [line("PIC", f.name), line("Email", f.email), line("Phone", f.phone)],
-    [line("Guests", f.guests), line("Event", f.title), line("Date", formatEventDate(f.date)), line("Time", time)],
+    ["Dealmaker Management"],
+    [`Payment: AED ${f.subtotal.toLocaleString("en-US")} + 5% VAT`, line("PIC", f.name), line("Email", f.email), line("Phone", f.phone)],
+    [line("Client", f.organizing), line("Organization", f.clientOccupation)],
     [line("Job Detail", f.jobDetail)],
+    [line("Venue Name", f.venueName), line("Event Name", f.eventType), line("Date Event", formatEventDate(f.date)), line("Event Time", time), line("Event Type", f.indoorOutdoor), line("Venue Address", f.venueAddress)],
+    [line("Artist Perform Duration", f.performDuration), line("Wardrobe", f.wardrobe), line("DressCode", f.dresscode), line("Wardrobe request", f.wardrobeRequest)],
+    [line("Pre-Event Meeting", f.preEventMeeting)],
+    [line("Rehearsal Date", f.rehearsalDate), line("Time Start", f.rehearsalStart), line("End Time", f.rehearsalEnd), line("Location", f.rehearsalLocation)],
   ].map((section) => section.filter(Boolean).join("\n")).filter(Boolean).join("\n-----\n");
 }
 

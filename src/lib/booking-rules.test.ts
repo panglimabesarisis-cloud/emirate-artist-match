@@ -32,3 +32,20 @@ describe("disputes and AI drafts", () => {
 });
 
 it("preserves client job details from direct chat",()=>{expect(extractDraft('[BOOKING_READY {"title":"DJ","amount":1,"date":"2026-12-20","notes":"Wedding","clientName":"Alex","jobDetail":"Outdoor wedding, 80 guests, 18:00–20:00"}]').draft?.jobDetail).toBe("Outdoor wedding, 80 guests, 18:00–20:00");});
+
+describe("optional booking details", () => {
+  const keys = ["organizing", "clientOccupation", "venueName", "venueAddress", "eventType", "indoorOutdoor", "performDuration", "wardrobe", "dresscode", "wardrobeRequest", "preEventMeeting", "rehearsalDate", "rehearsalStart", "rehearsalEnd", "rehearsalLocation"] as const;
+  const parse = (details: Record<string, unknown>) => extractDraft(`[BOOKING_READY ${JSON.stringify({ title: "Emcee", amount: 5000, date: "2026-12-11", notes: "Wedding", ...details })}]`).draft;
+  it.each(keys)("preserves %s and limits it to 200 characters", (key) => {
+    expect(parse({ [key]: "Client supplied detail" })?.[key]).toBe("Client supplied detail");
+    expect(parse({ [key]: "x".repeat(201) })?.[key]).toBe("x".repeat(200));
+    expect(parse({ [key]: 60 })?.[key]).toBe("60");
+  });
+  it.each(keys)("omits %s when unknown or empty", (key) => {
+    for (const details of [{}, { [key]: "" }, { [key]: null }, { [key]: "   " }]) {
+      const draft = parse(details);
+      expect(draft).not.toBeNull();
+      expect(draft).not.toHaveProperty(key);
+    }
+  });
+});

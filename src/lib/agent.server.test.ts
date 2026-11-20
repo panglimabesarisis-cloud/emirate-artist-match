@@ -64,24 +64,49 @@ beforeEach(() => {
 
 describe('Book Now → artist WhatsApp dispatch', () => {
   it('creates an inquiry and dispatches once on the Book Now turn without another client answer', async () => {
+    const details = {
+      title: 'Emcee', amount: 5000, date: '2026-11-29', clientName: 'Maya', notes: 'Dubai Chamber, 19:00–21:00, 1000 guests', jobDetail: 'Emcee',
+      organizing: 'Government UAE', clientOccupation: 'Government', venueName: 'Dubai Chamber', venueAddress: 'Dubai',
+      eventType: 'Wedding Ceremony', indoorOutdoor: 'Indoor', performDuration: '60 minutes', wardrobe: 'Suit', dresscode: 'Formal',
+      wardrobeRequest: 'Black suit', preEventMeeting: 'Online briefing', rehearsalDate: '2026-11-28', rehearsalStart: '17:00', rehearsalEnd: '18:00', rehearsalLocation: 'Dubai Chamber',
+    };
+    mocks.generate.mockResolvedValue({ output: [{ type: 'message', content: [{ type: 'output_text', text: `Requesting artist approval.\n[BOOKING_READY ${JSON.stringify(details)}]` }] }] });
     await runAgent('conversation-fixture');
     expect(mocks.calendar).toHaveBeenCalledWith('owner-fixture', { date: '2026-11-29', startTime: '19:00', endTime: '21:00' });
     expect(mocks.writes.find(write => write.table === 'bookings')?.value).toMatchObject({ status: 'inquiry', amount: 5000, total: 5250, start_time: '19:00', end_time: '21:00', artist_invoice_required: false });
     expect(mocks.notify).toHaveBeenCalledTimes(1);
     expect(mocks.notify).toHaveBeenCalledWith('booking-fixture', 'artist', 'approval_request', { phone: '+971501234567', email: null }, expect.any(String), expect.any(String), 'http://localhost:8080/approve/booking-fixture?k=fixture-key');
     expect(mocks.notify.mock.calls[0]?.[5]).toBe([
-      'Payment: AED 5,000 + 5% VAT',
+      'Dealmaker Management',
       '-----',
+      'Payment: AED 5,000 + 5% VAT',
       'PIC: Maya',
       'Email: maya@example.com',
       'Phone: 0501234567',
       '-----',
-      'Guests: 1000',
-      'Event: Emcee',
-      'Date: 29 November 2026',
-      'Time: 19:00-21:00',
+      'Client: Government UAE',
+      'Organization: Government',
       '-----',
       'Job Detail: Emcee',
+      '-----',
+      'Venue Name: Dubai Chamber',
+      'Event Name: Wedding Ceremony',
+      'Date Event: 29 November 2026',
+      'Event Time: 19:00-21:00',
+      'Event Type: Indoor',
+      'Venue Address: Dubai',
+      '-----',
+      'Artist Perform Duration: 60 minutes',
+      'Wardrobe: Suit',
+      'DressCode: Formal',
+      'Wardrobe request: Black suit',
+      '-----',
+      'Pre-Event Meeting: Online briefing',
+      '-----',
+      'Rehearsal Date: 2026-11-28',
+      'Time Start: 17:00',
+      'End Time: 18:00',
+      'Location: Dubai Chamber',
     ].join('\n'));
   });
   it('drops lines whose value is empty instead of sending blank labels', async () => {
@@ -89,15 +114,15 @@ describe('Book Now → artist WhatsApp dispatch', () => {
     await runAgent('conversation-fixture');
     expect(mocks.notify).toHaveBeenCalledTimes(1);
     expect(mocks.notify.mock.calls[0]?.[5]).toBe([
-      'Payment: AED 5,000 + 5% VAT',
+      'Dealmaker Management',
       '-----',
+      'Payment: AED 5,000 + 5% VAT',
       'PIC: Maya',
       '-----',
-      'Event: Emcee',
-      'Date: 29 November 2026',
-      'Time: 19:00-21:00',
-      '-----',
       'Job Detail: Emcee',
+      '-----',
+      'Date Event: 29 November 2026',
+      'Event Time: 19:00-21:00',
     ].join('\n'));
   });
   it('never dispatches a busy slot', async () => {
