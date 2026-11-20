@@ -337,3 +337,53 @@
  --scene-halo:radial-gradient(circle,rgba(255,196,120,.55),rgba(255,150,90,.28) 22%,rgba(240,110,90,.12) 42%,transparent 62%);
  --scene-scrim:linear-gradient(0deg,var(--dm-tone-1),var(--dm-tone-7) 42%,var(--dm-tone-20) 70%);
 }
+
+:root {
+ --info-color-0:rgba(7,9,15,.85);
+ --info-color-1:rgba(7,9,15,.35);
+ --info-color-2:rgba(7,9,15,.2);
+ --info-color-3:rgba(13,17,32,.8);
+ --info-color-4:rgba(246,239,226,.8);
+ --info-color-5:rgba(12,17,32,.7);
+ --info-color-6:rgba(232,176,74,.6);
+ --info-color-7:rgba(232,176,74,.2);
+ --info-color-8:rgba(232,176,74,.1);
+ --info-color-9:#111729;
+ --info-color-10:#0b0f1c;
+ --info-color-11:rgba(232,176,74,.5);
+ --info-color-12:rgba(246,239,226,.03);
+ --info-color-13:rgba(232,176,74,.12);
+ --info-color-14:rgba(232,176,74,.55);
+ --info-color-15:rgba(232,176,74,.07);
+ --info-color-16:rgba(232,176,74,.18);
+ --info-color-17:rgba(232,176,74,.8);
+ --info-color-18:#2a1c0b;
+ --info-color-19:#120d08;
+ --info-color-20:rgba(232,176,74,.35);
+ --info-color-21:rgba(0,0,0,.45);
+ --info-color-22:rgba(255,220,160,.15);
+ --info-color-23:rgba(255,230,180,.12);
+ --info-color-24:rgba(246,239,226,.04);
+ --info-color-25:#7bd88f;
+ --info-color-26:rgba(232,176,74,.4);
+ --info-color-27:rgba(232,176,74,.04);
+ --info-color-28:rgba(232,176,74,.25);
+ --info-color-29:rgba(232,176,74,.9);
+ --info-color-30:rgba(232,176,74,.3);
+ --info-color-31:rgba(232,176,74,.08);
+ --info-color-32:rgba(232,176,74,.16);
+ --info-color-33:rgba(232,176,74,.06);
+ --info-color-34:#151c30;
+ --info-color-35:rgba(246,239,226,.08);
+ --info-color-36:rgba(232,176,74,.15);
+ --info-color-37:#9aa3b8;
+ --info-color-38:#0a0d17;
+ --info-color-39:#e8b04a;
+ --info-color-40:rgba(246,239,226,.78);
+ --info-color-41:rgba(7,9,15,.88);
+ --info-color-42:rgba(7,9,15,.4);
+ --info-color-43:rgba(7,9,15,.25);
+ --info-color-44:rgba(12,17,32,.72);
+ --info-color-45:rgba(32,24,14,.75);
+ --info-color-46:rgba(232,176,74,.22);
+}

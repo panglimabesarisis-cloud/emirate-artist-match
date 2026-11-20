@@ -39,9 +39,12 @@ export function SiteHeader() {
               <Link to="/join">{t("Create a profile")}</Link>
               <Link to="/how-it-works">{t("How you get booked")}</Link>
               <Link to="/join">{t("Plans")}</Link>
+              <Link to="/support">{t("Support")}</Link>
+              <Link to="/terms">{t("Terms of Service")}</Link>
               <Link to={user ? "/dashboard" : "/auth"}>{t(user ? "Dashboard" : "Sign in")}</Link>
             </NavbarDropdown>
             <Link to="/how-it-works" className="hover:text-gold">{t("How it works")}</Link>
+            <Link to="/features" className="hover:text-gold">{t("Features")}</Link>
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} className="text-night-foreground hover:bg-sidebar-accent hover:text-gold">

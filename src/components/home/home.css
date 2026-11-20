@@ -523,7 +523,7 @@ footer{background:var(--dm-ink);border-top:1px solid var(--dm-line);padding-top:
   .door .big { font-size: 280px; }
   .home-footer { background: var(--dm-ink); overflow: hidden; }
   .home-footer footer { margin: 0; padding-top: 90px; background: transparent; color: var(--dm-cream); }
-  .home-footer footer > div { max-width: var(--dm-max); padding: 0 var(--dm-pad) 70px; grid-template-columns: 1.4fr 1fr 1fr 1.2fr; font-size: 14px; }
+  .home-footer footer > div:first-child { max-width: var(--dm-max); padding: 0 var(--dm-pad) 70px; grid-template-columns: 1.4fr 1fr 1fr 1.2fr; font-size: 14px; }
   .home-footer footer .font-display { font-family: var(--dm-serif); font-size: 28px; font-weight: 400; }
   .home-footer footer .font-semibold { color: var(--dm-gold); font-size: 12px; text-transform: uppercase; }
   .home-footer footer a { display: inline-block; transition: color .3s, transform .4s; }

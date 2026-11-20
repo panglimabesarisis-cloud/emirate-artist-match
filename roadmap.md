@@ -1,10 +1,10 @@
 # Roadmap
-- [ ] Dealmaker reference refresh: shared tokens, continuous night/beach SceneBackground, navigation and starlight footer.
-- [ ] Refresh homepage only, preserving its catalog, featured talents and search navigation.
-- [ ] Refresh listing presentation, retaining filters, URL contracts, sorting and quote links.
-- [ ] Refresh sign-in presentation without changing authentication handlers or redirects.
-- [ ] Refresh talent registration with existing validation, step order and saves; label sample testimonials.
-- [ ] Add /features, /terms and /support with draft legal content and demo-only contact confirmation; verify desktop/mobile and changed-file scope.
+- [x] Dealmaker reference refresh: shared tokens, continuous night/beach SceneBackground, navigation and starlight footer.
+- [x] Refresh homepage only, preserving its catalog, featured talents and search navigation.
+- [x] Refresh listing presentation, retaining filters, URL contracts, sorting and quote links.
+- [x] Refresh sign-in presentation without changing authentication handlers or redirects.
+- [x] Refresh talent registration with existing validation, step order and saves; label sample testimonials.
+- [x] Add /features, /terms and /support with draft legal content and demo-only contact confirmation; desktop 1917×823 and mobile 390×844 checked without horizontal scroll; no backend/data hooks changed; Terms and sample testimonials require replacement before live.
 - [x] AI Flow forms render together in chat, with saved dropdown options and Event Type using the booking catalog. 58 tests pass; real saved Dede flow date submission → five-field form → Wedding selection → single-message submission and reload verified without runtime errors. Temporary chat removed and two test credits restored; saved flows unchanged; build OK.
 - [x] Audit purchases, account updates, entitlements and renewals: hosted auth settings and settlement function checked, runtime Stripe account mismatch verified, 267 tests pass, public signup/payment screens render without errors; findings and implementation/test plan prepared. No successful purchase claimed.
 - [x] Implement audited test-payment/account repairs: verified accounting snapshots, embedded subscription billing, event/refund audit, hourly recovery, account settings, password recovery, resumable signup, team workspace access and multi-specialty discovery. 281 regressions passed before final invoice-period tests; signed-in signup resume and account-name saved/readback verified. Security scan reports only six intentional public catalog reads.

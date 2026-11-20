@@ -28,6 +28,9 @@ export function SiteFooter() {
           <ul className="space-y-2 opacity-80">
             <li><Link to="/join">{t("Create a profile")}</Link></li>
             <li><Link to="/how-it-works">{t("How it works")}</Link></li>
+            <li><Link to="/features">{t("Features")}</Link></li>
+            <li><Link to="/support">{t("Support")}</Link></li>
+            <li><Link to="/terms">{t("Terms of Service")}</Link></li>
             {pages.map((p) => <li key={p.slug}><Link to="/p/$slug" params={{ slug: p.slug }}>{p.title}</Link></li>)}
           </ul>
         </div>

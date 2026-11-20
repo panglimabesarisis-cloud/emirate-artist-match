@@ -47,6 +47,7 @@
 .reference-auth-art p {max-width:400px;color:var(--dm-mute);font-size:16px}
 .reference-auth-form {width:100%;max-width:480px;margin:auto;padding:60px 32px}
 .reference-auth-form h1 {font-size:46px;line-height:1.1}
+.reference-auth-form > button {display:flex;width:max-content;max-width:100%;white-space:normal;text-align:start;justify-content:start}
 .reference-auth-form input,.reference-join input,.reference-join textarea {background:var(--dm-tone-3);color:var(--dm-cream);border-color:var(--dm-line);height:48px;margin-top:8px}
 .reference-auth-form [data-slot="button"],.reference-join [data-slot="button"] {box-shadow:none}
 .reference-auth-form label,.reference-join label {color:var(--dm-mute);font-size:12px}

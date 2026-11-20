@@ -27,6 +27,8 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
     <Link to="/how-it-works" onClick={close}><b>{t("How you get booked")}</b><small>{t("Register, share your link, get jobs")}</small></Link>
     <Link to="/how-it-works" onClick={close}><b>{t("Why artists join")}</b><small>{t("No small talk, just confirmed jobs")}</small></Link>
     <Link to="/join" onClick={close}><b>{t("Plans")}</b><small>{t("Free, Medium and Pro")}</small></Link>
+    <Link to="/support" onClick={close}><b>{t("Support")}</b></Link>
+    <Link to="/terms" onClick={close}><b>{t("Terms of Service")}</b></Link>
     <Link to={user ? "/dashboard" : "/auth"} onClick={close}><b>{t(user ? "Dashboard" : "Sign in")}</b><small>{t("Your bookings and AI manager")}</small></Link>
   </>;
   const categories = catalog.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} onClick={close}>{localName(lang, c)}</Link>);
@@ -49,6 +51,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
             <div className="dd-p" id="home-artists-menu" inert={dropdown !== "artists"}>{artistLinks}</div>
           </div>
           <Link to="/how-it-works">{t("For clients")}</Link>
+          <Link to="/features">{t("Features")}</Link>
           <Link to="/how-it-works">{t("How it works")}</Link>
         </nav>
         <div className="nav-r">
@@ -66,6 +69,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
         <details><summary>{t("Find talent")}</summary><div>{categories}</div></details>
         <details><summary>{t("For artists")}</summary><div>{artistLinks}</div></details>
         <Link to="/how-it-works" onClick={close}>{t("For clients")}</Link><Link to="/how-it-works" onClick={close}>{t("How it works")}</Link>
+        <Link to="/features" onClick={close}>{t("Features")}</Link><Link to="/support" onClick={close}>{t("Support")}</Link><Link to="/terms" onClick={close}>{t("Terms of Service")}</Link>
         <Link to="/join" onClick={close}>{t("Join as talent")}</Link>
         {user ? <><Link to="/dashboard" onClick={close}>{t("Dashboard")}</Link>{isAdmin && <Link to="/admin" onClick={close}>{t("Admin")}</Link>}<Button variant="ghost" onClick={signOut}>{t("Sign out")}</Button></> : <Link to="/auth" onClick={close}>{t("Sign in")}</Link>}
       </nav>}

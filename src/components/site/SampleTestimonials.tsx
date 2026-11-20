@@ -11,9 +11,11 @@ export function SampleTestimonials() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
-    if (paused || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = setInterval(() => setIndex(i => (i + 1) % samples.length), 6500);
-    return () => clearInterval(timer);
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const start = () => { clearInterval(timer); if (!paused && !media.matches) timer = setInterval(() => setIndex(i => (i + 1) % samples.length), 6500); };
+    start(); media.addEventListener("change", start);
+    return () => { clearInterval(timer); media.removeEventListener("change", start); };
   }, [paused]);
   const sample = samples[index];
   if (!sample) return null;
