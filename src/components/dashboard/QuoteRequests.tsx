@@ -32,7 +32,7 @@ const TABS: Array<["all" | Status, string]> = [
 
 const badge: Record<string, string> = {
   new: "border-gold/40 bg-gold/10 text-gold",
-  replied: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300",
+  replied: "border-success/40 bg-success/10 text-success",
   closed: "border-border bg-foreground/5 text-muted-foreground",
 };
 const value = (q: Quote, k: SortKey): string | number => {
@@ -125,14 +125,14 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
       aria-sort={sort.k === k ? (sort.dir === 1 ? "ascending" : "descending") : undefined}
       className={`whitespace-nowrap ${headCell} ${num ? "text-end" : "text-start"}`}
     >
-      <button
+      <Button variant="ghost"
         type="button"
         onClick={() => setSort({ k, dir: sort.k === k ? (sort.dir === 1 ? -1 : 1) : 1 })}
         className={`inline-flex items-center gap-1.5 uppercase transition-colors hover:text-foreground ${sort.k === k ? "text-gold" : ""}`}
       >
         {t(label)}
         <ArrowUpDown className={`h-3 w-3 ${sort.k === k ? "opacity-100" : "opacity-40"}`} aria-hidden />
-      </button>
+      </Button>
     </th>
   );
   const stats: Array<[string, string, boolean]> = [
@@ -142,12 +142,12 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
   ];
 
   return (
-    <div className="space-y-5">
-      <section className="flex flex-wrap items-end justify-between gap-6" aria-labelledby="q-h">
+    <div className="dmr-wrap dmr-qpage">
+      <section className="dmr-q-head dmr-c-12" aria-labelledby="q-h">
         <div>
-          <h2 id="q-h" className="font-display text-5xl leading-none">
+          <h1 id="q-h" className="font-display text-5xl leading-none">
             {t("Quote")} <span className="it">{t("requests")}</span>
-          </h2>
+          </h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             {t("Every request sent from your public profile and order form. Reply, update the details, or close the ones that went nowhere.")}
           </p>
@@ -162,8 +162,8 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[20px] border border-border bg-card" aria-label={t("Quote requests table")}>
-        <div className="flex flex-wrap items-center justify-between gap-3.5 border-b border-border p-4">
+      <section className="dmr-panel dmr-q-panel dmr-c-12" aria-label={t("Quote requests table")}>
+        <div className="dmr-q-tools">
           <label className="relative flex max-w-md flex-1 basis-80 items-center">
             <Search className="pointer-events-none absolute start-3.5 h-4 w-4 text-muted-foreground" aria-hidden />
             <span className="sr-only">{t("Search quote requests")}</span>
@@ -177,7 +177,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
           </label>
           <div className="flex gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("Filter by status")}>
             {TABS.map(([k, l]) => (
-              <button
+              <Button variant="ghost"
                 key={k}
                 type="button"
                 aria-pressed={tab === k}
@@ -185,7 +185,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                 className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {t(l)} <span className="opacity-60">{counts[k]}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -209,7 +209,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
             {t("Could not load quote requests.")}
           </p>
         )}
-        <div className="overflow-x-auto">
+        <div className="dmr-tbl-wrap">
           <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-[13.5px]">
             <thead>
               <tr>
