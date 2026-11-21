@@ -42,6 +42,22 @@ export function Inbox({ artistId }: { artistId: string }) {
     },
     refetchInterval: 10000,
   });
+  const convoIds = (convos ?? []).map((c) => c.id);
+  const { data: lastMsgs } = useQuery({
+    queryKey: ["inbox-last", artistId, convoIds.join(",")],
+    enabled: convoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("messages").select("conversation_id, sender, body, created_at").in("conversation_id", convoIds).order("created_at", { ascending: false }).limit(Math.min(1000, convoIds.length * 4));
+      if (error) throw error;
+      const map = new Map<string, { sender: string; body: string }>();
+      for (const m of data ?? []) if (!map.has(m.conversation_id)) map.set(m.conversation_id, m);
+      return map;
+    },
+    refetchInterval: 15000,
+  });
+  useEffect(() => {
+    if (!open && convos && convos.length > 0) setOpen(convos[0]!.id);
+  }, [convos, open]);
   const { data: msgs } = useQuery({
     queryKey: ["inbox-msgs", open],
     enabled: !!open,
@@ -81,7 +97,7 @@ export function Inbox({ artistId }: { artistId: string }) {
         </div>
         <div className="dmr-threads">
           {convos?.length === 0 && <StudioEmpty title={t("No conversations yet.")} icon={InboxIcon} />}
-          {convos?.filter(c => (filter === "all" || c.mode === filter) && `${c.quote_requests?.name ?? "Direct chat"} ${c.id}`.toLowerCase().includes(search.toLowerCase())).map(c => <Button variant="ghost" key={c.id} onClick={()=>setOpen(c.id)} className={`studio-thread ${open === c.id ? "is-selected" : ""}`}><span className="studio-thread-avatar">{initials(c.quote_requests?.name ?? t("Client"))}</span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><b className="truncate text-sm">{c.quote_requests?.name ?? `${t("Direct chat")} · ${c.id.slice(0,8)}`}</b><Badge>{t(c.mode === "human" ? "Needs you" : "AI")}</Badge></span><span className="mt-1 block text-xs text-muted-foreground">{c.quote_requests?.event_date ?? t("date TBC")} · {c.ai_replies} {t("AI replies")}</span></span></Button>)}
+          {convos?.filter(c => (filter === "all" || c.mode === filter) && `${c.quote_requests?.name ?? "Direct chat"} ${c.id}`.toLowerCase().includes(search.toLowerCase())).map(c => <Button variant="ghost" key={c.id} onClick={()=>setOpen(c.id)} className={`studio-thread ${open === c.id ? "is-selected" : ""}`}><span className="studio-thread-avatar">{initials(c.quote_requests?.name ?? t("Client"))}</span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><b className="truncate text-sm">{c.quote_requests?.name ?? `${t("Direct chat")} · ${c.id.slice(0,8)}`}</b><Badge>{t(c.mode === "human" ? "Needs you" : "AI")}</Badge></span><span className="mt-1 block truncate text-xs text-muted-foreground">{lastMsgs?.get(c.id) ? `${lastMsgs.get(c.id)!.sender === "ai" ? "AI: " : lastMsgs.get(c.id)!.sender === "artist" ? `${t("You")}: ` : ""}${decodeChatMessage(lastMsgs.get(c.id)!.body).text}` : `${c.quote_requests?.event_date ?? t("date TBC")} · ${c.ai_replies} ${t("AI replies")}`}</span><span className="block text-[11px] text-muted-foreground/70">{c.last_message_at ? new Date(c.last_message_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""} · {c.quote_requests?.event_date ?? t("date TBC")} · {c.ai_replies} {t("AI replies")}</span></span></Button>)}
         </div>
       </section>
       <section className="dmr-conv" aria-label={t("Conversation")}>

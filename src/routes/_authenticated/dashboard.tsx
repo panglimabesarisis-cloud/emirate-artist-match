@@ -161,6 +161,30 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
     document.documentElement.classList.add("dm-dash");
     return () => document.documentElement.classList.remove("dm-dash");
   }, []);
+  const { data: navCounts } = useQuery({
+    queryKey: ["nav-counts", artist?.id],
+    enabled: !!artist?.id,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const id = artist!.id;
+      const head = { count: "exact" as const, head: true };
+      const [inbox, quotes, bookings, invoices, wallet] = await Promise.all([
+        supabase.from("conversations").select("id", head).eq("artist_id", id),
+        supabase.from("quote_requests").select("id", head).eq("artist_id", id).eq("status", "new"),
+        supabase.from("bookings").select("id", head).eq("artist_id", id),
+        supabase.from("service_invoices").select("id", head).eq("artist_id", id),
+        supabase.from("credit_wallets").select("balance").eq("artist_id", id).maybeSingle(),
+      ]);
+      return {
+        inbox: inbox.count ?? 0,
+        quotes: quotes.count ?? 0,
+        bookings: bookings.count ?? 0,
+        invoices: invoices.count ?? 0,
+        credits: Number(wallet.data?.balance ?? 0),
+      } as Record<string, number>;
+    },
+  });
+  const NAV_COUNT: Partial<Record<string, string>> = { inbox: "inbox", quotes: "quotes", bookings: "bookings", invoices: "invoices", credits: "credits" };
   if (isLoading) return null;
   if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;
   const current = ARTIST_NAV.find((n) => n.id === section) ?? ARTIST_NAV[0];
@@ -195,7 +219,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
               <div key={n.id} className="studio-menu-entry">
                 {header}
                 <Button type="button" variant="ghost" aria-current={on ? "page" : undefined} onClick={() => { setSection(n.id); setMenu(false); }} className="studio-nav-item">
-                  <Icon aria-hidden="true" />{tr(n.label)}
+                  <Icon aria-hidden="true" />{tr(n.label)}{NAV_COUNT[n.id] && navCounts && navCounts[NAV_COUNT[n.id]!] ? <span className="ms-auto text-[11px] font-bold opacity-60">{navCounts[NAV_COUNT[n.id]!]}</span> : null}
                 </Button>
               </div>
             );
