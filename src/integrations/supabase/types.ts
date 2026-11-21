@@ -404,7 +404,9 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          last_active_at: string | null
           role: string
+          role_id: string | null
           status: string
           user_id: string | null
         }
@@ -413,7 +415,9 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          last_active_at?: string | null
           role?: string
+          role_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -422,7 +426,9 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          last_active_at?: string | null
           role?: string
+          role_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -432,6 +438,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "team_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -2262,6 +2275,44 @@ export type Database = {
             foreignKeyName: "subscription_checkouts_artist_id_fkey"
             columns: ["artist_id"]
             isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_roles: {
+        Row: {
+          artist_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          menus: string[]
+          name: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          menus?: string[]
+          name: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          menus?: string[]
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_roles_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
             referencedRelation: "artists"
             referencedColumns: ["id"]
           },
