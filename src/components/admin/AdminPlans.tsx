@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Plan = { code: string; name: string; price_monthly: number; price_yearly: number; ai_credits: number; max_photos: number; max_videos: number; max_specialties:number; max_team_members:number; commission_pct: number; features: string[] };
+type Plan = { code: string; name: string; price_monthly: number; price_yearly: number; ai_credits: number; max_photos: number; max_videos: number; max_specialties:number; max_team_members:number; commission_pct: number; features: string[]; max_categories: number; max_portfolio: number; max_clients: number; max_flow_blocks: number; max_form_questions: number; max_active_prompts: number; max_own_prompts: number; allowed_models: string[] };
 
 export function AdminPlans() {
   const { data } = useQuery({ queryKey: ["admin-plans"], queryFn: async () => (await supabase.from("plan_tiers").select("*").order("sort")).data ?? [] });
   const counts = useQuery({ queryKey: ["admin-plan-counts"], queryFn: async () => (await supabase.from("artists").select("plan")).data ?? [] }).data ?? [];
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {data?.map((p) => <PlanCard key={p.code} plan={{ ...p, features: Array.isArray(p.features) ? (p.features as string[]) : [] }} count={counts.filter((c) => c.plan === p.code).length} />)}
+    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+      {data?.map((p) => <PlanCard key={p.code} plan={{ ...p, features: Array.isArray(p.features) ? (p.features as string[]) : [], allowed_models: Array.isArray(p.allowed_models) ? p.allowed_models : [] }} count={counts.filter((c) => c.plan === p.code).length} />)}
     </div>
   );
 }
@@ -22,11 +22,14 @@ function PlanCard({ plan, count }: { plan: Plan; count: number }) {
   const qc = useQueryClient();
   const [p, setP] = useState(plan);
   const [feat, setFeat] = useState("");
-  useEffect(() => setP(plan), [plan]);
+  const [models, setModels] = useState(plan.allowed_models.join(", "));
+  useEffect(() => { setP(plan); setModels(plan.allowed_models.join(", ")); }, [plan]);
   const num = (k: keyof Plan) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
   const save = async () => {
     const { code, ...rest } = p;
-    const { error } = await supabase.from("plan_tiers").update({ ...rest, updated_at: new Date().toISOString() }).eq("code", code);
+    const allowed_models = models.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+    if (!allowed_models.length) { toast.error("Allow at least one AI model"); return; }
+    const { error } = await supabase.from("plan_tiers").update({ ...rest, allowed_models, updated_at: new Date().toISOString() }).eq("code", code);
     if (error) { toast.error(error.message); return; }
     toast.success(`${p.name} saved`); qc.invalidateQueries({ queryKey: ["admin-plans"] });
   };
@@ -45,6 +48,17 @@ function PlanCard({ plan, count }: { plan: Plan; count: number }) {
         <F label="Max videos"><Input type="number" value={p.max_videos} onChange={num("max_videos")} /></F>
         <F label="Max specialties"><Input type="number" min={1} value={p.max_specialties} onChange={num("max_specialties")} /></F>
         <F label="Max team members (-1 unlimited)"><Input type="number" min={-1} value={p.max_team_members} onChange={num("max_team_members")} /></F>
+        <F label="Max categories"><Input type="number" min={1} value={p.max_categories} onChange={num("max_categories")} /></F>
+        <F label="Max portfolio items"><Input type="number" min={0} value={p.max_portfolio} onChange={num("max_portfolio")} /></F>
+        <F label="Max past clients"><Input type="number" min={0} value={p.max_clients} onChange={num("max_clients")} /></F>
+        <F label="Max flow blocks"><Input type="number" min={1} value={p.max_flow_blocks} onChange={num("max_flow_blocks")} /></F>
+        <F label="Max form questions"><Input type="number" min={1} value={p.max_form_questions} onChange={num("max_form_questions")} /></F>
+        <F label="Max active prompts"><Input type="number" min={0} value={p.max_active_prompts} onChange={num("max_active_prompts")} /></F>
+        <F label="Max own prompts"><Input type="number" min={0} value={p.max_own_prompts} onChange={num("max_own_prompts")} /></F>
+      </div>
+      <div>
+        <Label className="text-xs" htmlFor={`models-${p.code}`}>Allowed AI models (comma separated)</Label>
+        <Input id={`models-${p.code}`} value={models} onChange={(e) => setModels(e.target.value)} placeholder="fast, balanced, advanced" />
       </div>
       <div>
         <Label className="text-xs">Features</Label>
