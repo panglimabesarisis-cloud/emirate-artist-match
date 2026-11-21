@@ -15,11 +15,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForClientsRouteImport } from './routes/for-clients'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as HowYouGetBookedRouteImport } from './routes/how-you-get-booked'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WhyArtistsJoinRouteImport } from './routes/why-artists-join'
 import { Route as CategoryIndexRouteImport } from './routes/$category.index'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -71,6 +73,11 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
   path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowYouGetBookedRoute = HowYouGetBookedRouteImport.update({
+  id: '/how-you-get-booked',
+  path: '/how-you-get-booked',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JoinRoute = JoinRouteImport.update({
   id: '/join',
   path: '/join',
@@ -94,6 +101,11 @@ const SupportRoute = SupportRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhyArtistsJoinRoute = WhyArtistsJoinRouteImport.update({
+  id: '/why-artists-join',
+  path: '/why-artists-join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategoryIndexRoute = CategoryIndexRouteImport.update({
@@ -214,11 +226,13 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/how-you-get-booked': typeof HowYouGetBookedRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/why-artists-join': typeof WhyArtistsJoinRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -247,11 +261,13 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/how-you-get-booked': typeof HowYouGetBookedRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/why-artists-join': typeof WhyArtistsJoinRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -282,11 +298,13 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/how-you-get-booked': typeof HowYouGetBookedRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/why-artists-join': typeof WhyArtistsJoinRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -317,11 +335,13 @@ export interface FileRouteTypes {
     | '/features'
     | '/for-clients'
     | '/how-it-works'
+    | '/how-you-get-booked'
     | '/join'
     | '/mcp'
     | '/reset-password'
     | '/support'
     | '/terms'
+    | '/why-artists-join'
     | '/.well-known/oauth-protected-resource'
     | '/account'
     | '/admin'
@@ -350,11 +370,13 @@ export interface FileRouteTypes {
     | '/features'
     | '/for-clients'
     | '/how-it-works'
+    | '/how-you-get-booked'
     | '/join'
     | '/mcp'
     | '/reset-password'
     | '/support'
     | '/terms'
+    | '/why-artists-join'
     | '/.well-known/oauth-protected-resource'
     | '/account'
     | '/admin'
@@ -384,11 +406,13 @@ export interface FileRouteTypes {
     | '/features'
     | '/for-clients'
     | '/how-it-works'
+    | '/how-you-get-booked'
     | '/join'
     | '/mcp'
     | '/reset-password'
     | '/support'
     | '/terms'
+    | '/why-artists-join'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/account'
     | '/_authenticated/admin'
@@ -419,11 +443,13 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   ForClientsRoute: typeof ForClientsRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  HowYouGetBookedRoute: typeof HowYouGetBookedRoute
   JoinRoute: typeof JoinRoute
   McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
+  WhyArtistsJoinRoute: typeof WhyArtistsJoinRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApproveIdRoute: typeof ApproveIdRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
@@ -488,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-you-get-booked': {
+      id: '/how-you-get-booked'
+      path: '/how-you-get-booked'
+      fullPath: '/how-you-get-booked'
+      preLoaderRoute: typeof HowYouGetBookedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/join': {
       id: '/join'
       path: '/join'
@@ -521,6 +554,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/why-artists-join': {
+      id: '/why-artists-join'
+      path: '/why-artists-join'
+      fullPath: '/why-artists-join'
+      preLoaderRoute: typeof WhyArtistsJoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$category/': {
@@ -695,11 +735,13 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   ForClientsRoute: ForClientsRoute,
   HowItWorksRoute: HowItWorksRoute,
+  HowYouGetBookedRoute: HowYouGetBookedRoute,
   JoinRoute: JoinRoute,
   McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
+  WhyArtistsJoinRoute: WhyArtistsJoinRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApproveIdRoute: ApproveIdRoute,

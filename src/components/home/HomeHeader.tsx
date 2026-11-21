@@ -28,8 +28,8 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const close = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setMenu(false); setDropdown(null); };
   const artistLinks = <>
     <Link to="/join" onClick={close}><b>{t("Create a profile")}</b><small>{t("Six quick steps, reviewed by our team")}</small></Link>
-    <Link to="/how-it-works" onClick={close}><b>{t("How you get booked")}</b><small>{t("Register, share your link, get jobs")}</small></Link>
-    <Link to="/how-it-works" onClick={close}><b>{t("Why artists join")}</b><small>{t("No small talk, just confirmed jobs")}</small></Link>
+    <Link to="/how-you-get-booked" activeProps={{ "aria-current": "page" }} onClick={close}><b>{t("How you get booked")}</b><small>{t("Register, share your link, get jobs")}</small></Link>
+    <Link to="/why-artists-join" activeProps={{ "aria-current": "page" }} onClick={close}><b>{t("Why artists join")}</b><small>{t("No small talk, just confirmed jobs")}</small></Link>
     <Link to="/join" onClick={close}><b>{t("Plans")}</b><small>{t("Free, Medium and Pro")}</small></Link>
     <Link to="/support" onClick={close}><b>{t("Support")}</b></Link>
     <Link to="/terms" onClick={close}><b>{t("Terms of Service")}</b></Link>

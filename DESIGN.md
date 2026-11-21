@@ -76,3 +76,28 @@ Final action / browse talent
 ```
 
 Genericness check: avoid generic benefit cards and an artist-signup pitch; use client event types, real profile evidence, artist-reviewed offers and demo payment disclosure. Desktop and mobile For clients links both target the new content route. No screenshots, production visual score or live-payment verification.
+
+## Artist guide extensions
+Brief: give How you get booked and Why artists join separate pages, using the existing homepage and How it works art direction. Retain TanStack Start, shared navigation and all booking behavior.
+
+Concepts (originality / fit / feasibility / portability):
+- Booking score: an artist's ordered itinerary from profile review to completed-booking feedback. Signature: five editorial stages with real approval checkpoints. Anchor: artists approve offers before payment. Emotion: readiness. Frame: arch and first stage. Scores 4/5/5/2.
+- Backstage control: explain why artists join through evidence of profile, AI, approval and workspace tools. Signature: benefits paired with concrete operational details rather than generic sales cards. Anchor: separate earnings and credit wallets. Emotion: ownership. Frame: gold heading and workspace milestones. Scores 4/5/5/2.
+- Talent billboard: focus on media and discovery alone. Signature: large gallery. Anchor: approved public artist profiles. Emotion: visibility. Frame: media wall. Scores 3/3/3/4.
+
+Selected: booking score for /how-you-get-booked; backstage control for /why-artists-join. Different content serves process and motivation without duplicating the general guide.
+System: existing ink/cream/gold semantic tokens, Bebas Neue headings, Manrope text, zero tracking, existing arch scene and clock. Reuse information.css and how-it-works.css, alternating unframed sections, stable icon milestones, FAQ and final signup links; no extra dependencies or decorative effects. Quiet interactions inherit existing hover/focus and reduced-motion handling.
+
+```text
+HOW YOU GET BOOKED             WHY ARTISTS JOIN
+Arch / process title           Arch / benefit title
+01 Profile review              Public presence / profile evidence
+02 Share and collect briefs    AI assistance / knowledge and flow
+03 Artist approval             Artist control / human checkpoint
+04 Documents and demo payment  Workspace / team and balances
+05 Event and feedback          Plan expectations / honest limits
+Process questions              Joining questions
+Join / benefits guide          Join / process guide
+```
+
+Genericness check: no guaranteed jobs, invented metrics, testimonials or live payment claims. Use actual profile approval, saved AI forms, rate cards, human handover, linked documents and separate wallets. Copy includes plan limits, provider configuration and demo-only payments. Skill reference files are absent from the supplied skill mount; follow the injected /design guidance and existing approved presentation. No screenshots, extra test suites or production visual score as requested.

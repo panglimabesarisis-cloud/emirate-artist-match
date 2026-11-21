@@ -68,3 +68,4 @@ use the editor.
 - Dashboard reference headings, empty states and unsupported fields use StudioPage presentation helpers; adapters target existing control classes and ARIA roles, not absent data-slot attributes, so shared controls and data contracts remain unchanged.
 - Mount SiteHeader once inside the root language provider and reuse HomeHeader with the shared catalog query; page layouts omit duplicate headers, and sticky workspaces use its measured height to avoid overlap.
 - How it works and For clients reuse the public reference theme and scene with page-scoped CSS and static journey data; For clients has its own route linked from desktop/mobile navigation so audience content and booking behavior stay independent.
+- Artist process and benefits guides use separate content routes with ArtistGuidePage and existing public journey styles; shared desktop/mobile artist navigation targets those routes to keep audience content distinct without altering booking logic.
