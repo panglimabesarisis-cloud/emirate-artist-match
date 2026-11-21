@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
@@ -16,12 +16,15 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const qc = useQueryClient();
   const [menu, setMenu] = useState(false);
   const [dropdown, setDropdown] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openDd = (id: string) => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setDropdown(id); };
+  const closeDd = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setDropdown(null), 200); };
   const musicians = catalog.categories.find((c) => c.slug === "musicians");
   const signOut = async () => {
     await qc.cancelQueries(); qc.clear(); await supabase.auth.signOut();
     void navigate({ to: "/auth", replace: true });
   };
-  const close = () => { setMenu(false); setDropdown(null); };
+  const close = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setMenu(false); setDropdown(null); };
   const artistLinks = <>
     <Link to="/join" onClick={close}><b>{t("Create a profile")}</b><small>{t("Six quick steps, reviewed by our team")}</small></Link>
     <Link to="/how-it-works" onClick={close}><b>{t("How you get booked")}</b><small>{t("Register, share your link, get jobs")}</small></Link>
@@ -38,7 +41,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
       <div className="wrap nav-in">
         <Link to="/" className="logo" aria-label="Dealmaker home"><i>D</i><span>Dealmaker<b>.</b></span></Link>
         <nav className="links" aria-label={t("Main navigation")}>
-          <div className={`dd ${dropdown === "talent" ? "open" : ""}`} onMouseEnter={() => setDropdown("talent")} onMouseLeave={() => setDropdown(null)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
+          <div className={`dd ${dropdown === "talent" ? "open" : ""}`} onMouseEnter={() => openDd("talent")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
             <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "talent"} aria-controls="home-talent-menu" onClick={() => setDropdown(dropdown === "talent" ? null : "talent")}>{t("Find talent")}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p mega" id="home-talent-menu" inert={dropdown !== "talent"}>
               <div className="dd-col"><span className="dd-h">{t("Categories")}</span>{categories}</div>
@@ -46,7 +49,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
               <Link className="dd-card" to="/$category" params={{ category: catalog.categories[0]?.slug ?? "musicians" }} onClick={close}><span className="dd-h">{t("All talent")}</span><b className="serif">{t("Browse")} <span className="it">{t("talent.")}</span></b><span className="arr">↗</span></Link>
             </div>
           </div>
-          <div className={`dd ${dropdown === "artists" ? "open" : ""}`} onMouseEnter={() => setDropdown("artists")} onMouseLeave={() => setDropdown(null)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
+          <div className={`dd ${dropdown === "artists" ? "open" : ""}`} onMouseEnter={() => openDd("artists")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
             <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "artists"} aria-controls="home-artists-menu" onClick={() => setDropdown(dropdown === "artists" ? null : "artists")}>{t("For artists")}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p" id="home-artists-menu" inert={dropdown !== "artists"}>{artistLinks}</div>
           </div>
