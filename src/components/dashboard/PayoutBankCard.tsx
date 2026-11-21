@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StudioSoon } from "./StudioPage";
 import { maskIban, useBankDetails } from "./useBankDetails";
 
 /** Read-only UAE payout account. Values are set during verification and can only be changed by support. */
@@ -19,15 +20,16 @@ export function PayoutBankCard({ userId }: { userId: string }) {
   if (!artistId) return null;
   const d = bank.data;
   return (
-    <section className="space-y-3 border-b pb-6">
+    <section className="studio-account-section space-y-3">
       <h2 className="flex items-center gap-2 text-xl font-semibold"><Lock className="h-4 w-4" />{t("Payout bank account")}</h2>
       <p className="text-sm text-muted-foreground">{t("UAE bank transfer. These details are locked; contact support to change them.")}</p>
-      <Label htmlFor="bank-name">{t("Bank name")}</Label>
+      <div className="grid gap-4 sm:grid-cols-2"><StudioSoon label="Account type" /><div><Label htmlFor="bank-name">{t("Bank name")}</Label>
       <Input id="bank-name" disabled value={d?.bank_name ?? ""} placeholder={t("Not set yet")} />
-      <Label htmlFor="bank-holder">{t("Account holder")}</Label>
+      </div><div><Label htmlFor="bank-holder">{t("Account holder")}</Label>
       <Input id="bank-holder" disabled value={d?.account_holder ?? ""} placeholder={t("Not set yet")} />
-      <Label htmlFor="bank-iban">IBAN</Label>
-      <Input id="bank-iban" dir="ltr" disabled value={d ? maskIban(d.iban) : ""} placeholder="AE00 •••• •••• ••••" />
+      </div><StudioSoon label="Branch (optional)" /></div><h2 className="pt-6 border-t">{t("UAE transfer")} <span className="it">{t("details")}</span></h2><Label htmlFor="bank-iban">{t("IBAN")}</Label>
+      <Input id="bank-iban" dir="ltr" disabled value={d ? maskIban(d.iban) : ""} placeholder={t("AE00 •••• •••• ••••")} />
+<div className="grid gap-4 sm:grid-cols-2"><StudioSoon label="SWIFT / BIC" /><StudioSoon label="Emirates ID" /><div><Label>{t("Country")}</Label><Input disabled value={"United Arab Emirates"} /></div><div><Label>{t("Currency")}</Label><Input disabled value={"AED"} /></div></div>
     </section>
   );
 }

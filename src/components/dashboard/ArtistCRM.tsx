@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 import { DashboardArtwork } from "./DashboardArtwork";
+import { StudioHeading, StudioSection, StudioSoon, StudioEmpty, StudioDonut } from "./StudioPage";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -93,7 +94,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
         <div className="studio-panel-heading"><h2 id="ov-earnings">{t("Earnings")} <span className="it">{t("over time")}</span><small>{t("Last 6 months, in AED")}</small></h2><span className="studio-range">{t("6 months")}</span></div>
         <div className="studio-chart">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chart}><CartesianGrid stroke="var(--studio-line)" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickFormatter={(v: string) => t(v)} fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} /><YAxis fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} width={44} /><Tooltip formatter={(v) => aed(Number(v))} labelFormatter={(v) => t(String(v))} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "var(--studio-tooltip-radius)", color: "var(--foreground)" }} /><Bar dataKey="earned" name={t("Earnings")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
+            <BarChart data={chart}><CartesianGrid stroke="var(--studio-line)" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickFormatter={(v: string) => t(v)} fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} /><YAxis fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} width={44} /><Tooltip formatter={(v) => aed(Number(v))} labelFormatter={(v) => t(String(v))} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "var(--studio-tooltip-radius)", color: "var(--foreground)" }} /><Bar dataKey="earned" name={"Earnings"} fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
           </ResponsiveContainer>
           {chart.every((m) => m.earned === 0) && <div className="studio-chart-empty"><b>{t("No earnings")} <span className="it">{t("yet.")}</span></b><p>{t("Your first completed booking appears here. Payments are released after each job is done.")}</p><Button className="studio-button studio-button-gold" onClick={() => onOpen("profile")}>{t("Share your profile")} <span aria-hidden="true">→</span></Button></div>}
         </div>
@@ -141,6 +142,7 @@ const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function CalendarTab({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const start$ = useServerFn(startCalendarConnect), complete$ = useServerFn(completeCalendarConnect), events$ = useServerFn(getCalendarEvents), disc$ = useServerFn(disconnectCalendar);
   const [view, setView] = useState<"day" | "week" | "month">("month");
@@ -203,37 +205,39 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const today = ymd(new Date());
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+    <div className="dmr-wrap dmr-cpage"><StudioHeading title="Calen" accent="dar" />
+      <div className="studio-calendar-connect">
         <div>
-          <div className="font-semibold">Google Calendar</div>
+          <div className="font-semibold">{t("Google Calendar")}</div>
           <div className="text-sm text-muted-foreground">
-            {g.isLoading ? "Checking…" : g.data?.connected ? `Connected${g.data.email ? ` · ${g.data.email}` : ""}. Your events show on the calendar below.` : g.data?.reconnectRequired ? "Your Google Calendar access needs to be renewed." : g.isError ? "Couldn't load Google Calendar." : "Connect your Google Calendar so your events appear here."}
+            {g.isLoading ? t("Checking…") : g.data?.connected ? `Connected${g.data.email ? ` · ${g.data.email}` : ""}. Your events show on the calendar below.` : g.data?.reconnectRequired ? t("Your Google Calendar access needs to be renewed.") : g.isError ? t("Couldn't load Google Calendar.") : t("Connect your Google Calendar so your events appear here.")}
           </div>
         </div>
         <div className="flex gap-2">
-          {g.data?.connected ? <Button variant="outline" onClick={disconnect}>Disconnect</Button>
-            : <Button onClick={connect} disabled={busy}>{busy ? "Connecting…" : g.data?.reconnectRequired ? "Reconnect Google Calendar" : "Connect Google Calendar"}</Button>}
+          {g.data?.connected ? <Button variant="outline" onClick={disconnect}>{t("Disconnect")}</Button>
+            : <Button onClick={connect} disabled={busy}>{busy ? t("Connecting…") : g.data?.reconnectRequired ? t("Reconnect Google Calendar") : t("Connect Google Calendar")}</Button>}
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <StudioDonut title={t("Job progress")} entries={[{label:"Done",value:local.data?.bookings.filter(b=>b.status === "completed").length ?? 0},{label:"Waiting",value:local.data?.bookings.filter(b=>b.status !== "completed").length ?? 0}]} />
+      <StudioSection title="Payment" accent="status" className="studio-donut-panel"><StudioSoon label="Calendar payment breakdown" /></StudioSection>
+      <div className="dmr-panel studio-calendar-surface">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b p-3">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" aria-label="Previous" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-            <Button variant="outline" size="sm" onClick={() => { const d = new Date(); setFocus(new Date(d.getFullYear(), d.getMonth(), d.getDate())); }}>Today</Button>
-            <Button variant="ghost" size="icon" aria-label="Next" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label={t("Previous")} onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" onClick={() => { const d = new Date(); setFocus(new Date(d.getFullYear(), d.getMonth(), d.getDate())); }}>{t("Today")}</Button>
+            <Button variant="ghost" size="icon" aria-label={t("Next")} onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <div className="font-semibold">{title}</div>
           <div className="flex rounded-lg border p-0.5">
             {(["day", "week", "month"] as const).map((v) => (
-              <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-xs font-medium ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}>{v === "day" ? "Daily" : v === "week" ? "Weekly" : "Monthly"}</button>
+              <Button variant="ghost" key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-xs font-medium ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}>{v === "day" ? t("Daily") : v === "week" ? t("Weekly") : t("Monthly")}</Button>
             ))}
           </div>
         </div>
-        {view === "month" && <>
+        {view === "month" && <div className="overflow-x-auto">
         <div className="grid grid-cols-7 border-b text-center text-xs font-medium text-muted-foreground">{WEEK.map((w) => <div key={w} className="py-2">{w}</div>)}</div>
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 studio-calendar-grid">
           {days.map((d, i) => {
             if (!d) return <div key={`e${i}`} className="min-h-24 border-b border-e bg-muted/30" />;
             const date = ymd(d);
@@ -241,20 +245,20 @@ export function CalendarTab({ artistId }: { artistId: string }) {
             const bks = local.data?.bookings.filter((b) => b.event_date === date) ?? [];
             const ev = gEventsOn(date);
             return (
-              <button key={date} onClick={() => toggleBlock(date)} onDoubleClick={() => { setFocus(d); setView("day"); }} title={blocked ? "Click to unblock · double-click for day view" : "Click to block · double-click for day view"}
-                className={`min-h-24 border-b border-e p-1.5 text-start align-top transition-colors hover:bg-accent/50 ${blocked ? "bg-destructive/10" : ""}`}>
+              <Button variant="ghost" key={date} onClick={() => toggleBlock(date)} onDoubleClick={() => { setFocus(d); setView("day"); }} title={blocked ? t("Click to unblock · double-click for day view") : t("Click to block · double-click for day view")}
+                className={`studio-calendar-day ${blocked ? "bg-destructive/10" : ""}`}>
                 <div className={`mb-1 inline-grid h-6 w-6 place-items-center rounded-full text-xs ${date === today ? "bg-primary text-primary-foreground" : ""}`}>{d.getDate()}</div>
                 <div className="space-y-0.5">
                   {blocked && <div className="truncate rounded bg-destructive/20 px-1 text-[10px] text-destructive">{blocked.note ?? "Blocked"}</div>}
                   {bks.map((b) => <div key={b.id} className="truncate rounded bg-gold/25 px-1 text-[10px]">{b.client_name}</div>)}
                   {ev.slice(0, 3).map((e) => <div key={e.id + date} className="truncate rounded bg-primary/15 px-1 text-[10px]">{e.allDay ? "" : `${hm(e.start)} `}{e.title}</div>)}
-                  {ev.length > 3 && <div className="text-[10px] text-muted-foreground">+{ev.length - 3} more</div>}
+                  {ev.length > 3 && <div className="text-[10px] text-muted-foreground">+{ev.length - 3} {t("more")}</div>}
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>
-        </>}
+        </div>}
         {view !== "month" && (() => {
           const cols = view === "week" ? weekDays : [focus];
           return (
@@ -267,12 +271,12 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                     const allDay = gEventsOn(date).filter((e) => e.allDay), bks = local.data?.bookings.filter((b) => b.event_date === date) ?? [];
                     return (
                       <div key={date} className={`border-s p-1.5 text-xs ${blocked ? "bg-destructive/10" : ""}`}>
-                        <button onClick={() => { setFocus(d); setView("day"); }} className={`font-medium ${date === today ? "text-primary" : ""}`}>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</button>
+                        <Button variant="ghost" onClick={() => { setFocus(d); setView("day"); }} className={`font-medium ${date === today ? "text-primary" : ""}`}>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</Button>
                         <div className="mt-1 space-y-0.5">
                           {blocked && <div className="truncate rounded bg-destructive/20 px-1 text-[10px] text-destructive">{blocked.note ?? "Blocked"}</div>}
                           {bks.map((b) => <div key={b.id} className="truncate rounded bg-gold/25 px-1 text-[10px]">{b.client_name}</div>)}
                           {allDay.map((e) => <div key={e.id} className="truncate rounded bg-primary/15 px-1 text-[10px]">{e.title}</div>)}
-                          <button onClick={() => toggleBlock(date)} className="text-[10px] text-muted-foreground underline">{blocked ? "Unblock" : "Block day"}</button>
+                          <Button variant="ghost" onClick={() => toggleBlock(date)} className="text-[10px] text-muted-foreground underline">{blocked ? t("Unblock") : t("Block day")}</Button>
                         </div>
                       </div>
                     );
@@ -303,18 +307,20 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           );
         })()}
       </div>
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-gold/40" /> Dealmaker booking</span>
-        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-primary/25" /> Google Calendar</span>
-        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/25" /> Blocked (clients can't book)</span>
-        <span>Monthly: click a day to block it, double-click to open the daily view.</span>
+      <div className="dmr-c-12 flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-gold/40" /> {t("Dealmaker booking")}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-primary/25" /> {t("Google Calendar")}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/25" /> {t("Blocked (clients can't book)")}</span>
+        <span>{t("Monthly: click a day to block it, double-click to open the daily view.")}</span>
       </div>
+      <section className="dmr-panel dmr-q-panel dmr-c-12"><div className="dmr-q-tools"><h2>{t("Schedule")}</h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Date","Client","Service","Status","Location","Progress"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{local.data?.bookings.map(b=><tr key={b.id}><td>{b.event_date}</td><td>{b.client_name}</td><td>{b.package_title}</td><td><Badge>{t(b.status)}</Badge></td><td><span className="studio-soon">{t("segera")}</span></td><td><Badge>{t(b.status === "completed" ? "Done" : "Waiting")}</Badge></td></tr>)}</tbody></table></div>{!local.data?.bookings.length && <StudioEmpty title={t("Nothing scheduled")} icon={Calendar} />}</section>
     </div>
   );
 }
 
 const PHONE = /^\+?[0-9 ]{8,16}$/;
 export function TeamPhones({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["team-phones", artistId], queryFn: async () => (await supabase.from("artists").select("notify_phone, manager_phone").eq("id", artistId).single()).data });
   const [artist, setArtist] = useState<string | null>(null), [manager, setManager] = useState<string | null>(null);
@@ -327,13 +333,13 @@ export function TeamPhones({ artistId }: { artistId: string }) {
     qc.invalidateQueries({ queryKey: ["team-phones", artistId] });
   };
   return (
-    <div className="max-w-3xl space-y-4">
-      <p className="text-sm text-muted-foreground">When a client pays, the full booking details (date, time, venue, package, client contact and amount) are sent to these WhatsApp numbers.</p>
+    <div className="dmr-panel mt-5 space-y-4">
+      <h2>{t("WhatsApp notifications")}</h2><p className="text-sm text-muted-foreground">{t("When a client pays, the full booking details (date, time, venue, package, client contact and amount) are sent to these WhatsApp numbers.")}</p>
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-5"><Label>Artist WhatsApp</Label><Input className="mt-2" value={a} onChange={(e) => setArtist(e.target.value)} placeholder="+971 50 123 4567" /></div>
-        <div className="rounded-xl border bg-card p-5"><Label>Manager WhatsApp</Label><Input className="mt-2" value={m} onChange={(e) => setManager(e.target.value)} placeholder="+971 55 765 4321" /></div>
+        <div className="rounded-xl border bg-card p-5"><Label>{t("Artist WhatsApp")}</Label><Input className="mt-2" value={a} onChange={(e) => setArtist(e.target.value)} placeholder="+971 50 123 4567" /></div>
+        <div className="rounded-xl border bg-card p-5"><Label>{t("Manager WhatsApp")}</Label><Input className="mt-2" value={m} onChange={(e) => setManager(e.target.value)} placeholder="+971 55 765 4321" /></div>
       </div>
-      <Button onClick={save} className="bg-gradient-gold text-gold-foreground">Save numbers</Button>
+      <Button onClick={save} className="bg-gradient-gold text-gold-foreground">{t("Save numbers")}</Button>
     </div>
   );
 }
@@ -373,46 +379,28 @@ ${locked.iban}` : bank.trim();
     qc.invalidateQueries({ queryKey: ["wallet-pay", artistId] });
   };
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-background p-6 sm:p-8">
+    <div className="dmr-wrap dmr-wpage"><StudioHeading title="Wal" accent="let" />
+      <div className="studio-wallet-hero"><div>
         <div className="text-xs uppercase tracking-widest text-muted-foreground">{t("Available to withdraw")}</div>
         <div className="mt-2 font-display text-5xl text-primary" dir="ltr">{aed(Number(w?.available ?? 0))}</div>
         <p className="mt-1 text-sm text-muted-foreground">{t("After platform fee, withdrawals and pending requests.")}</p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+<Button asChild className="mt-5"><a href="#studio-withdrawal">{t("Request withdrawal")}</a></Button></div><div className="studio-wallet-process"><span>{t("Client pays")}</span><span aria-hidden="true">→</span><span>{t("Escrow")}</span><span aria-hidden="true">→</span><span>{t("You withdraw")}</span></div></div>
+      <div className="studio-wallet-stats">
         <Kpi label={t("Completed work")} value={aed(Number(w?.gross ?? 0))} hint={`${w?.jobs ?? 0} jobs, excl. VAT`} />
-        <Kpi label={`${t("Platform fee")} (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint={t("Based on your plan")} />
+        <Kpi label={`${t("Platform fee")} (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint={"Based on your plan"} />
         <Kpi label={t("Withdrawn / pending")} value={aed(Number(w?.paid_out ?? 0) + Number(w?.pending ?? 0))} hint={`${aed(Number(w?.pending ?? 0))} pending`} />
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="dmr-w-left">
         <div className="space-y-6">
-          <div className="rounded-xl border bg-card">
-            <div className="border-b p-4 font-semibold">{t("Completed jobs")}</div>
-            {data?.jobs.length === 0 && <p className="p-4 text-sm text-muted-foreground">{t("No completed jobs yet.")}</p>}
-            <div className="divide-y">{data?.jobs.map((j) => (
-              <div key={j.id} className="grid grid-cols-[1fr_auto] gap-2 p-4 text-sm">
-                <div className="min-w-0"><div className="truncate font-medium">{j.client_name} · {j.package_title ?? "Booking"}</div><div className="text-xs text-muted-foreground">{j.event_date}{j.invoice_no ? ` · ${j.invoice_no}` : ""}</div></div>
-                <div className="text-end"><div>{aed(Number(j.amount))}</div><div className="text-xs text-muted-foreground">net {aed(Number(j.amount) * (1 - pct / 100))}</div></div>
-              </div>
-            ))}</div>
-          </div>
-          <div className="rounded-xl border bg-card">
-            <div className="border-b p-4 font-semibold">{t("Withdrawal requests")}</div>
-            {data?.requests.length === 0 && <p className="p-4 text-sm text-muted-foreground">{t("No withdrawals yet.")}</p>}
-            <div className="divide-y">{data?.requests.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 p-4 text-sm">
-                <div><div className="font-medium">{aed(Number(r.amount))}</div><div className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note ? ` · ${r.admin_note}` : ""}</div></div>
-                <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
-              </div>
-            ))}</div>
-          </div>
-        </div>
-        <div className="h-fit rounded-xl border bg-card p-5">
+          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Job")} <span className="it">{t("earnings")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Job","Date","Job fee"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.jobs.map(j=><tr key={j.id}><td><b>{j.client_name}</b><small className="block text-muted-foreground">{j.package_title ?? t("Booking")}</small></td><td>{j.event_date}</td><td>{aed(Number(j.amount))}</td></tr>)}</tbody></table></div>{data?.jobs.length === 0 && <StudioEmpty title={t("No completed jobs yet.")} icon={Wallet} />}</section>
+          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Withdrawal")} <span className="it">{t("requests")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Requested","Amount","Status"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.requests.map(r=><tr key={r.id}><td>{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note && <small className="block">{r.admin_note}</small>}</td><td>{aed(Number(r.amount))}</td><td><Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{t(r.status)}</Badge></td></tr>)}</tbody></table></div>{data?.requests.length === 0 && <StudioEmpty title={t("No withdrawals yet.")} icon={Wallet} />}</section></div></div>
+        <div className="dmr-w-side"><div id="studio-withdrawal" className="dmr-panel">
+
           <div className="font-semibold">{t("Request withdrawal")}</div>
           <p className="mt-1 text-sm text-muted-foreground">{t("Demo mode: no real money is transferred.")}</p>
           <Label className="mt-4 block">{t("Amount (AED)")}</Label>
           <Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <button type="button" className="mt-1 text-xs underline text-muted-foreground" onClick={() => setAmount(String(Math.floor(Number(w?.available ?? 0))))}>{t("Withdraw all")}</button>
+          <Button variant="ghost" type="button" className="mt-1 text-xs underline text-muted-foreground" onClick={() => setAmount(String(Math.floor(Number(w?.available ?? 0))))}>{t("Withdraw all")}</Button>
           <Label className="mt-3 block">{t("Bank details")}</Label>
           {locked ? (
             <div className="mt-1 space-y-1 rounded-lg border bg-muted/40 p-3 text-sm" aria-label={t("Locked bank details")}>
@@ -420,10 +408,10 @@ ${locked.iban}` : bank.trim();
               <div className="font-medium">{locked.bank_name}</div><div>{locked.account_holder}</div><div dir="ltr">{maskIban(locked.iban)}</div>
             </div>
           ) : (
-            <Textarea rows={3} maxLength={300} value={bank} onChange={(e) => setBank(e.target.value)} placeholder={"Bank name\nAccount holder\nIBAN AE00 0000 0000 0000 0000 000"} />
+            <Textarea rows={3} maxLength={300} value={bank} onChange={(e) => setBank(e.target.value)} placeholder={t("Bank name\nAccount holder\nIBAN AE00 0000 0000 0000 0000 000")} />
           )}
           <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy} onClick={request}>{busy ? t("Sending…") : t("Request withdrawal")}</Button>
-        </div>
+        </div><StudioSection title="How your money" accent="moves"><ol className="space-y-4 list-decimal ps-5 text-sm text-muted-foreground"><li>{t("Client pays into escrow")}</li><li>{t("Completed bookings release your payment")}</li><li>{t("You withdraw")}</li></ol></StudioSection>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { youtubeId } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StudioHeading, StudioSection, StudioSoon } from "./StudioPage";
 
 const BUCKET = "artist-media";
 
@@ -63,10 +64,10 @@ export function MediaTab({ artistId }: { artistId: string }) {
   };
 
   return (
-    <div className="mt-6 space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="dmr-wrap dmr-mdpage"><StudioHeading title="Photos" accent="and videos"><div className="dmr-q-stats">{["photo","video","youtube"].map(kind=><div key={kind} className="dmr-qs"><small>{t(kind)}</small><b>{items?.filter(m=>m.kind === kind).length ?? 0}</b></div>)}</div></StudioHeading>
+      <div className="dmr-c-12 grid gap-4 md:grid-cols-2">
         <label
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${drag ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60"}`}
+          className={`studio-media-upload flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed p-6 text-center transition-colors ${drag ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60"}`}
           onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); void upload(e.dataTransfer.files); }}
@@ -76,15 +77,15 @@ export function MediaTab({ artistId }: { artistId: string }) {
           <span className="text-xs text-muted-foreground">{t("Up to 50 MB per file. Photos show in the slider on your profile, videos below it.")}</span>
           <input type="file" className="sr-only" accept="image/*,video/*" multiple disabled={busy} onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
         </label>
-        <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
-          <Label htmlFor="yt-link">{t("Add a YouTube video")}</Label>
-          <div className="flex gap-2"><Input id="yt-link" placeholder="https://youtube.com/watch?v=…" value={yt} onChange={(e) => setYt(e.target.value)} /><Button onClick={addYoutube}>Add</Button></div>
+        <div className="studio-media-youtube space-y-2">
+          <h2>{t("Add a")} <span className="it">{t("YouTube video")}</span></h2><Label htmlFor="yt-link">{t("Add a YouTube video")}</Label>
+          <div className="flex gap-2"><Input id="yt-link" placeholder={t("https://youtube.com/watch?v=…")} value={yt} onChange={(e) => setYt(e.target.value)} /><Button onClick={addYoutube}>{t("Add")}</Button></div>
         </div>
       </div>
-      {items?.length === 0 && <p className="text-muted-foreground">{t("No media yet.")}</p>}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <section className="dmr-panel dmr-c-12"><div className="dmr-ph"><h2>{t("Your")} <span className="it">{t("gallery")}</span></h2></div>{items?.length === 0 && <p className="text-muted-foreground">{t("No media yet.")}</p>}
+      <div className="studio-media-grid">
         {items?.map((m) => (
-          <div key={m.id} className="relative rounded-xl overflow-hidden bg-card shadow-card">
+          <div key={m.id} className="studio-media-item">
             <div className="aspect-video bg-muted">
               {m.kind === "photo" && <img src={m.src} alt="" className="h-full w-full object-cover" />}
               {m.kind === "video" && <video src={m.src} className="h-full w-full object-cover" muted />}
@@ -92,11 +93,11 @@ export function MediaTab({ artistId }: { artistId: string }) {
             </div>
             <div className="flex items-center justify-between p-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">{m.kind === "photo" ? <ImageIcon className="h-3 w-3" /> : m.kind === "video" ? <Film className="h-3 w-3" /> : <Youtube className="h-3 w-3" />}{m.kind}</span>
-              <button type="button" aria-label="Remove" onClick={() => remove(m)}><Trash2 className="h-4 w-4 text-destructive" /></button>
+              <Button variant="ghost" size="icon" type="button" aria-label={t("Remove")} onClick={() => remove(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
           </div>
         ))}
-      </div>
+      </div><div className="grid gap-3 sm:grid-cols-2 mt-5"><StudioSoon label="Reorder gallery" /><StudioSoon label="Cover photo" /></div></section>
     </div>
   );
 }

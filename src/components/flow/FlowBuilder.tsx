@@ -21,6 +21,7 @@ import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
 import { FlowTemplateLibrary } from "./FlowTemplateLibrary";
 import type { TemplateFlow } from "@/lib/flow-templates";
+import { StudioHeading } from "@/components/dashboard/StudioPage";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,38 +30,39 @@ type Data = FlowData;
 const EMOJI = ["😊", "👋", "🎉", "🎤", "🎶", "💃", "📅", "⏰", "📍", "💰", "✅", "🙏"];
 
 function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
+  const { t } = useI18n();
   const k = type as FlowKind;
   const branch = isBranching(k);
   const color = `var(${kindColor(k)})`;
   return (
-    <div className={`w-56 overflow-visible rounded-lg border bg-card text-card-foreground shadow-sm transition ${selected ? "ring-2 ring-primary" : ""}`}>
+    <div className={`studio-flow-node w-56 overflow-visible text-card-foreground shadow-sm transition ${selected ? "ring-2 ring-primary" : ""}`}>
       {k !== "start" && <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border !border-border !bg-background" />}
       <div className="flex items-center gap-2 px-3 pt-2.5 text-xs font-semibold">
         <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: color }}>{kindLabel(k)[0]}</span>
         <span className="truncate" title={cardTitle({ type: k, data })}>{cardTitle({ type: k, data })}</span>
       </div>
-      <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || "Click to edit…"}</div>
-      {k === "knowledge" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{data.knowledgeQA?.length ?? 0} Q&A</div>}
-      {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || "Artist's WhatsApp"}</div><div>Approval → Invoice</div></div>}
+      <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || t("Click to edit…")}</div>
+      {k === "knowledge" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{data.knowledgeQA?.length ?? 0} {t("Q&A")}</div>}
+      {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || t("Artist's WhatsApp")}</div><div>{t("Approval → Invoice")}</div></div>}
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
       {k === "form" && (
         <div className="space-y-1 border-t px-3 py-2">
-          {(data.fields ?? []).map((f, i) => <div key={i} className="flex justify-between rounded border bg-background px-2 py-1 text-[11px]"><span className="font-medium">{f.label || "Field"}</span><span className="text-muted-foreground">{f.type}</span></div>)}
+          {(data.fields ?? []).map((f, i) => <div key={i} className="flex justify-between rounded border bg-background px-2 py-1 text-[11px]"><span className="font-medium">{f.label || t("Field")}</span><span className="text-muted-foreground">{f.type}</span></div>)}
         </div>
       )}
       {k === "buttons" && (
         <div className="space-y-1 border-t px-3 py-2">
           {(data.buttons ?? []).map((b, i) => (
             <div key={i} className="relative rounded border bg-background px-2 py-1 text-center text-[11px] font-medium">
-              {b || "Button"}
+              {b || t("Button")}
               <Handle id={`b${i}`} type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-2 !border-background" style={{ background: color, right: -16 }} />
             </div>
           ))}
-          {(data.urlButtons ?? []).map((u, i) => <div key={`u${i}`} className="rounded border border-dashed px-2 py-1 text-center text-[11px] text-primary">🔗 {u.label || "Link"}</div>)}
+          {(data.urlButtons ?? []).map((u, i) => <div key={`u${i}`} className="rounded border border-dashed px-2 py-1 text-center text-[11px] text-primary">🔗 {u.label || t("Link")}</div>)}
         </div>
       )}
       {branch ? (
-        <div className="flex justify-between px-4 pb-2 text-[10px] font-semibold text-muted-foreground"><span>{k === "calendar" ? "Available" : "Yes"}</span><span>{k === "calendar" ? "Busy" : "No"}</span>
+        <div className="flex justify-between px-4 pb-2 text-[10px] font-semibold text-muted-foreground"><span>{k === "calendar" ? t("Available") : t("Yes")}</span><span>{k === "calendar" ? t("Busy") : t("No")}</span>
           <Handle id="yes" type="source" position={Position.Bottom} style={{ left: "20%", background: color }} className="!h-2.5 !w-2.5" />
           <Handle id="no" type="source" position={Position.Bottom} style={{ left: "80%", background: color }} className="!h-2.5 !w-2.5" />
         </div>
@@ -77,6 +79,7 @@ const toRF = (f: { nodes: FlowNode[]; edges: FlowEdge[] }) => ({
 
 /** Rich text box with a WotNot/TinyMCE-style toolbar; formatting is saved as simple markdown. */
 function RichText({ value, onChange, disabled, variables }: { value: string; onChange: (v: string) => void; disabled?: boolean; variables: string[] }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLTextAreaElement>(null);
   const wrapSel = (before: string, after = before, fallback = "text") => {
     const el = ref.current; if (!el) return;
@@ -94,29 +97,29 @@ function RichText({ value, onChange, disabled, variables }: { value: string; onC
     onChange((value.slice(0, a) + block + value.slice(b)).slice(0, 5000));
   };
   const Tb = ({ label, title, onClick, className = "" }: { label: string; title: string; onClick: () => void; className?: string }) => (
-    <button type="button" title={title} disabled={disabled} onClick={onClick} className={`grid h-7 min-w-7 place-items-center rounded px-1 text-xs hover:bg-muted disabled:opacity-40 ${className}`}>{label}</button>
+    <Button variant="ghost" type="button" title={title} disabled={disabled} onClick={onClick} className={`grid h-7 min-w-7 place-items-center rounded px-1 text-xs hover:bg-muted disabled:opacity-40 ${className}`}>{label}</Button>
   );
   return (
     <div className="rounded-md border focus-within:ring-1 focus-within:ring-ring">
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1 py-0.5">
-        <Tb label="B" title="Bold" className="font-bold" onClick={() => wrapSel("**")} />
-        <Tb label="I" title="Italic" className="italic" onClick={() => wrapSel("_")} />
-        <Tb label="U" title="Underline" className="underline" onClick={() => wrapSel("__")} />
-        <Tb label="•" title="Bullet list" onClick={() => linePrefix(() => "- ")} />
-        <Tb label="1." title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)} />
-        <Tb label="🔗" title="Link" onClick={() => wrapSel("[", "](https://)", "link")} />
+        <Tb label="B" title={t("Bold")} className="font-bold" onClick={() => wrapSel("**")} />
+        <Tb label="I" title={t("Italic")} className="italic" onClick={() => wrapSel("_")} />
+        <Tb label="U" title={t("Underline")} className="underline" onClick={() => wrapSel("__")} />
+        <Tb label="•" title={t("Bullet list")} onClick={() => linePrefix(() => "- ")} />
+        <Tb label="1." title={t("Numbered list")} onClick={() => linePrefix((i) => `${i + 1}. `)} />
+        <Tb label="🔗" title={t("Link")} onClick={() => wrapSel("[", "](https://)", "link")} />
         <Popover>
-          <PopoverTrigger asChild><button type="button" disabled={disabled} title="Insert variable" className="grid h-7 place-items-center rounded px-1.5 font-mono text-xs hover:bg-muted">{"{x}"}</button></PopoverTrigger>
+          <PopoverTrigger asChild><Button variant="ghost" type="button" disabled={disabled} title={t("Insert variable")} className="grid h-7 place-items-center rounded px-1.5 font-mono text-xs hover:bg-muted">{t("{x}")}</Button></PopoverTrigger>
           <PopoverContent className="max-h-72 w-60 overflow-y-auto p-1">{variables.map((v) => <Button key={v} type="button" variant="ghost" onClick={() => insert(`{${v}}`)} className="h-auto w-full justify-start break-all px-2 py-1 font-mono text-xs">{v}</Button>)}</PopoverContent>
         </Popover>
         <Popover>
-          <PopoverTrigger asChild><button type="button" disabled={disabled} title="Emoji" className="ms-auto grid h-7 w-7 place-items-center rounded hover:bg-muted">☺</button></PopoverTrigger>
-          <PopoverContent className="grid w-44 grid-cols-6 gap-1 p-2">{EMOJI.map((e) => <button key={e} type="button" onClick={() => insert(e)} className="rounded p-0.5 text-lg hover:bg-muted">{e}</button>)}</PopoverContent>
+          <PopoverTrigger asChild><Button variant="ghost" type="button" disabled={disabled} title={t("Emoji")} className="ms-auto grid h-7 w-7 place-items-center rounded hover:bg-muted">☺</Button></PopoverTrigger>
+          <PopoverContent className="grid w-44 grid-cols-6 gap-1 p-2">{EMOJI.map((e) => <Button variant="ghost" key={e} type="button" onClick={() => insert(e)} className="rounded p-0.5 text-lg hover:bg-muted">{e}</Button>)}</PopoverContent>
         </Popover>
       </div>
       <textarea ref={ref} rows={5} maxLength={5000} disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}
         className="block w-full resize-none bg-transparent px-3 py-2 text-sm outline-none" />
-      <div className="flex justify-between px-3 pb-1.5 text-[10px] text-muted-foreground"><span>Insert a variable with {"{x}"}</span><span>{value.length}/5000</span></div>
+      <div className="flex justify-between px-3 pb-1.5 text-[10px] text-muted-foreground"><span>{t("Insert a variable with")} {t("{x}")}</span><span>{value.length}/5000</span></div>
     </div>
   );
 }
@@ -179,36 +182,36 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
   const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge"].includes(selected.type as string);
 
   return (
-    <div className="overflow-hidden rounded-xl border">
-      <div className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2">
-        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Blocks: {nodes.length}</span>
+    <div className="studio-flow-canvas">
+      <div className="studio-flow-toolbar">
+        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{t("Blocks:")} {nodes.length}</span>
         <Button size="sm" variant="outline" onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Test bot")}</Button>
         {!readOnly && (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { const d = toRF(DEFAULT_FLOW); setNodes(d.nodes); setEdges(d.edges); setSel(null); }}>Reset</Button>
-            <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save flow"}</Button>
+            <Button size="sm" variant="outline" onClick={() => { const d = toRF(DEFAULT_FLOW); setNodes(d.nodes); setEdges(d.edges); setSel(null); }}>{t("Reset")}</Button>
+            <Button size="sm" onClick={save} disabled={saving}>{saving ? t("Saving…") : t("Save flow")}</Button>
           </div>
         )}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] [&>*]:min-w-0">
+      <div className="studio-flow-columns [&>*]:min-w-0">
         {!readOnly && (
-          <div className="space-y-2 border-b bg-card p-3 lg:border-b-0 lg:border-e">
-            <Input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} className="h-8 text-sm" />
+          <div className="studio-flow-palette space-y-3">
+            <Input placeholder={t("Search…")} value={q} onChange={(e) => setQ(e.target.value)} className="h-8 text-sm" />
             <div className="flex flex-wrap gap-1">
-              {["All", ...FLOW_GROUPS].map((g) => <button key={g} onClick={() => setTab(g)} className={`rounded-full border px-2 py-0.5 text-[11px] ${tab === g ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"}`}>{g === "All" ? "All" : GROUP_LABEL[g]}</button>)}
+              {["All", ...FLOW_GROUPS].map((g) => <Button variant="ghost" key={g} onClick={() => setTab(g)} className={`rounded-full border px-2 py-0.5 text-[11px] ${tab === g ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"}`}>{g === "All" ? t("All") : t(GROUP_LABEL[g] ?? g)}</Button>)}
             </div>
-            <div className="flex gap-1 overflow-x-auto lg:block lg:space-y-0.5">
+            <div className="studio-flow-blocks lg:space-y-0.5">
               {(tab === "All" || tab === "Ask") && "date picker".includes(q.toLowerCase()) && <Button variant="ghost" className="h-auto shrink-0 justify-start px-2 py-1.5 text-sm lg:w-full" onClick={() => add("form", undefined, true)}><CalendarDays className="size-5 text-primary" />{t("Date picker")}</Button>}
               {blocks.map((k) => (
-                <button key={k.kind} draggable onDragStart={(e) => e.dataTransfer.setData("application/flow", k.kind)} onClick={() => add(k.kind)} title={k.hint}
-                  className="flex shrink-0 cursor-grab items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm hover:bg-muted lg:w-full">
-                  <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: `var(${k.color})` }}>{k.label[0]}</span>{k.label}
-                </button>
+                <Button variant="ghost" key={k.kind} draggable onDragStart={(e) => e.dataTransfer.setData("application/flow", k.kind)} onClick={() => add(k.kind)} title={t(k.hint)}
+                  className="studio-flow-block">
+                  <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: `var(${k.color})` }}>{k.label[0]}</span>{t(k.label)}
+                </Button>
               ))}
             </div>
           </div>
         )}
-        <div ref={wrap} className={`relative h-[480px] bg-muted/30 lg:h-[680px] ${readOnly ? "lg:col-span-2" : ""}`}
+        <div ref={wrap} className={`relative studio-flow-surface ${readOnly ? "lg:col-span-2" : ""}`}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
           onDrop={(e) => { e.preventDefault(); const k = e.dataTransfer.getData("application/flow") as FlowKind; if (k) add(k, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
           {!readOnly && selectedEdge && <Button variant="destructive" size="icon" className="absolute end-3 top-3 z-10" aria-label={t("Delete connection")} title={t("Delete connection")} onClick={deleteConnection}><Trash2 className="size-4" /></Button>}
@@ -217,7 +220,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
             <Background gap={16} size={1.2} /><Controls position="bottom-center" orientation="horizontal" /><MiniMap pannable zoomable style={{ width: 140, height: 90 }} className="!hidden md:!block" />
           </ReactFlow>
         </div>
-        <div className="space-y-4 border-t bg-card p-4 lg:border-s lg:border-t-0">
+        <div className="studio-flow-inspector space-y-4">
           <div className="grid grid-cols-2 gap-1 border-b pb-3"><Button size="sm" variant={panel === "edit" ? "secondary" : "ghost"} onClick={() => setPanel("edit")}><Settings2 className="size-4" />{t("Edit block")}</Button><Button size="sm" variant={panel === "preview" ? "secondary" : "ghost"} onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Preview")}</Button></div>
           {panel === "preview" ? <FlowChatPreview key={sel ?? "start"} nodes={nodes as FlowNode[]} edges={edges} selectedId={sel} /> : selectedEdge ? <div className="space-y-3">
             <h3 className="text-sm font-semibold">{t("Connection")}</h3>
@@ -244,91 +247,91 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 {!readOnly && <Button size="sm" variant="outline" className="w-full" onClick={() => patch(selected.id, d => ({ ...d, knowledgeQA: [...(d.knowledgeQA ?? []), { question: "", answer: "" }] }))}>{t("Add question & answer")}</Button>}
               </div>
             </div> : <div className="space-y-1.5">
-              <Label className="text-xs">Bot asks / does this</Label>
+              <Label className="text-xs">{t("Bot asks / does this")}</Label>
               <RichText variables={variables} disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
             </div>}
             {selected.type === "form" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Fields included in the form</Label>
+                <Label className="text-xs">{t("Fields included in the form")}</Label>
                 {!readOnly && FORM_FIELD_PRESETS.some((preset) => !(selected.data.fields ?? []).some((f) => f.saveAs === preset.saveAs || f.label === preset.label)) && (
                   <Select value="" disabled={(selected.data.fields?.length ?? 0) >= 8} onValueChange={(value) => {
                     const preset = FORM_FIELD_PRESETS.find((f) => f.saveAs === value);
                     if (!preset) return;
                     setFields(selected.id, (fs) => fs.length >= 8 || fs.some((f) => f.saveAs === preset.saveAs || f.label === preset.label) ? fs : [...fs, { ...preset }]);
                   }}>
-                    <SelectTrigger aria-label="Add booking field" className="h-8 text-xs"><SelectValue placeholder="Add booking field" /></SelectTrigger>
+                    <SelectTrigger aria-label={t("Add booking field")} className="h-8 text-xs"><SelectValue placeholder={t("Add booking field")} /></SelectTrigger>
                     <SelectContent>{FORM_FIELD_PRESETS.filter((preset) => !(selected.data.fields ?? []).some((f) => f.saveAs === preset.saveAs || f.label === preset.label)).map((preset) => <SelectItem key={preset.saveAs} value={preset.saveAs ?? preset.label}>{preset.label}</SelectItem>)}</SelectContent>
                   </Select>
                 )}
                 {(selected.data.fields ?? []).map((f, i) => (
                   <div key={i} className="space-y-1 rounded-md border p-2">
                     <div className="flex gap-1">
-                      <Input className="h-7 text-xs" placeholder="Field label" value={f.label} maxLength={30} disabled={readOnly} onChange={(e) => setFields(selected.id, (fs) => fs.map((v, j) => (j === i ? { ...v, label: e.target.value.replace(/[|:\]\[]/g, "") } : v)))} />
-                      {!readOnly && <Button variant="ghost" size="sm" className="h-7 px-2" title="Remove field" onClick={() => setFields(selected.id, (fs) => fs.filter((_, j) => j !== i))}>✕</Button>}
+                      <Input className="h-7 text-xs" placeholder={t("Field label")} value={f.label} maxLength={30} disabled={readOnly} onChange={(e) => setFields(selected.id, (fs) => fs.map((v, j) => (j === i ? { ...v, label: e.target.value.replace(/[|:\]\[]/g, "") } : v)))} />
+                      {!readOnly && <Button variant="ghost" size="sm" className="h-7 px-2" title={t("Remove field")} onClick={() => setFields(selected.id, (fs) => fs.filter((_, j) => j !== i))}>✕</Button>}
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       <Select disabled={!!readOnly} value={f.type} onValueChange={(v) => setFields(selected.id, (fs) => fs.map((x, j) => (j === i ? { ...x, type: v as FieldType } : x)))}>
                         <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>{FIELD_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                        <SelectContent>{FIELD_TYPES.map((fieldType) => <SelectItem key={fieldType} value={fieldType}>{t(fieldType)}</SelectItem>)}</SelectContent>
                       </Select>
                       <FlowVariableSelect key={`${selected.id}-${i}`} compact label={`Save to ${f.label}`} variables={variables} disabled={!!readOnly} value={f.saveAs} onChange={v => setFields(selected.id, fs => fs.map((x, j) => j === i ? { ...x, saveAs: v } : x))} />
                     </div>
                     {f.type === "dropdown" && <div className="space-y-1">
                       <Select disabled={!!readOnly} value={f.source ?? "custom"} onValueChange={value => setFields(selected.id, fs => fs.map((field, j) => j === i ? value === "event_types" ? { ...field, source: "event_types" } : { label: field.label, type: field.type, ...(field.saveAs ? { saveAs: field.saveAs } : {}), options: field.options ?? [] } : field))}>
                         <SelectTrigger aria-label={`Options for ${f.label}`} className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="event_types">Event types</SelectItem><SelectItem value="custom">Custom options</SelectItem></SelectContent>
+                        <SelectContent><SelectItem value="event_types">{t("Event types")}</SelectItem><SelectItem value="custom">{t("Custom options")}</SelectItem></SelectContent>
                       </Select>
-                      {f.source !== "event_types" && <Textarea aria-label={`Dropdown options for ${f.label}`} disabled={!!readOnly} value={(f.options ?? []).join("\n")} placeholder="One option per line" onChange={event => setFields(selected.id, fs => fs.map((field, j) => j === i ? { ...field, options: event.target.value.split("\n") } : field))} />}
+                      {f.source !== "event_types" && <Textarea aria-label={`Dropdown options for ${f.label}`} disabled={!!readOnly} value={(f.options ?? []).join("\n")} placeholder={t("One option per line")} onChange={event => setFields(selected.id, fs => fs.map((field, j) => j === i ? { ...field, options: event.target.value.split("\n") } : field))} />}
                     </div>}
                   </div>
                 ))}
-                {!readOnly && <Button variant="outline" size="sm" className="w-full" disabled={(selected.data.fields?.length ?? 0) >= 8} onClick={() => setFields(selected.id, (fs) => [...fs, { label: `Field ${fs.length + 1}`, type: "text" }])}>+ Form field</Button>}
-                <p className="text-[11px] text-muted-foreground">The client sees one form with all fields and sends it in one go.</p>
+                {!readOnly && <Button variant="outline" size="sm" className="w-full" disabled={(selected.data.fields?.length ?? 0) >= 8} onClick={() => setFields(selected.id, (fs) => [...fs, { label: `Field ${fs.length + 1}`, type: "text" }])}>{t("+ Form field")}</Button>}
+                <p className="text-[11px] text-muted-foreground">{t("The client sees one form with all fields and sends it in one go.")}</p>
               </div>
             )}
-            {selected.type === "ratecard" && <div className="space-y-3"><div><Label htmlFor="rate-description">Service description</Label><Textarea id="rate-description" value={selected.data.rateDescription ?? ""} maxLength={120} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, rateDescription:e.target.value }))} /></div><div><Label htmlFor="rate-price">Price excl. VAT (AED)</Label><Input id="rate-price" type="number" min={0} step="0.01" disabled={readOnly} value={selected.data.ratePrice ?? 0} onChange={e => patch(selected.id, d => ({ ...d, ratePrice:Number(e.target.value) }))} /></div></div>}
+            {selected.type === "ratecard" && <div className="space-y-3"><div><Label htmlFor="rate-description">{t("Service description")}</Label><Textarea id="rate-description" value={selected.data.rateDescription ?? ""} maxLength={120} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, rateDescription:e.target.value }))} /></div><div><Label htmlFor="rate-price">{t("Price excl. VAT (AED)")}</Label><Input id="rate-price" type="number" min={0} step="0.01" disabled={readOnly} value={selected.data.ratePrice ?? 0} onChange={e => patch(selected.id, d => ({ ...d, ratePrice:Number(e.target.value) }))} /></div></div>}
             {selected.type === "whatsapp" && <div className="space-y-4">
-              <div className="space-y-1.5"><Label htmlFor="approval-phone">{t("Artist WhatsApp number")}</Label><Input id="approval-phone" aria-label="Artist WhatsApp number" type="tel" dir="ltr" maxLength={32} placeholder="0501234567 / 971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d\s()-]/g, "") }))} /></div>
+              <div className="space-y-1.5"><Label htmlFor="approval-phone">{t("Artist WhatsApp number")}</Label><Input id="approval-phone" aria-label={t("Artist WhatsApp number")} type="tel" dir="ltr" maxLength={32} placeholder="0501234567 / 971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d\s()-]/g, "") }))} /></div>
               <div className="space-y-1.5"><Label>{t("Destination")}</Label><div className="text-sm text-muted-foreground">{selected.data.destinationPhone || t("Artist's saved WhatsApp number")}</div></div>
               <div className="space-y-1.5"><Label>{t("Yes · Artist approves")}</Label><div className="text-sm">{t("Continue Yes branch")}</div></div>
               <div className="space-y-1.5"><Label>{t("No · Artist declines")}</Label><div className="text-sm text-muted-foreground">{t("Continue No branch")}</div></div>
             </div>}
             {selected.type === "buttons" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Display as</Label>
+                <Label className="text-xs">{t("Display as")}</Label>
                 {(selected.data.buttons ?? []).map((b, i) => (
                   <div key={i} className="flex items-center gap-1 rounded-md bg-primary px-2 text-primary-foreground">
                     <input value={b} maxLength={30} disabled={readOnly} onChange={(e) => setButtons(selected.id, (bs) => bs.map((v, j) => (j === i ? e.target.value.replace(/[|\]\[]/g, "") : v)))}
-                      className="h-8 flex-1 bg-transparent text-center text-sm outline-none placeholder:text-primary-foreground/60" placeholder="Button" />
-                    {!readOnly && <button title="Remove" onClick={() => { setButtons(selected.id, (bs) => bs.filter((_, j) => j !== i)); setEdges((es) => es.filter((e) => !(e.source === selected.id && e.sourceHandle?.startsWith("b")))); }} className="text-xs opacity-70 hover:opacity-100">✕</button>}
+                      className="h-8 flex-1 bg-transparent text-center text-sm outline-none placeholder:text-primary-foreground/60" placeholder={t("Button")} />
+                    {!readOnly && <Button variant="ghost" title={t("Remove")} onClick={() => { setButtons(selected.id, (bs) => bs.filter((_, j) => j !== i)); setEdges((es) => es.filter((e) => !(e.source === selected.id && e.sourceHandle?.startsWith("b")))); }} className="text-xs opacity-70 hover:opacity-100">✕</Button>}
                   </div>
                 ))}
                 {(selected.data.urlButtons ?? []).map((u, i) => (
                   <div key={`u${i}`} className="space-y-1 rounded-md border border-dashed p-2">
-                    <div className="flex gap-1"><Input className="h-7 text-xs" placeholder="Label" value={u.label} maxLength={30} disabled={readOnly} onChange={(e) => setUrls(selected.id, (us) => us.map((v, j) => (j === i ? { ...v, label: e.target.value } : v)))} />
+                    <div className="flex gap-1"><Input className="h-7 text-xs" placeholder={t("Label")} value={u.label} maxLength={30} disabled={readOnly} onChange={(e) => setUrls(selected.id, (us) => us.map((v, j) => (j === i ? { ...v, label: e.target.value } : v)))} />
                       {!readOnly && <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setUrls(selected.id, (us) => us.filter((_, j) => j !== i))}>✕</Button>}</div>
-                    <Input className="h-7 text-xs" placeholder="https://…" value={u.url} maxLength={300} disabled={readOnly} onChange={(e) => setUrls(selected.id, (us) => us.map((v, j) => (j === i ? { ...v, url: e.target.value } : v)))} />
+                    <Input className="h-7 text-xs" placeholder={t("https://…")} value={u.url} maxLength={300} disabled={readOnly} onChange={(e) => setUrls(selected.id, (us) => us.map((v, j) => (j === i ? { ...v, url: e.target.value } : v)))} />
                   </div>
                 ))}
                 {!readOnly && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" disabled={(selected.data.buttons?.length ?? 0) >= 6} onClick={() => setButtons(selected.id, (bs) => [...bs, `Option ${bs.length + 1}`])}>+ Branch button</Button>
-                    <Button variant="outline" size="sm" className="flex-1" disabled={(selected.data.urlButtons?.length ?? 0) >= 3} onClick={() => setUrls(selected.id, (us) => [...us, { label: "Open link", url: "https://" }])}>+ URL button</Button>
+                    <Button variant="outline" size="sm" className="flex-1" disabled={(selected.data.buttons?.length ?? 0) >= 6} onClick={() => setButtons(selected.id, (bs) => [...bs, `Option ${bs.length + 1}`])}>{t("+ Branch button")}</Button>
+                    <Button variant="outline" size="sm" className="flex-1" disabled={(selected.data.urlButtons?.length ?? 0) >= 3} onClick={() => setUrls(selected.id, (us) => [...us, { label: "Open link", url: "https://" }])}>{t("+ URL button")}</Button>
                   </div>
                 )}
-                <p className="text-[11px] text-muted-foreground">Drag from the dot beside each branch button to the step it leads to.</p>
+                <p className="text-[11px] text-muted-foreground">{t("Drag from the dot beside each branch button to the step it leads to.")}</p>
               </div>
             )}
             {canSave && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Save response</Label>
+                <Label className="text-xs">{t("Save response")}</Label>
                 <FlowVariableSelect key={selected.id} variables={variables} disabled={!!readOnly} value={selected.data.saveAs} onChange={v => patch(selected.id, d => ({ ...d, saveAs: v }))} />
-                <p className="text-[11px] text-muted-foreground">Use it later in any step as {"{"}variable{"}"}, e.g. "Hi {"{client_name}"}".</p>
+                <p className="text-[11px] text-muted-foreground">{t("Use it later in any step as")} {"{"}{t("variable")}{"}"}{t(", e.g. \"Hi")} {t("{client_name}")}".</p>
               </div>
             )}
             {selected.type === "calendar" && <div className="text-xs text-muted-foreground">{t("Google Calendar")}</div>}
-            {!readOnly && <Button variant="outline" size="sm" className="w-full" onClick={() => { setNodes((ns) => ns.filter((x) => x.id !== selected.id)); setEdges((es) => es.filter((e) => e.source !== selected.id && e.target !== selected.id)); setSel(null); }}>Delete block</Button>}
-          </>) : <p className="text-xs text-muted-foreground">Click a block to edit it. Connect blocks by dragging from the dot at the bottom of one to the top of another.</p>}
+            {!readOnly && <Button variant="outline" size="sm" className="w-full" onClick={() => { setNodes((ns) => ns.filter((x) => x.id !== selected.id)); setEdges((es) => es.filter((e) => e.source !== selected.id && e.target !== selected.id)); setSel(null); }}>{t("Delete block")}</Button>}
+          </>) : <p className="text-xs text-muted-foreground">{t("Click a block to edit it. Connect blocks by dragging from the dot at the bottom of one to the top of another.")}</p>}
         </div>
       </div>
     </div>
@@ -356,7 +359,7 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
     const master = parse(data?.master) ?? DEFAULT_FLOW;
     return artistId && data?.own?.enabled ? parse(data.own) ?? master : master;
   }, [data, artistId]);
-  if (isLoading || !data) return <div className="p-8 text-center text-muted-foreground">Loading flow…</div>;
+  if (isLoading || !data) return <div className="p-8 text-center text-muted-foreground">{t("Loading flow…")}</div>;
   const masterFlow = parse(data.master) ?? DEFAULT_FLOW;
   const custom = !!artistId && !!data.own?.enabled;
 
@@ -380,11 +383,12 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
 
   return (
     <ReactFlowProvider>
-      <div className="space-y-4">
-        {canEdit && <FlowTemplateLibrary admin={!artistId} current={draft ?? savedFlow} onUse={setDraft} renderEditor={(flow, saveTemplate, templateSaving) => <ReactFlowProvider><Canvas initial={flow} onSave={saveTemplate} saving={templateSaving} /></ReactFlowProvider>} />}
+      <div className="studio-flow-page">
+        <StudioHeading title="AI" accent="flow"><Button variant="outline" asChild><a href="#studio-workflow-templates">{t("Choose template")}</a></Button></StudioHeading>
+
         {draft && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{t("Template loaded · not saved")}</span><Button variant="ghost" size="sm" onClick={() => setDraft(null)}>{t("Discard template")}</Button></div>}
         {artistId ? (
-          <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+          <div className="studio-flow-custom">
             <div>
               <div className="font-medium">{t("Custom conversation flow")}</div>
               <p className="text-sm text-muted-foreground">{t(custom ? "Custom flow active" : "Standard flow active")}</p>
@@ -392,9 +396,12 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
             <Switch disabled={!canEdit || saving} checked={custom} onCheckedChange={(on) => persist(parse(data.own) ?? masterFlow, on)} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">This is the standard flow every artist's AI assistant follows unless the artist turns on their own custom flow.</p>
+          <p className="text-sm text-muted-foreground">{t("This is the standard flow every artist's AI assistant follows unless the artist turns on their own custom flow.")}</p>
         )}
         <Canvas initial={draft ?? savedFlow} readOnly={!canEdit} onSave={(f) => persist(f, true)} saving={saving} />
+        <section id="studio-workflow-templates" className="dmr-panel"><h2 className="mb-5">{t("Workflow")} <span className="it">{t("templates")}</span></h2>
+        {canEdit && <FlowTemplateLibrary admin={!artistId} current={draft ?? savedFlow} onUse={setDraft} renderEditor={(flow, saveTemplate, templateSaving) => <ReactFlowProvider><Canvas initial={flow} onSave={saveTemplate} saving={templateSaving} /></ReactFlowProvider>} />}
+        </section>
       </div>
     </ReactFlowProvider>
   );

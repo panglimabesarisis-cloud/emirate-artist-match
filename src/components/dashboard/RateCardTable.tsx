@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Eye, MoreHorizontal, Pencil, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { StudioHeading, StudioSection } from "./StudioPage";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,20 +69,20 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
   };
 
   return (
-    <div className={`mt-6 min-w-0 ${edit ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}`}>
-      <div className="min-w-0 rounded-xl border bg-card">
-      <div className="flex flex-wrap items-center gap-2 border-b p-4">
+    <div className="dmr-wrap dmr-rcpage"><StudioHeading title="Rate" accent="card">{artistId && <Button onClick={()=>setEdit({id:null,f:empty})}>{t("Add ratecard")}</Button>}</StudioHeading><div className="dmr-w-left">
+      <div className="dmr-panel dmr-q-panel">
+      <div className="dmr-q-tools">
         <Input className="max-w-xs" aria-label={t("Search ratecards")} placeholder={t("Search ratecards")} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
         <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="az">Name A → Z</SelectItem><SelectItem value="za">Name Z → A</SelectItem>
-            <SelectItem value="price_asc">Price low → high</SelectItem><SelectItem value="price_desc">Price high → low</SelectItem>
+            <SelectItem value="az">{t("Name A → Z")}</SelectItem><SelectItem value="za">{t("Name Z → A")}</SelectItem>
+            <SelectItem value="price_asc">{t("Price low → high")}</SelectItem><SelectItem value="price_desc">{t("Price high → low")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={String(size)} onValueChange={(v) => { setSize(Number(v)); setPage(0); }}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>{[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n} / page</SelectItem>)}</SelectContent>
+          <SelectContent>{[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n} {t("/ page")}</SelectItem>)}</SelectContent>
         </Select>
         <Popover>
           <PopoverTrigger asChild><Button variant="outline" size="sm" aria-label={t("Filter")}><SlidersHorizontal className="me-1 h-4 w-4" />{t("Filter")}{(maxMin || maxPrice) ? " •" : ""}</Button></PopoverTrigger>
@@ -92,17 +93,17 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
           </PopoverContent>
         </Popover>
         <div className="ms-auto flex gap-2">
-          {sel.length > 0 && <Button variant="destructive" size="sm" onClick={() => remove(sel)}>Delete ({sel.length})</Button>}
+          {sel.length > 0 && <Button variant="destructive" size="sm" onClick={() => remove(sel)}>{t("Delete (")}{sel.length})</Button>}
           {artistId && <Button size="sm" onClick={() => setEdit({ id: null, f: empty })}>+ {t("Add ratecard")}</Button>}
         </div>
       </div>
       {error && <p role="alert" className="py-4 text-destructive">{t("Could not load ratecards.")}</p>}
-      <div className="overflow-x-auto">
+      <div className="dmr-tbl-wrap">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-start text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="w-10 p-3"><input type="checkbox" aria-label="Select all" className="accent-gold" checked={allOn} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...shown.map((r) => r.id)])] : sel.filter((x) => !shown.some((r) => r.id === x)))} /></th>
-              {adminMode && <th className="p-3 text-start">{t("Artist")}</th>}<th className="p-3 text-start">{t("Job type")}</th><th className="p-3 text-start">Price</th><th className="p-3 text-start">Duration</th><th className="p-3 text-start">Included</th><th className="p-3 text-end">Actions</th>
+              <th className="w-10 p-3"><input type="checkbox" aria-label={t("Select all")} className="accent-gold" checked={allOn} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...shown.map((r) => r.id)])] : sel.filter((x) => !shown.some((r) => r.id === x)))} /></th>
+              {adminMode && <th className="p-3 text-start">{t("Artist")}</th>}<th className="p-3 text-start">{t("Job type")}</th><th className="p-3 text-start">{t("Price")}</th><th className="p-3 text-start">{t("Duration")}</th><th className="p-3 text-start">{t("Included")}</th><th className="p-3 text-end">{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -131,22 +132,23 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
         </table>
       </div>
       <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
-        <span>{rows.length === 0 ? "0" : `${cur * size + 1}–${Math.min(rows.length, cur * size + size)}`} of {rows.length}</span>
+        <span>{rows.length === 0 ? "0" : `${cur * size + 1}–${Math.min(rows.length, cur * size + size)}`} {t("of")} {rows.length}</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Prev</Button>
-          <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Next</Button>
+          <Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>{t("Prev")}</Button>
+          <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button>
         </div>
       </div>
 
       <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{view?.title}</DialogTitle></DialogHeader>
-          {view && <div className="space-y-2 text-sm"><div><b>Price:</b> {aed(Number(view.price))}</div><div><b>Duration:</b> {view.duration_minutes ?? "—"} min</div><div><b>Included:</b> {view.description || "—"}</div></div>}
+          {view && <div className="space-y-2 text-sm"><div><b>{t("Price:")}</b> {aed(Number(view.price))}</div><div><b>{t("Duration:")}</b> {view.duration_minutes ?? "—"} {t("min")}</div><div><b>{t("Included:")}</b> {view.description || "—"}</div></div>}
         </DialogContent>
       </Dialog>
       </div>
+      </div><div className="dmr-w-side">{!edit && artistId && <StudioSection title="Add" accent="ratecard"><div className="space-y-3"><Label>{t("Job type")}</Label><Input disabled placeholder={t("Choose Add ratecard")} /><div className="grid grid-cols-2 gap-3"><div><Label>{t("Price (AED)")}</Label><Input disabled /></div><div><Label>{t("Minutes")}</Label><Input disabled /></div></div><Label>{t("What is included")}</Label><Textarea disabled rows={4} /><Button onClick={()=>setEdit({id:null,f:empty})}>{t("Add ratecard")}</Button></div></StudioSection>}
       {edit && (
-        <aside className="h-fit rounded-xl border bg-card p-5 lg:sticky lg:top-4" aria-label={t(edit.id ? "Edit ratecard" : "Add ratecard")}>
+        <aside className="dmr-panel h-fit lg:sticky lg:top-24" aria-label={t(edit.id ? "Edit ratecard" : "Add ratecard")}>
           <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">{t(edit.id ? "Edit ratecard" : "Add ratecard")}</h3><Button size="icon" variant="ghost" aria-label={t("Cancel")} onClick={() => setEdit(null)}><X className="h-4 w-4" /></Button></div>
           <div className="space-y-3">
             <div><Label htmlFor="ratecard-job">{t("Job type")}</Label><Input id="ratecard-job" value={edit.f.title} maxLength={120} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, title: e.target.value } })} /></div>
@@ -158,7 +160,7 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
           </div>
           <div className="mt-4 flex gap-2"><Button variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t("Cancel")}</Button><Button className="flex-1 bg-gradient-gold text-gold-foreground" onClick={save}>{t("Save")}</Button></div>
         </aside>
-      )}
+      )}</div>
     </div>
   );
 }

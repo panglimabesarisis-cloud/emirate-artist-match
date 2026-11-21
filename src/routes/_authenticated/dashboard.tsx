@@ -29,6 +29,7 @@ import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/components/dashboard/studio.css";
+import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -221,7 +222,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
             <span className="studio-mail" title={email} dir="ltr">{email}</span>
           </div>
         </header>
-        <main className={`studio-content ${section === "overview" ? "studio-overview-content" : ""}`}>
+        <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
@@ -249,37 +250,30 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
 type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null };
 
 function ArtistFields({ v, set }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void }) {
+  const { t } = useI18n();
   const { data: cat } = useCatalog();
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div><Label>Stage name</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div>
-      <div><Label>Tagline</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div>
-      <div><Label>Category</Label>
+  return <div className="studio-profile-fields">
+    <StudioSection title="About" accent="you"><div className="studio-profile-about"><div><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")} · {t("segera")}</Button></div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} /></div></StudioSection>
+    <StudioSection title="What you" accent="do"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Category")}</Label>
         <Select value={v.category_id ?? ""} onValueChange={(x) => set({ category_id: x, subcategory_id: null })}>
-          <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-        </Select></div>
-      <div><Label>Speciality</Label>
+        </Select></div><div className="dmr-qe-f"><Label>{t("Speciality")}</Label>
         <Select value={v.subcategory_id ?? ""} onValueChange={(x) => set({ subcategory_id: x })}>
-          <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.subcategories.filter((s) => s.category_id === v.category_id).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-        </Select></div>
-      <div><Label>Emirate</Label>
+        </Select></div></div><StudioSoon label="Skills" /></StudioSection>
+    <StudioSection title="Physical" accent="details"><div className="grid grid-cols-2 gap-4">{["Height (cm)","Weight (kg)","Hair color","Eye color","Clothing size","Shoe size (EU)"].map(label=><StudioSoon key={label} label={label} />)}</div></StudioSection>
+    <StudioSection title="Where and" accent="how much"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
         <Select value={v.emirate_id ?? ""} onValueChange={(x) => set({ emirate_id: x, area_id: null })}>
-          <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.emirates.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-        </Select></div>
-      <div><Label>Base area</Label>
+        </Select></div><div className="dmr-qe-f"><Label>{t("Base area")}</Label>
         <Select value={v.area_id ?? ""} onValueChange={(x) => set({ area_id: x })}>
-          <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.areas.filter((a) => a.emirate_id === v.emirate_id).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-        </Select></div>
-      <div><Label>Starting price (AED)</Label><Input type="number" min={0} value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value) })} /></div>
-      <div><Label>Travel radius (km)</Label><Input type="number" min={0} value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Number(e.target.value) })} /></div>
-      <div className="md:col-span-2"><Label>Languages (comma separated)</Label><Input value={(v.languages ?? []).join(", ")} onChange={(e) => set({ languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div>
-      <div className="md:col-span-2"><Label>Bio</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} /></div>
-    </div>
-  );
+        </Select></div><div className="dmr-qe-f"><Label>{t("Starting price (AED)")}</Label><Input type="number" min={0} value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value) })} /></div><div className="dmr-qe-f"><Label>{t("Travel radius (km)")}</Label><Input type="number" min={0} value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Number(e.target.value) })} /></div></div><div className="dmr-qe-f"><Label>{t("Languages (comma separated)")}</Label><Input value={(v.languages ?? []).join(", ")} onChange={(e) => set({ languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div></StudioSection>
+  </div>;
 }
 
 function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) {
@@ -306,6 +300,7 @@ function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) 
 }
 
 function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => void }) {
+  const { t } = useI18n();
   const [v, setV] = useState<Partial<ArtistRow>>(artist);
   const bioLen = (v.bio ?? "").trim().length;
   const save = async () => {
@@ -319,7 +314,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     toast.success("Profile saved");
     onSaved();
   };
-  return <div className="mt-6"><ArtistFields v={v} set={(p) => setV({ ...v, ...p })} /><p className={`mt-3 text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">Bio: {bioLen} / 150 minimum characters</p><Button onClick={save} className="mt-4 bg-gradient-gold text-gold-foreground">Save changes</Button></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} /><StudioSection title="Portfolio of" accent="work"><StudioSoon label="Portfolio items" /></StudioSection><StudioSection title="Clients you have" accent="worked with"><div className="grid grid-cols-2 gap-3"><StudioSoon label="Client name" /><StudioSoon label="Year" /></div><Button disabled>{t("Add client")} · {t("segera")}</Button></StudioSection><StudioSection title="Change" accent="password"><Button asChild variant="outline"><Link to="/account">{t("Account settings")}</Link></Button></StudioSection><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><aside className="dmr-w-side"><StudioSection title="How clients" accent="see you"><div className="studio-profile-preview"><span className="studio-profile-avatar mx-auto">{initials(v.stage_name ?? artist.stage_name)}</span><h3>{v.stage_name}</h3><p>{v.tagline}</p><b>{aed(Number(v.base_price ?? 0))}</b><p>{(v.languages ?? []).join(" · ")}</p></div></StudioSection><StudioSection title="Your" accent="details"><dl className="space-y-3 text-xs">{[["Stage name",v.stage_name],["Starting price (AED)",aed(Number(v.base_price ?? 0))],["Travel radius (km)",String(v.travel_radius_km ?? "—")],["Languages",(v.languages ?? []).join(", ")]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b pb-3"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="text-end break-words">{value}</dd></div>)}</dl></StudioSection><StudioSection title="Job" accent="progress"><StudioSoon label="Profile pipeline" /></StudioSection><StudioSection title="Cash" accent="flow"><StudioSoon label="Profile cash flow" /></StudioSection></aside></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {
@@ -411,6 +406,7 @@ function Visibility({ artistId }: { artistId: string }) {
 }
 
 function Verification({ artistId, userId }: { artistId: string; userId: string }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const key = ["verif", artistId];
   const { data } = useQuery({
@@ -438,40 +434,7 @@ function Verification({ artistId, userId }: { artistId: string; userId: string }
     setFile(null); setNote("");
     qc.invalidateQueries({ queryKey: key });
   };
-  return (
-    <div className="mt-6 grid gap-8 md:grid-cols-2">
-      <div className="space-y-3">
-        <h3 className="text-xl font-semibold">Apply for a badge</h3>
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="verified_identity">ID Verified (Emirates ID / passport)</SelectItem>
-            <SelectItem value="verified_business">Business Verified (trade licence)</SelectItem>
-            <SelectItem value="verified_performer">Verified Performer (portfolio / references)</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input type="file" accept=".pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        <Textarea placeholder="Notes for the reviewer (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
-        <Button onClick={submit}>Submit application</Button>
-        <p className="text-xs text-muted-foreground">Documents are stored privately and only visible to our verification team.</p>
-      </div>
-      <div>
-        <h3 className="text-xl font-semibold">Your badges</h3>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {data?.badges.length ? data.badges.map((b) => <Badge key={b}>{BADGE_LABELS[b]}</Badge>) : <span className="text-sm text-muted-foreground">None yet</span>}
-        </div>
-        <h3 className="text-xl font-semibold mt-6">Applications</h3>
-        <div className="mt-2 space-y-2">
-          {data?.apps.map((a) => (
-            <div key={a.id} className="rounded-lg border p-3 text-sm">
-              <div className="flex justify-between"><span>{BADGE_LABELS[a.badge_type]}</span><Badge variant="secondary">{a.status.replace(/_/g, " ")}</Badge></div>
-              {a.admin_note && <p className="text-muted-foreground mt-1">Reviewer: {a.admin_note}</p>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="dmr-wrap dmr-vfpage"><StudioHeading title="Veri" accent="fication" /><div className="studio-verification-ladder">{["verified_identity","verified_business","verified_performer"].map(badge=><section key={badge} className={`studio-verification-step ${data?.badges.includes(badge) ? "is-earned" : ""}`}><BadgeCheck className="size-8 text-gold" /><h3>{t(BADGE_LABELS[badge] ?? badge)}</h3><Badge>{t(data?.badges.includes(badge) ? "Verified" : "Not verified")}</Badge></section>)}</div><div className="dmr-w-left"><StudioSection title="Apply for a" accent="badge"><div className="space-y-4"><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="verified_identity">{t("ID Verified (Emirates ID / passport)")}</SelectItem><SelectItem value="verified_business">{t("Business Verified (trade licence)")}</SelectItem><SelectItem value="verified_performer">{t("Verified Performer (portfolio / references)")}</SelectItem></SelectContent></Select><Input type="file" accept=".pdf,image/*" onChange={e=>setFile(e.target.files?.[0] ?? null)} /><Textarea placeholder={t("Notes for the reviewer (optional)")} value={note} onChange={e=>setNote(e.target.value)} /><Button onClick={submit}>{t("Submit application")}</Button></div></StudioSection><StudioSection title="Road to the" accent="Top badge"><StudioSoon label="Top badge progress" /></StudioSection><section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Your")} <span className="it">{t("applications")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Date","Type","Status","Note"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.apps.map(a=><tr key={a.id}><td>{new Date(a.created_at).toLocaleDateString("en-GB")}</td><td>{t(BADGE_LABELS[a.badge_type] ?? a.badge_type)}</td><td><Badge>{t(a.status.replace(/_/g," "))}</Badge></td><td>{a.admin_note ?? "—"}</td></tr>)}</tbody></table></div>{!data?.apps.length && <StudioEmpty title={t("No applications yet")} icon={BadgeCheck} />}</section></div><aside className="dmr-w-side"><StudioSection title="What you" accent="need"><div className="space-y-4 text-sm text-muted-foreground"><p>{t("ID Verified (Emirates ID / passport)")}</p><p>{t("Business Verified (trade licence)")}</p><p>{t("Verified Performer (portfolio / references)")}</p></div></StudioSection><StudioSection title="How we protect" accent="your data"><p className="text-sm text-muted-foreground">{t("Documents are stored privately and only visible to our verification team.")}</p><StudioSoon label="WhatsApp OTP and identity screening" /></StudioSection></aside></div>;
 }
 
 function Reviews({ artistId }: { artistId: string }) {

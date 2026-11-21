@@ -6,9 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
+import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "./StudioPage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function CalendarSync({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const key = ["artist-calendar", artistId];
   const { data: token } = useQuery({
@@ -30,20 +33,21 @@ export function CalendarSync({ artistId }: { artistId: string }) {
     if (error) toast.error(error.message); else { toast.success("New calendar link created"); qc.invalidateQueries({ queryKey: key }); }
   };
   return (
-    <div className="mt-6 rounded-xl bg-card p-5 shadow-card">
-      <div className="flex items-center gap-2 font-semibold"><CalendarDays className="h-5 w-5 text-gold" />Sync with Google Calendar</div>
-      <p className="mt-1 text-sm text-muted-foreground">Bookings, offers and blocked dates appear in your calendar automatically. Google refreshes it every few hours. Keep this link private.</p>
-      <div className="mt-3 flex gap-2"><Input readOnly value={https} onFocus={(e) => e.currentTarget.select()} /><Button variant="outline" size="icon" aria-label="Copy link" onClick={() => { navigator.clipboard.writeText(https); toast.success("Link copied"); }}><Copy className="h-4 w-4" /></Button></div>
+    <div className="dmr-panel mt-6 p-5">
+      <div className="flex items-center gap-2 font-semibold"><CalendarDays className="h-5 w-5 text-gold" />{t("Sync with Google Calendar")}</div>
+      <p className="mt-1 text-sm text-muted-foreground">{t("Bookings, offers and blocked dates appear in your calendar automatically. Google refreshes it every few hours. Keep this link private.")}</p>
+      <div className="mt-3 flex gap-2"><Input readOnly value={https} onFocus={(e) => e.currentTarget.select()} /><Button variant="outline" size="icon" aria-label={t("Copy link")} onClick={() => { navigator.clipboard.writeText(https); toast.success("Link copied"); }}><Copy className="h-4 w-4" /></Button></div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button asChild className="bg-gradient-gold text-gold-foreground"><a href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">Add to Google Calendar</a></Button>
-        <Button asChild variant="outline"><a href={webcal}>Apple / Outlook</a></Button>
-        <Button variant="ghost" onClick={rotate}><RefreshCw className="mr-2 h-4 w-4" />New link</Button>
+        <Button asChild className="bg-gradient-gold text-gold-foreground"><a href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">{t("Add to Google Calendar")}</a></Button>
+        <Button asChild variant="outline"><a href={webcal}>{t("Apple / Outlook")}</a></Button>
+        <Button variant="ghost" onClick={rotate}><RefreshCw className="mr-2 h-4 w-4" />{t("New link")}</Button>
       </div>
     </div>
   );
 }
 
 export function TeamTab({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const key = ["artist-team", artistId];
   const { data: members } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("artist_members").select("id, email, role, status, created_at").eq("artist_id", artistId).order("created_at")).data ?? [] });
@@ -62,24 +66,6 @@ export function TeamTab({ artistId }: { artistId: string }) {
     await supabase.from("artist_members").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: key });
   };
-  return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-      <div className="space-y-3">
-        {members?.length === 0 && <p className="text-muted-foreground">No team members yet.</p>}
-        {members?.map((m) => (
-          <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl bg-card p-4 shadow-card">
-            <div className="min-w-0"><div className="truncate font-medium">{m.email}</div><div className="text-xs capitalize text-muted-foreground">{m.role}</div></div>
-            <div className="flex items-center gap-2"><Badge variant={m.status === "active" ? "default" : "secondary"}>{m.status === "active" ? "active" : "invited"}</Badge><Button variant="ghost" size="icon" aria-label={`Remove ${m.email}`} onClick={() => remove(m.id)}><Trash2 className="h-4 w-4" /></Button></div>
-          </div>
-        ))}
-      </div>
-      <div className="rounded-xl bg-card p-5 shadow-card">
-        <div className="font-semibold">Invite a manager or assistant</div>
-        <p className="mt-1 text-sm text-muted-foreground">They can reply in your inbox, handle quotes and bookings, and block dates. They can't change your profile, AI settings, credits or team.</p>
-        <Input className="mt-3" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Select value={role} onValueChange={setRole}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manager">Manager</SelectItem><SelectItem value="assistant">Assistant</SelectItem></SelectContent></Select>
-        <Button className="mt-3 w-full" onClick={invite}>Send invite</Button>
-      </div>
-    </div>
-  );
+  return <div className="dmr-wrap dmr-tmpage"><StudioHeading title="Invite" accent="team"><div className="dmr-q-stats"><div className="dmr-qs"><small>{t("Members")}</small><b>{members?.length ?? 0}</b></div></div></StudioHeading><section className="dmr-panel dmr-q-panel studio-team-table"><div className="dmr-q-tools"><h2>{t("Team")} <span className="it">{t("members")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Member","Role","Status","Last active","Actions"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{members?.map(m=><tr key={m.id}><td>{m.email}</td><td>{t(m.role)}</td><td><Badge>{t(m.status === "active" ? "active" : "invited")}</Badge></td><td><span className="studio-soon">{t("segera")}</span></td><td><Button variant="ghost" size="icon" aria-label={`${t("Remove")} ${m.email}`} onClick={()=>remove(m.id)}><Trash2 className="size-4" /></Button></td></tr>)}</tbody></table></div>{members?.length === 0 && <StudioEmpty title={t("No team members yet.")} />}</section><StudioSection title="Roles" accent="and access" className="dmr-c-12"><div className="grid gap-4 sm:grid-cols-2">{["Manager","Assistant"].map(label=><div key={label} className="rounded-xl border p-5"><h3 className="text-2xl">{t(label)}</h3><p className="text-sm text-muted-foreground mt-3">{t("They can reply in your inbox, handle quotes and bookings, and block dates. They can't change your profile, AI settings, credits or team.")}</p></div>)}</div><StudioSoon label="Custom roles and permissions" /></StudioSection><StudioSection title="Invite a" accent="teammate" className="studio-team-invite"><div className="space-y-3"><Input type="email" placeholder={t("name@example.com")} value={email} onChange={e=>setEmail(e.target.value)} /><Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manager">{t("Manager")}</SelectItem><SelectItem value="assistant">{t("Assistant")}</SelectItem></SelectContent></Select><Button onClick={invite}>{t("Send invite")}</Button></div></StudioSection></div>;
+
 }

@@ -16,6 +16,7 @@ import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
 import { InvoiceLivePreview } from "@/components/dashboard/InvoiceLivePreview";
 import { useI18n } from "@/lib/i18n";
+import { StudioHeading, StudioSection, StudioSoon, StudioDonut } from "./StudioPage";
 
 export function InvoicesTab({ artistId }: { artistId: string }) {
   const { t } = useI18n();
@@ -60,15 +61,19 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border-b pb-6">
+    <div className="dmr-wrap dmr-ipage">
+      <StudioHeading title="Invo" accent="ice" />
+      <StudioDonut title={t("Invoice status")} entries={[{label:"Paid",value:data?.stored.filter(row=>row.status === "paid").length ?? 0},{label:"Unpaid",value:data?.stored.filter(row=>row.status !== "paid").length ?? 0}]} />
+      <StudioSection title="Collected" accent="vs due" className="studio-donut-panel"><StudioSoon label="Full collection breakdown" /></StudioSection>
+      <div className="dmr-c-12">
         <h2 className="mb-5 text-lg font-semibold">{t("New invoice")}</h2>
-        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section aria-label={t("Invoice items")} className="min-w-0 space-y-5">
+        <div className="studio-invoice-new">
+        <section aria-label={t("Invoice items")} className="studio-invoice-editor space-y-5">
           <div className="space-y-2"><Label>{t("Client chat")}</Label>
-            <Select value={convo} onValueChange={setConvo}><SelectTrigger><SelectValue placeholder="Choose a client" /></SelectTrigger>
+            <Select value={convo} onValueChange={setConvo}><SelectTrigger><SelectValue placeholder={t("Choose a client")} /></SelectTrigger>
               <SelectContent>{data?.convos.map((c) => <SelectItem key={c.id} value={c.id}>{nameOf(c.id)} · {c.quote_requests?.event_date ?? "date TBC"}</SelectItem>)}</SelectContent></Select>
           </div>
+        <div className="grid grid-cols-2 gap-3"><StudioSoon label="Issue date" /><StudioSoon label="Due date" /></div>
         <div>
           <Label>{t("Services")}</Label>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -86,19 +91,20 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
             ))}
           </div>
         </div>
+        <StudioSoon label="Notes (optional)" />
         <div className="border-t pt-4">
           <Button disabled={busy || !draft || !convo} onClick={submit} className="h-auto w-full whitespace-normal bg-gradient-gold py-3 text-gold-foreground"><Send className="me-2 h-4 w-4 shrink-0" />{t(busy ? "Sending…" : "Create & send to chat")}</Button>
         </div>
         </section>
-        <InvoiceLivePreview invoice={draft} client={selectedClient?.name ?? t("Client")} eventDate={selectedClient?.event_date} />
+        <InvoiceLivePreview invoice={draft} client={selectedClient?.name ?? "Client"} eventDate={selectedClient?.event_date} />
         </div>
       </div>
-      <div>
-        <h2 className="text-lg font-semibold">Sent invoices</h2>
+      <div className="dmr-panel dmr-q-panel dmr-c-12">
+        <div className="dmr-q-tools"><h2>{t("Sent invoices")}</h2></div>
         <InvoiceRecords artistId={artistId} />
-        {data?.sent.filter(m => !decodeInvoice(m.body)?.id).map(m => { const inv = decodeInvoice(m.body); return inv && <div key={m.id} className="mt-3"><p className="text-xs text-muted-foreground">Legacy invoice · payment status not tracked</p><InvoiceCard inv={inv} /></div>; })}
+        {data?.sent.filter(m => !decodeInvoice(m.body)?.id).map(m => { const inv = decodeInvoice(m.body); return inv && <div key={m.id} className="mt-3"><p className="text-xs text-muted-foreground">{t("Legacy invoice · payment status not tracked")}</p><InvoiceCard inv={inv} /></div>; })}
       </div>
-      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>Invoice preview</DialogTitle></DialogHeader>{preview && <InvoiceCard inv={preview} />}</DialogContent></Dialog>
+      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t("Invoice preview")}</DialogTitle></DialogHeader>{preview && <InvoiceCard inv={preview} />}</DialogContent></Dialog>
     </div>
   );
 }
