@@ -1,0 +1,89 @@
+<!-- Halaman "account" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg apage" data-p="account" id="pg-account">
+        <section class="c-12 q-head" aria-labelledby="a-h">
+          <div><h1 class="serif" id="a-h">Account <span class="it">settings</span></h1>
+            <p>Your payout bank account lives here, and only here. The Wallet page shows it read-only. Editing needs identity verification.</p></div>
+          <div class="q-stats"><div class="qs gold"><small>Payout account</small><b id="a-stat" style="font-size:26px"></b></div></div>
+        </section>
+
+        <form id="ac" class="w-left" novalidate>
+          <section class="panel a-bank" aria-labelledby="ab-h">
+            <div class="a-top">
+              <div><h2 class="serif" id="ab-h">Bank <span class="it">details</span></h2>
+                <p>Who owns the account and where it is held. The holder must match the name on your Emirates ID or trade licence.</p></div>
+              <div class="a-chip"><span class="wchip" data-lock>Locked</span><button type="button" class="btn btn-line ab-edit"></button></div>
+            </div>
+            <div class="w-banner" id="ab-ban" hidden role="status" style="margin-bottom:18px"><svg><use href="#i-lock"/></svg><div id="ab-ban-t"></div></div>
+            <div class="a-grid">
+              <div class="qe-f"><label for="ac-type">Account type</label>
+                <select id="ac-type" disabled><option value="personal">Personal</option><option value="business">Business</option></select></div>
+              <div class="qe-f"><label for="ac-holder">Account holder name</label><input id="ac-holder" disabled autocomplete="off" maxlength="80" aria-describedby="ac-holder-h"><span class="f-hint" id="ac-holder-h"></span></div>
+              <div class="qe-f"><label for="ac-bank">Bank name</label><input id="ac-bank" list="ac-banks" disabled autocomplete="off" maxlength="80" aria-describedby="ac-bank-h"><span class="f-hint" id="ac-bank-h"></span></div>
+              <div class="qe-f"><label for="ac-branch">Branch (optional)</label><input id="ac-branch" disabled autocomplete="off" maxlength="80"></div>
+              <datalist id="ac-banks"></datalist>
+            </div>
+          </section>
+
+          <section class="panel a-bank" aria-labelledby="au-h">
+            <div class="a-top">
+              <div><h2 class="serif" id="au-h">UAE transfer <span class="it">details</span></h2>
+                <p>The numbers money is sent to. These are the most sensitive fields, so they unlock only after WhatsApp OTP and an ID check.</p></div>
+              <div class="a-chip"><span class="wchip" data-lock>Locked</span><button type="button" class="btn btn-line ab-edit"></button></div>
+            </div>
+            <div class="a-grid">
+              <div class="qe-f full"><label for="ac-iban">IBAN</label><input id="ac-iban" disabled autocomplete="off" inputmode="text" spellcheck="false" placeholder="AE00 0000 0000 0000 0000 000" aria-describedby="ac-iban-h"><span class="f-hint" id="ac-iban-h">UAE IBANs start with AE and have 23 characters.</span></div>
+              <div class="qe-f"><label for="ac-swift">SWIFT / BIC</label><input id="ac-swift" disabled autocomplete="off" spellcheck="false" maxlength="11" placeholder="BOMLAEAD" aria-describedby="ac-swift-h"><span class="f-hint" id="ac-swift-h"></span></div>
+              <div class="qe-f"><label for="ac-id" id="ac-id-l">Emirates ID</label><input id="ac-id" disabled autocomplete="off" spellcheck="false" aria-describedby="ac-id-h"><span class="f-hint" id="ac-id-h"></span></div>
+              <div class="qe-f"><label for="ac-country">Country</label><div class="lockf"><input id="ac-country" value="United Arab Emirates" disabled><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              <div class="qe-f"><label for="ac-cur">Currency</label><div class="lockf"><input id="ac-cur" value="AED" disabled><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+            </div>
+            <p class="qe-err" id="ac-err" role="alert"></p>
+            <div class="a-btns" id="ab-btns" hidden>
+              <button type="button" class="btn btn-line" id="ab-cancel">Cancel</button>
+              <button class="btn btn-gold" id="ab-save"><svg width="15" height="15"><use href="#i-check"/></svg>Save payout details</button>
+            </div>
+          </section>
+        </form>
+
+        <div class="w-side c-4" style="grid-column:span 4">
+          <section class="panel a-vs" aria-labelledby="av-h">
+            <h2 class="serif" id="av-h">Identity <span class="it">verification</span></h2>
+            <span class="wchip" id="av-chip">Not verified</span>
+            <p class="f-hint" id="av-sub" style="min-height:0"></p>
+            <ol>
+              <li><b>WhatsApp OTP.</b> A 6 digit code to your number.</li>
+              <li><b>Your details.</b> Full name, ID number, nationality and a photo of your ID.</li>
+              <li><b>3 selfies.</b> Front, right and left.</li>
+              <li><b>AI screening.</b> Pass and you can edit for 30 minutes.</li>
+            </ol>
+            <button type="button" class="btn btn-gold ab-edit" id="av-go"></button>
+          </section>
+          <section class="panel a-sec-p" aria-labelledby="as-h">
+            <h2 class="serif" id="as-h">Why it is <span class="it">locked</span></h2>
+            <ul>
+              <li><b>One place to edit.</b> The Wallet only reads these details, so nobody can swap the IBAN while you request a payout.</li>
+              <li><b>48 hour pause.</b> After any change, withdrawals wait 48 hours and we email you.</li>
+              <li><b>Your name, your account.</b> Payouts go only to an account in the name on your ID.</li>
+            </ul>
+          </section>
+          <section class="panel a-sec-p" aria-labelledby="am-h">
+            <h2 class="serif" id="am-h">Account <span class="it">record</span></h2>
+            <dl class="a-meta" id="a-meta"></dl>
+          </section>
+        </div>
+      </div>
+
+      <!-- ===================== INVITE TEAM =====================
+           Lovable mapping
+           Tables:  public.team_roles (id uuid, talent_id uuid, name text, description text, menus text[] -- always includes 'inbox',
+                      is_system boolean, created_at)
+                    public.team_members (id uuid, talent_id uuid, user_id uuid references auth.users, name text, email text unique per talent,
+                      role_id uuid references team_roles, status text check (status in ('active','suspended')), must_change_password boolean,
+                      last_active_at timestamptz, created_at)
+           Create member: Edge Function create_team_member(name,email,password,role_id,must_change_password) uses the auth admin API.
+             The password goes over HTTPS to that function only. It is never saved in a table, never logged, never kept in page state.
+           Access: a team user can read and reply only to the chats of its talent_id. Menus come from team_roles.menus (read from the JWT/claims).
+             RLS enforces it per table, hiding the sidebar is only cosmetic. Never grantable: Wallet, Export data, Verification, Account settings, Team.
+           Suspend = ban the auth user and revoke sessions. Delete = remove the auth user and the member row.
+           ===================================================== -->
+      

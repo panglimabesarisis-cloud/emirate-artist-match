@@ -1,0 +1,66 @@
+<!-- Halaman "ratecard" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg rcpage" data-p="ratecard" id="pg-ratecard">
+        <section class="c-12 q-head rc-head" aria-labelledby="rc-h">
+          <div><h1 class="serif" id="rc-h">Rate <span class="it">card</span></h1>
+            <p>The jobs you offer, with a starting price and how long each one runs. Your AI agent quotes from this list.</p></div>
+          <div class="tm-headr"><div class="q-stats" id="rc-stats"></div><button type="button" class="btn btn-gold" id="rc-new"><svg width="15" height="15"><use href="#i-plus"/></svg>Add ratecard</button></div>
+        </section>
+
+        <div class="w-left">
+          <section class="panel q-panel" aria-label="Ratecard list">
+            <div class="rc-tools">
+              <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search ratecards</span><input id="rc-q" type="search" placeholder="Search job type or what is included" autocomplete="off"></label>
+              <label><span class="sr">Sort by</span><select id="rc-so"><option value="az">Name A to Z</option><option value="za">Name Z to A</option><option value="pl">Price low to high</option><option value="ph">Price high to low</option><option value="ds">Duration short to long</option></select></label>
+              <div class="rc-fb">
+                <button type="button" class="btn btn-line" id="rc-fbtn" aria-haspopup="dialog" aria-expanded="false"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter<span class="n" id="rc-fn"></span></button>
+                <div class="rc-pop" id="rc-pop" role="dialog" aria-label="Filter ratecards" hidden>
+                  <h3 class="serif">Filter</h3>
+                  <div class="g"><div class="qe-f"><label for="rc-pmin">Price from</label><input id="rc-pmin" inputmode="numeric" maxlength="7" placeholder="AED"></div><div class="qe-f"><label for="rc-pmax">Price to</label><input id="rc-pmax" inputmode="numeric" maxlength="7" placeholder="AED"></div>
+                    <div class="qe-f"><label for="rc-dmin">Minutes from</label><input id="rc-dmin" inputmode="numeric" maxlength="4" placeholder="min"></div><div class="qe-f"><label for="rc-dmax">Minutes to</label><input id="rc-dmax" inputmode="numeric" maxlength="4" placeholder="max"></div></div>
+                  <label class="ck"><input type="checkbox" id="rc-finc">Only with included details</label>
+                  <div class="bt"><button type="button" class="btn btn-line" id="rc-fclr">Clear</button><button type="button" class="btn btn-gold" id="rc-fapp">Apply</button></div>
+                </div>
+              </div>
+              <label><span class="sr">Rows per page</span><select id="rc-pp"><option value="10">10 / page</option><option value="25">25 / page</option><option value="50">50 / page</option></select></label>
+            </div>
+            <div class="rc-act" id="rc-act"></div>
+            <div class="rc-bulk" id="rc-bulk" hidden><span id="rc-bn"></span><div><button type="button" class="btn btn-line" id="rc-bc">Clear</button><button type="button" class="btn btn-danger" id="rc-bd">Delete selected</button></div></div>
+            <div class="tbl-wrap"><table class="qt wt rct"><thead><tr><th><input type="checkbox" id="rc-all" aria-label="Select all on this page"></th><th>Job type</th><th class="num">Price</th><th class="num">Duration</th><th>Included</th><th><span class="sr">Actions</span></th></tr></thead><tbody id="rc-b"></tbody></table></div>
+            <div class="q-empty" id="rc-e" hidden><span class="orb"><svg><use href="#i-rate"/></svg></span><b class="serif" id="rc-et">No ratecards</b><p id="rc-ep"></p></div>
+            <div class="cr-pg"><span id="rc-pc"></span><div><button type="button" class="btn btn-line" id="rc-pv">Prev</button><span id="rc-pn"></span><button type="button" class="btn btn-line" id="rc-nx">Next</button></div></div>
+          </section>
+        </div>
+
+        <div class="w-side">
+          <section class="panel rc-form" id="rc-form" aria-labelledby="rc-fh">
+            <div class="a-top"><div><h2 class="serif" id="rc-fh">Add <span class="it">ratecard</span></h2><p id="rc-fs">One row per kind of job you take.</p></div></div>
+            <form id="rc-f" novalidate>
+              <div class="qe-f"><label for="rc-t">Job type</label><input id="rc-t" list="rc-tl" maxlength="60" autocomplete="off" placeholder="e.g. Host Event" aria-describedby="rc-t-h"><span class="f-hint" id="rc-t-h"></span>
+                <datalist id="rc-tl"><option value="Host Event"><option value="Wedding MC"><option value="Corporate gala host"><option value="Conference MC"><option value="Stand-up set"><option value="Live performance"><option value="Private party"></datalist></div>
+              <div class="a-grid">
+                <div class="qe-f"><label for="rc-p">Price (AED)</label><div class="rc-pr"><span>AED</span><input id="rc-p" inputmode="numeric" maxlength="7" autocomplete="off" aria-describedby="rc-p-h"></div><span class="f-hint" id="rc-p-h">Excluding VAT.</span></div>
+                <div class="qe-f"><label for="rc-m">Minutes</label><input id="rc-m" inputmode="numeric" maxlength="4" autocomplete="off" aria-describedby="rc-m-h"><span class="f-hint" id="rc-m-h">15 to 1440.</span></div>
+              </div>
+              <div class="rc-q" id="rc-qm" role="group" aria-label="Common durations"></div>
+              <div class="qe-f" style="margin-top:14px"><label for="rc-i">What is included <span class="cnt" id="rc-ic"></span></label><textarea id="rc-i" rows="4" maxlength="300" placeholder="e.g. Sound check, bilingual hosting, 1 rehearsal" aria-describedby="rc-i-h"></textarea><span class="f-hint" id="rc-i-h">Optional. Clients and your AI agent see this.</span></div>
+              <div class="rc-sum" id="rc-sum" aria-live="polite"></div>
+              <div class="rc-fbtn"><button type="button" class="btn btn-line" id="rc-cancel" hidden>Cancel</button><button class="btn btn-gold" id="rc-save"><svg width="15" height="15"><use href="#i-check"/></svg><span>Add ratecard</span></button></div>
+            </form>
+          </section>
+        </div>
+      </div>
+      <div class="rc-menu" id="rc-menu" role="menu" hidden></div>
+
+
+      <!-- ===================== ORDER FORM =====================
+           Lovable mapping
+           Tables:  public.order_forms (id, talent_id unique, title, description, is_public boolean, updated_at)
+                    public.order_form_questions (id, form_id, position int, label text, type text check (type in ('text','long','select','radio','check','date','time','number','email','phone','yesno')),
+                      required boolean, options text[], unique (form_id, position))
+                    public.form_templates (id, name, category, description, tier text check (tier in ('free','basic','medium','pro')), questions jsonb, updated_at, active)
+                      -- the MASTER list. Written only by Dealmaker admins (role claim), read-only for talents. Using one copies its questions into the talent's own form.
+           Limits:  questions per form by plan (free 8, basic 12, medium 20, pro 40). A trigger enforces it, the page only mirrors it.
+                    Templates above the talent's plan are shown locked. The server must refuse to copy them.
+           Public:  when is_public is true the booking page renders this form and stores answers in booking_requests.answers jsonb keyed by question id.
+           Swap point: the adapter ofApi near the end of the script. -->
+      

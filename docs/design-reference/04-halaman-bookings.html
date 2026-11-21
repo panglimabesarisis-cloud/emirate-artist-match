@@ -1,0 +1,84 @@
+<!-- Halaman "bookings" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg bpage" data-p="bookings" id="pg-bookings">
+        <section class="c-12 q-head" aria-labelledby="b-h">
+          <div><h1 class="serif" id="b-h">Book<span class="it">ings</span></h1>
+            <p>Offers you sent, requests waiting for your approval, and what each client still owes. Open any row for the full booking information.</p></div>
+          <div class="q-stats" id="b-stats"></div>
+        </section>
+
+        <section class="panel b-main" aria-label="Bookings table">
+          <div class="q-tools">
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search bookings</span>
+              <input id="bq" type="search" placeholder="Search client or booking" autocomplete="off"></label>
+            <div class="q-tabs" role="group" aria-label="Filter by status" id="b-tabs"></div>
+          </div>
+          <div class="q-bulk" id="b-bulk" hidden><span id="b-bulk-n">0 selected</span>
+            <button type="button" class="btn btn-line" id="b-bulk-clear">Clear</button>
+            <button type="button" class="btn btn-danger" id="b-bulk-del"><svg width="15" height="15"><use href="#i-trash"/></svg>Delete</button></div>
+          <div class="tbl-wrap">
+            <table class="qt bt" id="bt">
+              <thead><tr id="bt-head"></tr></thead>
+              <tbody id="bt-body"></tbody>
+            </table>
+          </div>
+          <div class="q-empty" id="b-empty" hidden><span class="orb"><svg><use href="#i-book"/></svg></span><b class="serif" id="b-empty-h">No bookings</b><p id="b-empty-p">Send an offer to a client to start a booking.</p></div>
+          <div class="q-foot b-foot">
+            <label class="rpp"><span>Rows per page</span><select id="b-per" data-cs-skip><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option></select></label>
+            <span id="b-count"></span>
+            <div class="pager"><button type="button" class="ab" id="b-prev" aria-label="Previous page"><svg><use href="#i-back"/></svg></button><span id="b-pg"></span><button type="button" class="ab flip" id="b-next" aria-label="Next page"><svg><use href="#i-back"/></svg></button></div>
+          </div>
+          <p class="b-note">All totals in AED, incl. 5% VAT</p>
+        </section>
+
+        <aside class="b-side" aria-label="Booking settings">
+          <form class="panel b-card" id="of" novalidate>
+            <h2 class="serif">Send booking <span class="it">offer</span></h2>
+            <p class="b-sub">The client gets the offer in their chat and pays through Dealmaker.</p>
+            <div class="qe-f"><label for="of-client">Conversation</label><select id="of-client" required><option value="">Choose client</option></select></div>
+            <div class="qe-f"><label for="of-title">Title</label><input id="of-title" required placeholder="e.g. Emcee for wedding ceremony"></div>
+            <div class="qe-f"><label for="of-price">Price excl. VAT (AED)</label><div class="aed-in"><span aria-hidden="true">AED</span><input id="of-price" type="number" min="1" step="1" required inputmode="numeric" placeholder="5,000"></div></div>
+            <fieldset class="of-set">
+              <legend>Event date</legend>
+              <div class="qe-f"><label for="of-date" class="sr">Date</label><input id="of-date" type="date" required></div>
+              <div class="b-two">
+                <div class="qe-f"><label for="of-start">Start</label><input id="of-start" type="time"></div>
+                <div class="qe-f"><label for="of-end">End</label><input id="of-end" type="time"></div>
+              </div>
+              <small class="b-hint">Time is optional. If you add one, add both.</small>
+            </fieldset>
+            <div class="qe-f"><label for="of-notes">Detail (optional)</label><textarea id="of-notes" rows="3" placeholder="What is included, set length, dress code"></textarea></div>
+            <div class="vat" aria-live="polite"><div><span>Price</span><b id="of-p">AED 0</b></div><div><span>VAT 5%</span><b id="of-v">AED 0</b></div><div class="tot"><span>Client pays</span><b id="of-t">AED 0</b></div></div>
+            <p class="qe-err" id="of-err"></p>
+            <button class="btn btn-gold b-full" id="of-send" disabled>Send offer <span class="arr">→</span></button>
+          </form>
+
+          <form class="panel b-card" id="al" novalidate>
+            <h2 class="serif">Booking <span class="it">alerts</span></h2>
+            <div class="qe-f"><label for="al-wa">WhatsApp number for approval requests</label>
+              <div class="b-row"><span class="b-ic" aria-hidden="true"><svg width="18" height="18"><use href="#i-wa"/></svg></span><input id="al-wa" type="tel" value="+6281380009961" autocomplete="tel"><button class="btn btn-line" id="al-save" disabled>Save</button></div></div>
+            <p class="b-hint">Approval requests also go to your account email.</p>
+            <p class="qe-err" id="al-err"></p>
+          </form>
+
+          <form class="panel b-card" id="vt" novalidate>
+            <h2 class="serif">VAT <span class="it">registration</span></h2>
+            <div class="qe-f"><label for="vt-trn">TRN (shown on invoices)</label>
+              <div class="b-row"><input id="vt-trn" inputmode="numeric" maxlength="15" placeholder="15 digits" autocomplete="off"><span class="trn-n" id="trn-n">0/15</span><button class="btn btn-line" id="vt-save" disabled>Save</button></div></div>
+            <p class="b-hint">Your Tax Registration Number from the UAE Federal Tax Authority.</p>
+            <p class="qe-err" id="vt-err"></p>
+          </form>
+        </aside>
+      </div>
+
+      <!-- ===================== CALENDAR =====================
+           Lovable mapping
+           Source:  public.bookings (same rows as the Bookings page, deleted_at is null, status <> 'cancelled')
+           New columns on bookings: location text, progress text check (progress in ('waiting','done')) default 'waiting'
+           Blocked days: public.blocked_dates (talent_id uuid, date date, unique(talent_id,date))
+           Table:   sorted by event_date, then start_time
+           Actions (three-dot menu): view (popup), edit (update bookings row), delete (soft delete booking); progress toggle
+           Stats: Total perform = progress 'done' count, Total revenue = sum(total_aed), Total job = all rows
+           Charts: donut by progress (done/waiting) and by payment_status (unpaid/partial/paid)
+           Removed: "Sync with Google Calendar" (.ics link) section
+           ===================================================== -->
+      

@@ -1,0 +1,149 @@
+<!-- Halaman "profile" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg pfpage" data-p="profile" id="pg-profile">
+        <section class="c-12 q-head" aria-labelledby="pf-h">
+          <div><h1 class="serif" id="pf-h">Your <span class="it">profile</span></h1>
+            <p>This is what clients see before they book you. A complete profile with a real bio, photo and past work gets more quote requests.</p></div>
+          <a class="w-plan" id="pf-plan" href="#plan"></a>
+        </section>
+
+        <div class="w-left">
+          <section class="panel pf-sec" aria-labelledby="pf-id-h">
+            <div class="a-top"><div><h2 class="serif" id="pf-id-h">About <span class="it">you</span></h2><p>Your photo, name and a short line that sells you.</p></div></div>
+            <div class="pf-id">
+              <div class="pf-ph">
+                <div class="pf-av" id="pf-av" aria-hidden="true"></div>
+                <button type="button" class="btn btn-line" id="pf-up">Upload photo</button>
+                <button type="button" class="pf-rm" id="pf-rm" hidden>Remove photo</button>
+                <small>JPG, PNG or WebP, up to 5 MB. Cropped to a square.</small>
+                <input type="file" id="pf-file" accept="image/jpeg,image/png,image/webp" hidden>
+              </div>
+              <div class="pf-fields">
+                <div class="qe-f"><label for="pf-name">Stage name</label><input id="pf-name" maxlength="50" autocomplete="off" aria-describedby="pf-name-h"><span class="f-hint" id="pf-name-h"></span></div>
+                <div class="qe-f"><label for="pf-tag">Tagline <span class="cnt" id="pf-tag-c"></span></label><input id="pf-tag" maxlength="80" autocomplete="off" aria-describedby="pf-tag-h"><span class="f-hint" id="pf-tag-h"></span></div>
+              </div>
+            </div>
+            <div class="qe-f" style="margin-top:18px"><label for="pf-bio">Bio <span class="cnt" id="pf-bio-c"></span></label>
+              <textarea id="pf-bio" class="pf-bio" maxlength="800" aria-describedby="pf-bio-h" placeholder="Who you are, what you perform, and what a client can expect on the day."></textarea>
+              <div class="pf-bar" aria-hidden="true"><i id="pf-bio-b"></i></div>
+              <span class="f-hint" id="pf-bio-h">At least 150 characters.</span></div>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-sp-h">
+            <div class="a-top"><div><h2 class="serif" id="pf-sp-h">What you <span class="it">do</span></h2><p>Add your categories, then the specialities clients search for. Type, choose from the list, press comma to add another.</p></div></div>
+            <div class="a-grid">
+              <div class="qe-f full"><label for="pf-cat">Categories</label>
+                <div class="pf-ci" id="ci-ct"><div class="pf-box"><input id="pf-cat" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pf-cat-l" autocomplete="off" placeholder="e.g. Comedians"></div><ul class="pf-sug" id="pf-cat-l" role="listbox" hidden></ul></div>
+                <div class="pf-lim" id="pf-cat-lim"></div></div>
+              <div class="qe-f full"><label for="pf-sp">Specialities</label>
+                <div class="pf-ci" id="ci-sp"><div class="pf-box"><input id="pf-sp" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pf-sp-l" autocomplete="off" placeholder="Start typing, e.g. Stand-up"></div><ul class="pf-sug" id="pf-sp-l" role="listbox" hidden></ul></div>
+                <div class="pf-lim" id="pf-sp-lim"></div></div>
+              <div class="qe-f full"><label for="pf-sk">Skills</label>
+                <div class="pf-ci" id="ci-sk"><div class="pf-box"><input id="pf-sk" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pf-sk-l" autocomplete="off" placeholder="e.g. Crowd work, Arabic and English, Corporate events"></div><ul class="pf-sug" id="pf-sk-l" role="listbox" hidden></ul></div>
+                <div class="pf-lim" id="pf-sk-lim"></div></div>
+            </div>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-bd-h" id="pf-bd-s">
+            <div class="a-top"><div><h2 class="serif" id="pf-bd-h">Physical <span class="it">details</span></h2><p id="pf-bd-p">Casting details clients ask for on model bookings. Optional unless you list Models as a category.</p></div><span class="wchip" id="pf-bd-c">Optional</span></div>
+            <div class="pf-bd">
+              <div class="qe-f"><label for="pf-ht">Height (cm)</label><input id="pf-ht" inputmode="numeric" maxlength="3" autocomplete="off" aria-describedby="pf-ht-h"><span class="f-hint" id="pf-ht-h">120 to 230.</span></div>
+              <div class="qe-f"><label for="pf-wt">Weight (kg)</label><input id="pf-wt" inputmode="numeric" maxlength="3" autocomplete="off" aria-describedby="pf-wt-h"><span class="f-hint" id="pf-wt-h">30 to 200.</span></div>
+              <div class="qe-f"><label for="pf-hr">Hair color</label><select id="pf-hr" aria-describedby="pf-hr-h"></select><span class="f-hint" id="pf-hr-h"></span></div>
+              <div class="qe-f"><label for="pf-ey">Eye color</label><select id="pf-ey"></select></div>
+              <div class="qe-f"><label for="pf-cz">Clothing size</label><select id="pf-cz"></select></div>
+              <div class="qe-f"><label for="pf-sh">Shoe size (EU)</label><input id="pf-sh" inputmode="numeric" maxlength="2" autocomplete="off" aria-describedby="pf-sh-h"><span class="f-hint" id="pf-sh-h">30 to 55.</span></div>
+            </div>
+            <p class="cr-note" style="margin-top:12px">Shown to clients only on your model bookings and in casting requests.</p>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-lo-h">
+            <div class="a-top"><div><h2 class="serif" id="pf-lo-h">Where and <span class="it">how much</span></h2><p>Used to match you with bookings and to quote.</p></div></div>
+            <div class="a-grid">
+              <div class="qe-f"><label for="pf-em">Emirate</label><select id="pf-em"></select></div>
+              <div class="qe-f"><label for="pf-ar">Base area</label><select id="pf-ar"></select></div>
+              <div class="qe-f"><label for="pf-pr">Starting price (AED)</label><input id="pf-pr" inputmode="numeric" maxlength="7" autocomplete="off" aria-describedby="pf-pr-h"><span class="f-hint" id="pf-pr-h">Excluding VAT.</span></div>
+              <div class="qe-f"><label for="pf-rd">Travel radius (km)</label><input id="pf-rd" inputmode="numeric" maxlength="3" autocomplete="off" aria-describedby="pf-rd-h"><span class="f-hint" id="pf-rd-h">0 to 500.</span></div>
+              <div class="qe-f full"><label for="pf-lg">Languages</label>
+                <div class="pf-ci" id="ci-lg"><div class="pf-box"><input id="pf-lg" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pf-lg-l" autocomplete="off" placeholder="e.g. English, Arabic"></div><ul class="pf-sug" id="pf-lg-l" role="listbox" hidden></ul></div>
+                <div class="pf-lim" id="pf-lg-lim"></div></div>
+            </div>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-po-h" id="pf-po-s">
+            <div class="a-top"><div><h2 class="serif" id="pf-po-h">Portfolio of <span class="it">work</span></h2><p>Shows of yours that prove it. A photo makes each one far more convincing.</p></div><div class="pf-lim" id="pf-po-lim" style="margin:0"></div></div>
+            <div class="pf-works" id="pf-works"></div>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-cl-h" id="pf-cl-s">
+            <div class="a-top"><div><h2 class="serif" id="pf-cl-h">Clients you have <span class="it">worked with</span></h2><p>Companies and hosts you have performed for. Untick Public to keep one private.</p></div><div class="pf-lim" id="pf-cl-lim" style="margin:0"></div></div>
+            <div class="pf-cl" id="pf-cl"></div>
+            <div class="pf-cadd">
+              <div class="qe-f"><label for="pf-cn">Client name</label><input id="pf-cn" maxlength="60" autocomplete="off" placeholder="e.g. Grand Hotel Events"></div>
+              <div class="qe-f"><label for="pf-cy">Year</label><select id="pf-cy"></select></div>
+              <button type="button" class="btn btn-gold" id="pf-ca"><svg width="14" height="14"><use href="#i-plus"/></svg>Add client</button>
+            </div>
+            <p class="qe-err" id="pf-cerr" role="alert"></p>
+          </section>
+
+          <section class="panel pf-sec" aria-labelledby="pf-pw-h">
+            <div class="a-top"><div><h2 class="serif" id="pf-pw-h">Change <span class="it">password</span></h2><p>Saved on its own, apart from your profile.</p></div></div>
+            <form id="pf-pwf" novalidate autocomplete="off">
+              <div class="pf-pw">
+                <div class="qe-f pf-pwi"><label for="pf-p0">Current password</label><input id="pf-p0" type="password" autocomplete="current-password" maxlength="64"><button type="button" data-show="pf-p0" aria-pressed="false">Show</button></div>
+                <div class="qe-f pf-pwi"><label for="pf-p1">New password</label><input id="pf-p1" type="password" autocomplete="new-password" maxlength="64" aria-describedby="pf-p1-h"><button type="button" data-show="pf-p1" aria-pressed="false">Show</button></div>
+                <div class="qe-f pf-pwi"><label for="pf-p2">Repeat new password</label><input id="pf-p2" type="password" autocomplete="new-password" maxlength="64"><button type="button" data-show="pf-p2" aria-pressed="false">Show</button></div>
+              </div>
+              <div class="tm-meter" id="pf-pm" aria-hidden="true" style="margin-top:10px"><i></i><i></i><i></i><i></i></div>
+              <span class="f-hint" id="pf-p1-h">At least 10 characters with upper case, lower case and a number.</span>
+              <p class="qe-err" id="pf-perr" role="alert"></p>
+              <button class="btn btn-line" id="pf-pb" style="margin-top:6px">Update password</button>
+            </form>
+          </section>
+
+          <div class="pf-save" id="pf-save"><span id="pf-sv-t"></span><div class="bt"><button type="button" class="btn btn-line" id="pf-dis">Discard</button><button type="button" class="btn btn-gold" id="pf-sv"><svg width="15" height="15"><use href="#i-check"/></svg>Save profile</button></div></div>
+        </div>
+
+        <div class="w-side">
+          <section class="panel" aria-labelledby="pf-pv-h">
+            <h2 class="serif" id="pf-pv-h" style="font-size:22px">How clients <span class="it">see you</span></h2>
+            <div class="pf-pv" id="pf-pv"></div>
+          </section>
+          <section class="panel" aria-labelledby="pf-sm-h">
+            <h2 class="serif" id="pf-sm-h" style="font-size:22px">Your <span class="it">details</span></h2>
+            <p class="cr-note" style="margin:6px 0 10px">Everything you have entered, in one place. Updates as you type.</p>
+            <table class="pf-sm"><tbody id="pf-sm"></tbody></table>
+          </section>
+          <section class="panel" aria-labelledby="pf-cp-h">
+            <h2 class="serif" id="pf-cp-h" style="font-size:22px">Profile <span class="it">strength</span></h2>
+            <div class="pf-ring"><div class="pct" id="pf-pct"></div><div class="pf-bar" style="flex:1;margin:0;height:6px"><i id="pf-pbar" class="ok"></i></div></div>
+            <ul class="pf-chk" id="pf-chk"></ul>
+          </section>
+          <section class="panel" aria-labelledby="pf-jp-h">
+            <h2 class="serif" id="pf-jp-h" style="font-size:22px">Job <span class="it">progress</span></h2>
+            <p class="cr-note" style="margin:6px 0 4px">Live from your Inbox, Quote requests, Bookings and Invoice pages.</p>
+            <div class="pf-jh">Invoices</div>
+            <div class="pf-do"><svg viewBox="0 0 36 36" id="pf-dn" role="img" aria-label="Invoices by payment status"></svg><div class="mid" id="pf-dm"></div></div>
+            <ul class="pf-dl" id="pf-dl"></ul>
+            <div class="pf-jh" style="margin-top:20px">Pipeline</div>
+            <div class="pf-hb" id="pf-hb"></div>
+            <p class="pf-cv" id="pf-cv"></p>
+          </section>
+          <section class="panel" aria-labelledby="pf-cf-h">
+            <h2 class="serif" id="pf-cf-h" style="font-size:22px">Cash <span class="it">flow</span></h2>
+            <p class="cr-note" style="margin:6px 0 10px">Pulled from your Wallet and AI credits. Amounts are after your plan fee, excluding VAT.</p>
+            <table class="pf-sm pf-cf"><tbody id="pf-cf"></tbody></table>
+            <div class="pf-sp" id="pf-cfb" role="img" aria-label="Revenue split between withdrawn and balance"></div>
+            <p class="pf-cv" style="margin-top:12px">Balance = Total revenue - Withdraw</p>
+          </section>
+        </div>
+      </div>
+
+
+      <!-- ===================== RATECARD =====================
+           Lovable mapping
+           Table:   public.ratecards (id uuid, talent_id uuid, job_type text, price_aed int check (price_aed between 1 and 1000000),
+                      duration_min int check (duration_min between 15 and 1440), included text check (char_length(included) <= 300),
+                      created_at, updated_at, unique (talent_id, lower(job_type)))
+           RLS:     a talent reads and writes only rows where talent_id = their own id. Prices are excl. VAT.
+           Used by: the AI agent when it quotes, so a change here changes the next quote. Swap point: the adapter rcApi near the end of the script. -->
+      

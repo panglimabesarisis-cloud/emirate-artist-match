@@ -1,0 +1,53 @@
+<!-- Halaman "orderform" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg ofpage" data-p="orderform" id="pg-orderform">
+        <section class="c-12 q-head of-head" aria-labelledby="of-h">
+          <div><h1 class="serif" id="of-h">Order <span class="it">form</span></h1>
+            <p>The questions a client answers when they book you. Edit on the left, see exactly what they see on the right, or start from a ready made template below.</p></div>
+          <div class="of-hr"><span class="of-dirty" id="of-dirty" role="status"></span>
+            <label class="of-sw"><input type="checkbox" id="of-show" role="switch"><i></i>Show on my page</label>
+            <button type="button" class="btn btn-gold" id="of-save"><svg width="15" height="15"><use href="#i-check"/></svg>Save form</button></div>
+        </section>
+
+        <div class="of-ed">
+          <section class="panel of-hd" aria-label="Form title and description">
+            <div class="qe-f"><label for="of-ttl">Form title</label><input id="of-ttl" maxlength="80" autocomplete="off" aria-describedby="of-ttl-h"><span class="f-hint" id="of-ttl-h"></span></div>
+            <div class="qe-f"><label for="of-d">Form description <span class="cnt" id="of-dc"></span></label><textarea id="of-d" rows="2" maxlength="300" placeholder="A line that tells clients what to expect after they send this."></textarea></div>
+          </section>
+          <ol class="of-list" id="of-list" aria-label="Questions"></ol>
+          <div class="of-empty" id="of-none" hidden>No questions yet. Add one below or start from a template.</div>
+          <div class="of-ab">
+            <button type="button" class="btn btn-line" id="of-add"><svg width="14" height="14"><use href="#i-plus"/></svg>Add question</button>
+            <div class="of-qa" id="of-qa"><span>Quick add</span></div>
+            <span class="of-lim" id="of-lim"></span>
+          </div>
+        </div>
+
+        <aside class="of-pv" aria-label="Live preview">
+          <div class="of-pvh"><h2 class="serif">Live <span class="it">preview</span></h2><span class="wchip" id="of-pvc">Hidden</span></div>
+          <div class="of-paper" id="of-paper"></div>
+        </aside>
+
+        <section class="panel c-12 q-panel of-tpl" aria-labelledby="of-th">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif" id="of-th">Form <span class="it">templates</span></h2><small>Made by Dealmaker. Pick one to fill your form, then change anything.</small></div>
+            <div class="of-tf">
+              <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search templates</span><input id="of-tq" type="search" placeholder="Search templates" autocomplete="off"></label>
+              <label><span class="sr">Category</span><select id="of-tc"></select></label>
+              <label><span class="sr">Plan</span><select id="of-tp"><option value="">All plans</option><option value="free">Free</option><option value="basic">Basic</option><option value="medium">Medium</option><option value="pro">Pro</option></select></label>
+            </div>
+          </div>
+          <div class="of-tg"><div class="tp-grid" id="of-grid"></div>
+            <div class="q-empty" id="of-te" hidden><span class="orb"><svg><use href="#i-form"/></svg></span><b class="serif">No templates found</b><p>Try another search or plan.</p></div></div>
+        </section>
+      </div>
+
+
+      <!-- ===================== PHOTOS AND VIDEOS =====================
+           Lovable mapping
+           Table:   public.talent_media (id uuid, talent_id uuid, kind text check (kind in ('photo','video_file','youtube')), storage_path text, youtube_id text,
+                      title text, width int, height int, bytes bigint, is_cover boolean, position int, created_at, unique (talent_id, youtube_id))
+           Storage: private bucket 'media', path talent_id/uuid.ext, signed URLs. Accept jpg, png, webp, mp4, webm, mov up to 50 MB. Scan and re-encode on the server.
+           Limits:  photos and videos per plan (plan_tiers max_photos / max_videos: free 5 / 2, basic 8 / 3, medium 10 / 5, pro 10 / 5). Videos count uploaded files and YouTube links together.
+                    A trigger enforces it, the page only mirrors it. Only one row per talent has is_cover = true.
+           Swap point: the adapter mediaApi near the end of the script. Uploads here are kept in browser memory only. -->
+      

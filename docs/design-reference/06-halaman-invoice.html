@@ -1,0 +1,69 @@
+<!-- Halaman "invoice" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg ipage" data-p="invoice" id="pg-invoice">
+        <section class="c-12 q-head" aria-labelledby="i-h">
+          <div><h1 class="serif" id="i-h">Invo<span class="it">ice</span></h1>
+            <p>Build an invoice, check it in the live preview, then send it straight into the client's chat.</p></div>
+          <div class="q-stats" id="i-stats"></div>
+        </section>
+
+        <section class="panel c-6 donut-p" aria-labelledby="ich1">
+          <div class="ph"><h2 class="serif" id="ich1">Payment <span class="it">status</span><small>Invoices by payment</small></h2></div>
+          <div class="donut-w" id="dn-ipay"></div>
+        </section>
+        <section class="panel c-6 donut-p" aria-labelledby="ich2">
+          <div class="ph"><h2 class="serif" id="ich2">Collected <span class="it">vs due</span><small>Amounts across all invoices, AED</small></h2></div>
+          <div class="donut-w" id="dn-iamt"></div>
+        </section>
+        <section class="panel c-12 i-new" aria-labelledby="in-h">
+          <form class="i-form" id="if" novalidate>
+            <h2 class="serif" id="in-h">New <span class="it">invoice</span></h2>
+            <div class="qe-f"><label for="if-client">Client chat</label><select id="if-client" required><option value="">Choose a client</option></select></div>
+            <div class="b-two">
+              <div class="qe-f"><label for="if-issue">Issue date</label><input id="if-issue" type="date" required></div>
+              <div class="qe-f"><label for="if-due">Due date</label><input id="if-due" type="date" required></div>
+            </div>
+            <div class="i-sv">
+              <div class="i-sv-h"><span class="f-lab2">Services</span><button type="button" class="btn btn-line i-add" id="if-add"><svg width="14" height="14"><use href="#i-plus"/></svg>Custom item</button></div>
+              <div class="i-from" id="if-from" hidden><span>From bookings:</span><div id="if-from-l"></div></div>
+              <div class="i-rows" id="if-rows"></div>
+              <p class="i-none" id="if-none">No items yet. Add a custom item or pick one of the client's bookings.</p>
+            </div>
+            <div class="qe-f"><label for="if-notes">Notes (optional)</label><textarea id="if-notes" rows="3" placeholder="Event details, rehearsal, wardrobe"></textarea></div>
+            <p class="qe-err" id="if-err"></p>
+            <button class="btn btn-gold b-full" id="if-send" disabled><svg width="16" height="16"><use href="#i-send"/></svg>Create &amp; send to chat</button>
+          </form>
+          <div class="i-live">
+            <div class="i-live-h"><span><svg width="16" height="16"><use href="#i-inv"/></svg>Live preview</span><span class="ui-stamp" id="if-state">Draft</span></div>
+            <div class="paper-wrap"><article class="paper" id="paper-live"></article></div>
+          </div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-label="Sent invoices">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif">Sent invoices</h2><small>Newest first</small></div>
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search invoices</span>
+              <input id="iq" type="search" placeholder="Search invoice number or client" autocomplete="off"></label>
+            <div class="q-tabs" role="group" aria-label="Filter by payment" id="i-tabs"></div>
+          </div>
+          <div class="tbl-wrap"><table class="qt it" id="it"><thead><tr id="it-head"></tr></thead><tbody id="it-body"></tbody></table></div>
+          <div class="q-empty" id="i-empty" hidden><span class="orb"><svg><use href="#i-inv"/></svg></span><b class="serif">No invoices found</b><p>Try another number or payment status.</p></div>
+          <div class="q-foot b-foot">
+            <label class="rpp"><span>Rows per page</span><select id="i-per"><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option></select></label>
+            <span id="i-count"></span>
+            <div class="pager"><button type="button" class="ab" id="i-prev" aria-label="Previous page"><svg><use href="#i-back"/></svg></button><span id="i-pg"></span><button type="button" class="ab flip" id="i-next" aria-label="Next page"><svg><use href="#i-back"/></svg></button></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===================== CONTRACT =====================
+           Lovable mapping
+           Tables:  public.contract_templates (id uuid, talent_id uuid, name text, role text, clauses jsonb [{title,body}],
+                      updated_at timestamptz, deleted_at timestamptz)
+                    public.contracts (id uuid, booking_id uuid, template_id uuid, status text check (status in ('awaiting','accepted')),
+                      accepted_at timestamptz, terms_snapshot jsonb)  -- snapshot of clauses at acceptance, never edited after
+           Placeholders in clause bodies: {artist} {client} {service} {date} {time} {venue} {total} {vat}
+           Template also stores rider text (Schedule C). Document = header, parties, summary, Articles (blank line = sub-clause),
+           signatures, Schedules A-D; paginated into A4 sheets (794x1123 px) and printed one sheet per page.
+           Rules: "Use contract" can be changed only while status = 'awaiting'. Accepted contracts are locked.
+           ===================================================== -->
+      

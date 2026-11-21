@@ -1,0 +1,45 @@
+<!-- Halaman "quotes" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg qpage" data-p="quotes" id="pg-quotes">
+        <section class="c-12 q-head" aria-labelledby="q-h">
+          <div><h1 class="serif" id="q-h">Quote <span class="it">requests</span></h1>
+            <p>Every request sent from your public profile and order form. Reply, update the details, or close the ones that went nowhere.</p></div>
+          <div class="q-stats" id="q-stats"></div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-label="Quote requests table">
+          <div class="q-tools">
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search quote requests</span>
+              <input id="qq" type="search" placeholder="Search name, email, event, venue, notes" autocomplete="off"></label>
+            <div class="q-tabs" role="group" aria-label="Filter by status" id="q-tabs"></div>
+          </div>
+          <div class="q-bulk" id="q-bulk" hidden><span id="q-bulk-n">0 selected</span>
+            <button type="button" class="btn btn-line" id="q-bulk-reply"><svg width="15" height="15"><use href="#i-reply"/></svg>Mark replied</button>
+            <button type="button" class="btn btn-danger" id="q-bulk-del"><svg width="15" height="15"><use href="#i-trash"/></svg>Delete</button></div>
+          <div class="tbl-wrap">
+            <table class="qt" id="qt">
+              <thead><tr id="qt-head"></tr></thead>
+              <tbody id="qt-body"></tbody>
+            </table>
+          </div>
+          <div class="q-empty" id="q-empty" hidden><span class="orb"><svg><use href="#i-quote"/></svg></span><b class="serif" id="q-empty-h">No quote requests</b><p id="q-empty-p">Requests from your profile appear here.</p></div>
+          <div class="q-foot"><span id="q-count"></span><span>Prices in AED</span></div>
+        </section>
+      </div>
+
+      <!-- ===================== BOOKINGS =====================
+           Lovable mapping
+           Table:   public.bookings
+           Columns: id uuid, talent_id uuid, client_name text, client_email text, title text,
+                    event_date date, start_time time, end_time time,
+                    price_excl_vat numeric, vat_rate numeric default 0.05, total_aed numeric,
+                    paid_aed numeric default 0, escrow text,
+                    status text check (status in ('offer_sent','needs_approval','confirmed','cancelled')),
+                    payment_status text check (payment_status in ('unpaid','partial','paid')),
+                    calendar_status text (e.g. 'not_paid','synced','error'), calendar_error text,
+                    job_detail text, invoice_no text, reminder_h7 text, created_at timestamptz
+           Talent settings (existing profile table): whatsapp_alerts text, vat_trn text (15 digits)
+           Actions (three-dot menu): review & approve (status='confirmed'), info (popup), cancel (status='cancelled'),
+                    delete (soft: set deleted_at timestamptz), bulk delete via row checkboxes,
+                    send offer (insert with status='offer_sent'), save alerts, save TRN
+           ====================================================== -->
+      

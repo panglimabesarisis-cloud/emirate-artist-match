@@ -1,0 +1,41 @@
+<!-- Halaman "team" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg tmpage" data-p="team" id="pg-team">
+        <section class="c-12 q-head" aria-labelledby="t-h">
+          <div><h1 class="serif" id="t-h">Invite <span class="it">team</span></h1>
+            <p>Give a teammate their own login to answer inbox chats for you. They see only the menus you allow in their role, and nothing else.</p></div>
+          <div class="tm-headr"><div class="q-stats" id="t-stats"></div><button type="button" class="btn btn-gold" id="t-add"><svg width="15" height="15"><use href="#i-plus"/></svg>Add team member</button></div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-label="Team members">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif">Team <span class="it">members</span></h2><small>People who can sign in to your workspace</small></div>
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search team</span>
+              <input id="t-q" type="search" placeholder="Search name, email or role" autocomplete="off"></label>
+          </div>
+          <div class="tbl-wrap"><table class="qt wt tmt"><thead><tr><th>Member</th><th>Role</th><th>Can open</th><th>Status</th><th>Last active</th><th><span class="sr">Actions</span></th></tr></thead><tbody id="t-body"></tbody></table></div>
+          <div class="q-empty" id="t-empty" hidden><span class="orb"><svg><use href="#i-team"/></svg></span><b class="serif">No team members</b><p>Add someone to share the inbox workload.</p><button type="button" class="btn btn-gold" id="t-add2"><svg width="15" height="15"><use href="#i-plus"/></svg>Add team member</button></div>
+        </section>
+
+        <section class="panel c-12 tm-roles" aria-labelledby="r-h">
+          <div class="tm-roles-h">
+            <div><h2 class="serif" id="r-h">Roles <span class="it">and access</span></h2><p>A role decides which menus a member can open. Every role can answer the Inbox. You choose the rest.</p></div>
+            <button type="button" class="btn btn-line" id="r-add"><svg width="15" height="15"><use href="#i-plus"/></svg>New role</button>
+          </div>
+          <div class="tm-rgrid" id="r-grid"></div>
+          <p class="tm-lock-n"><svg><use href="#i-lock"/></svg><span>Only you can open Wallet, Export data, Verification, Account settings and Team. These cannot be given to a role.</span></p>
+        </section>
+      </div>
+
+      <!-- ===================== AI CREDITS =====================
+           Lovable mapping
+           Tables:  public.ai_credit_ledger (id, talent_id, delta int, reason text check (reason in ('reply','quote','topup','plan_grant','refund','adjust')),
+                      model text references ai_model_rates, tokens_in int, tokens_cached int, tokens_out int, cost_usd_micros bigint,
+                      rate_snapshot jsonb, ref_id uuid, created_at)      -- append only, never updated. Balance = sum(delta).
+                    public.ai_model_rates (model text, label text, usd_in_per_mtok numeric, usd_cached_per_mtok numeric, usd_out_per_mtok numeric, effective_from date)
+                    public.credit_packs (id, credits, price_aed_ex_vat), public.subscriptions (talent_id, plan, interval, status, current_period_end)
+           Rules:   1 AI reply = 1 credit, whatever the token count. Tokens and cost are shown so the artist can see what a reply really costs.
+                    The server writes ledger rows from the provider response usage fields (input, cache read, output). The browser never sends token counts.
+                    Spend credit atomically in one RPC (select ... for update, refuse below zero). Snapshot the rates on each row so old rows never change.
+                    Money in USD micros, shown here in AED at the fixed 3.6725 peg. Provider invoice is the final number, these are estimates.
+           Swap point: the adapter creditsApi near the end of the script. Billing is Stripe test mode in this file. -->
+      

@@ -1,0 +1,98 @@
+<!-- Halaman "wallet" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg wpage" data-p="wallet" id="pg-wallet">
+        <section class="c-12 q-head" aria-labelledby="w-h">
+          <div><h1 class="serif" id="w-h">Wal<span class="it">let</span></h1>
+            <p>What you earned from jobs booked through Dealmaker. Clients pay into escrow, your plan fee is already taken off, and you withdraw what has been released.</p></div>
+          <a class="w-plan" id="w-plan" href="#plan" data-soon></a>
+        </section>
+
+        <section class="panel c-12 w-hero" aria-labelledby="w-av-l">
+          <div class="w-av">
+            <small id="w-av-l">Available to withdraw</small>
+            <div class="amt" id="w-av" aria-live="polite"></div>
+            <p id="w-av-p"></p>
+            <div class="w-cta"><a class="btn btn-gold" href="#wd" id="w-go"><svg width="16" height="16"><use href="#i-wal"/></svg>Request withdrawal</a><small id="w-go-s"></small></div>
+          </div>
+          <div class="w-flow">
+            <div class="w-bar" id="w-bar" role="img"></div>
+            <ul class="w-leg" id="w-leg"></ul>
+            <p class="w-foot" id="w-foot"></p>
+          </div>
+        </section>
+
+        <div class="c-12 w-stats" id="w-stats"></div>
+
+        <div class="w-left">
+          <section class="panel q-panel" aria-label="Job earnings">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif">Job <span class="it">earnings</span></h2><small>Fee and net per job, excl. VAT</small></div>
+              <div class="q-tabs" role="group" aria-label="Filter by money status" id="w-tabs"></div>
+            </div>
+            <div class="tbl-wrap"><table class="qt wt" id="wj"><thead><tr><th>Job</th><th>Status</th><th class="num">Job fee</th><th class="num" id="wj-fee">Fee</th><th class="num">You earn</th></tr></thead><tbody id="wj-body"></tbody></table></div>
+            <div class="q-empty" id="wj-empty" hidden><span class="orb"><svg><use href="#i-wal"/></svg></span><b class="serif">No jobs here yet</b><p>Jobs appear as soon as a client pays into escrow.</p></div>
+            <div class="w-tot" id="wj-tot"></div>
+          </section>
+
+          <section class="panel q-panel" aria-label="Withdrawal requests">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif">Withdrawal <span class="it">requests</span></h2><small>Newest first</small></div>
+            </div>
+            <div class="tbl-wrap"><table class="qt wt" id="wr"><thead><tr><th>Requested</th><th class="num">Amount</th><th>Paid to</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead><tbody id="wr-body"></tbody></table></div>
+            <div class="q-empty" id="wr-empty" hidden><span class="orb"><svg><use href="#i-send"/></svg></span><b class="serif">No withdrawals yet</b><p>Your requests and their payout status show up here.</p></div>
+          </section>
+        </div>
+
+        <div class="w-side">
+          <form class="panel w-form" id="wd" novalidate aria-labelledby="wd-h">
+            <h2 class="serif" id="wd-h">Request <span class="it">withdrawal</span></h2>
+            <p class="w-sub">Paid in AED to your registered UAE bank account. Demo mode: no real money is transferred.</p>
+            <div class="w-banner" id="wd-ban" hidden role="status"><svg><use href="#i-lock"/></svg><div id="wd-ban-t"></div></div>
+            <div class="qe-f"><label for="wd-amt">Amount (AED)</label>
+              <div class="w-amt"><span aria-hidden="true">AED</span><input id="wd-amt" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-describedby="wd-hint"></div></div>
+            <div class="w-q" role="group" aria-label="Quick amounts"><button type="button" data-pct="25">25%</button><button type="button" data-pct="50">50%</button><button type="button" data-pct="100">Withdraw all</button></div>
+            <p class="w-hint" id="wd-hint" role="status"></p>
+
+            <div class="w-bank" role="group" aria-labelledby="wb-h">
+              <div class="w-bank-h"><b id="wb-h"><svg><use href="#i-lock"/></svg>Bank details</b><a href="#account" id="wd-manage">Manage in Account settings</a></div>
+              <div class="qe-f"><label for="wb-bank">Bank name</label><div class="lockf"><input id="wb-bank" disabled autocomplete="off" title="Set in Account settings"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              <div class="qe-f"><label for="wb-holder">Account holder name</label><div class="lockf"><input id="wb-holder" disabled autocomplete="off" title="Set in Account settings"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              <div class="qe-f"><label for="wb-iban">IBAN</label><div class="lockf"><input id="wb-iban" disabled autocomplete="off" title="Set in Account settings"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              <div class="b-two">
+                <div class="qe-f"><label for="wb-swift">SWIFT / BIC</label><div class="lockf"><input id="wb-swift" disabled autocomplete="off"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+                <div class="qe-f"><label for="wb-type">Account type</label><div class="lockf"><input id="wb-type" disabled autocomplete="off"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              </div>
+              <div class="b-two">
+                <div class="qe-f"><label for="wb-country">Country</label><div class="lockf"><input id="wb-country" disabled autocomplete="off" aria-label="Country: United Arab Emirates"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+                <div class="qe-f"><label for="wb-cur">Currency</label><div class="lockf"><input id="wb-cur" disabled autocomplete="off"><svg aria-hidden="true"><use href="#i-lock"/></svg></div></div>
+              </div>
+            </div>
+            <button class="btn btn-gold b-full" id="wd-go" disabled><svg width="16" height="16"><use href="#i-send"/></svg>Request withdrawal</button>
+            <p class="w-note" id="wd-note"></p>
+          </form>
+
+          <section class="panel w-how" aria-labelledby="wh-h">
+            <h2 class="serif" id="wh-h">How your money <span class="it">moves</span></h2>
+            <ol>
+              <li><b>Client pays into escrow</b>Dealmaker holds the payment, so you know the money is real before you perform.</li>
+              <li><b>You perform, then mark the job Done</b>Use the Calendar page to set progress to Done.</li>
+              <li><b>48 hour review</b>After the event ends the client can raise an issue. Then the money is released.</li>
+              <li><b>You withdraw</b>Plan fee is already deducted. Payout takes about 3 working days.</li>
+            </ol>
+          </section>
+        </div>
+      </div>
+
+      <!-- ===================== ACCOUNT SETTINGS =====================
+           Lovable mapping
+           Table:   public.bank_details (talent_id uuid primary key references profiles, account_type text check (account_type in ('personal','business')),
+                      holder_name text, bank_name text, branch text, iban text check (iban ~ '^AE[0-9]{21}$'),
+                      swift text check (swift ~ '^[A-Z]{4}AE[A-Z0-9]{2}([A-Z0-9]{3})?$'), id_no text  -- Emirates ID (personal) or trade licence (business),
+                      country text default 'AE', currency text default 'AED', updated_at timestamptz, locked_until timestamptz)
+           Security (the reason the wallet shows these fields disabled):
+             - Only this page can change bank details, through one RPC set_bank_details(...). RLS: no direct update/insert on the table from the client.
+             - RPC re-checks the IBAN (mod 97), requires a fresh login (re-auth within 10 min), stores locked_until = now() + 48h,
+               emails the old address, and writes a row to bank_details_audit (old and new last4, ip, user agent).
+             - request_withdrawal() refuses while now() < locked_until, and reads the bank row itself.
+             - Wallet gets a masked view (last digits only). The full IBAN never reaches the wallet page.
+           ===================================================== -->
+      

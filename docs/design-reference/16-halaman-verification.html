@@ -1,0 +1,62 @@
+<!-- Halaman "verification" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg vfpage" data-p="verification" id="pg-verification">
+        <section class="c-12 q-head" aria-labelledby="vf-h">
+          <div><h1 class="serif" id="vf-h">Veri<span class="it">fication</span></h1>
+            <p>Verify who you are, and clients trust you faster. Your badges show on your public profile.</p></div>
+          <div class="vf-hb" id="vf-hb"></div>
+        </section>
+
+        <div class="c-12 vf-ladder" id="vf-ladder"></div>
+
+        <div class="w-left">
+          <section class="panel" aria-labelledby="vf-sh"><div class="vf-sp" id="vf-sp"></div><ol class="vf-tl" id="vf-tl"></ol></section>
+          <section class="panel" aria-labelledby="vf-th">
+            <div class="a-top"><div><h2 class="serif" id="vf-th">Road to the <span class="it">Top badge</span></h2><p>Top is earned, not bought. It goes to the best earners in each category over the last 6 months.</p></div><span class="vf-st" id="vf-tst"></span></div>
+            <div class="vf-pg" id="vf-pg"></div>
+            <p class="cr-note" id="vf-tn" style="margin-top:12px"></p>
+          </section>
+          <section class="panel q-panel" aria-label="Applications">
+            <div class="q-tools"><div class="ct-h"><h2 class="serif">Your <span class="it">applications</span></h2><small>Every verification request and its result</small></div></div>
+            <div class="tbl-wrap"><table class="qt wt"><thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Note</th></tr></thead><tbody id="vf-ap"></tbody></table></div>
+            <div class="q-empty" id="vf-ae"><span class="orb"><svg><use href="#i-ver"/></svg></span><b class="serif">No applications yet</b><p>Start your verification above. It takes about 5 minutes.</p></div>
+          </section>
+        </div>
+
+        <div class="w-side">
+          <section class="panel" aria-labelledby="vf-dh">
+            <h2 class="serif" id="vf-dh" style="font-size:22px">What you <span class="it">need</span></h2>
+            <div class="vf-doc" id="vf-doc"></div>
+          </section>
+          <section class="panel" aria-labelledby="vf-ph">
+            <h2 class="serif" id="vf-ph" style="font-size:22px">How we protect <span class="it">your data</span></h2>
+            <ul class="cr-how">
+              <li><b>Private and encrypted.</b> Your photos and documents are stored privately. Only our verification team can open them, and every access is logged.</li>
+              <li><b>Deleted after 30 days.</b> Once we decide, photos are deleted. We keep only the result.</li>
+              <li><b>You consent separately.</b> Face matching needs your clear consent, and you can withdraw it any time.</li>
+              <li><b>A person checks doubts.</b> If our AI is unsure, a staff member reviews it. You are never rejected by AI alone.</li>
+            </ul>
+          </section>
+          <section class="vf-demo" id="vf-demo" aria-label="Demo controls" hidden>
+            <b>Demo only.</b> In the live app our system decides. Use these to see each result.
+            <div class="bt" id="vf-dbt"></div>
+          </section>
+        </div>
+      </div>
+
+
+            <!-- ===================== AI AGENT =====================
+           Lovable mapping
+           Tables:  public.agent_settings (talent_id pk, enabled boolean, model text references ai_model_rates, tone text, reply_length text, languages text[],
+                      handoff jsonb {negotiation, complaints, unclear}, updated_at)
+                    public.agent_instructions (id, talent_id, title, body text check (char_length(body) <= 500), applies_when text ('always','price','availability','complaint','first'),
+                      priority text ('high','normal'), is_active boolean, updated_at)
+                    public.agent_knowledge (id, talent_id, title, category text, body text check (char_length(body) <= 1000), is_active boolean, used_count int, updated_at)
+           Secrecy: the body of a Dealmaker prompt is never sent to the talent browser. Expose agent_library_items to talents through a view without the body column
+                    (or column level security), and let only the edge function that builds the prompt read it. The talent sees title, short description, tier and price only.
+           Limits:  prompts on at once free 6 / basic 10 / medium 20 / pro 50, own prompts free 5 / basic 8 / medium 15 / pro 40. Models: free = Fast, basic = Fast + Balanced, medium and pro = all.
+                    Triggers enforce them, the page only mirrors them.
+           Runtime: the edge function builds the prompt from settings + active instructions (by priority) + the knowledge entries retrieved for the message
+                    (embeddings, top 3). Log the entries used per reply (shown as "Used" chips) and increment used_count. Tests do not spend credits.
+                    A reply that matches a hand over rule is not sent: the chat is flagged for the talent. Swap point: the adapter agentApi near the end of the script.
+                    Here the test reply is a keyword demo, not a real model. -->
+      

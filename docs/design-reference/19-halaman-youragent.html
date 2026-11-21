@@ -1,0 +1,35 @@
+<!-- Halaman "youragent" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="pg yp" data-p="youragent" id="pg-yagent">
+        <aside class="yp-side" id="yp-side" aria-label="Chat history">
+          <div class="yp-sh"><button type="button" class="btn btn-gold" id="ya-new"><svg width="15" height="15"><use href="#i-plus"/></svg>New chat</button></div>
+          <div class="yp-sl">Recent</div>
+          <ul class="yp-hist" id="yp-hist"></ul>
+        </aside>
+        <section class="yp-main" aria-labelledby="yp-h">
+          <header class="ya-hd"><button type="button" class="icon-btn yp-th" id="yp-th" aria-label="Chat history"><svg width="18" height="18"><use href="#i-inbox"/></svg></button><span class="ya-av"><svg><use href="#i-bot"/></svg></span>
+            <div><h1 class="serif" id="yp-h" style="font-size:26px;line-height:1">Your <span class="it">AI agent</span></h1><small><i></i>Online. Each answer uses 1 credit.</small></div>
+            <div class="ya-hr"><span class="ya-cr" id="ya-cr" title="Each reply uses 1 credit"></span></div></header>
+          <div class="ya-msgs" id="ya-msgs" role="log" aria-live="polite" aria-label="Chat with your AI agent"></div>
+          <div class="ya-sg" id="ya-sg"></div>
+          <form class="ya-cp" id="ya-f" autocomplete="off">
+            <div class="ya-fl" id="ya-fl" aria-label="Attached files"></div>
+            <div class="ya-row">
+              <button type="button" class="ya-ab" id="ya-at" aria-label="Attach files" title="Attach files (image, PDF, text, CSV, Word, Excel, up to 10 MB)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8-8"/></svg></button>
+              <textarea id="ya-q" rows="1" maxlength="2000" placeholder="Message your AI agent" aria-label="Message to your AI agent"></textarea>
+              <button class="ya-sd" id="ya-sd" aria-label="Send message" disabled><svg><use href="#i-send"/></svg></button>
+            </div>
+            <input type="file" id="ya-file" multiple hidden accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx">
+            <p class="ya-ft">Enter to send, Shift+Enter for a new line. Drag files anywhere here to attach them. Your agent can make mistakes, so check important answers.</p>
+          </form>
+        </section>
+        <aside class="yp-right" aria-label="Quick actions">
+          <div class="yr-card"><h2 class="serif">Quick <span class="it">actions</span></h2><p>One click and your agent answers.</p>
+            <div class="yr-list"><button type="button" data-q="How many bookings do I have?"><i><svg><use href="#i-cal"/></svg></i><span>My bookings</span></button><button type="button" data-q="Summarize my unpaid invoices"><i><svg><use href="#i-inv"/></svg></i><span>Unpaid invoices</span></button><button type="button" data-q="How much can I withdraw?"><i><svg><use href="#i-wal"/></svg></i><span>Earnings and wallet</span></button><button type="button" data-q="How many credits are left?"><i><svg><use href="#i-spark"/></svg></i><span>AI credits</span></button><button type="button" data-q="Do I have new chats or quote requests?"><i><svg><use href="#i-inbox"/></svg></i><span>Inbox and quotes</span></button><button type="button" data-q="Draft a reply to a new enquiry"><i><svg><use href="#i-edit"/></svg></i><span>Draft a reply</span></button></div></div>
+          <div class="yr-card"><h2 class="serif">Go <span class="it">to</span></h2>
+            <div class="yr-list"><button type="button" data-go="bookings"><i><svg><use href="#i-cal"/></svg></i><span>Bookings</span></button><button type="button" data-go="invoice"><i><svg><use href="#i-inv"/></svg></i><span>Invoice</span></button><button type="button" data-go="wallet"><i><svg><use href="#i-wal"/></svg></i><span>Wallet</span></button><button type="button" data-go="inbox"><i><svg><use href="#i-inbox"/></svg></i><span>Inbox</span></button><button type="button" data-go="agent"><i><svg><use href="#i-bot"/></svg></i><span>AI agent settings</span></button></div></div>
+          <div class="yr-card"><h2 class="serif">Attach a <span class="it">file</span></h2><p>Rider, price list, contract or photo. Up to 10 MB, 4 files at once.</p>
+            <button type="button" class="btn btn-line" id="yr-at" style="width:100%;justify-content:center;margin-top:12px">Choose files</button></div>
+        </aside>
+      </div>
+
+    

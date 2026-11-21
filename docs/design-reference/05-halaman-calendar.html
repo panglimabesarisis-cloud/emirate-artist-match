@@ -1,0 +1,67 @@
+<!-- Halaman "calendar" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg cpage" data-p="calendar" id="pg-calendar">
+        <section class="c-12 q-head" aria-labelledby="c-h">
+          <div><h1 class="serif" id="c-h">Calen<span class="it">dar</span></h1>
+            <p>Your bookings by date. Click a day to block it so clients can't book it. Double-click a day to open it.</p></div>
+          <div class="q-stats" id="c-stats"></div>
+        </section>
+
+        <section class="c-12 g-banner" aria-label="Google Calendar">
+          <span class="g-ic" aria-hidden="true"><svg width="20" height="20"><use href="#i-cal"/></svg></span>
+          <div><b>Google Calendar</b><p>Your Google Calendar access needs to be renewed.</p></div>
+          <button type="button" class="btn btn-gold" data-soon>Reconnect Google Calendar</button>
+        </section>
+
+        <section class="panel c-6 donut-p" aria-labelledby="dp-h">
+          <div class="ph"><h2 class="serif" id="dp-h">Job <span class="it">progress</span><small>Done vs waiting</small></h2></div>
+          <div class="donut-w" id="dn-prog"></div>
+        </section>
+        <section class="panel c-6 donut-p" aria-labelledby="dpay-h">
+          <div class="ph"><h2 class="serif" id="dpay-h">Payment <span class="it">status</span><small>Unpaid, partial and paid jobs</small></h2></div>
+          <div class="donut-w" id="dn-pay"></div>
+        </section>
+
+        <section class="panel c-12 cal" aria-labelledby="cal-title">
+          <div class="cal-top">
+            <div class="cal-nav"><button type="button" class="ab" id="cal-prev" aria-label="Previous"><svg><use href="#i-back"/></svg></button>
+              <button type="button" class="btn btn-line" id="cal-today">Today</button>
+              <button type="button" class="ab flip" id="cal-next" aria-label="Next"><svg><use href="#i-back"/></svg></button></div>
+            <h2 class="serif" id="cal-title" aria-live="polite"></h2>
+            <div class="q-tabs" role="group" aria-label="View" id="cal-views"><button type="button" data-v="day" aria-pressed="false">Daily</button><button type="button" data-v="week" aria-pressed="false">Weekly</button><button type="button" data-v="month" aria-pressed="true">Monthly</button></div>
+          </div>
+          <div class="cal-grid" id="cal-grid" role="grid"></div>
+          <div class="cal-legend"><span><i class="lg-b"></i>Dealmaker booking</span><span><i class="lg-x"></i>Blocked (clients can't book)</span><span><i class="lg-t"></i>Today</span></div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-label="Scheduled events">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif">Schedule</h2><small>Sorted by event date</small></div>
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search schedule</span>
+              <input id="cq" type="search" placeholder="Search client, event, location" autocomplete="off"></label>
+            <div class="q-tabs" role="group" aria-label="Filter by progress" id="c-tabs"></div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="qt ct" id="ct"><thead><tr id="ct-head"></tr></thead><tbody id="ct-body"></tbody></table>
+          </div>
+          <div class="q-empty" id="c-empty" hidden><span class="orb"><svg><use href="#i-cal"/></svg></span><b class="serif" id="c-empty-h">Nothing scheduled</b><p>Confirmed bookings and sent offers appear here by date.</p></div>
+          <div class="q-foot b-foot">
+            <label class="rpp"><span>Rows per page</span><select id="c-per"><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option></select></label>
+            <span id="c-count"></span>
+            <div class="pager"><button type="button" class="ab" id="c-prev" aria-label="Previous page"><svg><use href="#i-back"/></svg></button><span id="c-pg"></span><button type="button" class="ab flip" id="c-next" aria-label="Next page"><svg><use href="#i-back"/></svg></button></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===================== INVOICE =====================
+           Lovable mapping
+           Table:   public.invoices
+           Columns: id uuid, talent_id uuid, booking_id uuid null, invoice_no text unique, client_name text,
+                    items jsonb  -- [{description text, qty int, unit_price numeric}]
+                    subtotal numeric, vat numeric, total numeric, paid_aed numeric default 0,
+                    payment_status text check (payment_status in ('unpaid','partial','paid')),
+                    paid_at timestamptz null, issued_at date, due_date date, notes text, sent_to_chat boolean
+           Uses talent settings: vat_trn (shown on the invoice)
+           Charts: donut by payment_status (count) and collected (sum paid_aed) vs balance due (sum total - paid_aed)
+           Actions: create & send to chat (insert), view (preview popup), print / save as PDF
+           ===================================================== -->
+      

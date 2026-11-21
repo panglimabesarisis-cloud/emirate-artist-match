@@ -1,0 +1,58 @@
+<!-- Halaman "media" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg mdpage" data-p="media" id="pg-media">
+        <section class="c-12 q-head" aria-labelledby="md-h">
+          <div><h1 class="serif" id="md-h">Photos <span class="it">and videos</span></h1>
+            <p>Photos fill the slider on your profile and videos sit below it. Drag to reorder, and pick a cover photo clients see first.</p></div>
+          <div class="q-stats" id="md-stats"></div>
+        </section>
+
+        <section class="panel md-up" aria-labelledby="md-uh">
+          <div class="a-top"><div><h2 class="serif" id="md-uh">Upload <span class="it">files</span></h2></div></div>
+          <div class="md-drop" id="md-drop" role="button" tabindex="0" aria-label="Upload photos or videos. Choose files or drop them here.">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>
+            <b>Drop files here or <u>choose files</u></b>
+            <small>JPG, PNG, WebP, MP4, WebM or MOV. Up to 50 MB each. Wide photos, at least 1200 px, look best.</small>
+          </div>
+          <input type="file" id="md-file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple hidden>
+          <div class="md-lm" id="md-lm"></div>
+        </section>
+
+        <section class="panel md-yt" aria-labelledby="md-yh">
+          <div class="a-top"><div><h2 class="serif" id="md-yh">Add a <span class="it">YouTube video</span></h2></div></div>
+          <div class="md-ytf"><div class="qe-f"><label for="md-yu">YouTube link</label><input id="md-yu" inputmode="url" autocomplete="off" placeholder="https://youtube.com/watch?v=..." aria-describedby="md-yu-h"><span class="f-hint" id="md-yu-h"></span></div>
+            <button type="button" class="btn btn-gold" id="md-ya"><svg width="14" height="14"><use href="#i-plus"/></svg>Add</button></div>
+          <p class="tipx"><b>Tip.</b> Links from youtube.com, youtu.be and Shorts all work. Videos play inside your profile, so clients stay on your page.</p>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-labelledby="md-gh">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif" id="md-gh">Your <span class="it">gallery</span></h2><small id="md-gs"></small></div>
+            <div class="q-tabs" role="group" aria-label="Filter gallery" id="md-tabs"></div>
+          </div>
+          <div class="md-g" id="md-g"></div>
+        </section>
+      </div>
+      <div class="md-lb" id="md-lb" role="dialog" aria-modal="true" aria-label="Media viewer" hidden>
+        <div class="md-lt"><span id="md-lc"></span><div class="bt"><button type="button" class="btn btn-line" id="md-lcv">Set as cover</button><button type="button" class="btn btn-line" id="md-ld">Delete</button><button type="button" class="btn btn-gold" id="md-lx">Close</button></div></div>
+        <div class="md-ls" id="md-ls"></div>
+        <div class="md-lf"><input id="md-lt" maxlength="80" autocomplete="off" placeholder="Add a caption" aria-label="Caption"><small id="md-lm2"></small></div>
+      </div>
+
+
+      <!-- ===================== VERIFICATION =====================
+           Lovable mapping
+           Badges:  verified (white): OTP + documents approved. subscribe (blue): verified AND an active paid plan, independent of verified (never removes it).
+                    top (gold): verified AND subscribe AND in the top 10% of net released revenue of the same category over the last 6 months,
+                    at least 3 distinct paying clients, no open dispute. Recomputed monthly by a scheduled job, with a looser exit threshold to avoid flapping.
+                    Only money released from escrow counts. Exclude payers linked to the talent or team. Never show other people's revenue.
+           Tables:  public.verification_cases (id, talent_id, residency text ('uae','foreign'), status text check (status in ('waiting','review','approved','rejected')),
+                      phone_e164, otp_verified_at, full_name, nationality, dob, doc_type ('emirates_id','passport'), doc_number_enc, doc_expiry, address jsonb,
+                      doc_paths text[], selfie_paths text[], ai_result jsonb, lane text ('auto','manual','rejected'), attempts int, reasons text[],
+                      decided_by, decided_at, delete_after date, consent_biometric_at timestamptz, created_at)
+                    public.talent_badges (talent_id, badge text check (badge in ('verified','subscribe','top')), granted_at, expires_at)
+                    public.otp_challenges as on the Account settings page.
+           Rules:   AI only sorts: very sure = auto approve, any doubt = staff queue, clear fraud signals = reject with reasons. Max 2 retries, then staff review.
+                    Document number and name must match the payout account holder. One document per account. Files in a private encrypted bucket, deleted 30 days
+                    after the decision. Biometric consent is separate from the terms and can be withdrawn. Staff access is logged.
+           Swap point: the adapter vfApi near the end of the script. Photos stay in browser memory here. The "Demo only" panel is removed in production. -->
+      

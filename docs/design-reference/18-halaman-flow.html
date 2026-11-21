@@ -1,0 +1,74 @@
+<!-- Halaman "flow" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg flpage" data-p="flow" id="pg-flow">
+        <section class="c-12 q-head" aria-labelledby="fl-hd">
+          <div><h1 class="serif" id="fl-hd">AI <span class="it">flow</span></h1>
+            <p>Draw how your assistant talks to a new client, step by step: what it asks, what it offers, and when it hands the chat to you. Start from a template or build your own.</p></div>
+          <div class="fl-top"><button type="button" class="btn btn-line" id="fl-choose"><svg width="15" height="15"><use href="#i-form"/></svg>Choose template</button></div>
+        </section>
+
+        <section class="panel c-12 fl-state" aria-label="Flow status">
+          <div><b id="fl-name">Custom conversation flow</b><small id="fl-st"><i></i><span>Custom flow active</span></small></div>
+          <label class="of-sw"><input type="checkbox" id="fl-on" role="switch" checked><i></i><span id="fl-onl">Flow is on</span></label>
+        </section>
+
+        <section class="panel c-12 fl-ed" id="fl-ed" aria-label="Flow editor">
+          <div class="fl-tb">
+            <span class="fl-cnt" id="fl-cnt"></span>
+            <button type="button" class="btn btn-line" id="fl-test"><svg width="15" height="15"><use href="#i-eye"/></svg>Test bot</button>
+            <div class="bt"><span class="fl-dirty" id="fl-dirty" role="status"></span><button type="button" class="btn btn-line" id="fl-reset" disabled>Reset</button><button type="button" class="btn btn-gold" id="fl-save" disabled><svg width="15" height="15"><use href="#i-check"/></svg>Save flow</button></div>
+          </div>
+          <div class="fl-g">
+            <aside class="fl-pal" aria-label="Blocks">
+              <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search blocks</span><input id="fl-q" type="search" placeholder="Search blocks" autocomplete="off"></label>
+              <div class="fl-ch" id="fl-ch" role="group" aria-label="Block group"></div>
+              <ul class="fl-pl" id="fl-pl"></ul>
+            </aside>
+            <div class="fl-cv" id="fl-cv" aria-label="Flow canvas. Drag blocks to move them. Drag from the gold dot of a block onto another block to connect them.">
+              <div class="fl-w" id="fl-w"><svg class="fl-e" id="fl-e" aria-hidden="true"></svg></div>
+              <div class="fl-zm"><button type="button" id="fl-zi" aria-label="Zoom in">+</button><button type="button" id="fl-zo" aria-label="Zoom out">&minus;</button><button type="button" id="fl-zf" aria-label="Fit to screen">&#9974;</button></div>
+              <span class="fl-hint">Drag the gold dot to connect. Click a line to remove it.</span>
+            </div>
+            <aside class="fl-ins" aria-label="Block settings">
+              <div class="fl-tabs" role="group" aria-label="Panel"><button type="button" id="fl-tb-e" aria-pressed="true">Edit block</button><button type="button" id="fl-tb-p" aria-pressed="false">Preview</button></div>
+              <div id="fl-ins" style="display:flex;flex-direction:column;min-height:0;flex:1"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="panel c-12 q-panel fl-tpl" id="fl-tpl" aria-labelledby="fl-th">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif" id="fl-th">Workflow <span class="it">templates</span></h2><small>Made by Dealmaker. Each workflow is bought on its own, once. Free ones are included.</small></div>
+            <div class="ag-tools">
+              <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search templates</span><input id="ft-q" type="search" placeholder="Search templates" autocomplete="off"></label>
+              <label><span class="sr">Price</span><select id="ft-p"><option value="">All prices</option><option value="free">Free</option><option value="paid">Paid</option></select></label>
+            </div>
+          </div>
+          <div class="fl-tg"><div class="tp-grid" id="ft-g"></div><div class="q-empty" id="ft-e" hidden><span class="orb"><svg><use href="#i-form"/></svg></span><b class="serif">No templates found</b><p>Try another search.</p></div></div>
+        </section>
+      </div>
+      <div class="dlg-scrim" id="fl-pv" hidden>
+        <div class="tm-m" role="dialog" aria-modal="true" aria-labelledby="fl-pv-h" style="width:min(520px,94vw)">
+          <h2 class="serif" id="fl-pv-h">Template</h2><p class="sub" id="fl-pv-s"></p>
+          <ol class="fl-steps" id="fl-pv-l" style="margin:6px 0 4px"></ol>
+          <p class="cr-note" id="fl-pv-n" style="margin-top:10px"></p>
+          <div class="dlg-b" style="margin-top:16px"><button type="button" class="btn btn-line" id="fl-pv-no">Close</button><button type="button" class="btn btn-gold" id="fl-pv-yes">Use template</button></div>
+        </div>
+      </div>
+      <div class="dlg-scrim" id="fl-pay" hidden>
+        <div class="tm-m" role="dialog" aria-modal="true" aria-labelledby="fl-pay-h" style="width:min(460px,94vw)">
+          <h2 class="serif" id="fl-pay-h">Checkout</h2>
+          <p class="sub" id="fl-pay-p">Stripe sandbox. You would leave Dealmaker here and come back after paying. No real money is charged.</p>
+          <div class="vz-sum" id="fl-pay-s"></div>
+          <div class="dlg-b" style="margin-top:18px"><button type="button" class="btn btn-line" id="fl-pay-no">Cancel</button><button type="button" class="btn btn-gold" id="fl-pay-yes">Pay</button></div>
+        </div>
+      </div>
+
+
+      <!-- ===================== YOUR AI AGENT (full page) =====================
+           Lovable mapping
+           Tables:  public.agent_chats (id, artist_id, title, created_at), public.agent_chat_messages (id, chat_id, role 'user'|'assistant', body, created_at),
+                    public.agent_chat_files (id, message_id, storage_path, name, mime, bytes)
+           Files:   private bucket 'agent-chat', max 10 MB, image / pdf / txt / csv / doc(x) / xls(x). The server reads the content and answers from it. The page never reads files.
+           Credits: each answer inserts one credit_ledger row (reason 'ai_reply'). Answers about bookings, invoices and wallet use the signed-in user's own rows (RLS), never admin keys.
+           Swap point: the adapter youApi near the end of the script. The reply here is a keyword demo, not a real model. -->
+      

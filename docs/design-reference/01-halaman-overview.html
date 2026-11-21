@@ -1,0 +1,79 @@
+<!-- Halaman "overview" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg" data-p="overview" id="pg-overview">
+      <section class="band c-12 rv" aria-labelledby="hello-h">
+        <svg class="geo" aria-hidden="true"><rect width="100%" height="100%" fill="url(#girih)"/></svg>
+        <svg class="moon" viewBox="0 0 100 100" aria-hidden="true"><path d="M62 10a40 40 0 1 0 28 62A34 34 0 1 1 62 10z"/></svg>
+        <div class="sky" aria-hidden="true"><div class="strip" id="strip"></div></div>
+        <div id="embers" aria-hidden="true"></div>
+        <div class="hello">
+          <small id="today">Overview</small>
+          <h1 id="hello-h"><span id="greet">Good evening</span>, <span class="it">Dede.</span></h1>
+          <p>Your profile is <b>approved</b>. Every new enquiry is answered by your AI agent, and you will see confirmed bookings here first.</p>
+        </div>
+        <div class="quick">
+          <button type="button" class="btn btn-line" id="ov-b1" aria-haspopup="dialog">Your plan is <b id="ov-b1p">Free</b></button>
+          <button type="button" class="btn btn-line" id="ov-b2" aria-haspopup="dialog">Upgrade plan</button>
+          <button type="button" class="btn btn-line" id="ov-b3" aria-haspopup="dialog">Top up credits</button>
+        </div>
+      </section>
+
+      <article class="kpi c-3 rv" aria-labelledby="k1">
+        <span class="lab" id="k1"><span class="ic"><svg><use href="#i-wal"/></svg></span>Available balance</span>
+        <div class="val"><small>AED</small><span data-count="0">0</span></div>
+        <div class="act"><span class="sub">Ready to withdraw</span><button class="btn btn-line" disabled title="Nothing to withdraw yet">Withdraw</button></div>
+      </article>
+      <article class="kpi c-3 rv" aria-labelledby="k2">
+        <span class="lab" id="k2"><span class="ic"><svg><use href="#i-con"/></svg></span>Jobs completed</span>
+        <div class="val"><span data-count="0">0</span></div>
+        <div class="act"><span class="sub">Completed bookings release your payment</span></div>
+      </article>
+      <article class="kpi c-3 rv" aria-labelledby="k3">
+        <span class="lab" id="k3"><span class="ic"><svg><use href="#i-cal"/></svg></span>Upcoming bookings</span>
+        <div class="val"><span data-count="0">0</span></div>
+        <div class="act"><span class="sub" id="ov-q">0 new quote requests</span><a class="link" href="#quotes">Open <span>→</span></a></div>
+      </article>
+      <article class="kpi gold c-3 rv" aria-labelledby="k4">
+        <span class="lab" id="k4"><span class="ic"><svg><use href="#i-spark"/></svg></span>AI credits</span>
+        <svg class="gauge" viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="40"/><circle class="fg" id="gfg" cx="50" cy="50" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/><text x="50" y="55" id="gpct">0%</text></svg>
+        <div class="val"><span data-count="47">47</span></div>
+        <div class="act"><span class="sub">of 50 on the Free plan</span><a class="link" href="#credits">Top up <span>→</span></a></div>
+      </article>
+
+      <section class="panel c-8 rv" aria-labelledby="earn-h">
+        <div class="ph"><h2 id="earn-h">Earnings <span class="it">over time</span><small>Last 6 months, in AED</small></h2>
+          <div class="seg" role="group" aria-label="Range"><button type="button" aria-pressed="false" data-r="3">3 months</button><button type="button" aria-pressed="true" data-r="6">6 months</button></div></div>
+        <div class="chart" id="chart">
+          <svg id="csvg" role="img" aria-label="Earnings chart, all months at AED 0"></svg>
+          <div class="tip" id="tip"></div>
+          <div class="empty"><div><b>No earnings <span class="it">yet.</span></b><p>Your first completed booking appears here. Payments are released after each job is done.</p><a class="btn btn-gold" href="#public" data-soon>Share your profile <span class="arr">→</span></a></div></div>
+        </div>
+      </section>
+
+      <section class="panel c-4 rv" aria-labelledby="next-h">
+        <div class="ph"><h2 id="next-h">Your <span class="it">plan</span><small>Subscription and AI credits</small></h2></div>
+        <div class="ov-pl">
+          <div class="ov-id"><div class="ov-av" id="ov-av"></div><div><b id="ov-nm"></b><span class="vf-st" id="ov-plc"></span></div></div>
+          <div id="ov-bars" style="display:grid;gap:18px"></div>
+          <div class="ov-bt"><button type="button" class="btn btn-line" id="ov-up" aria-haspopup="dialog">Upgrade plan</button><button type="button" class="btn btn-line" id="ov-tp" aria-haspopup="dialog">Top up credits</button></div>
+          <div class="ov-ch" aria-labelledby="ov-chh">
+            <div class="ov-chh" id="ov-chh">Inbox and invoices</div>
+            <div class="ov-chb"><div class="ov-do"><svg viewBox="0 0 36 36" id="ov-dn" role="img" aria-label="Incoming chats and invoices by payment status"></svg><div class="mid" id="ov-dm"></div></div><ul class="ov-dl" id="ov-dl"></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel c-4 rv" aria-labelledby="up-h">
+        <div class="ph"><h2 id="up-h">Upcoming</h2><a class="kpi-link link" href="#calendar" style="color:var(--gold);font-weight:700;font-size:12.5px">Calendar →</a></div>
+        <div class="zero"><span class="orb"><svg><use href="#i-cal"/></svg></span><b>Nothing booked yet</b><p>Confirmed bookings show here with date, venue and deposit status.</p></div>
+      </section>
+      <section class="panel c-4 rv" aria-labelledby="in-h">
+        <div class="ph"><h2 id="in-h">Inbox</h2><a href="#inbox" style="color:var(--gold);font-weight:700;font-size:12.5px">Open →</a></div>
+        <div class="zero"><span class="orb"><svg><use href="#i-inbox"/></svg></span><b>All quiet</b><p>Your AI agent answers new enquiries and hands over real bookings to you.</p></div>
+      </section>
+      <section class="panel c-4 rv" aria-labelledby="ag-h">
+        <div class="ph"><h2 id="ag-h">AI <span class="it">agent</span></h2><span class="chip ok">Active</span></div>
+        <div class="agent"><span class="pulse"><svg width="22" height="22"><use href="#i-bot"/></svg></span><div><b>Ready for enquiries</b><p>Replies in English and Arabic using your rate card.</p></div></div>
+        <div class="meter"><i id="meter"></i></div>
+        <p style="font-size:12.5px;color:var(--mute)"><b style="color:var(--cream)" id="ov-agc">47</b> credits left · each AI reply uses 1 credit</p>
+      </section>
+    </div>

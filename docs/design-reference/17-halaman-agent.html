@@ -1,0 +1,85 @@
+<!-- Halaman "agent" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg agpage" data-p="agent" id="pg-agent">
+        <section class="c-12 q-head" aria-labelledby="ag-hd">
+          <div><h1 class="serif" id="ag-hd">AI <span class="it">agent</span></h1>
+            <p>Your assistant answers new enquiries for you. Choose how it talks, teach it your rules and facts, and test it before clients ever see it.</p></div>
+          <div class="ag-top"><a class="w-plan" id="ag-cr" href="#credits"></a>
+            <label class="of-sw"><input type="checkbox" id="ag-on" role="switch" checked><i></i><span id="ag-onl">Agent is on</span></label></div>
+        </section>
+
+        <section class="panel ag-set" aria-label="Agent settings">
+          <div class="ag-sec"><div class="sn">Model<small>Same 1 credit per reply, whichever you pick</small></div><div class="ag-mods" id="ag-mods" role="radiogroup" aria-label="AI model"></div></div>
+          <div class="ag-sec"><div class="sn">Tone</div><div class="ag-pills" id="ag-tone" role="radiogroup" aria-label="Tone"></div></div>
+          <div class="ag-sec"><div class="sn">Reply length</div><div class="ag-pills" id="ag-len" role="radiogroup" aria-label="Reply length"></div></div>
+          <div class="ag-sec"><div class="sn">Languages it replies in<small>It answers in the language the client writes</small></div><div class="ag-pills" id="ag-lang"></div></div>
+          <div class="ag-sec"><div class="sn">Hand over to me<small>The agent stops and flags the chat for you</small></div>
+            <div class="ag-ho"><label><input type="checkbox" id="ho-neg">The client asks for a discount or wants to negotiate</label><label><input type="checkbox" id="ho-com">The client complains or asks for a refund</label><label><input type="checkbox" id="ho-unc">The agent does not know the answer</label></div></div>
+          <div class="ag-sv"><span id="ag-st">Everything is saved.</span><div style="display:flex;gap:10px"><button type="button" class="btn btn-line" id="ag-dis" disabled>Discard</button><button type="button" class="btn btn-gold" id="ag-save" disabled><svg width="15" height="15"><use href="#i-check"/></svg>Save settings</button></div></div>
+        </section>
+
+        <section class="panel ag-test" aria-labelledby="ag-th">
+          <div class="ag-ch"><span class="ag-av"><svg><use href="#i-bot"/></svg></span><div><h2 class="serif" id="ag-th">Test your <span class="it">assistant</span></h2><small id="ag-ts"><i></i><span></span></small></div><span class="ag-mt" id="ag-mt"></span></div>
+          <div class="ag-msgs" id="ag-msgs" role="log" aria-live="polite" aria-label="Test conversation"></div>
+          <div class="ag-sg" id="ag-sg"></div>
+          <form class="ag-in" id="ag-f" autocomplete="off"><input id="ag-q" placeholder="Write as a client would" maxlength="300" aria-label="Test message"><button class="btn btn-gold" aria-label="Send test message"><svg width="16" height="16"><use href="#i-send"/></svg></button></form>
+          <div class="ag-ft"><span>Tests are free and use no credits.</span><button type="button" id="ag-clear">Clear chat</button></div>
+        </section>
+
+        <div class="c-12 w-stats" id="ag-stats"></div>
+
+                <section class="panel c-12 q-panel" aria-labelledby="ag-ll">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif" id="ag-ll">Agent <span class="it">prompts</span></h2><small>Turn a prompt on and your agent follows it right away. The text is installed in the agent and stays hidden. Exclusive prompts have a price.</small></div>
+            <div class="ag-tools">
+              <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search prompts</span><input id="ag-q2" type="search" placeholder="Search prompts" autocomplete="off"></label>
+              <div class="q-tabs" role="group" aria-label="Filter prompts" id="ag-ft"></div>
+              <label><span class="sr">Sort</span><select id="ag-so"><option value="on">Following first</option><option value="az">A to Z</option><option value="price">Price low to high</option></select></label>
+            </div>
+          </div>
+          <p class="ag-fol" id="ag-fol" role="status"></p>
+          <div class="tbl-wrap"><table class="qt wt agt agl"><thead><tr><th>Prompt</th><th>Type</th><th>Subscribe</th><th class="num">Price</th><th>Status</th><th class="num"><span class="sr">Action</span></th></tr></thead><tbody id="ag-tb"></tbody></table></div>
+          <div class="q-empty" id="ag-e" hidden><span class="orb"><svg><use href="#i-bot"/></svg></span><b class="serif" id="ag-et"></b><p id="ag-ep"></p></div>
+          <div class="cr-pg"><span id="ag-pc"></span><div><button type="button" class="btn btn-line" id="ag-pv2">Prev</button><span id="ag-pn"></span><button type="button" class="btn btn-line" id="ag-nx">Next</button></div></div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-labelledby="ag-lh">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif" id="ag-lh">Add your <span class="it">own prompt</span></h2><small>Your own rules and facts. You can read them here and turn them on or off. The text of Dealmaker prompts stays hidden.</small></div>
+          </div>
+          <div class="ag-tf">
+            <form id="ag-tfm" novalidate>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><h3 class="serif" id="ag-fh" style="font-size:24px"></h3><span class="ag-lim" id="ag-lim"></span></div>
+              <div class="qe-f"><label for="ag-ty">Type</label><select id="ag-ty"><option value="inst">Reply style (a rule to follow)</option><option value="know">Knowledge (a fact to use)</option></select></div>
+              <div class="qe-f"><label for="ag-ti" id="ag-til">Title</label><input id="ag-ti" maxlength="60" autocomplete="off" aria-describedby="ag-ti-h"><span class="f-hint" id="ag-ti-h"></span></div>
+              <div class="a-grid" id="ag-ex"></div>
+              <div class="qe-f"><label for="ag-bd" id="ag-bdl">Instruction <span class="ag-cn" id="ag-cn"></span></label><textarea id="ag-bd" rows="5" aria-describedby="ag-bd-h"></textarea><span class="f-hint" id="ag-bd-h"></span></div>
+              <label class="of-sw"><input type="checkbox" id="ag-ac" role="switch" checked><i></i>On</label>
+              <div class="ag-fb"><button type="button" class="btn btn-line" id="ag-cancel" hidden>Cancel</button><button class="btn btn-gold" id="ag-add"><svg width="15" height="15"><use href="#i-plus"/></svg><span>Add</span></button></div>
+            </form>
+            <div class="ag-pvw" aria-label="Live preview"><div class="h"><span><svg><use href="#i-eye"/></svg>Live preview</span><span class="wchip" id="ag-pst">On</span></div><div id="ag-pv"></div></div>
+          </div>
+        </section>
+      </div>
+      <div class="dlg-scrim" id="ag-pay" hidden>
+        <div class="tm-m" role="dialog" aria-modal="true" aria-labelledby="ag-pay-h" style="width:min(460px,94vw)">
+          <h2 class="serif" id="ag-pay-h">Checkout</h2>
+          <p class="sub" id="ag-pay-p">Stripe sandbox. You would leave Dealmaker here and come back after paying. No real money is charged.</p>
+          <div class="vz-sum" id="ag-pay-s"></div>
+          <div class="dlg-b" style="margin-top:18px"><button type="button" class="btn btn-line" id="ag-pay-no">Cancel</button><button type="button" class="btn btn-gold" id="ag-pay-yes">Pay</button></div>
+        </div>
+      </div>
+
+
+      <!-- ===================== AI FLOW =====================
+           Lovable mapping
+           Tables:  public.ai_flows (talent_id pk, name, is_active boolean, updated_at)
+                    public.ai_flow_blocks (id uuid, talent_id, type text, title, body text, config jsonb {fields, options, rule}, x int, y int)
+                    public.ai_flow_edges (id, talent_id, from_block, port text, to_block)           -- port: next, yes, no, accepted, declined or the button index
+                    public.flow_templates (id, name, category, description, price_aed_ex_vat numeric (0 = free), blocks jsonb, edges jsonb, updated_at, active)
+                      -- the MASTER list. Written only by Dealmaker admins. Price is set per workflow. Talents read name, description, price and the list of block TYPES only.
+                      -- The text inside a paid template is never sent to the browser until it is bought.
+                    public.flow_template_purchases (talent_id, template_id, stripe_session_id, paid_at, refunded_at)   -- written only by the Stripe webhook
+           Limits:  blocks per flow by plan (free 12, basic 24, medium 40, pro 80), enforced by a trigger. Using a template copies its blocks into the talent's flow
+                    after the server checks the purchase and the block limit. The flow runner reads blocks and edges and walks them per chat. Swap point: the adapter flowApi.
+           "$" opens a Stripe Checkout Session by an edge function. The purchase counts only after the webhook, never because the browser came back. -->
+      

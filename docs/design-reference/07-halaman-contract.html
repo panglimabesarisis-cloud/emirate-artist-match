@@ -1,0 +1,61 @@
+<!-- Halaman "contract" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg kpage" data-p="contract" id="pg-contract">
+        <section class="c-12 q-head" aria-labelledby="k-h">
+          <div><h1 class="serif" id="k-h">Contr<span class="it">acts</span></h1>
+            <p>Every booking comes with a contract. Pick the template that fits the job, and keep 37 templates for performers, hosts, speakers, models and creators up to date.</p></div>
+          <div class="q-stats" id="k-stats"></div>
+        </section>
+
+        <section class="panel c-12 q-panel" aria-label="Booking contracts">
+          <div class="q-tools">
+            <div class="ct-h"><h2 class="serif">Booking contracts</h2><small>One per booking</small></div>
+            <label class="srch q-srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search contracts</span>
+              <input id="kq" type="search" placeholder="Search booking or client" autocomplete="off"></label>
+            <div class="q-tabs" role="group" aria-label="Filter by contract status" id="k-tabs"></div>
+          </div>
+          <div class="tbl-wrap"><table class="qt kt" id="kt"><thead><tr id="kt-head"></tr></thead><tbody id="kt-body"></tbody></table></div>
+          <div class="q-empty" id="k-empty" hidden><span class="orb"><svg><use href="#i-con"/></svg></span><b class="serif">No contracts found</b><p>Try another word or status.</p></div>
+          <div class="q-foot b-foot">
+            <label class="rpp"><span>Rows per page</span><select id="k-per"><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option></select></label>
+            <span id="k-count"></span>
+            <div class="pager"><button type="button" class="ab" id="k-prev" aria-label="Previous page"><svg><use href="#i-back"/></svg></button><span id="k-pg"></span><button type="button" class="ab flip" id="k-next" aria-label="Next page"><svg><use href="#i-back"/></svg></button></div>
+          </div>
+        </section>
+
+        <section class="panel c-12" aria-labelledby="tp-h">
+          <div class="ph tp-ph"><h2 class="serif" id="tp-h">Contract <span class="it">templates</span><small>Formal templates you can attach to any booking</small></h2>
+            <a class="btn btn-line tp-plan" id="tp-plan" href="#plan" data-soon></a><button type="button" class="btn btn-gold" id="tp-new"><svg width="14" height="14"><use href="#i-plus"/></svg>New template</button></div>
+          <div class="tp-tools"><div class="tp-cats" id="tp-cats" role="group" aria-label="Filter templates by category"></div>
+            <div class="tp-right"><label class="tp-search"><span class="sr">Search templates</span><input type="search" id="tp-q" placeholder="Search 37 templates"></label>
+            <label class="rpp tp-tierf"><span class="sr">Filter by plan</span><select id="tp-tier"><option value="">All plans</option><option value="free">Free</option><option value="basic">Basic</option><option value="medium">Medium</option><option value="pro">Pro</option></select></label></div></div>
+          <div class="tp-grid" id="tp-grid"></div>
+          <p class="pp-empty" id="tp-empty" hidden>No template matches your search.</p>
+          <div class="q-foot b-foot tp-foot">
+            <label class="rpp"><span>Templates per page</span><select id="tp-per"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
+            <span id="tp-count"></span>
+            <div class="pager"><button type="button" class="ab" id="tp-prev" aria-label="Previous page"><svg><use href="#i-back"/></svg></button><span id="tp-pg"></span><button type="button" class="ab flip" id="tp-next" aria-label="Next page"><svg><use href="#i-back"/></svg></button></div>
+          </div>
+        </section>
+      </div>
+
+
+      <!-- ===================== WALLET =====================
+           Lovable mapping
+           Read-only page. Money is derived on the server from bookings; the client never sends amounts to credit.
+           Tables:  public.bookings (price_excl_vat, total_aed, paid_aed, escrow text check (escrow in ('none','held','released')),
+                      progress, fee_pct numeric  -- plan fee locked when the booking is confirmed, so a later upgrade never rewrites history)
+                    public.withdrawals (id uuid, talent_id uuid, amount_aed numeric(12,2) check (amount_aed >= 200),
+                      status text check (status in ('pending','paid','rejected','cancelled')), bank_snapshot jsonb {bank_name, holder_name, iban_last4},
+                      requested_at timestamptz, processed_at timestamptz, reject_reason text)
+                    public.bank_details: see ACCOUNT SETTINGS below. Wallet only reads a masked view of it.
+           Money rules (all excl. VAT, VAT is passed to the tax authority, not earned):
+             gross = price_excl_vat x share paid,  fee = gross x fee_pct,  net = gross - fee
+             awaiting  = client has not paid yet (not counted)
+             escrow    = client paid into escrow, job not marked Done
+             review    = job Done, 48h review window after the event end (client can open a dispute)
+             released  = review over, funds are withdrawable
+             available = released net - paid withdrawals - pending withdrawals
+           Withdrawal request: the client sends ONLY {amount}. An RPC request_withdrawal(amount) checks balance >= amount >= 200, bank_details exists,
+             no bank-change hold, then snapshots the bank row itself. Bank details are never accepted from this page.
+           ===================================================== -->
+      

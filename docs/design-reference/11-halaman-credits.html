@@ -1,0 +1,108 @@
+<!-- Halaman "credits" dari dashboard.html. CSS ada di 00-tema-css-dan-rangka.html -->
+<div class="wrap pg cpage" data-p="credits" id="pg-credits">
+        <section class="c-12 q-head" aria-labelledby="cr-h">
+          <div><h1 class="serif" id="cr-h">AI <span class="it">credits</span></h1>
+            <p>Every AI reply costs one credit. See your balance, which model answered, the tokens it used and what that cost, reply by reply.</p></div>
+          <a class="w-plan" id="cr-plan" href="#plan"></a>
+        </section>
+
+        <div class="c-12 w-banner" role="status"><svg width="16" height="16" style="flex:0 0 auto;margin-top:2px;color:var(--gold)"><use href="#i-info"/></svg><div><b>Stripe sandbox.</b> No real money is charged in this preview.</div></div>
+
+        <section class="panel c-12 cr-hero" aria-labelledby="cr-bal-l">
+          <div class="cr-bal">
+            <small id="cr-bal-l">AI credit balance</small>
+            <div class="amt" id="cr-bal" aria-live="polite"></div>
+            <p>Clients never pay for AI. Credits only cover the replies your AI agent sends for you.</p>
+            <div class="cr-eq"><span><b>1 credit</b> = 1 AI reply</span><span>·</span><span id="cr-eq2"></span></div>
+            <div class="w-cta"><a class="btn btn-gold" href="#cr-packs" id="cr-buy"><svg width="16" height="16"><use href="#i-spark"/></svg>Buy credits</a><small id="cr-bal-s"></small></div>
+          </div>
+          <div class="cr-chart">
+            <div class="cr-ct"><h2 class="serif">Usage <span class="it">per day</span></h2>
+              <div class="tg">
+                <div class="q-tabs" role="group" aria-label="Chart value" id="cr-mt"></div>
+                <div class="q-tabs" role="group" aria-label="Chart range" id="cr-rg"></div>
+              </div></div>
+            <div class="cr-det" id="cr-det" aria-live="polite"></div>
+            <div class="cr-plot"><div class="cr-y" id="cr-y" aria-hidden="true"></div><div class="cr-bars" id="cr-bars" role="group" aria-label="Daily usage, one bar per day"><span class="cr-empty">No AI replies in this range</span></div>
+              <div class="cr-x" id="cr-x" aria-hidden="true"></div></div>
+            <div class="cr-leg" id="cr-leg"></div>
+          </div>
+        </section>
+
+        <div class="c-12 cr-stats" id="cr-stats"></div>
+
+        <div class="w-left">
+          <section class="panel q-panel" aria-label="Usage by model">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif">Usage by <span class="it">model</span></h2><small id="cr-mdl-s">Which model answered, and what it used</small></div>
+            </div>
+            <div class="tbl-wrap"><table class="qt crt" id="cr-mt-t"><thead><tr><th>Model</th><th class="num">Replies</th><th class="num">Input tokens</th><th class="num">Output tokens</th><th class="num">Cost</th><th class="num">Share</th></tr></thead><tbody id="cr-mt-b"></tbody></table></div>
+          </section>
+
+          <section class="panel q-panel" aria-label="Usage history">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif">Usage <span class="it">history</span></h2><small>Every credit spent, newest first</small></div>
+              <div class="cr-tools">
+                <label class="srch"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Search history</span><input id="cr-q" type="search" placeholder="Search date or activity" autocomplete="off"></label>
+                <label><span class="sr">Filter by model</span><select id="cr-fm"></select></label>
+                <button type="button" class="btn btn-line" id="cr-csv" style="height:40px;padding:0 16px;font-size:13px">Export CSV</button>
+              </div>
+            </div>
+            <div class="tbl-wrap"><table class="qt crt" id="cr-log"><thead><tr><th>Date and time</th><th>Activity</th><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cost</th><th class="num">Credits</th></tr></thead><tbody id="cr-lb"></tbody></table></div>
+            <div class="q-empty" id="cr-le" hidden><span class="orb"><svg><use href="#i-spark"/></svg></span><b class="serif">No usage found</b><p>Try another model or clear the search.</p></div>
+            <div class="cr-pg"><span id="cr-pc"></span><div><button type="button" class="btn btn-line" id="cr-pv">Previous</button><span id="cr-pn"></span><button type="button" class="btn btn-line" id="cr-nx">Next</button></div></div>
+          </section>
+
+          <section class="panel q-panel" aria-labelledby="cr-pl-h" id="cr-plans-s">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif" id="cr-pl-h">Your <span class="it">plan</span></h2><small>Registration deposit required before a paid subscription</small></div>
+              <div class="q-tabs" role="group" aria-label="Billing period" id="cr-bp"></div>
+            </div>
+            <div class="cr-plans" id="cr-plans"></div>
+            <p class="cr-sub" id="cr-bill">Billing history: no subscription invoices yet.</p>
+          </section>
+
+          <section class="panel q-panel" aria-labelledby="cr-pk-h" id="cr-packs">
+            <div class="q-tools">
+              <div class="ct-h"><h2 class="serif" id="cr-pk-h">Top up <span class="it">credits</span></h2><small>One-off packs, never expire in this preview</small></div>
+            </div>
+            <div class="cr-packs" id="cr-pk"></div>
+            <p class="cr-sub">Prices include 5% VAT. The per-credit price is shown before VAT.</p>
+          </section>
+        </div>
+
+        <div class="w-side">
+          <section class="panel" aria-labelledby="cr-rt-h">
+            <h2 class="serif" id="cr-rt-h" style="font-size:22px">Token <span class="it">rates</span></h2>
+            <p class="cr-note" style="margin-top:8px">Cost follows the standard way model providers bill: tokens in, tokens cached, tokens out, each at a price per 1,000,000 tokens.</p>
+            <table class="cr-rate"><thead><tr><th>Model</th><th>Input</th><th>Cached</th><th>Output</th></tr></thead><tbody id="cr-rates"></tbody></table>
+            <div class="cr-form"><code>cost = (input x in + cached x cache + output x out) / 1,000,000</code><span id="cr-ex"></span></div>
+            <p class="cr-note">Rates are USD per 1M tokens. Reasoning tokens count as output. Long prompts can cost more at some providers. Figures here are estimates, the provider invoice is the final number.</p>
+          </section>
+          <section class="panel" aria-labelledby="cr-hw-h">
+            <h2 class="serif" id="cr-hw-h" style="font-size:22px">How credits <span class="it">work</span></h2>
+            <ul class="cr-how">
+              <li><b>One reply, one credit.</b> A short answer and a long quote draft both cost 1 credit.</li>
+              <li><b>Tokens show the real work.</b> Input is what the AI read, output is what it wrote. Cached input is cheaper because it was read before.</li>
+              <li><b>Nothing is hidden.</b> Each row in your history keeps the rates that applied that day, so old rows never change.</li>
+              <li><b>Out of credits?</b> Replies pause and chats go to you. Top up and the agent resumes.</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+
+      <!-- ===================== PROFILE =====================
+           Lovable mapping
+           Tables:  public.talent_profiles (talent_id pk, stage_name, tagline, category_id, bio text check (char_length(bio) between 150 and 800),
+                      emirate, base_area, starting_price_aed int, travel_radius_km int, languages text[], skills text[], photo_path, updated_at)
+                    public.specialities (id, name unique, category_id, active)            -- the autocomplete source
+                    public.talent_specialities (talent_id, speciality_id, primary key (talent_id, speciality_id))
+                    public.talent_portfolio (id, talent_id, title, year, kind, link, description, image_path, sort)
+                    public.talent_clients (id, talent_id, name, year, is_public)
+           Plan limits: specialities, portfolio items. A trigger on talent_specialities / talent_portfolio rejects an insert over the plan limit, the page
+                      only mirrors the rule. Specialities come from plan_tiers.max_specialties (free 1 / basic 2 / medium 3 / pro 10). Portfolio 3 / 6 / 12 / 24, categories 1 / 2 / 3 / 5, clients 5 / 10 / 20 / 40: new plan_tiers columns. Skills 15.
+           Photo:   private upload to storage bucket 'profile', max 5 MB, jpg / png / webp, resize server side to a square.
+           Password: supabase.auth.updateUser after reauthentication with the current password. The password is never kept in page state.
+           Changes go live straight away (no re-review). Swap point: the adapter profileApi near the end of the script. -->
+      
