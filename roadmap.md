@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Diagnose missing Stripe client secret: gateway returns a credential-not-found error as HTTP 200. Normalize shared transport errors; reconnection and successful checkout remain blocked by the invalid Payments connection.
 - [x] Repair booking VAT breakdown, invoice-before-checkout guard, payment button spacing and persisted offer details; keep sandbox accounting unchanged. 67 targeted tests pass and build OK; no screenshots or live payment attempted.
 - [x] Create /how-you-get-booked and /why-artists-join with separate artist-focused content, shared public design, and desktop/mobile header links; preserve existing booking behavior. Both pages return 200 with unique headings, five sections and FAQs; header destinations checked, build OK. No screenshots or extra test suites.
 - [x] Center /join introduction below the shared menu, show all six steps horizontally with visible labels (local scrolling on phones), and widen/center the plan area with four desktop columns. Signup and package rules unchanged; build OK, no screenshots or additional tests.

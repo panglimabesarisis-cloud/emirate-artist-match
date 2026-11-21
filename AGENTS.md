@@ -70,3 +70,4 @@ use the editor.
 - How it works and For clients reuse the public reference theme and scene with page-scoped CSS and static journey data; For clients has its own route linked from desktop/mobile navigation so audience content and booking behavior stay independent.
 - Artist process and benefits guides use separate content routes with ArtistGuidePage and existing public journey styles; shared desktop/mobile artist navigation targets those routes to keep audience content distinct without altering booking logic.
 - Booking offer acceptance issues an invoice before checkout; shared bookingPayment supplies VAT breakdown and integer fils so displayed and charged amounts agree. Optional event details persist in existing notes to avoid a competing booking schema.
+- Normalize gateway problem-detail responses in the shared Stripe transport, including HTTP-200 errors, so every checkout fails accurately without exposing gateway details.

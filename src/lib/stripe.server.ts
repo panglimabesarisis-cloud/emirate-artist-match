@@ -14,10 +14,10 @@ export function createStripeClient(env: StripeEnv): Stripe {
   const lovableApiKey = getEnv('LOVABLE_API_KEY');
   return new Stripe(connectionApiKey, {
     apiVersion: '2026-03-25.dahlia',
-    httpClient: Stripe.createFetchHttpClient((input, init) => {
+    httpClient: Stripe.createFetchHttpClient(async (input, init) => {
       const stripeUrl = input instanceof Request ? input.url : input.toString();
       const gatewayUrl = stripeUrl.replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);
-      return fetch(gatewayUrl, {
+      const response = await fetch(gatewayUrl, {
         ...init,
         headers: {
           ...Object.fromEntries(new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined)).entries()),
@@ -25,6 +25,21 @@ export function createStripeClient(env: StripeEnv): Stripe {
           'Lovable-API-Key': lovableApiKey,
         },
       });
+      // The gateway can send problem details with HTTP 200; never treat those
+      // as a Stripe object (which misleadingly appears to lack client_secret).
+      const problem: unknown = await response.clone().json().catch(() => null);
+      if (problem && typeof problem === 'object' && 'status' in problem &&
+          typeof problem.status === 'number' && problem.status >= 400 && problem.status <= 599 &&
+          ('title' in problem || 'message' in problem)) {
+        const credentialMissing = problem.status === 401 || problem.status === 403;
+        return new Response(JSON.stringify({ error: {
+          type: credentialMissing ? 'authentication_error' : 'api_error',
+          message: credentialMissing
+            ? 'Stripe payment connection is unavailable. Reconnect Stripe in the project Payments panel, then try again.'
+            : 'Stripe payment gateway is unavailable. Please try again later.',
+        } }), { status: problem.status, headers: { 'content-type': 'application/json' } });
+      }
+      return response;
     }),
   });
 }
