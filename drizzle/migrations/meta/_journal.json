@@ -330,6 +330,13 @@
       "when": 1795273712266,
       "tag": "0046_admin_order_form_template_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795273902584,
+      "tag": "0047_restrict_ai_model_rates_read",
+      "breakpoints": true
     }
   ]
 }
