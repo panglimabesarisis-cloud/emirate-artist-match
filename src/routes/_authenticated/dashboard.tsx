@@ -13,6 +13,7 @@ import { InvoicesTab } from "@/components/dashboard/InvoicesTab";
 import { RateCardTable } from "@/components/dashboard/RateCardTable";
 import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
+import { QuoteRequests } from "@/components/dashboard/QuoteRequests";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { CalendarSync,TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
@@ -90,7 +91,7 @@ function MemberOrClient({ userId }: { userId: string }) {
         </TabsList>
         <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>
         <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>
-        <TabsContent value="quotes"><Quotes artistId={a.id} /></TabsContent>
+        <TabsContent value="quotes"><QuoteRequests artistId={a.id} /></TabsContent>
         <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>
         <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>
         <TabsContent value="mine"><ClientDash userId={userId} /></TabsContent>
@@ -223,7 +224,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : ""}`}>
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
-          {section === "quotes" && <Quotes artistId={artist.id} />}
+          {section === "quotes" && <QuoteRequests artistId={artist.id} />}
           {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
           {section === "calendar" && <><CalendarTab artistId={artist.id} /><CalendarSync artistId={artist.id} /></>}
           {section === "contracts" && <ContractsTable artistId={artist.id} />}
@@ -319,39 +320,6 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     onSaved();
   };
   return <div className="mt-6"><ArtistFields v={v} set={(p) => setV({ ...v, ...p })} /><p className={`mt-3 text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">Bio: {bioLen} / 150 minimum characters</p><Button onClick={save} className="mt-4 bg-gradient-gold text-gold-foreground">Save changes</Button></div>;
-}
-
-function Quotes({ artistId }: { artistId: string }) {
-  const qc = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["artist-quotes", artistId],
-    queryFn: async () => (await supabase.from("quote_requests").select("*, event_types(name), areas(name)").eq("artist_id", artistId).order("created_at", { ascending: false })).data ?? [],
-  });
-  const mark = async (id: string, status: string) => {
-    await supabase.from("quote_requests").update({ status }).eq("id", id);
-    qc.invalidateQueries({ queryKey: ["artist-quotes", artistId] });
-  };
-  return (
-    <div className="mt-6 space-y-3">
-      {data?.length === 0 && <p className="text-muted-foreground">No quote requests yet.</p>}
-      {data?.map((q) => (
-        <div key={q.id} className="rounded-xl bg-card p-4 shadow-card">
-          <div className="flex justify-between gap-4">
-            <div>
-              <div className="font-semibold">{q.name} <span className="text-muted-foreground font-normal text-sm">· {q.email} {q.phone}</span></div>
-              <div className="text-sm text-muted-foreground">{q.event_types?.name ?? "Event"} · {q.event_date ?? "date TBC"} · {q.areas?.name ?? "area TBC"} · {q.guests ?? "?"} guests {q.budget ? `· budget ${aed(Number(q.budget))}` : ""}</div>
-            </div>
-            <Badge variant={q.status === "new" ? "default" : "secondary"}>{q.status}</Badge>
-          </div>
-          {q.message && <p className="mt-2 text-sm">{q.message}</p>}
-          <div className="mt-3 flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => mark(q.id, "replied")}>Mark replied</Button>
-            <Button size="sm" variant="ghost" onClick={() => mark(q.id, "closed")}>Close</Button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function Packages({ artistId }: { artistId: string }) {
