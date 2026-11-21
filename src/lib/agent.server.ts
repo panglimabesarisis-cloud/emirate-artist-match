@@ -90,6 +90,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(confirm));
     return;
   }
+  const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: ${flow ? "Follow the active saved CONVERSATION FLOW, one client-facing step per reply. Do not collect event details, offer packages, or request approval ahead of the card that asks for them. Generic booking goals do not override this flow." : "Collect missing event details following the default conversation flow, one interactive step at a time."}
@@ -111,6 +112,7 @@ If the client asks something you cannot answer, or wants to speak to the artist,
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
 ${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
+${promptAddons}
 BOOKING CONFIRMATION: ${confirm ? 'Your first message showed booking details; continue from the saved flow using those known values.' : 'This is a direct chat; start at the saved greeting and follow its connections.'} Check Calendar at its saved step, not ahead of earlier questions or forms.
 CONVERSATION FLOW (controls the order of questions; follow outgoing connections, exactly one client-facing step per reply. A greeting may introduce the first question, but STOP at every Question, Form or Buttons card and wait for its answer. Do not skip a form because only one field is known. Do not ask questions from future cards. Reply instructions may change tone but not flow order. Pricing, privacy, verified Calendar, artist approval and payment safety rules above always win):
 ${flowSteps}
@@ -250,4 +252,21 @@ function invoiceText(body: string) {
   const inv = decodeInvoice(body);
   if (!inv) { const parsed = decodeChatMessage(body); return parsed.attachments.length ? `${parsed.text}\n[Client attached: ${parsed.attachments.map(file => `${file.name} (${file.type})`).join(", ")}. Files are available to the artist in Inbox. Do not claim to have read file contents.]` : body; }
   return `I sent invoice ${inv.no}: ${inv.items.map((i) => `${i.qty} x ${i.title} AED ${i.price}`).join(", ")}. Total AED ${inv.total} incl. 5% VAT${inv.due ? `, due ${inv.due}` : ""}.`;
+}
+
+const PROMPT_PRIORITY: Record<string, number> = { high: 0, medium: 1, low: 2 };
+/** Enabled library prompts, appended below pricing/safety rules so those always win. */
+async function enabledPromptText(artistId: string): Promise<string> {
+  const { data: enabled } = await supabaseAdmin.from("agent_prompt_enabled").select("prompt_id").eq("artist_id", artistId);
+  const ids = (enabled ?? []).map((e) => e.prompt_id);
+  if (!ids.length) return "";
+  const [{ data: prompts }, { data: bought }] = await Promise.all([
+    supabaseAdmin.from("agent_prompts").select("id,kind,title,body,priority,price_aed,is_active").in("id", ids).eq("is_active", true),
+    supabaseAdmin.from("agent_prompt_purchases").select("prompt_id").eq("artist_id", artistId).not("paid_at", "is", null).is("refunded_at", null),
+  ]);
+  const owned = new Set((bought ?? []).map((b) => b.prompt_id));
+  const usable = (prompts ?? []).filter((p) => p.body.trim() && (Number(p.price_aed) <= 0 || owned.has(p.id)))
+    .sort((a, b) => (PROMPT_PRIORITY[a.priority] ?? 1) - (PROMPT_PRIORITY[b.priority] ?? 1));
+  if (!usable.length) return "";
+  return `ADDITIONAL ARTIST PROMPTS (follow only where they do not conflict with the pricing, privacy, calendar, approval or payment safety rules above):\n${usable.map((p) => `[${p.kind === "know" ? "Knowledge" : "Instruction"}: ${p.title}]\n${p.body.slice(0, 4000)}`).join("\n\n")}`;
 }

@@ -58,6 +58,145 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_prompt_enabled: {
+        Row: {
+          artist_id: string
+          enabled_at: string
+          prompt_id: string
+        }
+        Insert: {
+          artist_id: string
+          enabled_at?: string
+          prompt_id: string
+        }
+        Update: {
+          artist_id?: string
+          enabled_at?: string
+          prompt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompt_enabled_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_prompt_enabled_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "agent_prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_prompt_enabled_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "agent_prompts_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_prompt_purchases: {
+        Row: {
+          artist_id: string
+          paid_at: string | null
+          prompt_id: string
+          refunded_at: string | null
+          stripe_session_id: string | null
+        }
+        Insert: {
+          artist_id: string
+          paid_at?: string | null
+          prompt_id: string
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+        }
+        Update: {
+          artist_id?: string
+          paid_at?: string | null
+          prompt_id?: string
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompt_purchases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_prompt_purchases_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "agent_prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_prompt_purchases_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "agent_prompts_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_prompts: {
+        Row: {
+          applies_when: string | null
+          body: string
+          category: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          price_aed: number
+          priority: string
+          tier: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applies_when?: string | null
+          body?: string
+          category?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          kind: string
+          price_aed?: number
+          priority?: string
+          tier?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applies_when?: string | null
+          body?: string
+          category?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          price_aed?: number
+          priority?: string
+          tier?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompts_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       agent_settings: {
         Row: {
           artist_id: string
@@ -2456,10 +2595,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      agent_prompts_public: {
+        Row: {
+          applies_when: string | null
+          category: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          kind: string | null
+          price_aed: number | null
+          priority: string | null
+          tier: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applies_when?: string | null
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: string | null
+          price_aed?: number | null
+          priority?: string | null
+          tier?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applies_when?: string | null
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: string | null
+          price_aed?: number | null
+          priority?: string | null
+          tier?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompts_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
+      admin_agent_prompt_bodies: {
+        Args: never
+        Returns: {
+          body: string
+          id: string
+        }[]
+      }
       allocate_plan_month: {
         Args: { _artist: string; _month: string }
         Returns: boolean
