@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,6 +29,8 @@ import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/components/dashboard/studio.css";
+import { ClientsSection, PhysicalFields, PortfolioSection, ProfilePhoto, SkillsField } from "@/components/dashboard/ProfileExtras";
+import type { Json } from "@/integrations/supabase/types";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -271,13 +273,13 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
   );
 }
 
-type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null };
+type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
 
-function ArtistFields({ v, set }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void }) {
+function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode }) {
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   return <div className="studio-profile-fields">
-    <StudioSection title="About" accent="you"><div className="studio-profile-about"><div><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")} · {t("segera")}</Button></div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} /></div></StudioSection>
+    <StudioSection title="About" accent="you"><div className="studio-profile-about"><div>{photo ?? <><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")}</Button></>}</div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} /></div></StudioSection>
     <StudioSection title="What you" accent="do"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Category")}</Label>
         <Select value={v.category_id ?? ""} onValueChange={(x) => set({ category_id: x, subcategory_id: null })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
@@ -286,8 +288,8 @@ function ArtistFields({ v, set }: { v: Partial<ArtistRow>; set: (p: Partial<Arti
         <Select value={v.subcategory_id ?? ""} onValueChange={(x) => set({ subcategory_id: x })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.subcategories.filter((s) => s.category_id === v.category_id).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-        </Select></div></div><StudioSoon label="Skills" /></StudioSection>
-    <StudioSection title="Physical" accent="details"><div className="grid grid-cols-2 gap-4">{["Height (cm)","Weight (kg)","Hair color","Eye color","Clothing size","Shoe size (EU)"].map(label=><StudioSoon key={label} label={label} />)}</div></StudioSection>
+        </Select></div></div><SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} /></StudioSection>
+    <StudioSection title="Physical" accent="details"><PhysicalFields body={v.body && typeof v.body === "object" && !Array.isArray(v.body) ? (v.body as Record<string, unknown>) : {}} onChange={(x) => set({ body: x as Json })} /></StudioSection>
     <StudioSection title="Where and" accent="how much"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
         <Select value={v.emirate_id ?? ""} onValueChange={(x) => set({ emirate_id: x, area_id: null })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
@@ -305,7 +307,7 @@ function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) 
   const save = async () => {
     if (!v.stage_name || !v.category_id || !v.emirate_id) { toast.error("Stage name, category and emirate are required."); return; }
     const { error } = await supabase.from("artists").insert({
-      ...v, stage_name: v.stage_name, user_id: userId,
+      ...v, skills: v.skills ?? [], body: v.body ?? {}, stage_name: v.stage_name, user_id: userId,
       slug: `${slugify(v.stage_name)}-${Math.random().toString(36).slice(2, 6)}`,
       hue: Math.floor(Math.random() * 360),
     });
@@ -332,13 +334,13 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     const { id: _id, ...rest } = v as ArtistRow;
     const { error } = await supabase.from("artists").update({
       stage_name: rest.stage_name, tagline: rest.tagline, bio: rest.bio, base_price: rest.base_price, languages: rest.languages,
-      travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, subcategory_id: rest.subcategory_id, emirate_id: rest.emirate_id, area_id: rest.area_id,
+      skills: rest.skills ?? [], body: rest.body ?? {}, travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, subcategory_id: rest.subcategory_id, emirate_id: rest.emirate_id, area_id: rest.area_id,
     }).eq("id", artist.id);
     if (error) { toast.error(error.message); return; }
     toast.success(t("Profile saved"));
     onSaved();
   };
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} /><StudioSection title="Portfolio of" accent="work"><StudioSoon label="Portfolio items" /></StudioSection><StudioSection title="Clients you have" accent="worked with"><div className="grid grid-cols-2 gap-3"><StudioSoon label="Client name" /><StudioSoon label="Year" /></div><Button disabled>{t("Add client")} · {t("segera")}</Button></StudioSection><StudioSection title="Change" accent="password"><Button asChild variant="outline"><Link to="/account">{t("Account settings")}</Link></Button></StudioSection><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><aside className="dmr-w-side"><StudioSection title="How clients" accent="see you"><div className="studio-profile-preview"><span className="studio-profile-avatar mx-auto">{initials(v.stage_name ?? artist.stage_name)}</span><h3>{v.stage_name}</h3><p>{v.tagline}</p><b>{aed(Number(v.base_price ?? 0))}</b><p>{(v.languages ?? []).join(" · ")}</p></div></StudioSection><StudioSection title="Your" accent="details"><dl className="space-y-3 text-xs">{[["Stage name",v.stage_name],["Starting price (AED)",aed(Number(v.base_price ?? 0))],["Travel radius (km)",String(v.travel_radius_km ?? "—")],["Languages",(v.languages ?? []).join(", ")]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b pb-3"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="text-end break-words">{value}</dd></div>)}</dl></StudioSection><StudioSection title="Job" accent="progress"><StudioSoon label="Profile pipeline" /></StudioSection><StudioSection title="Cash" accent="flow"><StudioSoon label="Profile cash flow" /></StudioSection></aside></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><StudioSection title="Change" accent="password"><Button asChild variant="outline"><Link to="/account">{t("Account settings")}</Link></Button></StudioSection><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><aside className="dmr-w-side"><StudioSection title="How clients" accent="see you"><div className="studio-profile-preview"><span className="studio-profile-avatar mx-auto">{initials(v.stage_name ?? artist.stage_name)}</span><h3>{v.stage_name}</h3><p>{v.tagline}</p><b>{aed(Number(v.base_price ?? 0))}</b><p>{(v.languages ?? []).join(" · ")}</p></div></StudioSection><StudioSection title="Your" accent="details"><dl className="space-y-3 text-xs">{[["Stage name",v.stage_name],["Starting price (AED)",aed(Number(v.base_price ?? 0))],["Travel radius (km)",String(v.travel_radius_km ?? "—")],["Languages",(v.languages ?? []).join(", ")]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b pb-3"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="text-end break-words">{value}</dd></div>)}</dl></StudioSection><StudioSection title="Job" accent="progress"><StudioSoon label="Profile pipeline" /></StudioSection><StudioSection title="Cash" accent="flow"><StudioSoon label="Profile cash flow" /></StudioSection></aside></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {
