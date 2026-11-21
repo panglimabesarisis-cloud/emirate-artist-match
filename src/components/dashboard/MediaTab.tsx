@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Trash2, Image as ImageIcon, Film, Youtube } from "lucide-react";
+import { Trash2, Image as ImageIcon, Film, Youtube, UploadCloud } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { youtubeId } from "@/lib/media";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { Label } from "@/components/ui/label";
 const BUCKET = "artist-media";
 
 export function MediaTab({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
+  const [drag, setDrag] = useState(false);
   const qc = useQueryClient();
   const key = ["artist-media", artistId];
   const { data: items } = useQuery({
@@ -62,17 +65,23 @@ export function MediaTab({ artistId }: { artistId: string }) {
   return (
     <div className="mt-6 space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
+        <label
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${drag ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60"}`}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); void upload(e.dataTransfer.files); }}
+        >
+          <UploadCloud className="h-8 w-8 text-primary" aria-hidden />
+          <span className="font-medium">{busy ? t("Uploading…") : t("Drop photos or videos here, or click to browse")}</span>
+          <span className="text-xs text-muted-foreground">{t("Up to 50 MB per file. Photos show in the slider on your profile, videos below it.")}</span>
+          <input type="file" className="sr-only" accept="image/*,video/*" multiple disabled={busy} onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
+        </label>
         <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
-          <Label>Upload photos or videos</Label>
-          <Input type="file" accept="image/*,video/*" multiple disabled={busy} onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
-          <p className="text-xs text-muted-foreground">Up to 50 MB per file. Photos show in the slider on your profile, videos below it.</p>
-        </div>
-        <div className="rounded-xl bg-card p-4 shadow-card space-y-2">
-          <Label>Add a YouTube video</Label>
-          <div className="flex gap-2"><Input placeholder="https://youtube.com/watch?v=…" value={yt} onChange={(e) => setYt(e.target.value)} /><Button onClick={addYoutube}>Add</Button></div>
+          <Label htmlFor="yt-link">{t("Add a YouTube video")}</Label>
+          <div className="flex gap-2"><Input id="yt-link" placeholder="https://youtube.com/watch?v=…" value={yt} onChange={(e) => setYt(e.target.value)} /><Button onClick={addYoutube}>Add</Button></div>
         </div>
       </div>
-      {items?.length === 0 && <p className="text-muted-foreground">No media yet.</p>}
+      {items?.length === 0 && <p className="text-muted-foreground">{t("No media yet.")}</p>}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         {items?.map((m) => (
           <div key={m.id} className="relative rounded-xl overflow-hidden bg-card shadow-card">

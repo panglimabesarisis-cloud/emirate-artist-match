@@ -106,7 +106,7 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm"><Switch checked={enabled} onCheckedChange={setEnabled} />Show on my page</label>
-          <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save form"}</Button>
+          <Button onClick={save} disabled={saving} className="bg-gradient-gold text-gold-foreground">{saving ? "Saving…" : "Save form"}</Button>
         </div>
       </div>
 

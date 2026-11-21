@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { completeCalendarConnect, disconnectCalendar, getCalendarEvents, startCalendarConnect } from "@/lib/calendar.functions";
@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
+import { maskIban, useBankDetails } from "./useBankDetails";
+import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -23,7 +26,9 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
   );
 }
 
-export function ArtistOverview({ artistId }: { artistId: string }) {
+export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId: string; stageName: string; plan: string; onOpen: (section: string) => void }) {
+  const { t } = useI18n();
+  const [modal, setModal] = useState<PlanModal>(null);
   const { data } = useQuery({
     queryKey: ["artist-overview", artistId],
     queryFn: async () => {
@@ -43,22 +48,42 @@ export function ArtistOverview({ artistId }: { artistId: string }) {
     return months;
   }, [data]);
   const upcoming = (data?.bookings ?? []).filter((b) => b.status === "confirmed").length;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t("Good morning") : hour < 18 ? t("Good afternoon") : t("Good evening");
+  const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
+  const quick = "rounded-full border border-border bg-transparent px-5 py-2.5 text-sm font-semibold transition-colors hover:border-transparent hover:bg-gradient-gold hover:text-gold-foreground focus-visible:bg-gradient-gold focus-visible:text-gold-foreground";
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Available balance" value={aed(Number(data?.wallet?.available ?? 0))} hint="Ready to withdraw" />
-        <Kpi label="Jobs completed" value={String(data?.wallet?.jobs ?? 0)} />
-        <Kpi label="Upcoming bookings" value={String(upcoming)} hint={`${data?.newQuotes ?? 0} new quote requests`} />
-        <Kpi label="AI credits" value={String(data?.credits ?? 0)} />
-      </div>
-      <div className="rounded-xl border bg-card p-5">
-        <div className="font-semibold">Earnings, last 6 months</div>
-        <div className="mt-4 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chart}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" fontSize={12} /><YAxis fontSize={12} /><Tooltip formatter={(v) => aed(Number(v))} /><Bar dataKey="earned" fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
-          </ResponsiveContainer>
+      <section className="dm-card relative overflow-hidden p-6 md:p-8" aria-labelledby="ov-hello">
+        <small className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</small>
+        <h1 id="ov-hello" className="mt-2 text-5xl leading-[0.95] md:text-6xl">{greeting}, <span className="it">{stageName}.</span></h1>
+        <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t("Every new enquiry is answered by your AI agent, and you will see confirmed bookings here first.")}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button type="button" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b className="text-gold">{planName}</b></button>
+          <button type="button" className={quick} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</button>
+          <button type="button" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</button>
         </div>
+      </section>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Kpi label={t("Available balance")} value={aed(Number(data?.wallet?.available ?? 0))} hint={t("Ready to withdraw")} />
+        <Kpi label={t("Jobs completed")} value={String(data?.wallet?.jobs ?? 0)} />
+        <Kpi label={t("Upcoming bookings")} value={String(upcoming)} hint={`${data?.newQuotes ?? 0} ${t("new quote requests")}`} />
+        <Kpi label={t("AI credits")} value={String(data?.credits ?? 0)} />
       </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="dm-card p-5 lg:col-span-2">
+          <h2 className="text-2xl leading-none">{t("Earnings")} <span className="it">{t("over time")}</span></h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t("Last 6 months, in AED")}</p>
+          <div className="mt-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" fontSize={12} /><YAxis fontSize={12} /><Tooltip formatter={(v) => aed(Number(v))} /><Bar dataKey="earned" fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
+            </ResponsiveContainer>
+          </div>
+          <button type="button" className="mt-3 text-xs font-semibold text-gold underline underline-offset-4" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</button>
+        </div>
+        <OverviewPlan artistId={artistId} stageName={stageName} plan={plan} openModal={setModal} />
+      </div>
+      <PlanDialogs artistId={artistId} plan={plan} open={modal} setOpen={setModal} />
     </div>
   );
 }
@@ -296,16 +321,21 @@ export function WalletTab({ artistId }: { artistId: string }) {
       return { w: w.data?.[0], requests: r.data ?? [], jobs: j.data ?? [] };
     },
   });
+  const { t } = useI18n();
   const [amount, setAmount] = useState(""), [bank, setBank] = useState(""), [busy, setBusy] = useState(false);
   const w = data?.w;
   const pct = Number(w?.commission_pct ?? 0);
+  const locked = useBankDetails(artistId).data ?? null;
+  const bankText = locked ? `${locked.bank_name}
+${locked.account_holder}
+${locked.iban}` : bank.trim();
   const request = async () => {
     const n = Number(amount);
     if (!(n > 0)) { toast.error("Enter an amount"); return; }
     if (n > Number(w?.available ?? 0)) { toast.error("Amount is more than your available balance"); return; }
-    if (bank.trim().length < 8) { toast.error("Enter your bank name, account holder and IBAN"); return; }
+    if (bankText.length < 8) { toast.error("Enter your bank name, account holder and IBAN"); return; }
     setBusy(true);
-    const { error } = await supabase.from("payout_requests").insert({ artist_id: artistId, amount: n, bank_details: bank.trim() });
+    const { error } = await supabase.from("payout_requests").insert({ artist_id: artistId, amount: n, bank_details: bankText });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setAmount(""); toast.success("Withdrawal requested. Our team will process it.");
@@ -313,27 +343,21 @@ export function WalletTab({ artistId }: { artistId: string }) {
   };
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Completed work" value={aed(Number(w?.gross ?? 0))} hint={`${w?.jobs ?? 0} jobs, excl. VAT`} />
-        <Kpi label={`Platform fee (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint="Based on your plan" />
-        <Kpi label="Withdrawn / pending" value={aed(Number(w?.paid_out ?? 0) + Number(w?.pending ?? 0))} hint={`${aed(Number(w?.pending ?? 0))} pending`} />
-        <Kpi label="Available to withdraw" value={aed(Number(w?.available ?? 0))} />
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-background p-6 sm:p-8">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">{t("Available to withdraw")}</div>
+        <div className="mt-2 font-display text-5xl text-primary" dir="ltr">{aed(Number(w?.available ?? 0))}</div>
+        <p className="mt-1 text-sm text-muted-foreground">{t("After platform fee, withdrawals and pending requests.")}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Kpi label={t("Completed work")} value={aed(Number(w?.gross ?? 0))} hint={`${w?.jobs ?? 0} jobs, excl. VAT`} />
+        <Kpi label={`${t("Platform fee")} (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint={t("Based on your plan")} />
+        <Kpi label={t("Withdrawn / pending")} value={aed(Number(w?.paid_out ?? 0) + Number(w?.pending ?? 0))} hint={`${aed(Number(w?.pending ?? 0))} pending`} />
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="rounded-xl border bg-card">
-            <div className="border-b p-4 font-semibold">Withdrawal requests</div>
-            {data?.requests.length === 0 && <p className="p-4 text-sm text-muted-foreground">No withdrawals yet.</p>}
-            <div className="divide-y">{data?.requests.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 p-4 text-sm">
-                <div><div className="font-medium">{aed(Number(r.amount))}</div><div className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note ? ` · ${r.admin_note}` : ""}</div></div>
-                <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
-              </div>
-            ))}</div>
-          </div>
-          <div className="rounded-xl border bg-card">
-            <div className="border-b p-4 font-semibold">Completed jobs</div>
-            {data?.jobs.length === 0 && <p className="p-4 text-sm text-muted-foreground">No completed jobs yet.</p>}
+            <div className="border-b p-4 font-semibold">{t("Completed jobs")}</div>
+            {data?.jobs.length === 0 && <p className="p-4 text-sm text-muted-foreground">{t("No completed jobs yet.")}</p>}
             <div className="divide-y">{data?.jobs.map((j) => (
               <div key={j.id} className="grid grid-cols-[1fr_auto] gap-2 p-4 text-sm">
                 <div className="min-w-0"><div className="truncate font-medium">{j.client_name} · {j.package_title ?? "Booking"}</div><div className="text-xs text-muted-foreground">{j.event_date}{j.invoice_no ? ` · ${j.invoice_no}` : ""}</div></div>
@@ -341,16 +365,33 @@ export function WalletTab({ artistId }: { artistId: string }) {
               </div>
             ))}</div>
           </div>
+          <div className="rounded-xl border bg-card">
+            <div className="border-b p-4 font-semibold">{t("Withdrawal requests")}</div>
+            {data?.requests.length === 0 && <p className="p-4 text-sm text-muted-foreground">{t("No withdrawals yet.")}</p>}
+            <div className="divide-y">{data?.requests.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 p-4 text-sm">
+                <div><div className="font-medium">{aed(Number(r.amount))}</div><div className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note ? ` · ${r.admin_note}` : ""}</div></div>
+                <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
+              </div>
+            ))}</div>
+          </div>
         </div>
         <div className="h-fit rounded-xl border bg-card p-5">
-          <div className="font-semibold">Request withdrawal</div>
-          <p className="mt-1 text-sm text-muted-foreground">Demo mode: no real money is transferred.</p>
-          <Label className="mt-4 block">Amount (AED)</Label>
+          <div className="font-semibold">{t("Request withdrawal")}</div>
+          <p className="mt-1 text-sm text-muted-foreground">{t("Demo mode: no real money is transferred.")}</p>
+          <Label className="mt-4 block">{t("Amount (AED)")}</Label>
           <Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <button type="button" className="mt-1 text-xs underline text-muted-foreground" onClick={() => setAmount(String(Math.floor(Number(w?.available ?? 0))))}>Withdraw all</button>
-          <Label className="mt-3 block">Bank details</Label>
-          <Textarea rows={3} maxLength={300} value={bank} onChange={(e) => setBank(e.target.value)} placeholder={"Bank name\nAccount holder\nIBAN AE00 0000 0000 0000 0000 000"} />
-          <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy} onClick={request}>{busy ? "Sending…" : "Request withdrawal"}</Button>
+          <button type="button" className="mt-1 text-xs underline text-muted-foreground" onClick={() => setAmount(String(Math.floor(Number(w?.available ?? 0))))}>{t("Withdraw all")}</button>
+          <Label className="mt-3 block">{t("Bank details")}</Label>
+          {locked ? (
+            <div className="mt-1 space-y-1 rounded-lg border bg-muted/40 p-3 text-sm" aria-label={t("Locked bank details")}>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" />{t("Locked. Change it in Account settings.")}</div>
+              <div className="font-medium">{locked.bank_name}</div><div>{locked.account_holder}</div><div dir="ltr">{maskIban(locked.iban)}</div>
+            </div>
+          ) : (
+            <Textarea rows={3} maxLength={300} value={bank} onChange={(e) => setBank(e.target.value)} placeholder={"Bank name\nAccount holder\nIBAN AE00 0000 0000 0000 0000 000"} />
+          )}
+          <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy} onClick={request}>{busy ? t("Sending…") : t("Request withdrawal")}</Button>
         </div>
       </div>
     </div>

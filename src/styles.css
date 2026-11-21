@@ -387,3 +387,53 @@
  --info-color-45:rgba(32,24,14,.75);
  --info-color-46:rgba(232,176,74,.22);
 }
+
+/* ===== Artist dashboard theme (dark navy and gold). Scoped to html.dm-dash, which ArtistDash adds on mount,
+   so dialogs, popovers and toasts rendered in portals are themed too. The public site keeps its own look. ===== */
+html.dm-dash {
+  --font-display: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  --background: #0a0e1b;
+  --foreground: #f6efe2;
+  --card: #0f1426;
+  --card-foreground: #f6efe2;
+  --popover: #0c1120;
+  --popover-foreground: #f6efe2;
+  --primary: #e8b04a;
+  --primary-foreground: #0a0e1b;
+  --secondary: #161d33;
+  --secondary-foreground: #f6efe2;
+  --muted: #121830;
+  --muted-foreground: #9aa3bd;
+  --accent: #1b2340;
+  --accent-foreground: #e8b04a;
+  --destructive: #e5574c;
+  --destructive-foreground: #ffffff;
+  --border: #232b45;
+  --input: #2a3354;
+  --ring: #e8b04a;
+  --gold: #e8b04a;
+  --gold-foreground: #0a0e1b;
+  --night: #0f1426;
+  --night-foreground: #f6efe2;
+  --success: #7bd88f;
+  --gradient-gold: linear-gradient(135deg, #f0c164, #d4842a);
+  --shadow-card: 0 1px 0 rgba(246, 239, 226, 0.04) inset, 0 18px 40px -22px rgba(0, 0, 0, 0.7);
+  --chart-1: #e8b04a;
+  --chart-2: #4d9bff;
+  --chart-3: #7bd88f;
+  --chart-4: #e58a8a;
+  --chart-5: #c8662a;
+  --sidebar: #070a14;
+  --sidebar-foreground: #e9e3d4;
+  --sidebar-primary: #e8b04a;
+  --sidebar-primary-foreground: #0a0e1b;
+  --sidebar-accent: #131a30;
+  --sidebar-accent-foreground: #f6efe2;
+  --sidebar-border: #1c2340;
+  --sidebar-ring: #e8b04a;
+  color-scheme: dark;
+}
+html.dm-dash body { background-color: var(--background); }
+html.dm-dash h1, html.dm-dash h2, html.dm-dash h3 { letter-spacing: 0.03em; font-weight: 400; }
+html.dm-dash .it { background: var(--gradient-gold); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@utility dm-card { background: linear-gradient(180deg, #0f1426, #0a0e1b); border: 1px solid var(--border); border-radius: 1.25rem; }

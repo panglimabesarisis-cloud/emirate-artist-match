@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { aed } from "@/lib/format";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Rate = { id: string; title: string; price: number; duration_minutes: number | null; description: string | null; sort: number | null; artists?: { stage_name: string } | null };
@@ -30,15 +32,17 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
   const [size, setSize] = useState(10);
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState<string[]>([]);
+  const [maxMin, setMaxMin] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [view, setView] = useState<Rate | null>(null);
   const [edit, setEdit] = useState<{ id: string | null; f: typeof empty } | null>(null);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const list = data.filter((r) => !s || r.title.toLowerCase().includes(s) || (r.description ?? "").toLowerCase().includes(s) || (r.artists?.stage_name ?? "").toLowerCase().includes(s));
+    const list = data.filter((r) => (!maxMin || (r.duration_minutes ?? 0) <= Number(maxMin)) && (!maxPrice || r.price <= Number(maxPrice)) && (!s || r.title.toLowerCase().includes(s) || (r.description ?? "").toLowerCase().includes(s) || (r.artists?.stage_name ?? "").toLowerCase().includes(s)));
     list.sort((a, b) => sort === "az" ? a.title.localeCompare(b.title) : sort === "za" ? b.title.localeCompare(a.title) : sort === "price_asc" ? a.price - b.price : b.price - a.price);
     return list;
-  }, [data, q, sort]);
+  }, [data, q, sort, maxMin, maxPrice]);
   const pages = Math.max(1, Math.ceil(rows.length / size));
   const cur = Math.min(page, pages - 1);
   const shown = rows.slice(cur * size, cur * size + size);
@@ -64,7 +68,8 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
   };
 
   return (
-    <div className="mt-6 min-w-0">
+    <div className={`mt-6 min-w-0 ${edit ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}`}>
+      <div className="min-w-0 rounded-xl border bg-card">
       <div className="flex flex-wrap items-center gap-2 border-b p-4">
         <Input className="max-w-xs" aria-label={t("Search ratecards")} placeholder={t("Search ratecards")} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
         <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
@@ -78,6 +83,14 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>{[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n} / page</SelectItem>)}</SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild><Button variant="outline" size="sm" aria-label={t("Filter")}><SlidersHorizontal className="me-1 h-4 w-4" />{t("Filter")}{(maxMin || maxPrice) ? " •" : ""}</Button></PopoverTrigger>
+          <PopoverContent className="w-64 space-y-3">
+            <div><Label htmlFor="rc-max-min">{t("Max duration (min)")}</Label><Input id="rc-max-min" type="number" min={1} value={maxMin} onChange={(e) => { setMaxMin(e.target.value); setPage(0); }} /></div>
+            <div><Label htmlFor="rc-max-price">{t("Max price (AED)")}</Label><Input id="rc-max-price" type="number" min={1} value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setPage(0); }} /></div>
+            <Button variant="ghost" size="sm" onClick={() => { setMaxMin(""); setMaxPrice(""); }}>{t("Clear filters")}</Button>
+          </PopoverContent>
+        </Popover>
         <div className="ms-auto flex gap-2">
           {sel.length > 0 && <Button variant="destructive" size="sm" onClick={() => remove(sel)}>Delete ({sel.length})</Button>}
           {artistId && <Button size="sm" onClick={() => setEdit({ id: null, f: empty })}>+ {t("Add ratecard")}</Button>}
@@ -102,9 +115,15 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
                 <td className="p-3">{r.duration_minutes ? `${r.duration_minutes} min` : "—"}</td>
                 <td className="p-3 max-w-xs truncate text-muted-foreground">{r.description || "—"}</td>
                 <td className="p-3 text-end whitespace-nowrap">
-                  <Button size="icon" variant="ghost" aria-label="View" onClick={() => setView(r)}><Eye className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => setEdit({ id: r.id, f: { title: r.title, price: String(r.price), duration: String(r.duration_minutes ?? ""), description: r.description ?? "" } })}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" aria-label="Delete" onClick={() => remove([r.id])}><Trash2 className="h-4 w-4" /></Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={t("Actions")}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setView(r)}><Eye className="me-2 h-4 w-4" />{t("View")}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setEdit({ id: r.id, f: { title: r.title, price: String(r.price), duration: String(r.duration_minutes ?? ""), description: r.description ?? "" } })}><Pencil className="me-2 h-4 w-4" />{t("Edit")}</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive" onSelect={() => remove([r.id])}><Trash2 className="me-2 h-4 w-4" />{t("Delete")}</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}
@@ -125,22 +144,21 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
           {view && <div className="space-y-2 text-sm"><div><b>Price:</b> {aed(Number(view.price))}</div><div><b>Duration:</b> {view.duration_minutes ?? "—"} min</div><div><b>Included:</b> {view.description || "—"}</div></div>}
         </DialogContent>
       </Dialog>
-      <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t(edit?.id ? "Edit ratecard" : "Add ratecard")}</DialogTitle></DialogHeader>
-          {edit && (
-            <div className="space-y-3">
-              <div><Label htmlFor="ratecard-job">{t("Job type")}</Label><Input id="ratecard-job" value={edit.f.title} maxLength={120} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, title: e.target.value } })} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label htmlFor="ratecard-price">{t("Price (AED)")}</Label><Input id="ratecard-price" type="number" min={1} value={edit.f.price} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, price: e.target.value } })} /></div>
-                <div><Label>Minutes</Label><Input type="number" min={1} value={edit.f.duration} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, duration: e.target.value } })} /></div>
-              </div>
-              <div><Label>What's included</Label><Textarea value={edit.f.description} maxLength={500} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, description: e.target.value } })} /></div>
+      </div>
+      {edit && (
+        <aside className="h-fit rounded-xl border bg-card p-5 lg:sticky lg:top-4" aria-label={t(edit.id ? "Edit ratecard" : "Add ratecard")}>
+          <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">{t(edit.id ? "Edit ratecard" : "Add ratecard")}</h3><Button size="icon" variant="ghost" aria-label={t("Cancel")} onClick={() => setEdit(null)}><X className="h-4 w-4" /></Button></div>
+          <div className="space-y-3">
+            <div><Label htmlFor="ratecard-job">{t("Job type")}</Label><Input id="ratecard-job" value={edit.f.title} maxLength={120} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, title: e.target.value } })} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label htmlFor="ratecard-price">{t("Price (AED)")}</Label><Input id="ratecard-price" type="number" min={1} value={edit.f.price} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, price: e.target.value } })} /></div>
+              <div><Label htmlFor="ratecard-min">{t("Minutes")}</Label><Input id="ratecard-min" type="number" min={1} value={edit.f.duration} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, duration: e.target.value } })} /></div>
             </div>
-          )}
-          <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>Cancel</Button><Button onClick={save}>Save</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div><Label htmlFor="ratecard-desc">{t("What's included")}</Label><Textarea id="ratecard-desc" rows={4} value={edit.f.description} maxLength={500} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, description: e.target.value } })} /></div>
+          </div>
+          <div className="mt-4 flex gap-2"><Button variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t("Cancel")}</Button><Button className="flex-1 bg-gradient-gold text-gold-foreground" onClick={save}>{t("Save")}</Button></div>
+        </aside>
+      )}
     </div>
   );
 }

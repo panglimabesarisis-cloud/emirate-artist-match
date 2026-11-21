@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -132,8 +132,6 @@ const ARTIST_NAV = [
   { id: "packages", label: "Ratecard", group: "Profile" },
   { id: "orderform", label: "Order form", group: "Profile" },
   { id: "media", label: "Photos & videos", group: "Profile" },
-  { id: "reviews", label: "Reviews", group: "Profile" },
-  { id: "visibility", label: "Public stats", group: "Profile" },
   { id: "verify", label: "Verification", group: "Profile" },
   { id: "agent", label: "AI agent", group: "AI" },
   { id: "flow", label: "AI flow", group: "AI" },
@@ -149,6 +147,10 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
   const { t: tr } = useI18n();
   const [section, setSection] = useState<ArtistSection>("overview");
   const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.add("dm-dash");
+    return () => document.documentElement.classList.remove("dm-dash");
+  }, []);
   if (isLoading) return null;
   if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">Finish your talent register</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">Continue registration</Link></Button></div></PublicLayout>;
   const current = ARTIST_NAV.find((n) => n.id === section)!;
@@ -188,7 +190,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           </div>
         </header>
         <main className="p-4 md:p-8">
-          {section === "overview" && <ArtistOverview artistId={artist.id} />}
+          {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <Quotes artistId={artist.id} />}
           {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
@@ -202,8 +204,6 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "packages" && <RateCardTable artistId={artist.id} />}
           {section === "orderform" && <OrderFormBuilder artistId={artist.id} />}
           {section === "media" && <MediaTab artistId={artist.id} />}
-          {section === "reviews" && <Reviews artistId={artist.id} />}
-          {section === "visibility" && <Visibility artistId={artist.id} />}
           {section === "verify" && <Verification artistId={artist.id} userId={userId} />}
           {section === "agent" && <AgentSettings artistId={artist.id} />}
           {section === "flow" && <FlowBuilder artistId={artist.id} />}
@@ -275,7 +275,9 @@ function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) 
 
 function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => void }) {
   const [v, setV] = useState<Partial<ArtistRow>>(artist);
+  const bioLen = (v.bio ?? "").trim().length;
   const save = async () => {
+    if (bioLen < 150) { toast.error("Your bio needs at least 150 characters"); return; }
     const { id: _id, ...rest } = v as ArtistRow;
     const { error } = await supabase.from("artists").update({
       stage_name: rest.stage_name, tagline: rest.tagline, bio: rest.bio, base_price: rest.base_price, languages: rest.languages,
@@ -285,7 +287,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     toast.success("Profile saved");
     onSaved();
   };
-  return <div className="mt-6"><ArtistFields v={v} set={(p) => setV({ ...v, ...p })} /><Button onClick={save} className="mt-6">Save changes</Button></div>;
+  return <div className="mt-6"><ArtistFields v={v} set={(p) => setV({ ...v, ...p })} /><p className={`mt-3 text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">Bio: {bioLen} / 150 minimum characters</p><Button onClick={save} className="mt-4 bg-gradient-gold text-gold-foreground">Save changes</Button></div>;
 }
 
 function Quotes({ artistId }: { artistId: string }) {
