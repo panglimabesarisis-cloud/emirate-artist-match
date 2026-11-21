@@ -1630,10 +1630,18 @@ export type Database = {
       plan_tiers: {
         Row: {
           ai_credits: number
+          allowed_models: string[]
           code: string
           commission_pct: number
           features: Json
+          max_active_prompts: number
+          max_categories: number
+          max_clients: number
+          max_flow_blocks: number
+          max_form_questions: number
+          max_own_prompts: number
           max_photos: number
+          max_portfolio: number
           max_specialties: number
           max_team_members: number
           max_videos: number
@@ -1645,10 +1653,18 @@ export type Database = {
         }
         Insert: {
           ai_credits?: number
+          allowed_models?: string[]
           code: string
           commission_pct?: number
           features?: Json
+          max_active_prompts?: number
+          max_categories?: number
+          max_clients?: number
+          max_flow_blocks?: number
+          max_form_questions?: number
+          max_own_prompts?: number
           max_photos?: number
+          max_portfolio?: number
           max_specialties?: number
           max_team_members?: number
           max_videos?: number
@@ -1660,10 +1676,18 @@ export type Database = {
         }
         Update: {
           ai_credits?: number
+          allowed_models?: string[]
           code?: string
           commission_pct?: number
           features?: Json
+          max_active_prompts?: number
+          max_categories?: number
+          max_clients?: number
+          max_flow_blocks?: number
+          max_form_questions?: number
+          max_own_prompts?: number
           max_photos?: number
+          max_portfolio?: number
           max_specialties?: number
           max_team_members?: number
           max_videos?: number

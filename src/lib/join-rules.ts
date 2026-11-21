@@ -1,5 +1,5 @@
 /** Max specialties a talent can list during signup, per subscription plan. */
-export const SPECIALTY_LIMITS: Record<string, number> = { free: 1, medium: 3, pro: 10 };
+export const SPECIALTY_LIMITS: Record<string, number> = { free: 1, basic: 2, medium: 3, pro: 10 };
 export const specialtyLimit = (plan: string) => SPECIALTY_LIMITS[plan] ?? 1;
 /** Flat signup deposit (AED) charged for every plan, including Free. */
 export const JOIN_DEPOSIT_AED = 100;

@@ -51,7 +51,7 @@ export async function syncSubscription(id:string){
  const c=await stripe.customers.retrieve(customer);if(c.deleted||c.metadata['userId']!==userId)throw new Error('Subscription customer mismatch');
  const item=s.items.data[0];if(!item||s.items.data.length!==1)throw new Error('Unexpected subscription items');
  const key=item.price.lookup_key;
- const code=key?.startsWith('pro_')?'pro':key?.startsWith('medium_')?'medium':null;
+ const code=key?.startsWith('pro_')?'pro':key?.startsWith('medium_')?'medium':key?.startsWith('basic_')?'basic':null;
  if(!code||!Object.values(PLAN_LOOKUP_KEYS[code]).some(k=>k===key)||item.price.currency!=='idr'||item.quantity!==1)throw new Error('Unknown subscription price');
  const interval=billingInterval(item.price.recurring?.interval);
  const invoices=await stripe.invoices.list({subscription:id,limit:100});
@@ -67,7 +67,7 @@ export async function syncSubscription(id:string){
    const period=verifiedPaidPeriod({status:i.status,currency:i.currency,livemode:i.livemode,customer:invoiceCustomer,subscription},{currency:l.currency,livemode:l.livemode,amount:l.amount,quantity:l.quantity,subscription:sub,start:l.period.start,end:l.period.end},{customer,subscription:id});
    const priceRef=l.pricing?.price_details?.price;if(!period||!priceRef)continue;
    const price=typeof priceRef==='string'?await stripe.prices.retrieve(priceRef):priceRef;
-   const plan=price.lookup_key?.startsWith('pro_')?'pro':price.lookup_key?.startsWith('medium_')?'medium':null;
+   const plan=price.lookup_key?.startsWith('pro_')?'pro':price.lookup_key?.startsWith('medium_')?'medium':key?.startsWith('basic_')?'basic':null;
    if(!plan||!Object.values(PLAN_LOOKUP_KEYS[plan]).some(k=>k===price.lookup_key)||price.currency!=='idr')continue;
    periods.push({line_id:l.id,subscription_id:id,artist_id:artistId,plan_code:plan,period_start:iso(period.start),period_end:iso(period.end),priceId:price.id});
   }

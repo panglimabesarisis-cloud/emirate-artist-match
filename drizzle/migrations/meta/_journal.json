@@ -253,6 +253,13 @@
       "when": 1795205730755,
       "tag": "0035_paid_invoice_periods_and_exact_quote_commission",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795269493886,
+      "tag": "0036_add_basic_plan_and_limits",
+      "breakpoints": true
     }
   ]
 }

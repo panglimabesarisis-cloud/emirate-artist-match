@@ -1,9 +1,10 @@
-export const PLAN_LOOKUP_KEYS = {medium:{month:'medium_monthly',year:'medium_yearly'},pro:{month:'pro_monthly',year:'pro_yearly'}} as const;
+export const PLAN_LOOKUP_KEYS = {basic:{month:'basic_monthly',year:'basic_yearly'},medium:{month:'medium_monthly',year:'medium_yearly'},pro:{month:'pro_monthly',year:'pro_yearly'}} as const;
 export type PaidPlan = keyof typeof PLAN_LOOKUP_KEYS;
 export type BillingInterval='month'|'year';
-export function paidPlan(v:unknown):PaidPlan{if(v!=='medium'&&v!=='pro')throw new Error('Choose Medium or Pro');return v;}
+export function paidPlan(v:unknown):PaidPlan{if(v!=='basic'&&v!=='medium'&&v!=='pro')throw new Error('Choose Basic, Medium or Pro');return v;}
 export function billingInterval(v:unknown):BillingInterval{if(v!=='month'&&v!=='year')throw new Error('Choose monthly or yearly billing');return v;}
-export function planDirection(current:string,next:string){return (next==='pro'?2:next==='medium'?1:0)>(current==='pro'?2:current==='medium'?1:0)?'upgrade':'downgrade';}
+const PLAN_RANK:Record<string,number>={free:0,basic:1,medium:2,pro:3};
+export function planDirection(current:string,next:string){return (PLAN_RANK[next]??0)>(PLAN_RANK[current]??0)?'upgrade':'downgrade';}
 export function canAddUsage(used:number,limit:number){return limit<0||used<limit;}
 export function monthlyCreditDelta(allocated:number,entitled:number){return Math.max(0,entitled-allocated);}
 
