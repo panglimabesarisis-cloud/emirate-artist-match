@@ -13,3 +13,4 @@
 - Payment settlement and subscription entitlement predicates live in `src/lib/payment-rules.ts` with unit tests so checkout integration can apply confirmed policies without trusting browser success screens.
 - Processor amounts/currencies are immutable order snapshots separate from accounting amounts; only verified server settlement may apply accounting amounts, and pending purchases use durable keys rather than in-memory locks.
 - Billing and quota checks derive from verified environment-scoped subscription periods; paid invoice-line periods preserve historical monthly allocations, and quote-approval commission snapshots never change with later plans.
+- Paid library items (prompts, flow/form templates) settle only via settle_test_purchase after Stripe verification; full refunds set refunded_at and revoke use but keep copied content.

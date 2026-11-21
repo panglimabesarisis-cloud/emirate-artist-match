@@ -22,7 +22,7 @@ export async function resolveOrCreateCustomer(
   const created = await stripe.customers.create({...(options.email && {email:options.email}), ...(options.userId && {metadata:{userId:options.userId}})});
   return created.id;
 }
-export async function openOrder(order: {artist_id:string; kind:'credits'|'deposit'|'invoice'|'booking'; target_id?:string; package_id?:string; plan_code?:string; credits?:number; amount_minor:number}, description:string, identity:{userId?:string | undefined;email?:string | undefined}, _returnUrl:string) {
+export async function openOrder(order: {artist_id:string; kind:'credits'|'deposit'|'invoice'|'booking'|'agent_prompt'|'flow_template'|'order_form_template'; target_id?:string; package_id?:string; plan_code?:string; credits?:number; amount_minor:number}, description:string, identity:{userId?:string | undefined;email?:string | undefined}, _returnUrl:string) {
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const stripe=createStripeClient('sandbox');
   const customer=identity.userId||identity.email?await resolveOrCreateCustomer(stripe,identity):undefined;

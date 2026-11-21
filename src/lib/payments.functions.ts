@@ -4,14 +4,30 @@ import {requireSupabaseAuth} from '@/integrations/supabase/auth-middleware';
 import {TOPUP_PACKAGES} from './masking';
 import {joinPaymentTotal} from './join-rules';
 import {getStripeErrorMessage} from './stripe.server';
+import {ITEM_KINDS,itemAmountMinor,tierAllowed,type ItemKind} from './billing-rules';
 const id=(v:string)=>{if(!/^[0-9a-f-]{36}$/i.test(v))throw new Error('Invalid reference');return v;};
-export const artistCheckout=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((i:{kind:'credits'|'deposit';packageId?:string;plan?:string})=>i).handler(async({data,context})=>{
+export const artistCheckout=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((i:{kind:'credits'|'deposit'|ItemKind;packageId?:string;plan?:string;itemId?:string})=>i).handler(async({data,context})=>{
  try {
   const {data:a}=await context.supabase.from('artists').select('id,plan').eq('user_id',context.userId).single();if(!a)throw new Error('Artist profile required');
   const {data:{user}}=await context.supabase.auth.getUser();
   const {openOrder}=await import('./payments.server');
   const returnUrl=new URL('/join/payment',getRequest().url).href;
   if(data.kind==='credits'){const p=TOPUP_PACKAGES.find(p=>p.id===data.packageId);if(!p)throw new Error('Unknown credit package'); return await openOrder({artist_id:a.id,kind:'credits',package_id:p.id,credits:p.credits,amount_minor:Math.round(p.priceAed*1.05*100)},`Dealmaker ${p.credits} AI credits (incl. VAT 5%)`,{userId:context.userId,email:user?.email},returnUrl);}
+  if((ITEM_KINDS as readonly string[]).includes(data.kind)){
+   const kind=data.kind as ItemKind;const itemId=id(data.itemId??'');
+   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
+   const {data:plan}=await db.rpc('effective_artist_plan',{_artist:a.id});
+   let title:string,price:number,tier:string|null=null;
+   if(kind==='agent_prompt'){const {data:p}=await db.from('agent_prompts').select('title,price_aed,tier,is_active').eq('id',itemId).maybeSingle();if(!p?.is_active)throw new Error('Item unavailable');title=p.title;price=Number(p.price_aed);tier=p.tier;}
+   else if(kind==='flow_template'){const {data:t}=await db.from('ai_flow_templates').select('name,price_aed,published').eq('id',itemId).maybeSingle();if(!t?.published)throw new Error('Item unavailable');title=t.name;price=Number(t.price_aed);}
+   else {const {data:t}=await db.from('order_form_templates').select('name,price_aed,tier,is_active').eq('id',itemId).maybeSingle();if(!t?.is_active)throw new Error('Item unavailable');title=t.name;price=Number(t.price_aed);tier=t.tier;}
+   if(!tierAllowed(String(plan??'free'),tier))throw new Error('Your plan does not include this item');
+   const owned=kind==='agent_prompt'?(await db.from('agent_prompt_purchases').select('artist_id').eq('artist_id',a.id).eq('prompt_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data
+    :kind==='flow_template'?(await db.from('ai_flow_template_purchases').select('artist_id').eq('artist_id',a.id).eq('template_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data
+    :(await db.from('order_form_template_purchases').select('artist_id').eq('artist_id',a.id).eq('template_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data;
+   if(owned)throw new Error('You already own this item');
+   return await openOrder({artist_id:a.id,kind,target_id:itemId,credits:0,amount_minor:itemAmountMinor(price)},`Dealmaker ${title} (incl. VAT 5%)`,{userId:context.userId,email:user?.email},returnUrl);
+  }
   if(data.kind!=='deposit')throw new Error('Invalid purchase');
   const {data:t}=await context.supabase.from('plan_tiers').select('code,ai_credits').eq('code',data.plan??a.plan).single();if(!t)throw new Error('Unknown plan');
   const {data:paid}=await context.supabase.from('payment_orders').select('id').eq('artist_id',a.id).eq('kind','deposit').eq('status','paid').maybeSingle();if(paid)throw new Error('Registration deposit already paid');
