@@ -70,9 +70,9 @@ function JoinPage() {
 
   return (
     <ReferenceTheme><PublicLayout>
-      <section className="reference-join"><SceneBackground />
+      <section className="reference-join join-centered"><SceneBackground />
       <div className="reference-wrap reference-join-grid">
-        <aside className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
+        <header className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
         <h1 className="text-3xl font-semibold">Talent register</h1>
         <p className="mt-1 text-muted-foreground">Choose a plan, then five quick steps. Our team reviews every profile before it goes live.</p>
         <ol className="reference-stepper">
@@ -85,8 +85,8 @@ function JoinPage() {
             </li>
           ))}
         </ol>
-        </aside>
-        <div className="reference-join-card">
+        </header>
+        <div className={`reference-join-card${!plan && !hasProfile ? " reference-join-plans" : ""}`}>
           {!checked ? <p className="text-muted-foreground">Loading…</p>
             : hasProfile ? <div><p>Your talent profile is already submitted.</p><Button asChild className="mt-4"><Link to="/dashboard">Go to dashboard</Link></Button></div>
             : !plan ? <PlanStep onPick={setPlan} />

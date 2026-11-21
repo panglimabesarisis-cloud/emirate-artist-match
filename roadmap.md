@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Center /join introduction below the shared menu, show all six steps horizontally with visible labels (local scrolling on phones), and widen/center the plan area with four desktop columns. Signup and package rules unchanged; build OK, no screenshots or additional tests.
 - [x] Create a dedicated /for-clients page using homepage and How it works styling: event occasions, three booking stages, profile/approval safeguards, client FAQs and discovery links. Correct desktop/mobile For clients navigation, preserve /how-it-works and demo-only payments. Build OK; no screenshots or additional tests.
 - [x] Restyle /how-it-works to match /features: shared arch scene, Bebas Neue/gold headings, six client/artist stages, process diagrams, FAQs and existing navigation links. Retain demo-only payment and provider-configuration disclosures; build OK. No screenshots or additional tests performed.
 - [x] Use Bebas Neue for all headings and mount shared homepage top navigation across all pages; preserve workspace menus and data behavior. Menu navigation and mobile closing checked without screenshots; build OK.

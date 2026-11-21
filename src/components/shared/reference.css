@@ -91,3 +91,25 @@
 @media(max-width:900px){.reference-auth{grid-template-columns:1fr}.reference-auth-art{min-height:380px;border-inline-end:0}.reference-auth-art h2{font-size:64px}.reference-auth-form{max-width:560px}.reference-join-grid{grid-template-columns:1fr}.reference-join-side{position:static}.reference-join-side h1{font-size:68px}.reference-stepper{flex-direction:row;justify-content:space-between;gap:8px;margin-block:28px}.reference-stepper:before{left:20px;right:20px;top:19px;bottom:auto;width:auto;height:1px}.reference-stepper li>div:last-child{display:none}.reference-stepper li{gap:0}.reference-join-card{border-radius:180px 180px 24px 24px/90px 90px 24px 24px;padding-top:86px}.reference-testimonial-slide{grid-template-columns:1fr}.reference-testimonial-avatar{display:none}}
 @media(max-width:640px){.reference-wrap{padding-inline:20px}.reference-scene-header{padding-block:40px 70px}.reference-scene-header h1{font-size:48px}.reference-search{grid-template-columns:1fr 1fr;border-radius:20px;padding:10px}.reference-search-text{grid-column:1/-1;border-bottom:1px solid var(--dm-line)}.reference-search>button:last-child{grid-column:1/-1}.listing-artists{grid-template-columns:1fr}.reference-category-chips a,.reference-category-chips button{padding:6px 10px;font-size:11px}.reference-auth-art{padding:32px 24px;min-height:340px}.reference-auth-art h2{font-size:58px}.reference-auth-form{padding:42px 24px}.reference-auth-form h1{font-size:38px}.reference-join{padding-top:36px}.reference-join-side h1{font-size:60px}.reference-join-card{padding-inline:22px}.reference-join-card h2{font-size:34px}.reference-testimonial h2{font-size:40px}.reference-testimonial-slide{padding:28px 24px}.reference-testimonial q{font-size:30px}.reference-section{padding-block:60px}.reference-section h2{font-size:42px}}
 @media(prefers-reduced-motion:reduce){.dm-reference *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.listing-artist:hover{transform:none}}
+
+/* Centered registration layout; no changes to signup or plan-selection behavior. */
+.join-centered .reference-join-grid {grid-template-columns:minmax(0,1fr);gap:30px}
+.join-centered .reference-join-side {position:static;text-align:center;min-width:0;width:100%;max-width:1080px;margin-inline:auto}
+.join-centered .reference-join-side p {max-width:680px;margin-inline:auto;font-size:16px;line-height:1.6}
+.join-centered .reference-stepper {display:grid;grid-template-columns:repeat(6,minmax(95px,1fr));gap:0;max-width:1000px;margin:36px auto 0;padding:0 0 12px;overflow-x:auto}
+.join-centered .reference-stepper::before {display:none}
+.join-centered .reference-stepper li {display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0;padding-inline:8px;position:relative}
+.join-centered .reference-stepper li::before {content:"";position:absolute;inset-inline:0;top:19px;height:1px;background:var(--dm-line)}
+.join-centered .reference-stepper li:first-child::before {inset-inline-start:50%}
+.join-centered .reference-stepper li:last-child::before {inset-inline-end:50%}
+.join-centered .reference-stepper li > div:first-child {position:relative;z-index:1}
+.join-centered .reference-stepper li > div:last-child {display:block;font-size:13px;line-height:1.5;text-align:center;min-height:40px;max-width:140px}
+.join-centered .reference-join-card {width:100%;max-width:760px;margin-inline:auto}
+.join-centered .reference-join-plans {max-width:none;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;padding:26px 0 0}
+.join-centered .reference-join-plans::before,.join-centered .reference-join-plans::after {display:none}
+.join-centered .reference-join-plans > div > p {max-width:680px;margin-inline:auto;text-align:center;line-height:1.6}
+.join-centered .reference-plans {grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.join-centered .reference-plan {min-width:0}
+.join-centered .reference-plan button {white-space:normal;height:auto;min-height:40px}
+@media(max-width:1100px){.join-centered .reference-plans {grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
+@media(max-width:640px){.join-centered .reference-join-grid {gap:20px}.join-centered .reference-stepper {margin-top:28px}.join-centered .reference-join-side p {font-size:15px}.join-centered .reference-plans {grid-template-columns:minmax(0,1fr);max-width:440px;margin-inline:auto}.join-centered .reference-join-plans {padding-top:20px}}
