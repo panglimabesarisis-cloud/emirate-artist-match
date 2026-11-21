@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Add a safe, admin-only Stripe checkout check: verify test mode before session creation, confirm a client secret without exposing it, and expire the session without payment or settlement.
+- [ ] Show verified connected credential mode in app Stripe settings, separate from the saved mode preference.
 - [x] Diagnose missing Stripe client secret: gateway returns a credential-not-found error as HTTP 200. Normalize shared transport errors; reconnection and successful checkout remain blocked by the invalid Payments connection.
 - [x] Repair booking VAT breakdown, invoice-before-checkout guard, payment button spacing and persisted offer details; keep sandbox accounting unchanged. 67 targeted tests pass and build OK; no screenshots or live payment attempted.
 - [x] Create /how-you-get-booked and /why-artists-join with separate artist-focused content, shared public design, and desktop/mobile header links; preserve existing booking behavior. Both pages return 200 with unique headings, five sections and FAQs; header destinations checked, build OK. No screenshots or extra test suites.

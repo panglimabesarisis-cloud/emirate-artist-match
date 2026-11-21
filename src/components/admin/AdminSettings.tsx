@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppSettings } from "./WhatsAppSettings";
+import { StripeConnectionCheck } from "./StripeConnectionCheck";
 
 type Obj = Record<string, unknown>;
 function useSetting(key: string) {
@@ -206,12 +207,13 @@ function Payments() {
   const { s, set, save } = useDraft("payments");
   return (
     <div className="space-y-4">
+      <StripeConnectionCheck />
       <Card title="Payment mode">
         <F label="Provider" hint="Demo keeps payments simulated. Live Stripe checkout requires connecting Stripe.">
           <Select value={s("provider") || "demo"} onValueChange={(v) => set("provider", v)}><SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="demo">Demo (no real money)</SelectItem><SelectItem value="stripe">Stripe</SelectItem></SelectContent></Select>
         </F>
-        <F label="Stripe mode">
+        <F label="Saved Stripe mode preference">
           <Select value={s("stripe_mode") || "test"} onValueChange={(v) => set("stripe_mode", v)}><SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="test">Test</SelectItem><SelectItem value="live">Live</SelectItem></SelectContent></Select>
         </F>
