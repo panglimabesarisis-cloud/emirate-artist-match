@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site/SiteHeader";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -148,8 +149,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LangProvider>
+      <SiteHeader />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="site-page-content"><Outlet /></div>
       <Toaster />
       </LangProvider>
     </QueryClientProvider>

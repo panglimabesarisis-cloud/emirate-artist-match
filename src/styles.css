@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
   --font-sans: "Manrope", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -102,9 +102,9 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0; }
   [dir="rtl"] body { font-family: "IBM Plex Sans Arabic", var(--font-sans); }
-  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] .font-display { font-family: "Noto Kufi Arabic", var(--font-display); letter-spacing: 0; }
+  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6, [dir="rtl"] .font-display { font-family: "Bebas Neue", "Noto Kufi Arabic", sans-serif; letter-spacing: 0; }
 }
 
 @utility bg-gradient-gold { background-image: var(--gradient-gold); }
@@ -237,7 +237,7 @@
   --dm-ink:#07090f; --dm-ink-2:#0c1120; --dm-ink-3:#141a2c; --dm-line:rgba(246,239,226,.12);
   --dm-cream:#f6efe2; --dm-cream-2:#ece3d1; --dm-mute:rgba(246,239,226,.58); --dm-mute-d:rgba(7,9,15,.58);
   --dm-gold:#e8b04a; --dm-gold-2:#d4842a; --dm-grad:linear-gradient(100deg,#f0c062 0%,#e8a33f 45%,#d4842a 100%);
-  --dm-serif:"Instrument Serif",Georgia,serif; --dm-sans:"Manrope",system-ui,sans-serif;
+  --dm-serif:"Bebas Neue","Noto Kufi Arabic","Arial Narrow",Impact,sans-serif; --dm-sans:"Manrope",system-ui,sans-serif;
   --dm-ease:cubic-bezier(.22,1,.36,1); --dm-pad:clamp(20px,4vw,64px); --dm-max:1440px;
 
   --dm-tone-1: rgba(7,9,15,.78);
@@ -467,7 +467,7 @@ html.dm-dash {
   color-scheme: dark;
 }
 html.dm-dash body { background-color: var(--background); }
-html.dm-dash h1, html.dm-dash h2, html.dm-dash h3 { letter-spacing: 0.03em; font-weight: 400; }
+html.dm-dash h1, html.dm-dash h2, html.dm-dash h3 { letter-spacing: 0; font-weight: 400; }
 html.dm-dash .it { background: var(--gradient-gold); -webkit-background-clip: text; background-clip: text; color: transparent; }
 @utility dm-card { background: linear-gradient(180deg, #0f1426, #0a0e1b); border: 1px solid var(--border); border-radius: 1.25rem; }
 
@@ -639,3 +639,14 @@ html.dm-dash {
 }
 
 html.dm-dash { --studio-paper-muted:oklch(0.47 0.025 260); --studio-paper-line:oklch(0.2 0.03 260 / 0.16); }
+
+/* One shared homepage navigation above every page, including workspaces. */
+:root { --site-header-height: 105px; }
+.dm-home.shared-site-header { position: sticky; top: 0; z-index: 50; overflow: visible; flex-shrink: 0; }
+.dm-home.shared-site-header::after { content: none; }
+.dm-home.shared-site-header .home-nav-shell { position: relative; }
+.site-page-content { min-width: 0; }
+.site-page-content > .min-h-screen { min-height: calc(100dvh - var(--site-header-height)); }
+html.dm-dash .site-page-content .studio-app { min-height: calc(100dvh - var(--site-header-height)); }
+html.dm-dash .site-page-content .studio-side, .site-page-content .admin-site-side { top: var(--site-header-height); height: calc(100dvh - var(--site-header-height)); }
+html.dm-dash .site-page-content .studio-top, .site-page-content .admin-site-top { top: var(--site-header-height); }

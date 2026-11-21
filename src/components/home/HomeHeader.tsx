@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
@@ -17,6 +17,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const [menu, setMenu] = useState(false);
   const [dropdown, setDropdown] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
   const openDd = (id: string) => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setDropdown(id); };
   const closeDd = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setDropdown(null), 200); };
   const musicians = catalog.categories.find((c) => c.slug === "musicians");

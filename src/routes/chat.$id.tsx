@@ -8,7 +8,6 @@ import { getChat, sendClientMessage } from "@/lib/chat.functions";
 import { getConversationBookings } from "@/lib/bookings.functions";
 import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { Button } from "@/components/ui/button";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -84,8 +83,7 @@ function ChatPage() {
   if (error && !data) return <PublicLayout><div className="space-y-4 p-16 text-center"><p>{tr("This conversation could not load. Check your connection and try again.")}</p><Button onClick={() => { void refetch(); }}>{tr("Try again")}</Button></div></PublicLayout>;
   const a = data?.artist;
   return (
-    <div className="flex h-dvh flex-col bg-background">
-      <SiteHeader />
+    <div className="flex h-[calc(100dvh-var(--site-header-height))] flex-col bg-background">
       <div className="border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           {a && <ArtistAvatar name={a.stage_name} hue={a.hue ?? 30} className="h-10 w-10 rounded-full text-sm" />}

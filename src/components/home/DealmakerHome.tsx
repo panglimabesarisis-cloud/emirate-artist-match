@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n, localName } from "@/lib/i18n";
-import { HomeHeader } from "./HomeHeader";
 import { HomeHero } from "./HomeHero";
 import { FeaturedTalents } from "./FeaturedTalents";
 import { HomeStory } from "./HomeStories";
@@ -21,7 +20,6 @@ export function DealmakerHome({ catalog, featured }: HomeData) {
   const defaultCategory = catalog.categories[0]?.slug ?? "musicians";
   return <div ref={ref} className="dm-home" dir={lang === "ar" ? "rtl" : "ltr"}>
     <a className="skip" href="#home-main">{t("Skip to content")}</a>
-    <HomeHeader catalog={catalog} />
     <main id="home-main">
       <HomeHero catalog={catalog} />
       <div className="marquee"><div className="mq-track">{[0, 1].map((copy) => <div key={copy} className="mq-copy" aria-hidden={copy === 1}>{catalog.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} tabIndex={copy === 1 ? -1 : undefined}>{localName(lang, c)}</Link>)}</div>)}</div></div>

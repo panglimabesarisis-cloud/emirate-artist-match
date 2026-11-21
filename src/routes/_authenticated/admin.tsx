@@ -54,7 +54,7 @@ function Admin() {
   let lastGroup: string | undefined;
   return (
     <div className="min-h-screen bg-muted/40 md:flex">
-      <aside className={`${menu ? "block" : "hidden"} md:block md:w-60 shrink-0 bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen overflow-y-auto`}>
+      <aside className={`${menu ? "block" : "hidden"} admin-site-side md:block md:w-60 shrink-0 bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen overflow-y-auto`}>
         <div className="flex items-center justify-between px-5 py-5">
           <Link to="/" className="text-lg font-semibold">Dealmaker <span className="text-sidebar-primary">CRM</span></Link>
         </div>
@@ -76,7 +76,7 @@ function Admin() {
         </nav>
       </aside>
       <div className="flex-1 min-w-0">
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/90 backdrop-blur px-4 md:px-8 py-3">
+        <header className="admin-site-top sticky top-0 z-10 flex items-center gap-3 border-b bg-background/90 backdrop-blur px-4 md:px-8 py-3">
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setMenu(!menu)}>☰</Button>
           <h1 className="text-lg font-semibold whitespace-nowrap">{current.label}</h1>
           <span className="ms-auto hidden sm:block text-sm text-muted-foreground truncate">{user?.email} · Super admin</span>
