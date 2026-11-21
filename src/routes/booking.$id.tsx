@@ -3,17 +3,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Printer, ShieldCheck, Star } from "lucide-react";
+import { Printer, Link2, Star } from "lucide-react";
 import { getBooking, acceptBookingOffer, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
 import { bookingPayment, canCheckoutBooking } from "@/lib/booking-payment-rules";
 import { bookingIsFullyPaid } from "@/lib/payment-rules";
+import { validateHostedUrl } from "@/lib/hosted-checkout";
 import { PaidStamp } from "@/components/site/PaidStamp";
 import { invoiceMoney as aed, type InvoiceItem } from "@/lib/invoice";
 import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SandboxCheckout, PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
+import { PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +39,7 @@ function BookingPage() {
   const accept$ = useServerFn(acceptBookingOffer);
   const cancel$ = useServerFn(cancelBookingAsClient);
   const review$ = useServerFn(submitBookingReview);
-  const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
+  const [checkout, setCheckout] = useState<(CheckoutSession & { dueMinor: number }) | null>(null);
   const [phone,setPhone]=useState("");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -108,7 +109,6 @@ function BookingPage() {
           {b.invoice_no && <Button variant="outline" size="sm" className="mt-4 print:hidden" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Print / save PDF</Button>}
         </section>
 
-        {checkout && <SandboxCheckout session={checkout} linkKey={k} onPaid={() => { setCheckout(null); qc.invalidateQueries({ queryKey: ["booking", id] }); }} />}
         {/* Contract */}
         <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
           <h2 className="font-semibold">Booking contract</h2>
@@ -120,9 +120,15 @@ function BookingPage() {
               <div><Label htmlFor="client-whatsapp">WhatsApp for payment reminders</Label><Input id="client-whatsapp" type="tel" dir="ltr" placeholder="+971501234567" value={phone || b.client_phone || ""} onChange={e=>setPhone(e.target.value.replace(/[^+\d]/g,""))} /></div>
               <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} /> I accept the contract terms above.</label>
               {!b.invoice_no && payment.dueMinor > 0 && <><p role="status" className="text-sm text-muted-foreground">Invoice status: Not yet issued. Accept this offer to issue the invoice before payment.</p><Button variant="outline" disabled={!agree || busy} className="h-auto w-full whitespace-normal px-4 py-3" onClick={() => run(() => accept$({ data: { id, key: k, agree } }), "Offer accepted · invoice issued")}>Accept offer &amp; issue invoice</Button></>}
-              <Button disabled={!agree || busy || !canPay || Boolean(checkout)} className="h-auto min-h-12 w-full gap-2 whitespace-normal bg-gradient-gold px-4 py-3 text-center leading-relaxed text-gold-foreground" onClick={() => run(async () => { if (!canPay) return; const r = await pay$({ data: { id, key: k, agree, phone:phone || b.client_phone || undefined } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
-                <ShieldCheck className="shrink-0" /><span className="min-w-0">{paid>0?"Pay Balance":"Pay Deposit"}{paid===0?` ${b.deposit_pct}%`:""} — {aed(payment.dueAmount)}</span>
-              </Button>
+              {checkout && checkout.dueMinor === payment.dueMinor && agree && canPay ? (
+                <Button asChild variant="link" className="h-auto min-h-12 w-full gap-2 whitespace-normal px-4 py-3 text-center leading-relaxed">
+                  <a href={checkout.checkoutUrl}><Link2 className="shrink-0" /><span className="min-w-0">{paid>0?"Pay Balance":"Pay Deposit"}{paid===0?` ${b.deposit_pct}%`:""} — {aed(payment.dueAmount)}</span></a>
+                </Button>
+              ) : (
+                <Button disabled={!agree || busy || !canPay} className="h-auto min-h-12 w-full gap-2 whitespace-normal bg-gradient-gold px-4 py-3 text-center leading-relaxed text-gold-foreground" onClick={() => run(async () => { if (!canPay) return; const r = await pay$({ data: { id, key: k, agree, phone:phone || b.client_phone || undefined } }); if ("error" in r) throw new Error(r.error); setCheckout({ ...r, dueMinor: payment.dueMinor, checkoutUrl: validateHostedUrl(r.checkoutUrl) }); }, "Payment link ready")}>
+                  <Link2 className="shrink-0" /><span className="min-w-0">{busy?"Preparing payment link…":"Get payment link"} — {aed(payment.dueAmount)}</span>
+                </Button>
+              )}
               <div className="flex justify-center"><Badge variant="secondary">Stripe Sandbox</Badge></div>
               {payment.dueMinor <= 0 && <p role="status" className="text-sm text-muted-foreground">No payment is due.</p>}
               <p className="text-xs text-muted-foreground">DEMO MODE · no real money is charged.</p>
