@@ -29,6 +29,7 @@ import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/components/dashboard/studio.css";
+import { YourAgent } from "@/components/dashboard/YourAgent";
 import { ClientsSection, PhysicalFields, PortfolioSection, ProfilePhoto, SkillsField } from "@/components/dashboard/ProfileExtras";
 import type { Json } from "@/integrations/supabase/types";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
@@ -128,6 +129,7 @@ function ClientDash({ userId }: { userId: string }) {
 
 const ARTIST_NAV = [
   { id: "overview", label: "Overview" },
+  { id: "youragent", label: "Your AI agent" },
   { id: "inbox", label: "Inbox", group: "Sales" },
   { id: "quotes", label: "Quote requests", group: "Sales" },
   { id: "bookings", label: "Bookings", group: "Sales" },
@@ -148,7 +150,7 @@ const ARTIST_NAV = [
 ] as const;
 type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
 const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
-  overview: Home, inbox: InboxIcon, quotes: FileText, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
+  overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
   wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
   agent: Bot, flow: Workflow, team: Users,
 };
@@ -251,6 +253,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           </div>
         </header>
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>
+          {section === "youragent" && <YourAgent artistId={artist.id} stageName={artist.stage_name} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
