@@ -67,7 +67,7 @@ function MemberOrClient({ userId }: { userId: string }) {
     queryKey: ["my-teams", userId],
     queryFn: async () => {
       await supabase.rpc("accept_artist_invites");
-      return (await supabase.from("artist_members").select("role, artists(id, slug, stage_name)").eq("user_id", userId).eq("status", "active")).data ?? [];
+      return (await supabase.from("artist_members").select("role, role_id, team_roles(menus), artists(id, slug, stage_name)").eq("user_id", userId).eq("status", "active")).data ?? [];
     },
   });
   const teams = (data ?? []).filter((t) => t.artists);
@@ -77,6 +77,8 @@ function MemberOrClient({ userId }: { userId: string }) {
   if (teams.length === 0) return <ClientDash userId={userId} />;
   const t = teams[Math.min(pick, teams.length - 1)];
   const a = t?.artists;if(!t||!a)return <ClientDash userId={userId}/>;
+  const allowed = t.team_roles?.menus ?? null;
+  const can = (menu: string) => !allowed || allowed.includes(menu);
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -85,18 +87,18 @@ function MemberOrClient({ userId }: { userId: string }) {
       </div>
       <Tabs key={a.id} defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>
-          <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>
-          <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>
-          <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>
-          <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>
+          {can("inbox") && <TabsTrigger value="inbox">{tr("Inbox")}</TabsTrigger>}
+          {can("bookings") && <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>}
+          {can("quotes") && <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>}
+          {can("calendar") && <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>}
+          {can("media") && <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>}
           <TabsTrigger value="mine">{tr("My requests")}</TabsTrigger>
         </TabsList>
-        <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>
-        <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>
-        <TabsContent value="quotes"><QuoteRequests artistId={a.id} /></TabsContent>
-        <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>
-        <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>
+        {can("inbox") && <TabsContent value="inbox"><Inbox artistId={a.id} /></TabsContent>}
+        {can("bookings") && <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>}
+        {can("quotes") && <TabsContent value="quotes"><QuoteRequests artistId={a.id} /></TabsContent>}
+        {can("calendar") && <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>}
+        {can("media") && <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>}
         <TabsContent value="mine"><ClientDash userId={userId} /></TabsContent>
       </Tabs>
     </div>
