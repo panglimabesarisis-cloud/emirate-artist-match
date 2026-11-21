@@ -108,7 +108,7 @@ html.dm-dash .studio-reference .studio-invoice-paper .text-muted-foreground{colo
 html.dm-dash .studio-reference .studio-invoice-paper :is(th,td){color:var(--background)}
 html.dm-dash .studio-reference .studio-invoice-paper .border-b,html.dm-dash .studio-reference .studio-invoice-paper .border-t{border-color:var(--studio-paper-line)}
 html.dm-dash .studio-reference .studio-contract-library{grid-column:span 12}
-html.dm-dash .studio-reference .studio-template-disabled{padding:24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+html.dm-dash .studio-reference .studio-template-disabled{padding:24px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 html.dm-dash .studio-reference .studio-template-disabled>div{border:1px solid var(--studio-line);border-radius:14px;padding:20px;min-width:0;background:var(--studio-wash)}
 html.dm-dash .studio-reference .studio-template-disabled h3{font-size:24px}
 html.dm-dash .studio-reference .studio-wallet-hero{grid-column:span 12;padding:30px 34px;display:grid;grid-template-columns:1fr 1fr;gap:30px;border:1px solid var(--studio-gold-line-soft);background:var(--studio-gold-kpi-gradient);border-radius:24px}
@@ -205,4 +205,36 @@ html.dm-dash .studio-account-page{max-width:1400px;margin-inline:auto;padding:28
  html.dm-dash .studio-reference .dmr-q-head>div:first-child{flex-basis:100%}
 }
 @media(max-width:620px){html.dm-dash .studio-reference .studio-order-layout.is-edit .studio-order-preview{display:none}html.dm-dash .studio-reference .studio-order-layout.is-preview .studio-order-editor{display:none}}
+/* This project keeps the original shadcn controls without data-slot attributes. */
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){height:auto;min-height:38px;padding:9px 14px;border-radius:999px;font-size:12px;white-space:normal;line-height:1.5;transition:background .25s,border-color .25s,box-shadow .25s}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.bg-primary:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){background:var(--gradient-gold);color:var(--gold-foreground);box-shadow:var(--studio-gold-shadow)}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.bg-primary:hover{box-shadow:var(--shadow-gold)}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.border-input{background:transparent;border-color:var(--studio-line-2)}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.border-input:hover{border-color:var(--gold);color:var(--gold)}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.w-9{width:38px;height:38px;min-height:38px;flex-shrink:0;padding:9px;border-radius:10px}
+html.dm-dash .studio-reference [role=combobox]{background:var(--studio-wash);border:1px solid var(--studio-line-2);border-radius:12px;min-height:44px;font-family:var(--font-sans);font-size:13px;color:var(--foreground);width:100%;box-shadow:none;text-align:start}
+html.dm-dash .studio-reference .dmr-q-tools [role=combobox]{width:auto;min-width:145px}
+html.dm-dash .studio-reference div.inline-flex.items-center.font-semibold.border{border-radius:999px;white-space:normal;font-size:10.5px;padding:4px 9px;border:1px solid var(--studio-line-2);background:var(--studio-wash);color:var(--muted-foreground)}
+html.dm-dash .studio-reference .studio-order-paper [role=combobox]{background:transparent;border-color:var(--studio-paper-line);color:var(--background)}
+html.dm-dash .studio-reference .studio-media-top{grid-column:span 12;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+html.dm-dash .studio-reference .studio-media-upload-panel{padding:24px;border:1px solid var(--studio-line);border-radius:20px;background:var(--studio-panel-gradient);min-width:0}
+html.dm-dash .studio-reference .studio-media-upload-panel h2{font-family:var(--font-display);font-size:28px;margin-bottom:20px;line-height:1.1}
+html.dm-dash .studio-reference .studio-media-upload{min-height:210px;border-radius:16px;background:var(--studio-wash);border-color:var(--studio-line-2);padding:24px 18px;transition:border-color .25s,background .25s}
+html.dm-dash .studio-reference .studio-media-upload:hover,html.dm-dash .studio-reference .studio-media-upload.is-dragging{border-color:var(--gold);background:var(--studio-gold-wash-soft)}
+html.dm-dash .studio-reference .studio-media-upload:focus-within{outline:2px solid var(--ring);outline-offset:3px}
+html.dm-dash .studio-reference .studio-media-upload-icon{width:58px;height:58px;display:grid;place-items:center;border:1px solid var(--studio-gold-line-soft);border-radius:16px;background:var(--studio-gold-wash);color:var(--gold);margin-bottom:10px}
+html.dm-dash .studio-reference .studio-media-item-meta{padding:12px 14px;min-height:58px}
+html.dm-dash .studio-reference .studio-team-heading-tools{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+html.dm-dash .studio-reference .studio-team-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+html.dm-dash .studio-reference .studio-team-role{border:1px solid var(--studio-line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;background:var(--studio-wash);transition:border-color .25s,transform .25s}
+html.dm-dash .studio-reference .studio-team-role:hover{border-color:var(--studio-line-2);transform:translateY(-2px)}
+html.dm-dash .studio-reference .studio-team-role h3{font-family:var(--font-display);font-size:26px;line-height:1.1}
+html.dm-dash .studio-reference .studio-team-role p{font-size:12px;line-height:1.7;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .studio-team-role-icon{width:36px;height:36px;display:grid;place-items:center;color:var(--gold);border-radius:10px;background:var(--studio-gold-wash)}
+html.dm-dash .studio-reference .studio-account-main .dmr-q-head h1{font-size:48px;line-height:1.05}
+html.dm-dash .studio-reference .studio-account-main .dmr-q-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px}
+html.dm-dash .studio-reference .studio-account-section h2{font-family:var(--font-display);font-weight:400}
+@media(max-width:1100px){html.dm-dash .studio-reference .studio-media-top{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:900px){html.dm-dash .studio-reference .studio-template-disabled{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){html.dm-dash .studio-reference .studio-team-role-grid{grid-template-columns:minmax(0,1fr)}html.dm-dash .studio-reference .studio-media-upload-panel{padding:20px}html.dm-dash .studio-reference .studio-account-main .dmr-q-head h1{font-size:40px}}
 @media(prefers-reduced-motion:reduce){html.dm-dash .studio-reference *,html.dm-dash .studio-reference *::before,html.dm-dash .studio-reference *::after{animation:none!important;transition:none!important}}

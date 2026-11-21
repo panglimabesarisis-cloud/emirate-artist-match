@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Dashboard reference pages 02–18, UI only: Inbox, Quotes, Bookings, Calendar, Invoice, Contract, Wallet, Account, Team, AI credits, Profile, Ratecard, Order form, Media, Verification, AI agent, AI flow. Preserve all data/prop contracts, translate visible labels, disable unsupported reference fields with “segera”; exclude Your AI agent. Verify signed-in desktop/mobile/RTL and report visual differences.
+- [ ] Finish dashboard reference pages 02–18 presentation: preserve all data/prop contracts; translate visible labels and disable unsupported fields with “segera”; exclude Your AI agent. Stop further tests and screenshots as requested; finish control styling, Team/Media layouts and report unsupported reference differences.
 - [x] Dealmaker reference refresh: shared tokens, continuous night/beach SceneBackground, navigation and starlight footer.
 - [x] Refresh homepage only, preserving its catalog, featured talents and search navigation.
 - [x] Refresh listing presentation, retaining filters, URL contracts, sorting and quote links.

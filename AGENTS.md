@@ -65,3 +65,4 @@ use the editor.
 - Render saved forms/buttons server-side to enforce flow.
 
 - Artist dashboard presentation styles are scoped to html.dm-dash and studio-* classes; decorative DashboardArtwork owns no data access so public styling and existing dashboard queries stay independent.
+- Dashboard reference headings, empty states and unsupported fields use StudioPage presentation helpers; adapters target existing control classes and ARIA roles, not absent data-slot attributes, so shared controls and data contracts remain unchanged.
