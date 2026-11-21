@@ -1,3 +1,4 @@
+import { checkoutUrl, hostedCheckoutSettings, hostedReturnUrls } from './hosted-checkout';
 import { createStripeClient } from './stripe.server';
 import { sandboxPaymentSettled } from './payment-rules';
 import { testProcessorAmount } from './processor-rules';
@@ -22,7 +23,7 @@ export async function resolveOrCreateCustomer(
   const created = await stripe.customers.create({...(options.email && {email:options.email}), ...(options.userId && {metadata:{userId:options.userId}})});
   return created.id;
 }
-export async function openOrder(order: {artist_id:string; kind:'credits'|'deposit'|'invoice'|'booking'|'agent_prompt'|'flow_template'|'order_form_template'; target_id?:string; package_id?:string; plan_code?:string; credits?:number; amount_minor:number}, description:string, identity:{userId?:string | undefined;email?:string | undefined}, _returnUrl:string) {
+export async function openOrder(order: {artist_id:string; kind:'credits'|'deposit'|'invoice'|'booking'|'agent_prompt'|'flow_template'|'order_form_template'; target_id?:string; package_id?:string; plan_code?:string; credits?:number; amount_minor:number}, description:string, identity:{userId?:string | undefined;email?:string | undefined}, returnUrl:string) {
   // Validate before creating a customer or performing any payment-side writes.
   const processorAmount = testProcessorAmount(order.amount_minor);
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
@@ -34,18 +35,18 @@ export async function openOrder(order: {artist_id:string; kind:'credits'|'deposi
   try {
     if(o.stripe_session_id){
       const existing=await stripe.checkout.sessions.retrieve(o.stripe_session_id);
-      if(existing.status==='open'&&existing.client_secret)return {clientSecret:existing.client_secret,orderId:o.id};
+      if(existing.status==='open'&&existing.url)return {checkoutUrl:checkoutUrl(existing),orderId:o.id};
+      if(existing.status==='open')await stripe.checkout.sessions.expire(existing.id);
       if(existing.status==='complete'){await reconcileOrder(o.id);throw new Error('Payment already completed; refresh your balance');}
       await db.from('payment_orders').update({status:'expired'}).eq('id',o.id);
       throw new Error('Previous checkout expired. Try again.');
     }
-    const session=await stripe.checkout.sessions.create({mode:'payment',ui_mode:'embedded_page',redirect_on_completion:'never',...(customer ? {customer} : {}),
+    const session=await stripe.checkout.sessions.create({mode:'payment',...hostedCheckoutSettings,...hostedReturnUrls(returnUrl,{orderId:o.id}),...(customer ? {customer} : {}),
       line_items:[{price_data:{currency:'idr',product_data:{name:description},unit_amount:Number(o.processor_amount_minor),tax_behavior:'inclusive'},quantity:1}],
       payment_intent_data:{description},metadata:{orderId:o.id,...(identity.userId?{userId:identity.userId}:{})}}, {idempotencyKey:o.id});
     const {error:saveError}=await db.from('payment_orders').update({stripe_session_id:session.id}).eq('id',o.id);
     if(saveError)throw new Error(saveError.message);
-    if(!session.client_secret)throw new Error('Stripe did not return a client secret');
-    return {clientSecret:session.client_secret,orderId:o.id};
+    return {checkoutUrl:checkoutUrl(session),orderId:o.id};
   } catch(e) { const {getStripeErrorMessage}=await import('./stripe.server');await db.from('payment_orders').update({last_error:getStripeErrorMessage(e)}).eq('id',o.id); throw e; }
 }
 export async function reconcileOrder(id:string) {

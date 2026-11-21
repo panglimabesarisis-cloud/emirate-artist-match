@@ -11,7 +11,7 @@ export const artistCheckout=createServerFn({method:'POST'}).middleware([requireS
   const {data:a}=await context.supabase.from('artists').select('id,plan').eq('user_id',context.userId).single();if(!a)throw new Error('Artist profile required');
   const {data:{user}}=await context.supabase.auth.getUser();
   const {openOrder}=await import('./payments.server');
-  const returnUrl=new URL('/join/payment',getRequest().url).href;
+  const returnUrl=new URL(data.kind==='deposit'?'/join/payment':'/dashboard',getRequest().url).href;
   if(data.kind==='credits'){const p=TOPUP_PACKAGES.find(p=>p.id===data.packageId);if(!p)throw new Error('Unknown credit package'); return await openOrder({artist_id:a.id,kind:'credits',package_id:p.id,credits:p.credits,amount_minor:Math.round(p.priceAed*1.05*100)},`Dealmaker ${p.credits} AI credits (incl. VAT 5%)`,{userId:context.userId,email:user?.email},returnUrl);}
   if((ITEM_KINDS as readonly string[]).includes(data.kind)){
    const kind=data.kind as ItemKind;const itemId=id(data.itemId??'');

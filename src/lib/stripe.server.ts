@@ -20,13 +20,11 @@ export function createStripeClient(env: StripeEnv): Stripe {
   // Self-managed credentials take precedence over obsolete connector secrets.
   if (process.env['STRIPE_SECRET_KEY']) {
     return new Stripe(connectionApiKey, {
-      apiVersion: '2026-03-25.dahlia',
       httpClient: Stripe.createFetchHttpClient(),
     });
   }
   const lovableApiKey = getEnv('LOVABLE_API_KEY');
   return new Stripe(connectionApiKey, {
-    apiVersion: '2026-03-25.dahlia',
     httpClient: Stripe.createFetchHttpClient(async (input, init) => {
       const stripeUrl = input instanceof Request ? input.url : input.toString();
       const gatewayUrl = stripeUrl.replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);

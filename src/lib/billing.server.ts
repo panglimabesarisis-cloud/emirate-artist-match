@@ -1,3 +1,4 @@
+import { checkoutUrl, hostedCheckoutSettings, hostedReturnUrls } from './hosted-checkout';
 import {createStripeClient} from './stripe.server';
 import {resolveOrCreateCustomer} from './payments.server';
 import {PLAN_LOOKUP_KEYS,paidPlan,billingInterval,planDirection,verifiedPaidPeriod,type PaidPlan,type BillingInterval} from './billing-rules';
@@ -14,7 +15,7 @@ async function priceFor(code:PaidPlan,interval:BillingInterval){
  if(price.currency!=='idr'||price.unit_amount!==testProcessorAmount(fils)||price.recurring?.interval!==interval)throw new Error('Stripe plan price differs from the saved catalog; ask an administrator to synchronize prices');
  return price;
 }
-export async function openSubscription(artistId:string,userId:string,email:string|undefined,code:PaidPlan,interval:BillingInterval){
+export async function openSubscription(artistId:string,userId:string,email:string|undefined,code:PaidPlan,interval:BillingInterval,returnUrl:string){
  const database=await db();const stripe=createStripeClient('sandbox');
  const {data:a}=await database.from('artists').select('registration_paid_at').eq('id',artistId).single();
  if(!a?.registration_paid_at)throw new Error('Pay your registration deposit first');
@@ -24,14 +25,15 @@ export async function openSubscription(artistId:string,userId:string,email:strin
  if(error||!r)throw new Error(error?.message??'Could not reserve subscription checkout');
  if(r.plan_code!==code||r.billing_interval!==interval)throw new Error('Finish or cancel the pending subscription checkout before choosing another plan');
  if(r.session_id){const old=await stripe.checkout.sessions.retrieve(r.session_id);
-  if(old.status==='open'&&old.client_secret)return {clientSecret:old.client_secret,sessionId:old.id};
+  if(old.status==='open'&&old.url)return {checkoutUrl:checkoutUrl(old),sessionId:old.id};
+  if(old.status==='open')await stripe.checkout.sessions.expire(old.id);
   if(old.status==='complete'){await reconcileSubscriptionSession(old.id,artistId);throw new Error('Subscription payment completed; refresh your plan');}
   await database.from('subscription_checkouts').delete().eq('artist_id',artistId).eq('attempt_key',r.attempt_key);throw new Error('Checkout expired; try again');
  }
- const s=await stripe.checkout.sessions.create({mode:'subscription',ui_mode:'embedded_page',redirect_on_completion:'never',customer,line_items:[{price:price.id,quantity:1}],metadata:{artistId,userId},subscription_data:{metadata:{artistId,userId}}},{idempotencyKey:'subscription:'+r.attempt_key});
- if(!s.client_secret)throw new Error('Stripe did not return a checkout form');
+ const s=await stripe.checkout.sessions.create({mode:'subscription',...hostedCheckoutSettings,payment_method_collection:'always',...hostedReturnUrls(returnUrl,{subscription:true}),customer,line_items:[{price:price.id,quantity:1}],metadata:{artistId,userId},subscription_data:{metadata:{artistId,userId}}},{idempotencyKey:'subscription:'+r.attempt_key});
+ const url=checkoutUrl(s);
  const save=await database.from('subscription_checkouts').update({session_id:s.id}).eq('artist_id',artistId).eq('attempt_key',r.attempt_key);if(save.error)throw new Error(save.error.message);
- return {clientSecret:s.client_secret,sessionId:s.id};
+ return {checkoutUrl:url,sessionId:s.id};
 }
 export async function reconcileSubscriptionSession(sessionId:string,artistId:string){
  const stripe=createStripeClient('sandbox');const s=await stripe.checkout.sessions.retrieve(sessionId);

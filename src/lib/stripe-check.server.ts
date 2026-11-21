@@ -1,3 +1,4 @@
+import { checkoutUrl, hostedCheckoutSettings } from './hosted-checkout';
 import { createStripeClient, getStripeErrorMessage } from './stripe.server';
 import { joinPaymentTotal } from './join-rules';
 import { testProcessorAmount } from './processor-rules';
@@ -18,7 +19,9 @@ export async function runStripeCheckoutCheck(client: CheckClient = createStripeC
   // Match the existing sandbox checkout, but never create an order, customer,
   // entitlement, or payment confirmation. Stripe balance is a read-only preflight.
   const session = await client.checkout.sessions.create({
-    mode: 'payment', ui_mode: 'embedded_page', redirect_on_completion: 'never',
+    mode: 'payment', ...hostedCheckoutSettings,
+    success_url: 'https://dealmakertalent.com/dashboard',
+    cancel_url: 'https://dealmakertalent.com/dashboard',
     line_items: [{ price_data: {
       currency: 'idr',
       unit_amount: testProcessorAmount(Math.round(joinPaymentTotal().total * 100)),
@@ -32,15 +35,15 @@ export async function runStripeCheckoutCheck(client: CheckClient = createStripeC
     if (session.livemode !== false || !session.id.startsWith('cs_test_')) {
       throw new Error('Stripe did not return a verified test-mode session.');
     }
-    if (!session.client_secret) throw new Error('Stripe did not return a client secret.');
+    checkoutUrl(session);
   } finally {
-    // Return no client secret: the check must not open a payable checkout.
+    // Return no checkout URL: the check must not open a payable checkout.
     if (session.id && session.status === 'open') {
       try { await client.checkout.sessions.expire(session.id); sessionExpired = true; }
       catch { /* Report incomplete cleanup without exposing provider details. */ }
     }
   }
-  return { mode: 'test' as const, clientSecretReturned: true, sessionExpired };
+  return { mode: 'test' as const, checkoutUrlReturned: true, sessionExpired };
 }
 
 export function stripeCheckError(error: unknown) {

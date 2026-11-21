@@ -72,4 +72,4 @@ use the editor.
 - Booking offer acceptance issues an invoice before checkout; shared bookingPayment supplies VAT breakdown and integer fils so displayed and charged amounts agree. Optional event details persist in existing notes to avoid a competing booking schema.
 - Normalize gateway problem-detail responses in the shared Stripe transport, including HTTP-200 errors, so every checkout fails accurately without exposing gateway details.
 - Prefer self-managed Stripe secrets over gateway keys; reject mode mismatches and use the matching webhook secret to prevent live charges in sandbox flows.
-- Stripe diagnostics are admin-only and read credential mode from Stripe balance, not saved preferences; require verified test mode before creating an unconfirmed session, expire it, and return only secret presence so checks cannot submit payments or settle orders.
+- Stripe uses hosted checkout with preserved settlement metadata; verify returns through existing authorized checks. Admin diagnostics verify test balance, create then expire an unpaid session, and return URL presence only.

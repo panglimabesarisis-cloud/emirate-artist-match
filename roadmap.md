@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Switch existing Stripe sessions to hosted checkout with validated redirects and authorized return verification; preserve prices, metadata, sandbox and settlement. 48 payment regressions pass; signed-in registration opens Stripe, unpaid return stays pending, and admin diagnostic confirms a real test URL then expiry. Temporary verification data removed; no screenshots or payment submitted. Setup is documented in STRIPE_INTEGRATION_TODO.md.
+- [ ] Verify hosted card entry and successful test-payment completion/webhook: Stripe's hosted page opened but remained loading in this browser; no payment, renewal or refund completion is claimed.
 - [x] Repair self-managed Stripe credential selection and signing-secret compatibility; prices, processor snapshots and settlement unchanged. 20 targeted tests pass; real test checkout returned a client secret and expired without payment. Actual paid settlement/webhook delivery unverified.
 - [x] Add a safe, admin-only Stripe checkout check: verify test mode before session creation, confirm a client secret without exposing it, and expire the session without payment or settlement. Verified with the self-managed test credential.
 - [ ] Show verified connected credential mode in app Stripe settings, separate from the saved mode preference.

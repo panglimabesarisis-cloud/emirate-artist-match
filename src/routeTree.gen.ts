@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout-return'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForClientsRouteImport } from './routes/for-clients'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
@@ -56,6 +57,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout-return',
+  path: '/checkout-return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeaturesRoute = FeaturesRouteImport.update({
@@ -223,6 +229,7 @@ const ApiPublicWhatsappWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/checkout-return': typeof CheckoutReturnRoute
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/checkout-return': typeof CheckoutReturnRoute
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/checkout-return': typeof CheckoutReturnRoute
   '/features': typeof FeaturesRoute
   '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/checkout-return'
     | '/features'
     | '/for-clients'
     | '/how-it-works'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/checkout-return'
     | '/features'
     | '/for-clients'
     | '/how-it-works'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/checkout-return'
     | '/features'
     | '/for-clients'
     | '/how-it-works'
@@ -440,6 +452,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   FeaturesRoute: typeof FeaturesRoute
   ForClientsRoute: typeof ForClientsRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -491,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout-return': {
+      id: '/checkout-return'
+      path: '/checkout-return'
+      fullPath: '/checkout-return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/features': {
@@ -732,6 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   FeaturesRoute: FeaturesRoute,
   ForClientsRoute: ForClientsRoute,
   HowItWorksRoute: HowItWorksRoute,

@@ -19,8 +19,8 @@ export function StripeConnectionCheck() {
       const response = await checkCheckout();
       if ('error' in response) setResult(response.error);
       else setResult(response.sessionExpired
-        ? 'Verified: test checkout returned a client secret. Session expired; no payment submitted.'
-        : 'Test checkout returned a client secret; session expiry could not be confirmed. No payment submitted.');
+        ? 'Verified: test checkout returned a hosted payment URL. Session expired; no payment submitted.'
+        : 'Test checkout returned a hosted payment URL; session expiry could not be confirmed. No payment submitted.');
       await mode.refetch();
     } catch { setResult('Checkout check unavailable. Try again.'); }
     finally { setChecking(false); }
