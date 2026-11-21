@@ -300,6 +300,36 @@ export type Database = {
           },
         ]
       }
+      ai_model_rates: {
+        Row: {
+          effective_from: string
+          is_active: boolean
+          label: string | null
+          model: string
+          usd_cached_per_mtok: number
+          usd_in_per_mtok: number
+          usd_out_per_mtok: number
+        }
+        Insert: {
+          effective_from?: string
+          is_active?: boolean
+          label?: string | null
+          model: string
+          usd_cached_per_mtok?: number
+          usd_in_per_mtok?: number
+          usd_out_per_mtok?: number
+        }
+        Update: {
+          effective_from?: string
+          is_active?: boolean
+          label?: string | null
+          model?: string
+          usd_cached_per_mtok?: number
+          usd_in_per_mtok?: number
+          usd_out_per_mtok?: number
+        }
+        Relationships: []
+      }
       app_user_connections: {
         Row: {
           connection_key_ciphertext: string
@@ -1318,27 +1348,48 @@ export type Database = {
       credit_ledger: {
         Row: {
           artist_id: string
+          cost_usd_micros: number | null
           created_at: string
           delta: number
           id: string
+          kind: string | null
+          model: string | null
+          rate_snapshot: Json | null
           reason: string
           ref: string | null
+          tokens_cached: number | null
+          tokens_in: number | null
+          tokens_out: number | null
         }
         Insert: {
           artist_id: string
+          cost_usd_micros?: number | null
           created_at?: string
           delta: number
           id?: string
+          kind?: string | null
+          model?: string | null
+          rate_snapshot?: Json | null
           reason: string
           ref?: string | null
+          tokens_cached?: number | null
+          tokens_in?: number | null
+          tokens_out?: number | null
         }
         Update: {
           artist_id?: string
+          cost_usd_micros?: number | null
           created_at?: string
           delta?: number
           id?: string
+          kind?: string | null
+          model?: string | null
+          rate_snapshot?: Json | null
           reason?: string
           ref?: string | null
+          tokens_cached?: number | null
+          tokens_in?: number | null
+          tokens_out?: number | null
         }
         Relationships: [
           {
@@ -2653,6 +2704,18 @@ export type Database = {
         Returns: {
           body: string
           id: string
+        }[]
+      }
+      ai_usage: {
+        Args: { _artist: string; _from: string; _to: string }
+        Returns: {
+          cost_usd_micros: number
+          day: string
+          model: string
+          replies: number
+          tokens_cached: number
+          tokens_in: number
+          tokens_out: number
         }[]
       }
       allocate_plan_month: {

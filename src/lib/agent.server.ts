@@ -133,6 +133,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
       ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
     let res = await generateResponse({ model: MODEL, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+    const usage = newUsage(); addUsage(usage, res);
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
       if (!calls.length) break;
@@ -168,6 +169,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
       }
       res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+      addUsage(usage, res);
     }
     let text = "";
     for (const item of res.output ?? []) {
@@ -184,7 +186,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     text = maskContacts(text.replace("[HANDOVER]", "").replace(/\*\*|__|^#+\s/gm, "").trim());
     if (!text) return;
     await addMessage(conversationId, "ai", text);
-    await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId });
+    await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId, ...(await usageColumns(usage)) });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
     if (ex.draft && calendarCheck) {
       const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
@@ -269,4 +271,33 @@ async function enabledPromptText(artistId: string): Promise<string> {
     .sort((a, b) => (PROMPT_PRIORITY[a.priority] ?? 1) - (PROMPT_PRIORITY[b.priority] ?? 1));
   if (!usable.length) return "";
   return `ADDITIONAL ARTIST PROMPTS (follow only where they do not conflict with the pricing, privacy, calendar, approval or payment safety rules above):\n${usable.map((p) => `[${p.kind === "know" ? "Knowledge" : "Instruction"}: ${p.title}]\n${p.body.slice(0, 4000)}`).join("\n\n")}`;
+}
+
+type Usage = { seen: boolean; inTok: number; cached: number; outTok: number };
+const newUsage = (): Usage => ({ seen: false, inTok: 0, cached: 0, outTok: 0 });
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+/** Sum gateway usage across tool rounds; silently ignores responses without usage. */
+function addUsage(u: Usage, res: unknown) {
+  try {
+    const raw = (res as { usage?: Record<string, unknown> } | null)?.usage;
+    if (!raw || typeof raw !== "object") return;
+    const inTok = num(raw["input_tokens"] ?? raw["prompt_tokens"]);
+    const outTok = num(raw["output_tokens"] ?? raw["completion_tokens"]);
+    const details = (raw["input_tokens_details"] ?? raw["prompt_tokens_details"]) as Record<string, unknown> | undefined;
+    const cached = num(details?.["cached_tokens"]);
+    if (inTok === null && outTok === null) return;
+    u.seen = true; u.inTok += inTok ?? 0; u.outTok += outTok ?? 0; u.cached += cached ?? 0;
+  } catch { /* usage is optional */ }
+}
+/** Ledger usage columns priced with the active rate snapshot; never throws. */
+async function usageColumns(u: Usage) {
+  if (!u.seen) return { model: MODEL, kind: "reply" };
+  try {
+    const { data: rate } = await supabaseAdmin.from("ai_model_rates").select("*").eq("model", MODEL).eq("is_active", true).maybeSingle();
+    const billableIn = Math.max(0, u.inTok - u.cached);
+    const cost = rate ? Math.round(billableIn * Number(rate.usd_in_per_mtok) + u.cached * Number(rate.usd_cached_per_mtok) + u.outTok * Number(rate.usd_out_per_mtok)) : null;
+    return { model: MODEL, kind: "reply", tokens_in: u.inTok, tokens_cached: u.cached, tokens_out: u.outTok, cost_usd_micros: cost, rate_snapshot: rate ?? null };
+  } catch {
+    return { model: MODEL, kind: "reply", tokens_in: u.inTok, tokens_cached: u.cached, tokens_out: u.outTok };
+  }
 }
