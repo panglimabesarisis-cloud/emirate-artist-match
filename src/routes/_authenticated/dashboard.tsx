@@ -17,7 +17,7 @@ import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { CalendarSync,TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
-import { BadgeCheck, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import "@/components/dashboard/studio.css";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -51,8 +52,9 @@ function useCatalog() {
 function Dashboard() {
   const { user, isArtist, loading } = useAuth();
   const [workspace,setWorkspace]=useState('own');
-  if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">Loading…</div></PublicLayout>;
-  return <><div className="flex flex-wrap items-center gap-2 border-b bg-background px-4 py-2">{isArtist&&<><Button size="sm" variant={workspace==='own'?'default':'outline'} onClick={()=>setWorkspace('own')}>My talent workspace</Button><Button size="sm" variant={workspace==='teams'?'default':'outline'} onClick={()=>setWorkspace('teams')}>Invited teams & my requests</Button></>}<Button asChild size="sm" variant="ghost"><Link to="/account">Account settings</Link></Button></div>{isArtist&&workspace==='own'?<ArtistDash userId={user.id} email={user.email??''}/>:<PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id}/></div></PublicLayout>}</>;
+  const { t } = useI18n();
+  if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">{t("Loading…")}</div></PublicLayout>;
+  return <><div className={`studio-workspace-access ${isArtist && workspace === "own" ? "studio-workspace-own" : ""}`}>{isArtist&&<><Button size="sm" variant={workspace==='own'?'default':'outline'} onClick={()=>setWorkspace('own')}>{t("My talent workspace")}</Button><Button size="sm" variant={workspace==='teams'?'default':'outline'} onClick={()=>setWorkspace('teams')}>{t("Invited teams & my requests")}</Button></>}<Button asChild size="sm" variant="ghost"><Link to="/account">{t("Account settings")}</Link></Button></div>{isArtist&&workspace==='own'?<ArtistDash userId={user.id} email={user.email??''}/>:<PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id}/></div></PublicLayout>}</>;
 }
 
 /** Managers/assistants invited by an artist get a reduced artist workspace. */
@@ -158,68 +160,67 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
     return () => document.documentElement.classList.remove("dm-dash");
   }, []);
   if (isLoading) return null;
-  if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">Finish your talent register</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">Continue registration</Link></Button></div></PublicLayout>;
-  const current = ARTIST_NAV.find((n) => n.id === section)!;
+  if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;
+  const current = ARTIST_NAV.find((n) => n.id === section) ?? ARTIST_NAV[0];
   let lastGroup: string | undefined;
   return (
-    <div className="min-h-screen bg-background md:flex">
-      {menu && <button type="button" aria-label="Close menu" className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMenu(false)} />}
-      <aside aria-label="Studio navigation" className={`${menu ? "fixed inset-y-0 start-0 z-40 flex w-[min(300px,86vw)]" : "hidden"} md:sticky md:top-0 md:flex md:h-screen md:w-64 shrink-0 flex-col gap-4 overflow-y-auto border-e border-border bg-sidebar px-4 py-5 text-sidebar-foreground`}>
-        <Link to="/" className="flex items-center gap-2.5 px-2" aria-label="Dealmaker Studio">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-gold font-display text-lg text-gold-foreground">D</span>
-          <span className="font-display text-2xl tracking-wide">Dealmaker <span className="text-gold">Studio</span></span>
+    <div className="studio-app">
+      <Button type="button" variant="ghost" aria-label={tr("Close menu")} className={`studio-scrim ${menu ? "is-open" : ""}`} tabIndex={menu ? 0 : -1} onClick={() => setMenu(false)} />
+      <aside id="studio-sidebar" aria-label={tr("Studio navigation")} className={`studio-side ${menu ? "is-open" : ""}`}>
+        <Link to="/" className="studio-brand" aria-label={tr("Dealmaker Studio")}>
+          <span className="studio-brand-mark">{tr("D")}</span>
+          <span>{tr("Dealmaker")} <em>{tr("Studio")}</em></span>
         </Link>
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-foreground/[.04] p-3">
-          <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-gold font-display text-lg text-gold-foreground">
-            {initials(artist.stage_name)}
-            <span className="absolute -bottom-px -end-px h-3 w-3 rounded-full border-2 border-sidebar bg-emerald-400" aria-hidden />
-          </span>
+        <div className="studio-me">
+          <span className="studio-avatar" aria-hidden="true">{initials(artist.stage_name)}</span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-bold">{artist.stage_name}</div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold tracking-wide ${artist.status === "approved" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-border text-muted-foreground"}`}>{artist.status === "pending" ? "Awaiting approval" : artist.status === "approved" ? "Approved" : artist.status}</span>
-              <button type="button" onClick={() => { setSection("overview"); setMenu(false); }} className="rounded-full border border-gold/40 px-2 py-0.5 text-[10.5px] font-bold capitalize tracking-wide text-gold transition-colors hover:bg-gradient-gold hover:text-gold-foreground">{tr("Plan:")} {artist.plan} · {tr("Upgrade")}</button>
+            <b className="block truncate">{artist.stage_name}</b>
+            <div className="studio-tags">
+              <span className={`studio-chip ${artist.status === "approved" ? "is-approved" : ""}`}>{tr(artist.status === "pending" ? "Awaiting approval" : artist.status === "approved" ? "Approved" : artist.status)}</span>
+              <Button type="button" variant="ghost" onClick={() => { setSection("overview"); setMenu(false); }} className="studio-chip studio-plan-chip">{tr("Plan:")} {tr(artist.plan)} · {tr("Upgrade")}</Button>
             </div>
           </div>
         </div>
-        <nav className="flex flex-col gap-0.5" aria-label="Sections">
+        <nav className="studio-menu" aria-label={tr("Sections")}>
+          <span className="studio-active-pill" aria-hidden="true" />
           {ARTIST_NAV.map((n) => {
             const g = "group" in n ? n.group : undefined;
-            const header = g && g !== lastGroup ? <div className="px-3 pb-1.5 pt-4 text-[10.5px] font-bold uppercase tracking-[.14em] text-muted-foreground/70">{tr(g)}</div> : null;
+            const header = g && g !== lastGroup ? <div className="studio-group">{tr(g)}</div> : null;
             lastGroup = g;
             const Icon = NAV_ICONS[n.id];
             const on = section === n.id;
             return (
-              <div key={n.id}>
+              <div key={n.id} className="studio-menu-entry">
                 {header}
-                <button type="button" aria-current={on ? "page" : undefined} onClick={() => { setSection(n.id); setMenu(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-start text-sm transition-all ${on ? "bg-gradient-gold font-bold text-gold-foreground shadow-[0_10px_30px_rgba(232,164,63,.25)]" : "font-medium text-muted-foreground hover:translate-x-0.5 hover:bg-foreground/[.04] hover:text-foreground rtl:hover:-translate-x-0.5"}`}>
-                  <Icon className={`h-[18px] w-[18px] shrink-0 ${on ? "" : "opacity-75"}`} aria-hidden />{tr(n.label)}
-                </button>
+                <Button type="button" variant="ghost" aria-current={on ? "page" : undefined} onClick={() => { setSection(n.id); setMenu(false); }} className="studio-nav-item">
+                  <Icon aria-hidden="true" />{tr(n.label)}
+                </Button>
               </div>
             );
           })}
         </nav>
-        <div className="mt-auto rounded-2xl border border-gold/25 bg-[radial-gradient(ellipse_at_80%_0%,rgba(232,176,74,.16),transparent_60%)] p-4">
-          <div className="font-display text-2xl leading-tight">{tr("More credits,")} <span className="it">{tr("more replies.")}</span></div>
-          <p className="mb-3 mt-1.5 text-[12.5px] text-muted-foreground">{tr("Medium gives 200 AI credits and calendar sync. Pro gives 500 credits and featured eligibility.")}</p>
-          <Button size="sm" className="rounded-full bg-gradient-gold text-gold-foreground" onClick={() => { setSection("overview"); setMenu(false); }}>{tr("See plans")} →</Button>
+        <div className="studio-side-foot">
+          <b>{tr("More credits,")} <span className="it">{tr("more replies.")}</span></b>
+          <p>{tr("Medium gives 200 AI credits and calendar sync. Pro gives 500 credits and featured eligibility.")}</p>
+          <Button size="sm" className="studio-button studio-button-gold" onClick={() => { setSection("overview"); setMenu(false); }}>{tr("See plans")} <span className="studio-arrow" aria-hidden="true">→</span></Button>
         </div>
       </aside>
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-border bg-background/80 px-4 py-3.5 backdrop-blur-md md:px-8">
-          <Button variant="outline" size="icon" className="rounded-xl md:hidden" onClick={() => setMenu(!menu)} aria-label="Open navigation" aria-expanded={menu}><MenuIcon className="h-[18px] w-[18px]" /></Button>
-          <nav className="hidden gap-1 rounded-full border border-border bg-foreground/[.03] p-1 lg:flex" aria-label="Workspaces">
-            <button type="button" aria-current={section !== "team" ? "page" : undefined} onClick={() => setSection("overview")} className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${section !== "team" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{tr("My talent workspace")}</button>
-            <button type="button" aria-current={section === "team" ? "page" : undefined} onClick={() => setSection("team")} className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${section === "team" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{tr("Invite team")}</button>
-            <Link to="/account" className="rounded-full px-3.5 py-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground">{tr("Account settings")}</Link>
+      <div className="studio-main">
+        <header className="studio-top">
+          <Button variant="outline" size="icon" className="studio-burger studio-icon-button" onClick={() => setMenu(!menu)} aria-label={tr(menu ? "Close menu" : "Open navigation")} aria-controls="studio-sidebar" aria-expanded={menu}><MenuIcon /></Button>
+          <nav className="studio-workspaces" aria-label={tr("Workspaces")}>
+            <Button variant="ghost" aria-current={section !== "team" ? "page" : undefined} onClick={() => setSection("overview")}>{tr("My talent workspace")}</Button>
+            <Button variant="ghost" aria-current={section === "team" ? "page" : undefined} onClick={() => setSection("team")}>{tr("Invite team")}</Button>
+            <Link to="/account">{tr("Account settings")}</Link>
           </nav>
-          <h1 className="whitespace-nowrap font-display text-xl tracking-wide lg:hidden">{tr(current.label)}</h1>
-          <div className="ms-auto flex items-center gap-3">
-            {artist.status === "approved" && <Button asChild variant="outline" size="sm" className="rounded-full"><Link to="/artist/$slug" params={{ slug: artist.slug }}><Eye className="me-1.5 h-4 w-4" />{tr("View public profile")}</Link></Button>}
-            <span className="hidden max-w-56 truncate text-sm text-muted-foreground xl:block">{email}</span>
+          <h1 className="studio-mobile-title">{tr(current.label)}</h1>
+          <div className="studio-top-end">
+            <Button variant="outline" size="icon" className="studio-icon-button" aria-label={tr("Inbox")} title={tr("Inbox")} onClick={() => setSection("inbox")}><Bell aria-hidden="true" /></Button>
+            {artist.status === "approved" && <Button asChild variant="outline" size="sm" className="studio-button studio-public-link"><Link to="/artist/$slug" params={{ slug: artist.slug }} aria-label={tr("View public profile")}><Eye aria-hidden="true" /><span>{tr("View public profile")}</span></Link></Button>}
+            <span className="studio-mail" title={email} dir="ltr">{email}</span>
           </div>
         </header>
-        <main className="p-4 md:p-8">
+        <main className={`studio-content ${section === "overview" ? "studio-overview-content" : ""}`}>
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <Quotes artistId={artist.id} />}

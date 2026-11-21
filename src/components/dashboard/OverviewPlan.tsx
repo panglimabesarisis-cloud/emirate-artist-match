@@ -94,7 +94,7 @@ function Bar({
   low?: boolean;
   none?: boolean;
 }) {
-  const fill = low ? "linear-gradient(90deg,#e58a8a,#e8b04a)" : "var(--gradient-gold)";
+  const fill = low ? "var(--studio-low-gradient)" : "var(--gradient-gold)";
   return (
     <div>
       <div className="mb-2 flex justify-between gap-3 text-xs text-muted-foreground">
@@ -169,26 +169,26 @@ function usePlanView(artistId: string, plan: string) {
 function Donut({ d }: { d: NonNullable<ReturnType<typeof usePlanOverview>["data"]> }) {
   const { t } = useI18n();
   const slices: Slice[] = [
-    { key: "chats", label: t("Incoming chats"), n: d.chats, color: "#4d9bff", amount: null },
+    { key: "chats", label: t("Incoming chats"), n: d.chats, color: "var(--chart-2)", amount: null },
     {
       key: "unpaid",
       label: t("Unpaid invoices"),
       n: d.counts.unpaid.n,
-      color: "#e58a8a",
+      color: "var(--chart-4)",
       amount: d.counts.unpaid.amount,
     },
     {
       key: "partial",
       label: t("Partial invoices"),
       n: d.counts.partial.n,
-      color: "#e8b04a",
+      color: "var(--chart-1)",
       amount: d.counts.partial.amount,
     },
     {
       key: "paid",
       label: t("Paid invoices"),
       n: d.counts.paid.n,
-      color: "#7bd88f",
+      color: "var(--chart-3)",
       amount: d.counts.paid.amount,
     },
   ];
@@ -214,7 +214,7 @@ function Donut({ d }: { d: NonNullable<ReturnType<typeof usePlanOverview>["data"
               r="15.9155"
               fill="none"
               strokeWidth="4.4"
-              stroke="rgba(246,239,226,.07)"
+              stroke="var(--studio-ring-track)"
             />
             {total > 0 &&
               live.map((s) => {
@@ -254,7 +254,7 @@ function Donut({ d }: { d: NonNullable<ReturnType<typeof usePlanOverview>["data"
                 {s.n}
                 {s.amount != null && (
                   <small className="ms-2 text-[11px] font-medium text-muted-foreground">
-                    AED {Math.round(s.amount).toLocaleString("en-US")}
+                    {t("AED")} {Math.round(s.amount).toLocaleString("en-US")}
                   </small>
                 )}
               </em>
@@ -281,8 +281,8 @@ export function OverviewPlan({
   const { t } = useI18n();
   const { d, name, bars } = usePlanView(artistId, plan);
   return (
-    <section className="dm-card space-y-5 p-6" aria-labelledby="ov-plan-h">
-      <div>
+    <section className="studio-panel studio-plan studio-span-4" aria-labelledby="ov-plan-h">
+      <div className="studio-plan-heading">
         <h2 id="ov-plan-h" className="text-3xl leading-none">
           {t("Your")} <span className="it">{t("plan")}</span>
         </h2>
@@ -298,7 +298,7 @@ export function OverviewPlan({
         <div>
           <b className="block text-base font-bold">{stageName}</b>
           <Badge variant="secondary" className="mt-1.5 uppercase">
-            {name} {t("plan")}
+            {t(name)} {t("plan")}
           </Badge>
         </div>
       </div>

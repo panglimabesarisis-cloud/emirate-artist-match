@@ -63,3 +63,5 @@ use the editor.
 
 - Booking invoice approval, partial settlement, calendar and reminder invariants are documented in src/lib/AGENTS.md. UI translation, CSV export and payment-rules conventions are there too.
 - Render saved forms/buttons server-side to enforce flow.
+
+- Artist dashboard presentation styles are scoped to html.dm-dash and studio-* classes; decorative DashboardArtwork owns no data access so public styling and existing dashboard queries stay independent.

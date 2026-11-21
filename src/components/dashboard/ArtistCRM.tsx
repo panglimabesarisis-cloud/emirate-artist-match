@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { Bot, Calendar, ChevronLeft, ChevronRight, FileSignature, Inbox as InboxIcon, Lock, Sparkles, Wallet } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { completeCalendarConnect, disconnectCalendar, getCalendarEvents, startCalendarConnect } from "@/lib/calendar.functions";
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
+import { DashboardArtwork } from "./DashboardArtwork";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -51,38 +52,68 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t("Good morning") : hour < 18 ? t("Good afternoon") : t("Good evening");
   const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
-  const quick = "rounded-full border border-border bg-transparent px-5 py-2.5 text-sm font-semibold transition-colors hover:border-transparent hover:bg-gradient-gold hover:text-gold-foreground focus-visible:bg-gradient-gold focus-visible:text-gold-foreground";
+  const quick = "studio-button";
   return (
-    <div className="space-y-6">
-      <section className="dm-card relative overflow-hidden p-6 md:p-8" aria-labelledby="ov-hello">
-        <small className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</small>
-        <h1 id="ov-hello" className="mt-2 text-5xl leading-[0.95] md:text-6xl">{greeting}, <span className="it">{stageName}.</span></h1>
-        <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t("Every new enquiry is answered by your AI agent, and you will see confirmed bookings here first.")}</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b className="text-gold">{planName}</b></button>
-          <button type="button" className={quick} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</button>
-          <button type="button" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</button>
+    <div className="studio-overview">
+      <section className="studio-hello studio-span-12" aria-labelledby="ov-hello">
+        <DashboardArtwork />
+        <div className="studio-greeting">
+          <small>{t(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}</small>
+          <h1 id="ov-hello">{greeting}, <span className="it">{stageName}.</span></h1>
+          <p>{t("Every new enquiry is answered by your AI agent, and you will see confirmed bookings here first.")}</p>
+        </div>
+        <div className="studio-quick">
+          <Button variant="outline" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b>{t(planName)}</b></Button>
+          <Button variant="outline" className={quick} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</Button>
+          <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
         </div>
       </section>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label={t("Available balance")} value={aed(Number(data?.wallet?.available ?? 0))} hint={t("Ready to withdraw")} />
-        <Kpi label={t("Jobs completed")} value={String(data?.wallet?.jobs ?? 0)} />
-        <Kpi label={t("Upcoming bookings")} value={String(upcoming)} hint={`${data?.newQuotes ?? 0} ${t("new quote requests")}`} />
-        <Kpi label={t("AI credits")} value={String(data?.credits ?? 0)} />
-      </div>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="dm-card p-5 lg:col-span-2">
-          <h2 className="text-2xl leading-none">{t("Earnings")} <span className="it">{t("over time")}</span></h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("Last 6 months, in AED")}</p>
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chart}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" fontSize={12} /><YAxis fontSize={12} /><Tooltip formatter={(v) => aed(Number(v))} /><Bar dataKey="earned" fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
-            </ResponsiveContainer>
-          </div>
-          <button type="button" className="mt-3 text-xs font-semibold text-gold underline underline-offset-4" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</button>
+      <article className="studio-kpi studio-span-3">
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("Available balance")}</span>
+        <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{Number(data?.wallet?.available ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div className="studio-kpi-action"><span>{t("Ready to withdraw")}</span><Button variant="outline" size="sm" className="studio-button" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button></div>
+      </article>
+      <article className="studio-kpi studio-span-3">
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><FileSignature aria-hidden="true" /></span>{t("Jobs completed")}</span>
+        <div className="studio-kpi-value">{data?.wallet?.jobs ?? 0}</div>
+        <div className="studio-kpi-action"><span>{t("Completed bookings release your payment")}</span></div>
+      </article>
+      <article className="studio-kpi studio-span-3">
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Calendar aria-hidden="true" /></span>{t("Upcoming bookings")}</span>
+        <div className="studio-kpi-value">{upcoming}</div>
+        <div className="studio-kpi-action"><span>{data?.newQuotes ?? 0} {t("new quote requests")}</span><Button variant="link" className="studio-text-link" onClick={() => onOpen("quotes")}>{t("Open")} <span aria-hidden="true">→</span></Button></div>
+      </article>
+      <article className="studio-kpi studio-kpi-gold studio-span-3">
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Sparkles aria-hidden="true" /></span>{t("AI credits")}</span>
+        <svg className="studio-credit-gauge" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" /><circle className="studio-gauge-accent" cx="50" cy="50" r="40" /><Sparkles x="38" y="38" width="24" height="24" /></svg>
+        <div className="studio-kpi-value">{data?.credits ?? 0}</div>
+        <div className="studio-kpi-action"><span>{t(planName)} {t("plan")}</span><Button variant="link" className="studio-text-link" onClick={() => setModal("topup")}>{t("Top up")} <span aria-hidden="true">→</span></Button></div>
+      </article>
+      <section className="studio-panel studio-earnings studio-span-8" aria-labelledby="ov-earnings">
+        <div className="studio-panel-heading"><h2 id="ov-earnings">{t("Earnings")} <span className="it">{t("over time")}</span><small>{t("Last 6 months, in AED")}</small></h2><span className="studio-range">{t("6 months")}</span></div>
+        <div className="studio-chart">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chart}><CartesianGrid stroke="var(--studio-line)" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickFormatter={(v: string) => t(v)} fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} /><YAxis fontSize={11} stroke="var(--studio-mute-2)" tickLine={false} axisLine={false} width={44} /><Tooltip formatter={(v) => aed(Number(v))} labelFormatter={(v) => t(String(v))} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "var(--studio-tooltip-radius)", color: "var(--foreground)" }} /><Bar dataKey="earned" name={t("Earnings")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} /></BarChart>
+          </ResponsiveContainer>
+          {chart.every((m) => m.earned === 0) && <div className="studio-chart-empty"><b>{t("No earnings")} <span className="it">{t("yet.")}</span></b><p>{t("Your first completed booking appears here. Payments are released after each job is done.")}</p><Button className="studio-button studio-button-gold" onClick={() => onOpen("profile")}>{t("Share your profile")} <span aria-hidden="true">→</span></Button></div>}
         </div>
-        <OverviewPlan artistId={artistId} stageName={stageName} plan={plan} openModal={setModal} />
-      </div>
+        <Button variant="link" className="studio-text-link studio-wallet-link" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button>
+      </section>
+      <OverviewPlan artistId={artistId} stageName={stageName} plan={plan} openModal={setModal} />
+      <section className="studio-panel studio-span-4">
+        <div className="studio-panel-heading"><h2>{t("Upcoming")}</h2><Button variant="link" className="studio-text-link" onClick={() => onOpen("calendar")}>{t("Calendar")} <span aria-hidden="true">→</span></Button></div>
+        <div className="studio-zero"><span className="studio-orb"><Calendar aria-hidden="true" /></span><b>{upcoming > 0 ? `${upcoming} ${t("Upcoming bookings")}` : t("Nothing booked yet")}</b><p>{t("Confirmed bookings show here with date, venue and deposit status.")}</p></div>
+      </section>
+      <section className="studio-panel studio-span-4">
+        <div className="studio-panel-heading"><h2>{t("Inbox")}</h2><Button variant="link" className="studio-text-link" onClick={() => onOpen("inbox")}>{t("Open")} <span aria-hidden="true">→</span></Button></div>
+        <div className="studio-zero"><span className="studio-orb"><InboxIcon aria-hidden="true" /></span><b>{data?.newQuotes ? `${data.newQuotes} ${t("new quote requests")}` : t("Quote requests")}</b><p>{t("Your AI agent answers new enquiries and hands over real bookings to you.")}</p></div>
+      </section>
+      <section className="studio-panel studio-span-4">
+        <div className="studio-panel-heading"><h2>{t("AI")} <span className="it">{t("agent")}</span></h2><Button variant="link" className="studio-text-link" onClick={() => onOpen("agent")}>{t("Settings")}</Button></div>
+        <div className="studio-agent"><span className="studio-pulse"><Bot aria-hidden="true" /></span><div><b>{t("AI agent")}</b><p>{t("Replies in English and Arabic using your rate card.")}</p></div></div>
+        <div className="studio-agent-divider" />
+        <p className="studio-agent-credits"><b>{data?.credits ?? 0}</b> {t("credits left · each AI reply uses 1 credit")}</p>
+      </section>
       <PlanDialogs artistId={artistId} plan={plan} open={modal} setOpen={setModal} />
     </div>
   );

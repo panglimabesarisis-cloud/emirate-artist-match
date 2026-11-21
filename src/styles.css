@@ -392,7 +392,7 @@
    so dialogs, popovers and toasts rendered in portals are themed too. The public site keeps its own look. ===== */
 html.dm-dash {
   --font-display: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
-  --background: #0a0e1b;
+  --background: #07090f;
   --foreground: #f6efe2;
   --card: #0f1426;
   --card-foreground: #f6efe2;
@@ -403,20 +403,20 @@ html.dm-dash {
   --secondary: #161d33;
   --secondary-foreground: #f6efe2;
   --muted: #121830;
-  --muted-foreground: #9aa3bd;
+  --muted-foreground: rgba(246,239,226,.58);
   --accent: #1b2340;
   --accent-foreground: #e8b04a;
   --destructive: #e5574c;
   --destructive-foreground: #ffffff;
-  --border: #232b45;
-  --input: #2a3354;
+  --border: rgba(246,239,226,.09);
+  --input: rgba(246,239,226,.16);
   --ring: #e8b04a;
   --gold: #e8b04a;
   --gold-foreground: #0a0e1b;
   --night: #0f1426;
   --night-foreground: #f6efe2;
   --success: #7bd88f;
-  --gradient-gold: linear-gradient(135deg, #f0c164, #d4842a);
+  --gradient-gold: linear-gradient(100deg, #f0c062 0%, #e8a33f 45%, #d4842a 100%);
   --shadow-card: 0 1px 0 rgba(246, 239, 226, 0.04) inset, 0 18px 40px -22px rgba(0, 0, 0, 0.7);
   --chart-1: #e8b04a;
   --chart-2: #4d9bff;
@@ -431,6 +431,39 @@ html.dm-dash {
   --sidebar-accent-foreground: #f6efe2;
   --sidebar-border: #1c2340;
   --sidebar-ring: #e8b04a;
+  --studio-ease: cubic-bezier(.22,1,.36,1);
+  --studio-tooltip-radius: 10px;
+  --studio-line: rgba(246,239,226,.09);
+  --studio-line-2: rgba(246,239,226,.16);
+  --studio-mute-2: rgba(246,239,226,.4);
+  --studio-wash: rgba(246,239,226,.04);
+  --studio-gold-wash: rgba(232,176,74,.12);
+  --studio-gold-wash-soft: rgba(232,176,74,.05);
+  --studio-gold-line: rgba(232,176,74,.4);
+  --studio-gold-line-soft: rgba(232,176,74,.25);
+  --studio-success-line: rgba(123,216,143,.35);
+  --studio-success-wash: rgba(123,216,143,.08);
+  --studio-ring-track: rgba(246,239,226,.07);
+  --studio-top-wash: rgba(7,9,15,.78);
+  --studio-empty-wash: rgba(10,14,27,.86);
+  --studio-scrim: rgba(0,0,0,.6);
+  --studio-moon: #f0c062;
+  --studio-moon-glow: rgba(240,192,98,.55);
+  --studio-city-far: #131c35;
+  --studio-city-near: #090d19;
+  --studio-sidebar-gradient: linear-gradient(180deg,#0b1020,#07090f);
+  --studio-hero-gradient: radial-gradient(ellipse at 75% -10%,#1c2340 0%,#0e1326 55%,#0a0e1c 100%);
+  --studio-hero-scrim: linear-gradient(90deg,rgba(10,14,28,.9) 0%,rgba(10,14,28,.55) 50%,transparent 85%);
+  --studio-kpi-gradient: linear-gradient(180deg,#10162a,#0b0f1d);
+  --studio-panel-gradient: linear-gradient(180deg,#0f1426,#0a0e1b);
+  --studio-promo-gradient: radial-gradient(ellipse at 80% 0%,rgba(232,176,74,.16),transparent 60%),rgba(246,239,226,.02);
+  --studio-gold-kpi-gradient: radial-gradient(ellipse at 100% 0%,rgba(232,176,74,.22),transparent 60%),linear-gradient(180deg,#171a26,#0e111c);
+  --studio-orb-gradient: radial-gradient(circle,rgba(232,176,74,.22),rgba(232,176,74,.04) 70%);
+  --studio-ember-gradient: radial-gradient(circle,#fff1c8,rgba(240,190,100,.6) 45%,transparent 72%);
+  --studio-low-gradient: linear-gradient(90deg,var(--chart-4),var(--gold));
+  --studio-pill-shadow: 0 10px 30px rgba(232,164,63,.25);
+  --studio-gold-shadow: 0 8px 24px rgba(232,164,63,.22);
+  --studio-gold-hover-shadow: 0 12px 30px rgba(232,164,63,.35);
   color-scheme: dark;
 }
 html.dm-dash body { background-color: var(--background); }
