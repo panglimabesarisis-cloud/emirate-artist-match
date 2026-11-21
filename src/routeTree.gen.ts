@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as ForClientsRouteImport } from './routes/for-clients'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -58,6 +59,11 @@ const AuthRoute = AuthRouteImport.update({
 const FeaturesRoute = FeaturesRouteImport.update({
   id: '/features',
   path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForClientsRoute = ForClientsRouteImport.update({
+  id: '/for-clients',
+  path: '/for-clients',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HowItWorksRoute = HowItWorksRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/features': typeof FeaturesRoute
+  '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/features': typeof FeaturesRoute
+  '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/features': typeof FeaturesRoute
+  '/for-clients': typeof ForClientsRoute
   '/how-it-works': typeof HowItWorksRoute
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/features'
+    | '/for-clients'
     | '/how-it-works'
     | '/join'
     | '/mcp'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/features'
+    | '/for-clients'
     | '/how-it-works'
     | '/join'
     | '/mcp'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/features'
+    | '/for-clients'
     | '/how-it-works'
     | '/join'
     | '/mcp'
@@ -405,6 +417,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   FeaturesRoute: typeof FeaturesRoute
+  ForClientsRoute: typeof ForClientsRoute
   HowItWorksRoute: typeof HowItWorksRoute
   JoinRoute: typeof JoinRoute
   McpRoute: typeof McpRoute
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/features'
       fullPath: '/features'
       preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-clients': {
+      id: '/for-clients'
+      path: '/for-clients'
+      fullPath: '/for-clients'
+      preLoaderRoute: typeof ForClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-it-works': {
@@ -673,6 +693,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   FeaturesRoute: FeaturesRoute,
+  ForClientsRoute: ForClientsRoute,
   HowItWorksRoute: HowItWorksRoute,
   JoinRoute: JoinRoute,
   McpRoute: McpRoute,

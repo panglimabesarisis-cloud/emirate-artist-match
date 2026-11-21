@@ -54,7 +54,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
             <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "artists"} aria-controls="home-artists-menu" onClick={() => setDropdown(dropdown === "artists" ? null : "artists")}>{t("For artists")}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p" id="home-artists-menu" inert={dropdown !== "artists"}>{artistLinks}</div>
           </div>
-          <Link to="/how-it-works">{t("For clients")}</Link>
+          <Link to="/for-clients" activeProps={{ "aria-current": "page" }}>{t("For clients")}</Link>
           <Link to="/features">{t("Features")}</Link>
           <Link to="/how-it-works">{t("How it works")}</Link>
         </nav>
@@ -72,7 +72,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
       {menu && <nav id="home-mobile-menu" className="home-mobile-menu" aria-label={t("Mobile navigation")}>
         <details><summary>{t("Find talent")}</summary><div>{categories}</div></details>
         <details><summary>{t("For artists")}</summary><div>{artistLinks}</div></details>
-        <Link to="/how-it-works" onClick={close}>{t("For clients")}</Link><Link to="/how-it-works" onClick={close}>{t("How it works")}</Link>
+        <Link to="/for-clients" activeProps={{ "aria-current": "page" }} onClick={close}>{t("For clients")}</Link><Link to="/how-it-works" onClick={close}>{t("How it works")}</Link>
         <Link to="/features" onClick={close}>{t("Features")}</Link><Link to="/support" onClick={close}>{t("Support")}</Link><Link to="/terms" onClick={close}>{t("Terms of Service")}</Link>
         <Link to="/join" onClick={close}>{t("Join as talent")}</Link>
         {user ? <><Link to="/dashboard" onClick={close}>{t("Dashboard")}</Link>{isAdmin && <Link to="/admin" onClick={close}>{t("Admin")}</Link>}<Button variant="ghost" onClick={signOut}>{t("Sign out")}</Button></> : <Link to="/auth" onClick={close}>{t("Sign in")}</Link>}

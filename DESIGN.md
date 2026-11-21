@@ -49,3 +49,30 @@ Cover search filters, artist media/packages/reviews, quotes and structured chat,
 Genericness check: replace interchangeable benefit cards and invented metrics with the actual approval checkpoint and six specific booking stages. Retain the requested Features aesthetic instead of introducing another visual identity.
 
 Skill reference files are not available in this workspace; use the supplied design skill body and existing page as the implementation reference. User requested no screenshots or extra testing; verification is limited to source review and available build diagnostics. No production visual score or end-to-end payment claim is made.
+
+## For clients extension
+Brief: /for-clients is a separate client-facing page, not another link to /how-it-works. Keep the latter intact. The homepage and How it works define the art direction; retain TanStack Start and the existing navigation.
+
+Concept options (originality / fit / feasibility / portability):
+- The event brief: organise discovery around the client’s occasion and requirements, then show what to compare. Signature: editorial event-type strip and profile checklist. Anchor: category, specialty and location search. Emotion: possibility. Frame: arch scene and event types. Scores 4/5/5/2.
+- The approval checkpoint: trace brief, artist review and agreement. Signature: a three-stage process beside the enquiry section. Anchor: artists approve offers before payment. Emotion: assurance. Frame: artist approval diagram. Scores 4/5/5/2.
+- The event file: organise all messages and documents as a chronological dossier. Signature: numbered document milestones. Anchor: secret booking links and linked invoices. Emotion: order. Frame: booking document sequence. Scores 3/4/5/3.
+
+Selected: the event brief, supported by the approval checkpoint. Clients should see both the occasion they are planning and the information they need to book.
+
+System: reuse the existing ink/cream/gold tokens, Bebas Neue/Manrope typography, arch scene and alternating sections. Add only page-scoped event-type strip and trust-band styles. Stable icon sizes, 8px maximum item radius, zero tracking, fixed breakpoint type sizes and inherited reduced-motion behavior. Existing scene clock is the only idle driver. No fictional talent, prices, metrics or payment guarantees.
+
+```text
+ARCH SCENE / FOR CLIENTS
+      Book talent for your event
+      find talent | booking guide
+Weddings / Corporate / Private / Cultural
+Discovery text                 comparison checklist
+Brief-to-approval sequence      enquiry text
+Booking documents text         event milestones
+Trust principles / unframed full-width band
+Client questions               expandable answers
+Final action / browse talent
+```
+
+Genericness check: avoid generic benefit cards and an artist-signup pitch; use client event types, real profile evidence, artist-reviewed offers and demo payment disclosure. Desktop and mobile For clients links both target the new content route. No screenshots, production visual score or live-payment verification.

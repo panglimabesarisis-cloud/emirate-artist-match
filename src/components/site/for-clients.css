@@ -1,0 +1,22 @@
+.dm-reference .client-occasions {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;padding-block:38px;border-bottom:1px solid var(--dm-line)}
+.dm-reference .client-occasion {display:flex;gap:14px;align-items:center;min-width:0}
+.dm-reference .client-occasion svg {width:24px;height:24px;flex-shrink:0;color:var(--dm-gold)}
+.dm-reference .client-occasion strong {display:block;font-size:15px;font-weight:600}
+.dm-reference .client-occasion span {display:block;color:var(--dm-mute);font-size:12px;margin-top:4px;line-height:1.5}
+.dm-reference .client-hero-actions {display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
+.dm-reference .client-hero-actions a {height:auto;white-space:normal}
+.dm-reference .client-hero-note {display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;font-size:13px;color:var(--dm-cream)}
+.dm-reference .client-hero-note svg {width:15px;height:15px;flex-shrink:0;color:var(--dm-gold)}
+.dm-reference .clients-page .f-hero-in {padding-block:76px 56px;min-height:560px}
+.dm-reference .client-trust {padding-block:75px;border-bottom:1px solid var(--dm-line)}
+.dm-reference .client-trust h2 {font-size:56px;line-height:1;max-width:750px}
+.dm-reference .client-trust-list {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px;list-style:none;padding:0;margin-top:38px}
+.dm-reference .client-trust-list li {border-top:1px solid var(--dm-line);padding-top:24px;min-width:0}
+.dm-reference .client-trust-list svg {width:24px;height:24px;color:var(--dm-gold);margin-bottom:18px}
+.dm-reference .client-trust-list h3 {font-family:var(--dm-sans);font-size:17px;font-weight:600;line-height:1.5;margin-bottom:10px}
+.dm-reference .client-trust-list p {font-size:15px;line-height:1.7;color:var(--dm-mute)}
+.dm-reference .client-support-link {display:inline-flex;align-items:center;gap:10px;color:var(--dm-gold);margin-top:24px;text-decoration:underline;text-underline-offset:5px;font-size:14px;transition:translate .3s var(--dm-ease)}
+.dm-reference .client-support-link:hover {translate:4px 0}
+@media(max-width:900px){.dm-reference .client-occasions {grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.dm-reference .client-trust-list {gap:24px}.dm-reference .clients-page .f-hero-in {min-height:0;padding-block:65px}.dm-reference .client-trust h2 {font-size:48px}}
+@media(max-width:640px){.dm-reference .clients-page .f-hero-in {padding-block:48px}.dm-reference .client-occasions {gap:24px 18px;padding-block:28px}.dm-reference .client-occasion {align-items:start;gap:10px}.dm-reference .client-occasion strong {font-size:13px}.dm-reference .client-occasion svg {width:20px;height:20px}.dm-reference .client-occasion span {font-size:12px}.dm-reference .client-trust {padding-block:54px}.dm-reference .client-trust h2 {font-size:42px}.dm-reference .client-trust-list {grid-template-columns:1fr;gap:28px}.dm-reference .client-hero-note {font-size:12px;align-items:start;text-align:start;max-width:310px}.dm-reference .client-hero-note svg {margin-top:2px}}
+@media(prefers-reduced-motion:reduce){.dm-reference .client-support-link:hover {translate:none}}
