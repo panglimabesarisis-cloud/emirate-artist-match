@@ -353,6 +353,45 @@ export type Database = {
           },
         ]
       }
+      ai_flow_template_purchases: {
+        Row: {
+          artist_id: string
+          paid_at: string | null
+          refunded_at: string | null
+          stripe_session_id: string | null
+          template_id: string
+        }
+        Insert: {
+          artist_id: string
+          paid_at?: string | null
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+          template_id: string
+        }
+        Update: {
+          artist_id?: string
+          paid_at?: string | null
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_flow_template_purchases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_flow_template_purchases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ai_flow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_flow_templates: {
         Row: {
           description: string
@@ -360,6 +399,7 @@ export type Database = {
           id: string
           name: string
           nodes: Json
+          price_aed: number
           published: boolean
           updated_at: string
         }
@@ -369,6 +409,7 @@ export type Database = {
           id?: string
           name: string
           nodes?: Json
+          price_aed?: number
           published?: boolean
           updated_at?: string
         }
@@ -378,6 +419,7 @@ export type Database = {
           id?: string
           name?: string
           nodes?: Json
+          price_aed?: number
           published?: boolean
           updated_at?: string
         }
@@ -1858,6 +1900,96 @@ export type Database = {
           },
         ]
       }
+      order_form_template_purchases: {
+        Row: {
+          artist_id: string
+          paid_at: string | null
+          refunded_at: string | null
+          stripe_session_id: string | null
+          template_id: string
+        }
+        Insert: {
+          artist_id: string
+          paid_at?: string | null
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+          template_id: string
+        }
+        Update: {
+          artist_id?: string
+          paid_at?: string | null
+          refunded_at?: string | null
+          stripe_session_id?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_form_template_purchases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_form_template_purchases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "order_form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_form_template_purchases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "order_form_templates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_form_templates: {
+        Row: {
+          category: string | null
+          description: string | null
+          fields: Json
+          id: string
+          is_active: boolean
+          name: string
+          price_aed: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          price_aed?: number
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_aed?: number
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_form_templates_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       payment_event_inbox: {
         Row: {
           attempted_at: string | null
@@ -2814,6 +2946,50 @@ export type Database = {
           },
         ]
       }
+      order_form_templates_public: {
+        Row: {
+          category: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          price_aed: number | null
+          question_count: number | null
+          tier: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          price_aed?: number | null
+          question_count?: never
+          tier?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          price_aed?: number | null
+          question_count?: never
+          tier?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_form_templates_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_artist_invites: { Args: never; Returns: number }
@@ -2981,6 +3157,19 @@ export type Database = {
       is_any_artist_team: { Args: never; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
+      list_flow_templates: {
+        Args: never
+        Returns: {
+          block_types: string[]
+          description: string
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          price_aed: number
+          unlocked: boolean
+        }[]
+      }
       next_invoice_no: { Args: never; Returns: string }
       record_test_refund: {
         Args: { _order: string; _processor: number }
@@ -3011,6 +3200,8 @@ export type Database = {
         Returns: boolean
       }
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
+      use_flow_template: { Args: { _id: string }; Returns: string }
+      use_order_form_template: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"
