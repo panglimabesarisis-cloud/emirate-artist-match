@@ -210,7 +210,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
           </p>
         )}
         <div className="dmr-tbl-wrap">
-          <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-[13.5px]">
+          <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-[13.5px]" data-studio-table="true">
             <thead>
               <tr>
                 <th scope="col" className={`w-10 ${headCell}`}>
@@ -250,7 +250,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                       onChange={(e) => setSel(e.target.checked ? [...sel, r.id] : sel.filter((x) => x !== r.id))}
                     />
                   </td>
-                  <td className={`whitespace-nowrap ${cell}`}>
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Client")}>
                     <div className="flex items-center gap-2.5">
                       <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-gold text-sm font-bold text-gold-foreground" aria-hidden>
                         {r.name.slice(0, 1).toUpperCase()}
@@ -258,7 +258,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                       <b>{r.name}</b>
                     </div>
                   </td>
-                  <td className={`whitespace-nowrap ${cell}`}>
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Email")}>
                     {r.email ? (
                       <a className="hover:text-gold" href={`mailto:${r.email}`}>
                         {r.email}
@@ -267,22 +267,22 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                       "—"
                     )}
                   </td>
-                  <td className={`whitespace-nowrap text-muted-foreground ${cell}`}>{r.phone ? <a href={`tel:${r.phone}`}>{r.phone}</a> : "—"}</td>
-                  <td className={`whitespace-nowrap ${cell}`}>{r.event_types?.name ?? "—"}</td>
-                  <td className={`whitespace-nowrap ${cell}`}>
+                  <td className={`whitespace-nowrap text-muted-foreground ${cell}`} data-label={t("Phone")}>{r.phone ? <a href={`tel:${r.phone}`}>{r.phone}</a> : "—"}</td>
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Event")}>{r.event_types?.name ?? "—"}</td>
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Date")}>
                     {r.event_date
                       ? new Date(`${r.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                       : t("Not set")}
                   </td>
-                  <td className={`whitespace-nowrap ${cell}`}>{r.areas?.name ?? "—"}</td>
-                  <td className={`text-end ${cell}`}>{r.guests?.toLocaleString("en-US") ?? "—"}</td>
-                  <td className={`text-end font-bold text-gold ${cell}`} dir="ltr">
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Venue")}>{r.areas?.name ?? "—"}</td>
+                  <td className={`text-end ${cell}`} data-label={t("Guests")}>{r.guests?.toLocaleString("en-US") ?? "—"}</td>
+                  <td className={`text-end font-bold text-gold ${cell}`} dir="ltr" data-label={t("Budget (AED)")}>
                     {r.budget ? Number(r.budget).toLocaleString("en-US") : "—"}
                   </td>
-                  <td className={`max-w-[220px] truncate text-muted-foreground ${cell}`} title={r.message ?? ""}>
+                  <td className={`max-w-[220px] truncate text-muted-foreground ${cell}`} title={r.message ?? ""} data-label={t("Notes")}>
                     {r.message || t("None")}
                   </td>
-                  <td className={cell}>
+                  <td className={cell} data-label={t("Status")}>
                     <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold capitalize ${badge[r.status] ?? badge["closed"]}`}>{t(r.status)}</span>
                   </td>
                 </tr>

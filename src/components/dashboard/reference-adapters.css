@@ -4,6 +4,8 @@ html.dm-dash .studio-reference .dmr-panel{border-radius:20px;border:1px solid va
 html.dm-dash .studio-reference .dmr-ph{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 html.dm-dash .studio-reference .dmr-q-head>div:first-child{min-width:0;flex:1}
 html.dm-dash .studio-reference .dmr-q-head p{max-width:680px;font-size:13px;line-height:1.65;margin-top:10px;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .dmr-q-head .dmr-q-stats{flex:0 1 auto}
+html.dm-dash .studio-reference .dmr-q-head [data-slot=button]{flex-shrink:0}
 html.dm-dash .studio-reference .studio-flow-template-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 html.dm-dash .studio-reference .studio-flow-template-card{background:var(--studio-wash);border:1px solid var(--studio-line);border-radius:16px;padding:22px;min-width:0}
 html.dm-dash .studio-reference .studio-flow-template-card h3{font-size:26px;margin-block:12px 8px}
@@ -184,5 +186,23 @@ html.dm-dash .studio-account-page{max-width:1400px;margin-inline:auto;padding:28
 @media(max-width:900px){html.dm-dash .studio-reference .dmr-ibx{grid-template-columns:minmax(0,1fr);height:auto;min-height:0}html.dm-dash .studio-reference .dmr-list{max-height:360px}html.dm-dash .studio-reference .dmr-conv{min-height:480px}html.dm-dash .studio-reference .studio-wallet-hero,html.dm-dash .studio-reference .studio-credit-hero{grid-template-columns:minmax(0,1fr)}html.dm-dash .studio-reference .studio-verification-ladder{grid-template-columns:minmax(0,1fr)}html.dm-dash .studio-reference .studio-template-disabled{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:620px){html.dm-dash .studio-reference .dmr-wrap{gap:16px}html.dm-dash .studio-reference .dmr-q-head h1{font-size:40px}html.dm-dash .studio-reference .studio-donut-panel,html.dm-dash .studio-reference .dmr-c-6,html.dm-dash .studio-reference .studio-team-invite{grid-column:span 12}html.dm-dash .studio-reference .studio-credit-packs,html.dm-dash .studio-reference .studio-wallet-stats{grid-template-columns:minmax(0,1fr)}html.dm-dash .studio-reference .studio-media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}html.dm-dash .studio-reference .studio-profile-about{grid-template-columns:minmax(0,1fr)}html.dm-dash .studio-reference .dmr-q-tools{padding:16px}html.dm-dash .studio-reference .studio-wallet-hero{padding:24px}html.dm-dash .studio-reference .studio-wallet-hero .font-display{font-size:48px}html.dm-dash .studio-account-page{padding:20px 18px 50px}html.dm-dash .studio-reference .dmr-qs{min-width:65px}html.dm-dash .studio-wallet-process{gap:6px}html.dm-dash .studio-wallet-process span{padding:10px}}
 @media(max-width:900px){html.dm-dash .studio-reference .studio-flow-template-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:900px){
+ html.dm-dash .studio-reference table[data-studio-table]{display:block;min-width:0!important;border-spacing:0}
+ html.dm-dash .studio-reference table[data-studio-table]>thead{display:none}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody{display:block;padding:12px}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr{display:block;position:relative;border:1px solid var(--studio-line);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--studio-wash)}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr:last-child{margin-bottom:0}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr>td{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-width:0!important;max-width:none;padding:10px 0;white-space:normal!important;text-align:end;border-bottom:1px dashed var(--studio-line);font-size:12px;overflow-wrap:anywhere}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr>td:last-child{border-bottom:0}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr>td[data-label]::before{content:attr(data-label);flex:0 0 90px;font-size:10px;font-weight:700;text-align:start;color:var(--gold);text-transform:uppercase;white-space:normal}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr>td[colspan]{display:block;text-align:center;border:0}
+ html.dm-dash .studio-reference table[data-studio-table]>tbody>tr>td .truncate{white-space:normal;overflow:visible;text-overflow:clip}
+ html.dm-dash .studio-reference table.studio-bookings-table>tbody>tr>td:first-child{display:block;text-align:start}
+ html.dm-dash .studio-reference table.studio-bookings-table>tbody>tr>td:first-child::before{display:block;margin-bottom:10px}
+ html.dm-dash .studio-reference .studio-calendar-connect{flex-wrap:wrap}
+ html.dm-dash .studio-reference .studio-calendar-connect>div:first-child{flex:1 1 200px}
+ html.dm-dash .studio-reference .dmr-q-head{align-items:flex-start}
+ html.dm-dash .studio-reference .dmr-q-head>div:first-child{flex-basis:100%}
+}
 @media(max-width:620px){html.dm-dash .studio-reference .studio-order-layout.is-edit .studio-order-preview{display:none}html.dm-dash .studio-reference .studio-order-layout.is-preview .studio-order-editor{display:none}}
 @media(prefers-reduced-motion:reduce){html.dm-dash .studio-reference *,html.dm-dash .studio-reference *::before,html.dm-dash .studio-reference *::after{animation:none!important;transition:none!important}}

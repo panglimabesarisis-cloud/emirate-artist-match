@@ -38,10 +38,10 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const saveRating = async (b: { id: string; client_email: string | null }) => {
     if (!rate || !b.client_email) return;
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { toast.error("Please sign in"); return; }
+    if (!u.user) { toast.error(t("Please sign in")); return; }
     const { error } = await supabase.from("client_ratings").insert({ booking_id: b.id, artist_id: artistId, client_email: b.client_email.toLowerCase(), rating: rate.rating, note: rate.note.trim().slice(0, 500) || null, created_by: u.user.id });
-    if (error) { toast.error("Could not save rating"); return; }
-    toast.success("Private client rating saved"); setRate(null); qc.invalidateQueries({ queryKey: ["client-ratings"] });
+    if (error) { toast.error(t("Could not save rating")); return; }
+    toast.success(t("Private client rating saved")); setRate(null); qc.invalidateQueries({ queryKey: ["client-ratings"] });
   };
   const [f, setF] = useState({ conversationId: "", title: "", amount: "", eventDate: "", notes: "" });
   const [trnV, setTrn] = useState(trn ?? "");
@@ -59,10 +59,10 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
     <div className="dmr-wrap dmr-bpage">
       <StudioHeading title="Book" accent="ings"><div className="dmr-q-stats">{["inquiry","confirmed","completed"].map(status=><div className="dmr-qs" key={status}><small>{t(status)}</small><b>{bookings?.filter(b=>b.status === status).length ?? 0}</b></div>)}</div></StudioHeading>
       <section className="dmr-panel dmr-q-panel dmr-b-main"><div className="dmr-q-tools"><Input aria-label={t("Search bookings")} placeholder={t("Search client or booking")} value={search} onChange={e=>setSearch(e.target.value)} /><div className="dmr-q-tabs">{["all","inquiry","quoted","confirmed","completed"].map(status=><Button key={status} variant={filter === status ? "default" : "ghost"} aria-pressed={filter === status} onClick={()=>setFilter(status)}>{t(status === "all" ? "All" : status)}</Button>)}</div></div>
-      <div className="min-w-0 overflow-x-auto"><table className="studio-bookings-table"><thead><tr className="border-b text-start"><th className="p-3 text-start">{t("Client / booking")}</th><th className="p-3 text-start">{t("Date & time")}</th><th className="p-3 text-start">{t("Total")}</th><th className="p-3 text-start">{t("Payment")}</th><th className="p-3 text-start">{t("Balance")}</th><th className="p-3 text-start">{t("Calendar")}</th></tr></thead><tbody>
+      <div className="min-w-0 overflow-x-auto"><table className="studio-bookings-table" data-studio-table="true"><thead><tr className="border-b text-start"><th className="p-3 text-start">{t("Client / booking")}</th><th className="p-3 text-start">{t("Date & time")}</th><th className="p-3 text-start">{t("Total")}</th><th className="p-3 text-start">{t("Payment")}</th><th className="p-3 text-start">{t("Balance")}</th><th className="p-3 text-start">{t("Calendar")}</th></tr></thead><tbody>
         {bookings?.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">{t("No bookings yet")}</td></tr>}
         {bookings?.filter(b=>(filter === "all" || b.status === filter) && `${b.client_name} ${b.package_title}`.toLowerCase().includes(search.toLowerCase())).map((b) => (
-          <tr key={b.id} className="border-b align-top"><td className="min-w-[250px] p-3">
+          <tr key={b.id} className="border-b align-top"><td className="min-w-[250px] p-3" data-label={t("Client / booking")}>
             <div className="flex justify-between gap-3">
               <div>
                 <div className="font-semibold">{b.client_name} · {b.package_title}</div>
@@ -88,12 +88,12 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
             {(b.status === "quoted" || b.status === "confirmed") && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {b.status === "confirmed" && <Button size="sm" disabled={busy || Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)} title={canComplete(b.status, b.event_date) ? "" : t("Available from the event date")} onClick={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>{t("Mark completed")}</Button>}
-                {canDispute(b.status, b.escrow_status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = prompt("Describe the problem for the Dealmaker team"); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>{t("Report problem")}</Button>}
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm("Cancel? The client gets a full refund.")) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>{t("Cancel")}</Button>
+                {canDispute(b.status, b.escrow_status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = prompt(t("Describe the problem for the Dealmaker team")); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>{t("Report problem")}</Button>}
+                <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm(t("Cancel? The client gets a full refund."))) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>{t("Cancel")}</Button>
               </div>
             )}
             <details className="mt-3"><summary className="cursor-pointer text-primary">{t("Booking information")}</summary><table className="mt-2 w-full text-xs"><tbody>{[["Job detail",b.job_detail??b.notes??"—"],["Email",b.client_email??"—"],["Invoice",b.invoice_no??"—"],["H-7 reminder",b.reminder_sent_at?"Sent":"Pending"],["Calendar error",b.calendar_sync_error??"—"]].map(([k,v])=><tr key={k} className="border-b"><th className="py-2 pe-2 text-start">{k}</th><td className="py-2 whitespace-pre-wrap break-words">{v}</td></tr>)}</tbody></table></details>
-          </td><td className="p-3 whitespace-nowrap">{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap">{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap"><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`Paid ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:t("Unpaid")}</Badge></td><td className="p-3 whitespace-nowrap">{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3">{b.calendar_sync_status}</td></tr>
+          </td><td className="p-3 whitespace-nowrap" data-label={t("Date & time")}>{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap" data-label={t("Total")}>{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap" data-label={t("Payment")}><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`Paid ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:t("Unpaid")}</Badge></td><td className="p-3 whitespace-nowrap" data-label={t("Balance")}>{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3" data-label={t("Calendar")}>{b.calendar_sync_status}</td></tr>
         ))}
       </tbody></table></div><div className="dmr-q-foot"><span>{bookings?.length ?? 0} {t("bookings")}</span><span>{t("All totals in AED, incl. 5% VAT")}</span></div></section>
       <aside className="dmr-b-side">
@@ -124,14 +124,14 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
           <h3 className="font-semibold">{t("Booking alerts")}</h3>
           <Label>{t("WhatsApp number for approval requests")}</Label>
           <div className="flex gap-2"><Input value={phone} maxLength={20} onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))} placeholder="+971 50 123 4567" />
-            <Button variant="outline" onClick={async () => { const { error } = await supabase.from("artists").update({ notify_phone: phone || null }).eq("id", artistId); if (error) toast.error(error.message); else toast.success("Saved"); }}>{t("Save")}</Button></div>
+            <Button variant="outline" onClick={async () => { const { error } = await supabase.from("artists").update({ notify_phone: phone || null }).eq("id", artistId); if (error) toast.error(error.message); else toast.success(t("Saved")); }}>{t("Save")}</Button></div>
           <p className="text-xs text-muted-foreground">{t("Approval requests also go to your account email.")}</p>
         </div>
         <div className="dmr-panel dmr-b-card space-y-2">
           <h3 className="font-semibold">{t("VAT registration")}</h3>
           <Label>{t("TRN (shown on invoices)")}</Label>
           <div className="flex gap-2"><Input value={trnV} maxLength={15} onChange={(e) => setTrn(e.target.value.replace(/\D/g, ""))} placeholder={t("15 digits")} />
-            <Button variant="outline" onClick={async () => { const { error } = await supabase.from("artists").update({ trn: trnV || null }).eq("id", artistId); if (error) toast.error(error.message); else toast.success("TRN saved"); }}>{t("Save")}</Button></div>
+            <Button variant="outline" onClick={async () => { const { error } = await supabase.from("artists").update({ trn: trnV || null }).eq("id", artistId); if (error) toast.error(error.message); else toast.success(t("TRN saved")); }}>{t("Save")}</Button></div>
         </div></>}
       </aside>
     </div>

@@ -88,13 +88,13 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
 
   const save = async () => {
     const clean = fields.map((f) => ({ ...f, label: f.label.trim().slice(0, 120), options: hasOptions(f.type) ? f.options.map((o) => o.trim()).filter(Boolean).slice(0, 20) : [] }));
-    if (clean.some((f) => !f.label)) { toast.error("Every question needs a title"); return; }
-    if (clean.some((f) => hasOptions(f.type) && f.options.length === 0)) { toast.error("Choice questions need at least one option"); return; }
+    if (clean.some((f) => !f.label)) { toast.error(t("Every question needs a title")); return; }
+    if (clean.some((f) => hasOptions(f.type) && f.options.length === 0)) { toast.error(t("Choice questions need at least one option")); return; }
     setSaving(true);
     const { error } = await (supabase as any).from("artist_order_forms").upsert({ artist_id: artistId, title: title.trim() || "Booking details", description: desc.trim() || null, fields: clean, enabled, updated_at: new Date().toISOString() });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Order form saved");
+    toast.success(t("Order form saved"));
     qc.invalidateQueries({ queryKey: key });
   };
 

@@ -170,7 +170,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
 
   const connect = async () => {
     const popup = window.open("", "lovable-oauth", "width=600,height=720");
-    if (!popup) { toast.error("Popup blocked. Allow popups and try again."); return; }
+    if (!popup) { toast.error(t("Popup blocked. Allow popups and try again.")); return; }
     setBusy(true);
     try {
       const { authorizationUrl } = await start$();
@@ -183,8 +183,8 @@ export function CalendarTab({ artistId }: { artistId: string }) {
     } catch (e) { popup.close(); toast.error((e as Error).message); } finally { setBusy(false); }
   };
   const disconnect = async () => {
-    if (!confirm("Disconnect Google Calendar?")) return;
-    try { await disc$(); await qc.invalidateQueries({ queryKey: ["gcal"] }); toast.success("Google Calendar disconnected"); } catch (e) { toast.error((e as Error).message); }
+    if (!confirm(t("Disconnect Google Calendar?"))) return;
+    try { await disc$(); await qc.invalidateQueries({ queryKey: ["gcal"] }); toast.success(t("Google Calendar disconnected")); } catch (e) { toast.error((e as Error).message); }
   };
   const toggleBlock = async (date: string) => {
     const ex = local.data?.blocked.find((x) => x.date === date);
@@ -313,7 +313,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
         <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/25" /> {t("Blocked (clients can't book)")}</span>
         <span>{t("Monthly: click a day to block it, double-click to open the daily view.")}</span>
       </div>
-      <section className="dmr-panel dmr-q-panel dmr-c-12"><div className="dmr-q-tools"><h2>{t("Schedule")}</h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Date","Client","Service","Status","Location","Progress"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{local.data?.bookings.map(b=><tr key={b.id}><td>{b.event_date}</td><td>{b.client_name}</td><td>{b.package_title}</td><td><Badge>{t(b.status)}</Badge></td><td><span className="studio-soon">{t("segera")}</span></td><td><Badge>{t(b.status === "completed" ? "Done" : "Waiting")}</Badge></td></tr>)}</tbody></table></div>{!local.data?.bookings.length && <StudioEmpty title={t("Nothing scheduled")} icon={Calendar} />}</section>
+      <section className="dmr-panel dmr-q-panel dmr-c-12"><div className="dmr-q-tools"><h2>{t("Schedule")}</h2></div><div className="dmr-tbl-wrap"><table data-studio-table="true"><thead><tr>{["Date","Client","Service","Status","Location","Progress"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{local.data?.bookings.map(b=><tr key={b.id}><td data-label={t("Date")}>{b.event_date}</td><td data-label={t("Client")}>{b.client_name}</td><td data-label={t("Service")}>{b.package_title}</td><td data-label={t("Status")}><Badge>{t(b.status)}</Badge></td><td data-label={t("Location")}><span className="studio-soon">{t("segera")}</span></td><td data-label={t("Progress")}><Badge>{t(b.status === "completed" ? "Done" : "Waiting")}</Badge></td></tr>)}</tbody></table></div>{!local.data?.bookings.length && <StudioEmpty title={t("Nothing scheduled")} icon={Calendar} />}</section>
     </div>
   );
 }
@@ -326,10 +326,10 @@ export function TeamPhones({ artistId }: { artistId: string }) {
   const [artist, setArtist] = useState<string | null>(null), [manager, setManager] = useState<string | null>(null);
   const a = artist ?? data?.notify_phone ?? "", m = manager ?? data?.manager_phone ?? "";
   const save = async () => {
-    if ((a && !PHONE.test(a)) || (m && !PHONE.test(m))) { toast.error("Enter valid WhatsApp numbers, e.g. +971 50 123 4567"); return; }
+    if ((a && !PHONE.test(a)) || (m && !PHONE.test(m))) { toast.error(t("Enter valid WhatsApp numbers, e.g. +971 50 123 4567")); return; }
     const { error } = await supabase.from("artists").update({ notify_phone: a.replace(/\s/g, "") || null, manager_phone: m.replace(/\s/g, "") || null }).eq("id", artistId);
     if (error) { toast.error(error.message); return; }
-    toast.success("WhatsApp numbers saved");
+    toast.success(t("WhatsApp numbers saved"));
     qc.invalidateQueries({ queryKey: ["team-phones", artistId] });
   };
   return (
@@ -368,14 +368,14 @@ ${locked.account_holder}
 ${locked.iban}` : bank.trim();
   const request = async () => {
     const n = Number(amount);
-    if (!(n > 0)) { toast.error("Enter an amount"); return; }
-    if (n > Number(w?.available ?? 0)) { toast.error("Amount is more than your available balance"); return; }
-    if (bankText.length < 8) { toast.error("Enter your bank name, account holder and IBAN"); return; }
+    if (!(n > 0)) { toast.error(t("Enter an amount")); return; }
+    if (n > Number(w?.available ?? 0)) { toast.error(t("Amount is more than your available balance")); return; }
+    if (bankText.length < 8) { toast.error(t("Enter your bank name, account holder and IBAN")); return; }
     setBusy(true);
     const { error } = await supabase.from("payout_requests").insert({ artist_id: artistId, amount: n, bank_details: bankText });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    setAmount(""); toast.success("Withdrawal requested. Our team will process it.");
+    setAmount(""); toast.success(t("Withdrawal requested. Our team will process it."));
     qc.invalidateQueries({ queryKey: ["wallet-pay", artistId] });
   };
   return (
@@ -392,8 +392,8 @@ ${locked.iban}` : bank.trim();
       </div>
       <div className="dmr-w-left">
         <div className="space-y-6">
-          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Job")} <span className="it">{t("earnings")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Job","Date","Job fee"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.jobs.map(j=><tr key={j.id}><td><b>{j.client_name}</b><small className="block text-muted-foreground">{j.package_title ?? t("Booking")}</small></td><td>{j.event_date}</td><td>{aed(Number(j.amount))}</td></tr>)}</tbody></table></div>{data?.jobs.length === 0 && <StudioEmpty title={t("No completed jobs yet.")} icon={Wallet} />}</section>
-          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Withdrawal")} <span className="it">{t("requests")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Requested","Amount","Status"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.requests.map(r=><tr key={r.id}><td>{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note && <small className="block">{r.admin_note}</small>}</td><td>{aed(Number(r.amount))}</td><td><Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{t(r.status)}</Badge></td></tr>)}</tbody></table></div>{data?.requests.length === 0 && <StudioEmpty title={t("No withdrawals yet.")} icon={Wallet} />}</section></div></div>
+          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Job")} <span className="it">{t("earnings")}</span></h2></div><div className="dmr-tbl-wrap"><table data-studio-table="true"><thead><tr>{["Job","Date","Job fee"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.jobs.map(j=><tr key={j.id}><td data-label={t("Job")}><b>{j.client_name}</b><small className="block text-muted-foreground">{j.package_title ?? t("Booking")}</small></td><td data-label={t("Date")}>{j.event_date}</td><td data-label={t("Job fee")}>{aed(Number(j.amount))}</td></tr>)}</tbody></table></div>{data?.jobs.length === 0 && <StudioEmpty title={t("No completed jobs yet.")} icon={Wallet} />}</section>
+          <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Withdrawal")} <span className="it">{t("requests")}</span></h2></div><div className="dmr-tbl-wrap"><table data-studio-table="true"><thead><tr>{["Requested","Amount","Status"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.requests.map(r=><tr key={r.id}><td data-label={t("Requested")}>{new Date(r.created_at).toLocaleDateString("en-GB")}{r.admin_note && <small className="block">{r.admin_note}</small>}</td><td data-label={t("Amount")}>{aed(Number(r.amount))}</td><td data-label={t("Status")}><Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{t(r.status)}</Badge></td></tr>)}</tbody></table></div>{data?.requests.length === 0 && <StudioEmpty title={t("No withdrawals yet.")} icon={Wallet} />}</section></div></div>
         <div className="dmr-w-side"><div id="studio-withdrawal" className="dmr-panel">
 
           <div className="font-semibold">{t("Request withdrawal")}</div>

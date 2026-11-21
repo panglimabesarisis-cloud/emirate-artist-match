@@ -54,18 +54,18 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
     if (!ids.length || !confirm(`Delete ${ids.length} ratecard(s)?`)) return;
     const { error } = await supabase.from("rate_cards").delete().in("id", ids);
     if (error) { toast.error(error.message); return; }
-    setSel((s) => s.filter((x) => !ids.includes(x))); toast.success("Deleted"); refresh();
+    setSel((s) => s.filter((x) => !ids.includes(x))); toast.success(t("Deleted")); refresh();
   };
   const save = async () => {
     if (!edit || (!edit.id && !artistId)) return;
     const { f } = edit;
-    if (!f.title.trim() || !(Number(f.price) > 0)) { toast.error("Name and price required"); return; }
+    if (!f.title.trim() || !(Number(f.price) > 0)) { toast.error(t("Name and price required")); return; }
     const row = { title: f.title.trim(), price: Number(f.price), duration_minutes: Number(f.duration) || null, description: f.description.trim() || null };
     const { error } = edit.id
       ? await supabase.from("rate_cards").update(row).eq("id", edit.id)
       : await supabase.from("rate_cards").insert({ ...row, artist_id: artistId ?? "", sort: data.length + 1 });
     if (error) { toast.error(error.message); return; }
-    setEdit(null); toast.success("Saved"); refresh();
+    setEdit(null); toast.success(t("Saved")); refresh();
   };
 
   return (
@@ -99,7 +99,7 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
       </div>
       {error && <p role="alert" className="py-4 text-destructive">{t("Could not load ratecards.")}</p>}
       <div className="dmr-tbl-wrap">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" data-studio-table="true">
           <thead className="bg-muted/50 text-start text-xs uppercase text-muted-foreground">
             <tr>
               <th className="w-10 p-3"><input type="checkbox" aria-label={t("Select all")} className="accent-gold" checked={allOn} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...shown.map((r) => r.id)])] : sel.filter((x) => !shown.some((r) => r.id === x)))} /></th>
@@ -111,11 +111,11 @@ export function RateCardTable({ artistId, adminMode = false }: { artistId?: stri
             {shown.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-3"><input type="checkbox" aria-label={`Select ${r.title}`} className="accent-gold" checked={sel.includes(r.id)} onChange={(e) => setSel(e.target.checked ? [...sel, r.id] : sel.filter((x) => x !== r.id))} /></td>
-                {adminMode && <td className="p-3">{r.artists?.stage_name}</td>}<td className="p-3 font-medium">{r.title}</td>
-                <td className="p-3" dir="ltr">{aed(Number(r.price))}</td>
-                <td className="p-3">{r.duration_minutes ? `${r.duration_minutes} min` : "—"}</td>
-                <td className="p-3 max-w-xs truncate text-muted-foreground">{r.description || "—"}</td>
-                <td className="p-3 text-end whitespace-nowrap">
+                {adminMode && <td className="p-3" data-label={t("Artist")}>{r.artists?.stage_name}</td>}<td className="p-3 font-medium" data-label={t("Job type")}>{r.title}</td>
+                <td className="p-3" dir="ltr" data-label={t("Price")}>{aed(Number(r.price))}</td>
+                <td className="p-3" data-label={t("Duration")}>{r.duration_minutes ? `${r.duration_minutes} min` : "—"}</td>
+                <td className="p-3 max-w-xs truncate text-muted-foreground" data-label={t("Included")}>{r.description || "—"}</td>
+                <td className="p-3 text-end whitespace-nowrap" data-label={t("Actions")}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={t("Actions")}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

@@ -49,7 +49,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   const selectedClient = data?.convos.find((c) => c.id === convo)?.quote_requests;
 
   const submit = async () => {
-    if (!convo) { toast.error("Choose a client chat"); return; }
+    if (!convo) { toast.error(t("Choose a client chat")); return; }
     setBusy(true);
     try {
       const r = await send$({ data: { conversationId: convo, items, due: null, notes: "" } });

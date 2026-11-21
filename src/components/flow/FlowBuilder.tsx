@@ -364,7 +364,7 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
   const custom = !!artistId && !!data.own?.enabled;
 
   const persist = async (f: { nodes: FlowNode[]; edges: FlowEdge[] }, enabled = true) => {
-    if (f.nodes.filter(n => n.type === "whatsapp").length > 1) { toast.error("Use one WhatsApp approval block per flow"); return; }
+    if (f.nodes.filter(n => n.type === "whatsapp").length > 1) { toast.error(t("Use one WhatsApp approval block per flow")); return; }
     try {
       for (const node of f.nodes.filter(n => n.type === "whatsapp")) approvalAction([node], []);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Invalid WhatsApp number"); return; }
@@ -376,7 +376,7 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
       : await supabase.from("ai_flows").insert({ ...payload, artist_id: artistId });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Flow saved");
+    toast.success(t("Flow saved"));
     await qc.invalidateQueries({ queryKey: ["ai-flow", artistId] });
     setDraft(null);
   };

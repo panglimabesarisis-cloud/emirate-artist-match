@@ -8,7 +8,7 @@ import "./reference-adapters.css";
 
 /** Presentation only: callers supply the existing data and controls. */
 export function StudioHeading({ title, accent, children }: { title: string; accent: string; children?: ReactNode }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const joined = ["Book", "Calen", "Invo", "Contr", "Wal", "Veri"].includes(title);
   const descriptions: Record<string, string> = {
     "Quote requests": "Every request sent from your public profile and order form.",
@@ -29,7 +29,8 @@ export function StudioHeading({ title, accent, children }: { title: string; acce
     "AI flow": "Draw how your assistant talks to a new client, step by step: what it asks, what it offers, and when it hands the chat to you.",
   };
   const description = descriptions[`${title}${joined ? "" : " "}${accent}`];
-  return <header className="dmr-q-head dmr-c-12"><div><h1 className="dmr-serif">{t(title)}{!joined && " "}<span className="it">{t(accent)}</span></h1>{description && <p>{t(description)}</p>}</div>{children}</header>;
+  const fullTitle = `${title}${joined ? "" : " "}${accent}`;
+  return <header className="dmr-q-head dmr-c-12"><div><h1 className="dmr-serif">{lang === "ar" ? t(fullTitle) : <>{t(title)}{!joined && " "}<span className="it">{t(accent)}</span></>}</h1>{description && <p>{t(description)}</p>}</div>{children}</header>;
 }
 
 export function StudioSection({ title, accent, children, className = "" }: { title: string; accent?: string; children: ReactNode; className?: string }) {

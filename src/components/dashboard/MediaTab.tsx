@@ -43,21 +43,21 @@ export function MediaTab({ artistId }: { artistId: string }) {
         const save=await supabase.from("artist_media").insert({ artist_id: artistId, kind, url: path, storage_path: path, sort: (items?.length ?? 0) + 1 });
         if(save.error){await supabase.storage.from(BUCKET).remove([path]);throw new Error(save.error.message);}
       }
-      toast.success("Media uploaded");
+      toast.success(t("Media uploaded"));
       qc.invalidateQueries({ queryKey: key });
     } catch(e){toast.error(e instanceof Error?e.message:'Upload failed');} finally { setBusy(false); }
   };
 
   const addYoutube = async () => {
     const id = youtubeId(yt);
-    if (!id) { toast.error("Paste a valid YouTube link"); return; }
+    if (!id) { toast.error(t("Paste a valid YouTube link")); return; }
     const { error } = await supabase.from("artist_media").insert({ artist_id: artistId, kind: "youtube", url: `https://www.youtube.com/watch?v=${id}`, sort: (items?.length ?? 0) + 1 });
-    if (error) { toast.error("Could not add video"); return; }
-    setYt(""); toast.success("YouTube video added"); qc.invalidateQueries({ queryKey: key });
+    if (error) { toast.error(t("Could not add video")); return; }
+    setYt(""); toast.success(t("YouTube video added")); qc.invalidateQueries({ queryKey: key });
   };
 
   const remove = async (m: { id: string; storage_path: string | null }) => {
-    if (!confirm("Remove this item?")) return;
+    if (!confirm(t("Remove this item?"))) return;
     if (m.storage_path) await supabase.storage.from(BUCKET).remove([m.storage_path]);
     await supabase.from("artist_media").delete().eq("id", m.id);
     qc.invalidateQueries({ queryKey: key });
