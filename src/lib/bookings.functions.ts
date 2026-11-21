@@ -2,7 +2,7 @@ import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
-import { bookingPayment } from "./booking-payment-rules";
+import { bookingPayment, canCheckoutBooking } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
 import { priceBreakdown, refundAmount, canComplete, canDispute } from "./booking-rules";
 import {refundEscrowStatus} from './processor-rules';
@@ -13,7 +13,7 @@ const uuid = (v: unknown) => {
 };
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
-const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body)";
+const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body), conversations(quote_requests(start_time,end_time,perform_minutes,areas(name)))";
 
 async function bookingByKey(id: string, key: string) {
   const db = await admin();
@@ -39,7 +39,7 @@ export const createBookingOffer = createServerFn({ method: "POST" })
     return { conversationId: uuid(i.conversationId), title: String(i.title ?? "").trim().slice(0, 120) || "Performance", amount, eventDate: i.eventDate, notes: maskContacts(String(i.notes ?? "").slice(0, 1000)) || null };
   })
   .handler(async ({ data, context }) => {
-    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, quote_requests(name, email, event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
+    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, quote_requests(name, email, phone, guests, start_time, end_time, perform_minutes, message, areas(name), event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
     if (!conv) throw new Error("Conversation not found");
     await assertArtistOwns(context.supabase, context.userId, conv.artist_id);
     const q = conv.quote_requests;
@@ -48,7 +48,9 @@ export const createBookingOffer = createServerFn({ method: "POST" })
     const { data: b, error } = await db.from("bookings").insert({
       artist_id: conv.artist_id, conversation_id: conv.id, client_name: q?.name ?? "Client", client_email: q?.email ?? null,
       client_user_id: q?.client_user_id ?? null, event_type_id: q?.event_type_id ?? null, event_date: data.eventDate,
-      package_title: data.title, notes: data.notes, amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "quoted",
+      package_title: data.title, notes: maskContacts([data.notes, q?.areas?.name ? `Venue / emirate: ${q.areas.name}` : null, q?.perform_minutes ? `Performance duration: ${q.perform_minutes} minutes` : null].filter(Boolean).join("\n")) || null,
+      start_time: q?.start_time ?? null, end_time: q?.end_time ?? null, guests: q?.guests ?? null, client_phone: q?.phone ?? null, job_detail: maskContacts(q?.message ?? "") || null,
+      invoice_items: [{title:data.title,qty:1,price:p.subtotal}], amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "quoted",
     }).select("id").single();
     if (error || !b) throw new Error("Could not create offer");
     await db.from("messages").insert({ conversation_id: conv.id, sender: "system", body: `Booking offer sent: ${data.title} on ${data.eventDate} — AED ${p.total.toLocaleString("en-US")} incl. VAT. Open it below to review the contract and pay.` });
@@ -72,6 +74,26 @@ export const getBooking = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string; key: string }) => ({ id: uuid(i.id), key: uuid(i.key) }))
   .handler(async ({ data }) => bookingByKey(data.id, data.key));
 
+/** Accepting an approved offer issues its invoice, without starting a payment. */
+export const acceptBookingOffer = createServerFn({ method: "POST" })
+  .inputValidator((i: { id: string; key: string; agree: boolean }) => {
+    if (i.agree !== true) throw new Error("Please accept the contract");
+    return { id: uuid(i.id), key: uuid(i.key) };
+  })
+  .handler(async ({ data }) => {
+    const b = await bookingByKey(data.id, data.key);
+    const payment = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct);
+    if (!["quoted", "confirmed"].includes(b.status) || payment.dueMinor <= 0) throw new Error("This offer cannot be accepted");
+    const db = await admin();
+    const { data: linked, error: readError } = await db.from("service_invoices").select("number").eq("booking_id", b.id).maybeSingle();
+    if (readError) throw new Error("Could not read the invoice");
+    const { data: number, error: numberError } = b.invoice_no || linked?.number ? { data: b.invoice_no || linked?.number, error: null } : await db.rpc("next_invoice_no");
+    if (numberError || !number) throw new Error("Could not issue the invoice");
+    const { error } = await db.from("bookings").update({ invoice_no: number, contract_accepted_at: new Date().toISOString() }).eq("id", b.id).is("invoice_no", null).in("status", ["quoted", "confirmed"]);
+    if (error) throw new Error("Could not issue the invoice");
+    return { ok: true };
+  });
+
 /** Client: accept the contract and pay into demo escrow. */
 export const acceptAndPay = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string; key: string; agree: boolean; phone?: string | undefined }) => {
@@ -83,6 +105,8 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     try {
     const b = await bookingByKey(data.id, data.key);
     if (!["quoted","confirmed"].includes(b.status) || Number(b.paid_amount)>=Number(b.total)) throw new Error(b.status === "inquiry" ? "Waiting for the artist to approve" : "This offer can no longer be paid");
+    const payment = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct);
+    if (!canCheckoutBooking(b.invoice_no, payment.dueMinor)) throw new Error("Invoice not yet issued. Accept the offer before paying.");
     const db = await admin();
     const now = new Date().toISOString();
     if(Number(b.paid_amount)===0 && b.start_time && b.end_time){
@@ -96,7 +120,7 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const { data: identity } = await db.from("bookings").select("client_user_id").eq("id", b.id).single();
     const { openOrder } = await import("./payments.server");
-    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
+    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: payment.dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
     } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 

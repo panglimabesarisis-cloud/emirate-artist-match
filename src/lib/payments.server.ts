@@ -23,11 +23,13 @@ export async function resolveOrCreateCustomer(
   return created.id;
 }
 export async function openOrder(order: {artist_id:string; kind:'credits'|'deposit'|'invoice'|'booking'|'agent_prompt'|'flow_template'|'order_form_template'; target_id?:string; package_id?:string; plan_code?:string; credits?:number; amount_minor:number}, description:string, identity:{userId?:string | undefined;email?:string | undefined}, _returnUrl:string) {
+  // Validate before creating a customer or performing any payment-side writes.
+  const processorAmount = testProcessorAmount(order.amount_minor);
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const stripe=createStripeClient('sandbox');
   const customer=identity.userId||identity.email?await resolveOrCreateCustomer(stripe,identity):undefined;
   const purchaseKey=[order.artist_id,order.kind,order.target_id??order.package_id??'registration',order.amount_minor,customer??'guest'].join(':');
-  const {data:o,error}=await db.rpc('begin_test_purchase',{_order:{...order,processor_amount_minor:testProcessorAmount(order.amount_minor),processor_currency:'idr'},_customer:customer??'',_key:purchaseKey});
+  const {data:o,error}=await db.rpc('begin_test_purchase',{_order:{...order,processor_amount_minor:processorAmount,processor_currency:'idr'},_customer:customer??'',_key:purchaseKey});
   if(error||!o)throw new Error(error?.message??'Could not create payment');
   try {
     if(o.stripe_session_id){

@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Repair booking VAT breakdown, invoice-before-checkout guard, payment button spacing and persisted offer details; keep sandbox accounting unchanged. 67 targeted tests pass and build OK; no screenshots or live payment attempted.
 - [x] Create /how-you-get-booked and /why-artists-join with separate artist-focused content, shared public design, and desktop/mobile header links; preserve existing booking behavior. Both pages return 200 with unique headings, five sections and FAQs; header destinations checked, build OK. No screenshots or extra test suites.
 - [x] Center /join introduction below the shared menu, show all six steps horizontally with visible labels (local scrolling on phones), and widen/center the plan area with four desktop columns. Signup and package rules unchanged; build OK, no screenshots or additional tests.
 - [x] Create a dedicated /for-clients page using homepage and How it works styling: event occasions, three booking stages, profile/approval safeguards, client FAQs and discovery links. Correct desktop/mobile For clients navigation, preserve /how-it-works and demo-only payments. Build OK; no screenshots or additional tests.

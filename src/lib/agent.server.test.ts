@@ -98,6 +98,10 @@ describe('Book Now → artist WhatsApp dispatch', () => {
     await runAgent('conversation-fixture');
     expect(mocks.calendar).toHaveBeenCalledWith('owner-fixture', { date: '2026-11-29', startTime: '19:00', endTime: '21:00' });
     expect(mocks.writes.find(write => write.table === 'bookings')?.value).toMatchObject({ status: 'inquiry', amount: 5000, total: 5250, start_time: '19:00', end_time: '21:00', artist_invoice_required: false });
+    const booking = mocks.writes.find(write => write.table === 'bookings')?.value;
+    expect(booking).toMatchObject({notes:expect.stringContaining('Client entity type: Government UAE')});
+    expect(booking).toMatchObject({notes:expect.stringContaining('Venue: Dubai Chamber')});
+    expect(booking).toMatchObject({notes:expect.stringContaining('Performance duration: 60 minutes')});
     expect(mocks.notify).toHaveBeenCalledTimes(1);
     expect(mocks.notify).toHaveBeenCalledWith('booking-fixture', 'artist', 'approval_request', { phone: '+971501234567', email: null }, expect.any(String), expect.any(String), 'http://localhost:8080/approve/booking-fixture?k=fixture-key');
     expect(mocks.notify.mock.calls[0]?.[5]).toBe([

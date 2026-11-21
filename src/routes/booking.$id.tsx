@@ -4,13 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Printer, ShieldCheck, Star } from "lucide-react";
-import { getBooking, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
-import { bookingPayment } from "@/lib/booking-payment-rules";
+import { getBooking, acceptBookingOffer, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
+import { bookingPayment, canCheckoutBooking } from "@/lib/booking-payment-rules";
 import { bookingIsFullyPaid } from "@/lib/payment-rules";
 import { PaidStamp } from "@/components/site/PaidStamp";
-import type { InvoiceItem } from "@/lib/invoice";
+import { invoiceMoney as aed, type InvoiceItem } from "@/lib/invoice";
 import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
-import { aed } from "@/lib/format";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +35,7 @@ function BookingPage() {
   const qc = useQueryClient();
   const get$ = useServerFn(getBooking);
   const pay$ = useServerFn(acceptAndPay);
+  const accept$ = useServerFn(acceptBookingOffer);
   const cancel$ = useServerFn(cancelBookingAsClient);
   const review$ = useServerFn(submitBookingReview);
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
@@ -61,6 +61,8 @@ function BookingPage() {
   const paid = Number(b.paid_amount);
   const review = b.reviews?.[0];
   const payment = bookingPayment(Number(b.total),paid,b.deposit_pct);
+  const canPay = canCheckoutBooking(b.invoice_no, payment.dueMinor);
+  const quote = b.conversations?.quote_requests;
   const items = Array.isArray(b.invoice_items) ? b.invoice_items as InvoiceItem[] : [];
 
   return (
@@ -69,38 +71,39 @@ function BookingPage() {
       <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
           <div>
-            <h1 className="text-3xl font-semibold">{b.package_title ?? "Booking"}</h1>
+            <h1 className="break-words text-3xl font-semibold">Booking offer · {b.package_title ?? "Booking"}</h1>
             <p className="text-muted-foreground">with <Link to="/artist/$slug" params={{ slug: b.artists?.slug ?? "" }} className="text-gold underline">{b.artists?.stage_name}</Link> · {b.event_date}</p>
           </div>
           <Badge variant={b.status === "cancelled" ? "secondary" : "default"}>{STATUS[b.status] ?? b.status}</Badge>
         </div>
 
-        <section className="overflow-x-auto"><h2 className="mb-3 font-semibold">Booking details</h2><table className="w-full text-sm"><tbody>{[["Client",b.client_name],["Event date",b.event_date],["Time",`${b.start_time?.slice(0,5)??"—"} – ${b.end_time?.slice(0,5)??"—"}`],["Job detail",b.job_detail??b.notes??"—"],["Payment",paid>0?`Paid ${payment.percent}%`:"Unpaid"],["Balance",aed(payment.balance)],["Calendar",b.calendar_sync_status]].map(([label,value])=><tr key={label} className="border-b"><th className="py-3 pe-4 text-start font-medium">{label}</th><td className="py-3 break-words">{value}</td></tr>)}</tbody></table></section>
+        <section className="min-w-0"><h2 className="mb-3 font-semibold">Booking details</h2><dl className="text-sm">{[["Client",b.client_name],["Event date",b.event_date],["Time",`${(b.start_time ?? quote?.start_time)?.slice(0,5)??"—"} – ${(b.end_time ?? quote?.end_time)?.slice(0,5)??"—"}`],["Duration",quote?.perform_minutes ? `${quote.perform_minutes} minutes` : "See event details below"],["Venue / emirate",quote?.areas?.name ?? "See event details below"],["Guests",b.guests ?? "—"],["Job detail",b.job_detail??"—"],["Payment",paid>0?`Paid ${payment.percent}%`:"Unpaid"],["Balance",aed(payment.balance)],["Calendar",b.calendar_sync_status]].map(([label,value])=><div key={label} className="grid gap-1 border-b py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4"><dt className="font-medium">{label}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{value}</dd></div>)}</dl></section>
         {/* Invoice */}
         <section className="rounded-2xl bg-card p-6 shadow-card">
-          <div className="flex justify-between gap-4">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground">{b.invoice_no ? "Tax invoice" : "Pro-forma quote"}</div>
               <div className="text-lg font-semibold">{b.invoice_no ?? "Not yet issued"}</div>
               {b.paid_at && <div className="text-xs text-muted-foreground">Issued {new Date(b.paid_at).toLocaleDateString("en-GB")}</div>}
             </div>
-            <div className="text-right text-sm">
+            <div className="min-w-0 break-words text-start text-sm sm:text-end">
               <div className="font-semibold">{b.artists?.stage_name}</div>
               <div className="text-muted-foreground">TRN: {b.artists?.trn || "Not VAT registered (demo)"}</div>
               <div className="mt-2 text-muted-foreground">Billed to: {b.client_name}</div>
             </div>
           </div>
-          <table className="mt-6 w-full text-sm">
+          <table className="mt-6 w-full table-fixed text-sm">
             <tbody>
-              {items.map((item,i)=><tr key={i} className="border-b"><td className="py-2">{item.qty} × {item.title}</td><td className="py-2 text-end">{aed(item.qty*item.price)}</td></tr>)}
+              {items.map((item,i)=><tr key={i} className="border-b"><td className="break-words py-2 pe-3 [overflow-wrap:anywhere]">{item.qty} × {item.title}<div className="text-xs text-muted-foreground">{aed(item.price)} each</div></td><td className="break-words py-2 text-end">{aed(item.qty*item.price)}</td></tr>)}
               {!items.length && <tr className="border-b"><td className="py-2">{b.package_title}{b.event_types?.name ? ` · ${b.event_types.name}` : ""} · {b.event_date}</td><td className="py-2 text-right">{aed(Number(b.amount))}</td></tr>}
-              <tr><td className="py-2 text-muted-foreground">VAT 5%</td><td className="py-2 text-right">{aed(Number(b.vat_amount))}</td></tr>
-              <tr className="border-t font-semibold"><td className="py-2">Total</td><td className="py-2 text-right">{aed(Number(b.total))}</td></tr>
+              <tr><td className="py-2 text-muted-foreground">Subtotal</td><td className="py-2 text-end">{aed(payment.subtotal)}</td></tr>
+              <tr><td className="py-2 text-muted-foreground">UAE VAT (5%)</td><td className="py-2 text-end">{aed(payment.vatAmount)}</td></tr>
+              <tr className="border-t font-semibold"><td className="py-2 pe-3">Total (VAT Inclusive)</td><td className="py-2 text-end">{aed(payment.total)}</td></tr>
               <tr><td className="py-1 text-muted-foreground">Payment</td><td className="py-1 text-right">{ESCROW[b.escrow_status] ?? b.escrow_status}</td></tr>
               {Number(b.refund_amount) > 0 && <tr><td className="py-1 text-muted-foreground">Refunded</td><td className="py-1 text-right">{aed(Number(b.refund_amount))}</td></tr>}
             </tbody>
           </table>
-          {b.notes && <p className="mt-4 text-sm text-muted-foreground" dir="auto">{b.notes}</p>}
+          {b.notes && <div className="mt-4 border-t pt-4"><h3 className="mb-2 text-sm font-semibold">Event details</h3><p className="whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]" dir="auto">{b.notes}</p></div>}
           {bookingIsFullyPaid(Number(b.total), paid, Number(b.refund_amount)) && <div className="mt-4 flex justify-end border-t pt-3"><PaidStamp /></div>}
           {b.invoice_no && <Button variant="outline" size="sm" className="mt-4 print:hidden" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Print / save PDF</Button>}
         </section>
@@ -112,13 +115,16 @@ function BookingPage() {
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>
           {b.contract_accepted_at && <p className="mt-3 text-xs text-muted-foreground">Accepted {new Date(b.contract_accepted_at).toLocaleString("en-GB")}</p>}
           {b.status === "inquiry" && <p className="mt-4 text-sm text-muted-foreground">The artist is reviewing these details. You can pay once they approve.</p>}
-          {["quoted","confirmed"].includes(b.status) && payment.dueMinor>0 && (
+          {["quoted","confirmed"].includes(b.status) && (
             <div className="mt-5 space-y-4">
               <div><Label htmlFor="client-whatsapp">WhatsApp for payment reminders</Label><Input id="client-whatsapp" type="tel" dir="ltr" placeholder="+971501234567" value={phone || b.client_phone || ""} onChange={e=>setPhone(e.target.value.replace(/[^+\d]/g,""))} /></div>
               <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} /> I accept the contract terms above.</label>
-              <Button disabled={!agree || busy} className="w-full bg-gradient-gold text-gold-foreground" onClick={() => run(async () => { const r = await pay$({ data: { id, key: k, agree, phone:phone || b.client_phone || undefined } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
-                <ShieldCheck className="mr-2 h-4 w-4" />{paid>0?"Pay balance":"Pay deposit"} {paid===0?`${b.deposit_pct}% · `:""}{aed(payment.dueMinor/100)} · Stripe sandbox
+              {!b.invoice_no && payment.dueMinor > 0 && <><p role="status" className="text-sm text-muted-foreground">Invoice status: Not yet issued. Accept this offer to issue the invoice before payment.</p><Button variant="outline" disabled={!agree || busy} className="h-auto w-full whitespace-normal px-4 py-3" onClick={() => run(() => accept$({ data: { id, key: k, agree } }), "Offer accepted · invoice issued")}>Accept offer &amp; issue invoice</Button></>}
+              <Button disabled={!agree || busy || !canPay || Boolean(checkout)} className="h-auto min-h-12 w-full gap-2 whitespace-normal bg-gradient-gold px-4 py-3 text-center leading-relaxed text-gold-foreground" onClick={() => run(async () => { if (!canPay) return; const r = await pay$({ data: { id, key: k, agree, phone:phone || b.client_phone || undefined } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }, "Stripe checkout opened")}>
+                <ShieldCheck className="shrink-0" /><span className="min-w-0">{paid>0?"Pay Balance":"Pay Deposit"}{paid===0?` ${b.deposit_pct}%`:""} — {aed(payment.dueAmount)}</span>
               </Button>
+              <div className="flex justify-center"><Badge variant="secondary">Stripe Sandbox</Badge></div>
+              {payment.dueMinor <= 0 && <p role="status" className="text-sm text-muted-foreground">No payment is due.</p>}
               <p className="text-xs text-muted-foreground">DEMO MODE · no real money is charged.</p>
             </div>
           )}

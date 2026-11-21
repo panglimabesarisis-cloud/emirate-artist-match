@@ -35,6 +35,14 @@ describe('checkout-only IDR pricing', () => {
     }), { idempotencyKey: 'order-1' });
   });
 
+  it('rejects invalid fils before creating an order or Stripe session', async () => {
+    for (const amount_minor of [0, -1, 525000.5, NaN]) {
+      await expect(openOrder({artist_id:'artist-1',kind:'booking',amount_minor},'Booking',{},'https://dealmakertalent.com')).rejects.toThrow('Invalid AED amount');
+    }
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+
   it('lets Stripe select eligible payment methods rather than forcing card', async () => {
     await openOrder({ artist_id: 'artist-1', kind: 'deposit', amount_minor: 10500 }, 'Deposit', {}, 'https://dealmakertalent.com/join/payment');
     const params = mocks.createSession.mock.calls[0]?.[0];

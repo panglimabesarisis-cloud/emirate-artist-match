@@ -213,7 +213,8 @@ async function createDraft(conversationId: string, artistId: string, d: BookingD
   const p = priceBreakdown(amount);
   const { data: b, error: bookingError } = await supabaseAdmin.from("bookings").insert({
     artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? maskContacts(d.clientName || "Client"), client_email: q?.email ?? null, client_phone: q?.phone ?? null,
-    event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title, notes: maskContacts(d.notes) || null,
+    event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title,
+    notes: maskContacts([d.notes, d.organizing ? `Client entity type: ${d.organizing}` : null, d.clientOccupation ? `Organization: ${d.clientOccupation}` : null, d.venueName ? `Venue: ${d.venueName}` : null, d.venueAddress ? `Venue address: ${d.venueAddress}` : null, d.performDuration ? `Performance duration: ${d.performDuration}` : null].filter(Boolean).join("\n")) || null,
     start_time: calendar.window.startTime, end_time: calendar.window.endTime, job_detail: maskContacts(d.jobDetail || d.notes), artist_invoice_required: !!invoiceAction, deposit_pct: invoiceAction ? 20 : 100,
     invoice_items: invoiceAction ? [{title:maskContacts(invoiceAction.description),qty:1,price:invoiceAction.price}] : [],
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
