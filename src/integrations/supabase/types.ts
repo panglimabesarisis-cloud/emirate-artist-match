@@ -3003,6 +3003,7 @@ export type Database = {
           id: string
         }[]
       }
+      admin_order_form_template_fields: { Args: { _id: string }; Returns: Json }
       ai_usage: {
         Args: { _artist: string; _from: string; _to: string }
         Returns: {
