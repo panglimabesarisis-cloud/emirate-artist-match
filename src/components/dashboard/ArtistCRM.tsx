@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
-import { maskIban, useBankDetails } from "./useBankDetails";
+import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 import { DashboardArtwork } from "./DashboardArtwork";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty, StudioDonut } from "./StudioPage";
@@ -359,20 +359,20 @@ export function WalletTab({ artistId }: { artistId: string }) {
     },
   });
   const { t } = useI18n();
-  const [amount, setAmount] = useState(""), [bank, setBank] = useState(""), [busy, setBusy] = useState(false);
+  const [amount, setAmount] = useState(""), [busy, setBusy] = useState(false);
   const w = data?.w;
   const pct = Number(w?.commission_pct ?? 0);
   const locked = useBankDetails(artistId).data ?? null;
-  const bankText = locked ? `${locked.bank_name}
-${locked.account_holder}
-${locked.iban}` : bank.trim();
+  const holdLeft = holdHoursLeft(locked?.updated_at);
   const request = async () => {
     const n = Number(amount);
     if (!(n > 0)) { toast.error(t("Enter an amount")); return; }
     if (n > Number(w?.available ?? 0)) { toast.error(t("Amount is more than your available balance")); return; }
-    if (bankText.length < 8) { toast.error(t("Enter your bank name, account holder and IBAN")); return; }
+    if (!locked) { toast.error(t("Add your bank details in Account settings first")); return; }
+    if (holdLeft > 0) { toast.error(`${t("Bank details changed recently. Try again in")} ${holdLeft} ${t("hours")}`); return; }
     setBusy(true);
-    const { error } = await supabase.from("payout_requests").insert({ artist_id: artistId, amount: n, bank_details: bankText });
+    // The database copies the saved bank record into the request; the app never sends bank text.
+    const { error } = await supabase.from("payout_requests").insert({ artist_id: artistId, amount: n });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setAmount(""); toast.success(t("Withdrawal requested. Our team will process it."));
@@ -405,12 +405,13 @@ ${locked.iban}` : bank.trim();
           {locked ? (
             <div className="mt-1 space-y-1 rounded-lg border bg-muted/40 p-3 text-sm" aria-label={t("Locked bank details")}>
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" />{t("Locked. Change it in Account settings.")}</div>
-              <div className="font-medium">{locked.bank_name}</div><div>{locked.account_holder}</div><div dir="ltr">{maskIban(locked.iban)}</div>
+              <div className="font-medium">{locked.bank_name}</div><div>{locked.holder_name}</div><div dir="ltr">{maskIban(locked.iban)}</div>
+              {holdLeft > 0 && <p className="pt-1 text-xs text-gold">{t("Withdrawals reopen in")} {holdLeft} {t("hours")}</p>}
             </div>
           ) : (
-            <Textarea rows={3} maxLength={300} value={bank} onChange={(e) => setBank(e.target.value)} placeholder={t("Bank name\nAccount holder\nIBAN AE00 0000 0000 0000 0000 000")} />
+            <p className="mt-1 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">{t("No bank account yet.")} <a className="underline" href="/account">{t("Add it in Account settings")}</a></p>
           )}
-          <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy} onClick={request}>{busy ? t("Sending…") : t("Request withdrawal")}</Button>
+          <Button className="mt-4 w-full bg-gradient-gold text-gold-foreground" disabled={busy || !locked || holdLeft > 0} onClick={request}>{busy ? t("Sending…") : t("Request withdrawal")}</Button>
         </div><StudioSection title="How your money" accent="moves"><ol className="space-y-4 list-decimal ps-5 text-sm text-muted-foreground"><li>{t("Client pays into escrow")}</li><li>{t("Completed bookings release your payment")}</li><li>{t("You withdraw")}</li></ol></StudioSection>
       </div>
     </div>
