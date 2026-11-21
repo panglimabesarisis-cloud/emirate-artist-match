@@ -7,10 +7,23 @@ const getEnv = (key: string): string => {
 export type StripeEnv = 'sandbox' | 'live';
 const GATEWAY_STRIPE_BASE = 'https://connector-gateway.lovable.dev/stripe';
 export function getConnectionApiKey(env: StripeEnv): string {
+  const directKey = process.env['STRIPE_SECRET_KEY'];
+  if (directKey) {
+    const expected = env === 'sandbox' ? /^(sk|rk)_test_/ : /^(sk|rk)_live_/;
+    if (!expected.test(directKey)) throw new Error(`Stripe credential mode does not match ${env}; checkout blocked.`);
+    return directKey;
+  }
   return env === 'sandbox' ? getEnv('STRIPE_SANDBOX_API_KEY') : getEnv('STRIPE_LIVE_API_KEY');
 }
 export function createStripeClient(env: StripeEnv): Stripe {
   const connectionApiKey = getConnectionApiKey(env);
+  // Self-managed credentials take precedence over obsolete connector secrets.
+  if (process.env['STRIPE_SECRET_KEY']) {
+    return new Stripe(connectionApiKey, {
+      apiVersion: '2026-03-25.dahlia',
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+  }
   const lovableApiKey = getEnv('LOVABLE_API_KEY');
   return new Stripe(connectionApiKey, {
     apiVersion: '2026-03-25.dahlia',
@@ -57,7 +70,10 @@ export function getStripeErrorMessage(error: unknown): string {
 export async function verifyWebhook(req: Request, env: StripeEnv) {
   const signature = req.headers.get('stripe-signature');
   const body = await req.text();
-  const secret = getEnv(env === 'sandbox' ? 'PAYMENTS_SANDBOX_WEBHOOK_SECRET' : 'PAYMENTS_LIVE_WEBHOOK_SECRET');
+  getConnectionApiKey(env); // Reject mismatched self-managed modes before verification.
+  const secret = process.env['STRIPE_SECRET_KEY']
+    ? getEnv('STRIPE_WEBHOOK_SECRET')
+    : getEnv(env === 'sandbox' ? 'PAYMENTS_SANDBOX_WEBHOOK_SECRET' : 'PAYMENTS_LIVE_WEBHOOK_SECRET');
   const parts = signature?.split(',') ?? [];
   const timestamp = parts.find(p => p.startsWith('t='))?.slice(2);
   if (!timestamp || !Number.isFinite(Number(timestamp)) || Math.abs(Date.now()/1000-Number(timestamp))>300) throw new Error('Invalid webhook timestamp');
