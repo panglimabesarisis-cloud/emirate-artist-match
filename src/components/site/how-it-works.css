@@ -1,0 +1,41 @@
+.dm-reference .how-page .f-hero-in {padding-block:84px 70px;min-height:560px;justify-content:center}
+.dm-reference .how-page .f-hero h1 {max-width:1000px;font-style:normal}
+.dm-reference .how-page .lead {max-width:650px;font-size:18px;line-height:1.6}
+.dm-reference .how-page .f-index {padding:0;margin-top:30px}
+.dm-reference .how-page .f-index a {height:auto;white-space:normal;color:var(--dm-cream);box-shadow:none}
+.dm-reference .how-page .how-journey {padding-top:70px;scroll-margin-top:calc(var(--site-header-height) + 24px)}
+.dm-reference .how-page .how-intro {display:grid;grid-template-columns:1fr 1.1fr;gap:110px;align-items:end;padding-bottom:40px;border-bottom:1px solid var(--dm-line)}
+.dm-reference .how-page .how-intro h2 {font-size:56px;line-height:1;margin-top:12px}
+.dm-reference .how-page .how-intro p {max-width:550px;color:var(--dm-mute);font-size:17px;line-height:1.6}
+.dm-reference .how-page .feat {padding-block:90px;gap:90px;scroll-margin-top:calc(var(--site-header-height) + 24px)}
+.dm-reference .how-page .ft-txt {min-width:0}
+.dm-reference .how-page .ft-txt h3 {font-size:64px;line-height:1;margin:14px 0 20px}
+.dm-reference .how-page .ft-txt p {line-height:1.6}
+.dm-reference .how-page .ft-txt ul {padding:0}
+.dm-reference .how-diagram {min-width:0;padding:20px 0 20px 28px;border-inline-start:1px solid var(--dm-line)}
+.dm-reference .how-diagram-title {display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--dm-line);color:var(--dm-gold);font-size:12px;text-transform:uppercase}
+.dm-reference .how-diagram > ol {list-style:none;padding:0;margin:0}
+.dm-reference .how-milestone {display:grid;grid-template-columns:48px minmax(0,1fr);gap:20px;align-items:start;padding:26px 0;border-bottom:1px solid var(--dm-line)}
+.dm-reference .how-milestone:last-child {border-bottom:0}
+.dm-reference .how-milestone-icon {width:48px;height:48px;display:grid;place-items:center;border-radius:8px;background:var(--dm-tone-20);color:var(--dm-gold)}
+.dm-reference .how-milestone-icon svg {width:22px;height:22px}
+.dm-reference .how-milestone strong {font-size:17px;font-weight:600;display:block;margin:1px 0 7px}
+.dm-reference .how-milestone p {font-size:15px;line-height:1.6;color:var(--dm-mute);max-width:420px}
+.dm-reference .how-caption {display:flex;align-items:start;gap:10px;padding-top:20px;color:var(--dm-gold);font-size:13px;line-height:1.6}
+.dm-reference .how-caption svg {width:17px;height:17px;flex-shrink:0;margin-top:3px}
+.dm-reference .how-faq {display:grid;grid-template-columns:1fr 1.1fr;gap:90px;padding-block:100px;border-bottom:1px solid var(--dm-line);scroll-margin-top:calc(var(--site-header-height) + 24px)}
+.dm-reference .how-faq h2 {font-size:64px;line-height:1}
+.dm-reference .how-faq > div > p {color:var(--dm-mute);font-size:17px;line-height:1.6;margin-top:20px;max-width:360px}
+.dm-reference .how-faq-trigger {font-size:16px;line-height:1.5;padding-block:22px;gap:20px;transition:translate .3s var(--dm-ease)}
+.dm-reference .how-faq-trigger:hover {translate:4px 0;text-decoration:none}
+.dm-reference .how-faq-answer {font-size:15px;line-height:1.7;color:var(--dm-mute);padding-inline-end:24px}
+.dm-reference .how-page .f-cta h2 {font-size:72px;max-width:720px}
+.dm-reference .how-page .f-cta a {height:auto;white-space:normal}
+.dm-reference .how-page .btn {transition:translate .3s var(--dm-ease),background .3s}
+.dm-reference .how-page .btn:hover {translate:0 -3px}
+.dm-reference .how-page .btn:active,.dm-reference .how-page .f-index a:active {translate:0 1px}
+.dm-reference .how-page a:focus-visible,.dm-reference .how-page button:focus-visible {outline:2px solid var(--dm-gold);outline-offset:5px}
+@media(max-width:1100px){.dm-reference .how-page .feat,.dm-reference .how-page .how-intro,.dm-reference .how-faq {gap:48px}.dm-reference .how-page .ft-txt h3 {font-size:54px}}
+@media(max-width:900px){.dm-reference .how-page .how-intro,.dm-reference .how-faq {grid-template-columns:1fr;gap:24px}.dm-reference .how-page .feat {gap:36px}.dm-reference .how-page .f-hero-in {min-height:0;padding-block:70px}.dm-reference .how-page .how-intro p {max-width:650px}.dm-reference .how-faq {padding-block:70px}.dm-reference .how-page .f-cta h2 {font-size:60px}}
+@media(max-width:640px){.dm-reference .how-page .f-hero-in {padding-block:50px}.dm-reference .how-page .lead {font-size:16px}.dm-reference .how-page .how-journey {padding-top:48px}.dm-reference .how-page .how-intro h2,.dm-reference .how-faq h2 {font-size:44px}.dm-reference .how-page .feat {padding-block:54px}.dm-reference .how-page .ft-txt h3 {font-size:42px}.dm-reference .how-page .ft-txt p {font-size:16px}.dm-reference .how-diagram {padding-inline-start:16px}.dm-reference .how-milestone {gap:14px;grid-template-columns:40px minmax(0,1fr);padding-block:22px}.dm-reference .how-milestone-icon {width:40px;height:40px}.dm-reference .how-milestone strong {font-size:16px}.dm-reference .how-page .f-cta {padding-block:65px 80px}.dm-reference .how-page .f-cta h2 {font-size:46px}.dm-reference .how-faq-trigger {font-size:15px}}
+@media(prefers-reduced-motion:reduce){.dm-reference .how-page *, .dm-reference .how-page *::before, .dm-reference .how-page *::after {animation:none!important;transition:none!important}.dm-reference .how-page a:hover,.dm-reference .how-page button:hover {translate:none}}
