@@ -1,3 +1,4 @@
+import { FormTemplates } from "./FormTemplates";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -100,7 +101,7 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
 
   if (isLoading) return <div className="mt-6 text-sm text-muted-foreground">{t("Loading…")}</div>;
 
-  return <div className="dmr-wrap dmr-ofpage"><StudioHeading title="Order" accent="form" /><div className="dmr-c-12">      <div className="flex flex-wrap items-center justify-between gap-3">
+  return <div className="dmr-wrap dmr-ofpage"><StudioHeading title="Order" accent="form" /><div className="dmr-c-12"><FormTemplates artistId={artistId} onUsed={() => { void qc.invalidateQueries({ queryKey: key }); }} />      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border p-1">
           {(["edit", "preview"] as const).map((v) => (
             <Button variant="ghost" key={v} type="button" onClick={() => setTab(v)} className={`rounded-md px-4 py-1.5 text-sm ${tab === v ? "bg-gold text-gold-foreground" : "text-muted-foreground"}`}>{v === "edit" ? t("Questions") : t("Preview")}</Button>
