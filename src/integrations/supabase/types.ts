@@ -58,6 +58,112 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_chat_files: {
+        Row: {
+          artist_id: string
+          bytes: number
+          id: string
+          message_id: string | null
+          mime: string
+          name: string
+          storage_path: string
+        }
+        Insert: {
+          artist_id: string
+          bytes: number
+          id?: string
+          message_id?: string | null
+          mime: string
+          name: string
+          storage_path: string
+        }
+        Update: {
+          artist_id?: string
+          bytes?: number
+          id?: string
+          message_id?: string | null
+          mime?: string
+          name?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_chat_files_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_chat_files_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "agent_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_chat_messages: {
+        Row: {
+          body: string
+          chat_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          body: string
+          chat_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          body?: string
+          chat_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "agent_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_chats: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_chats_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_prompt_enabled: {
         Row: {
           artist_id: string
@@ -202,8 +308,12 @@ export type Database = {
           artist_id: string
           enabled: boolean
           extra_instructions: string | null
+          handoff: Json
           knowledge: string | null
+          languages: string[]
           max_discount_pct: number
+          model: string | null
+          reply_length: string
           tone: string
           updated_at: string
         }
@@ -211,8 +321,12 @@ export type Database = {
           artist_id: string
           enabled?: boolean
           extra_instructions?: string | null
+          handoff?: Json
           knowledge?: string | null
+          languages?: string[]
           max_discount_pct?: number
+          model?: string | null
+          reply_length?: string
           tone?: string
           updated_at?: string
         }
@@ -220,8 +334,12 @@ export type Database = {
           artist_id?: string
           enabled?: boolean
           extra_instructions?: string | null
+          handoff?: Json
           knowledge?: string | null
+          languages?: string[]
           max_discount_pct?: number
+          model?: string | null
+          reply_length?: string
           tone?: string
           updated_at?: string
         }
@@ -2836,6 +2954,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      charge_agent_reply: {
+        Args: {
+          _artist: string
+          _cost: number
+          _model: string
+          _rate: Json
+          _ref: string
+          _tokens_cached: number
+          _tokens_in: number
+          _tokens_out: number
+        }
+        Returns: boolean
+      }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       claim_payment_followup: { Args: { _id: string }; Returns: boolean }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
@@ -2879,6 +3010,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      storage_artist_team: { Args: { _name: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"

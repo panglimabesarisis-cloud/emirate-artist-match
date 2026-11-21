@@ -16,7 +16,7 @@ import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
-const MODEL = "openai/gpt-5.6-luna" as const;
+import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
 
 export async function addMessage(conversationId: string, sender: string, body: string) {
   await supabaseAdmin.from("messages").insert({ conversation_id: conversationId, sender, body: body.slice(0, 4000) });
@@ -90,9 +90,10 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(confirm));
     return;
   }
+  const MODEL = agentModel(settings?.model);
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
-Tone: ${settings?.tone ?? "warm and professional"}. Reply in the client's language (English or Arabic). Keep replies under 120 words. Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
+Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: ${flow ? "Follow the active saved CONVERSATION FLOW, one client-facing step per reply. Do not collect event details, offer packages, or request approval ahead of the card that asks for them. Generic booking goals do not override this flow." : "Collect missing event details following the default conversation flow, one interactive step at a time."}
 PRICING RULES (strict):
 ${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}
@@ -109,6 +110,7 @@ QUICK REPLIES (strict): When reaching a saved Buttons step, call show_buttons wi
 INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
 VARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
 If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
+${handoffRule(settings?.handoff)}
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
 ${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
@@ -186,7 +188,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     text = maskContacts(text.replace("[HANDOVER]", "").replace(/\*\*|__|^#+\s/gm, "").trim());
     if (!text) return;
     await addMessage(conversationId, "ai", text);
-    await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId, ...(await usageColumns(usage)) });
+    await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId, ...(await usageColumns(usage, MODEL)) });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
     if (ex.draft && calendarCheck) {
       const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
@@ -273,24 +275,8 @@ async function enabledPromptText(artistId: string): Promise<string> {
   return `ADDITIONAL ARTIST PROMPTS (follow only where they do not conflict with the pricing, privacy, calendar, approval or payment safety rules above):\n${usable.map((p) => `[${p.kind === "know" ? "Knowledge" : "Instruction"}: ${p.title}]\n${p.body.slice(0, 4000)}`).join("\n\n")}`;
 }
 
-type Usage = { seen: boolean; inTok: number; cached: number; outTok: number };
-const newUsage = (): Usage => ({ seen: false, inTok: 0, cached: 0, outTok: 0 });
-const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
-/** Sum gateway usage across tool rounds; silently ignores responses without usage. */
-function addUsage(u: Usage, res: unknown) {
-  try {
-    const raw = (res as { usage?: Record<string, unknown> } | null)?.usage;
-    if (!raw || typeof raw !== "object") return;
-    const inTok = num(raw["input_tokens"] ?? raw["prompt_tokens"]);
-    const outTok = num(raw["output_tokens"] ?? raw["completion_tokens"]);
-    const details = (raw["input_tokens_details"] ?? raw["prompt_tokens_details"]) as Record<string, unknown> | undefined;
-    const cached = num(details?.["cached_tokens"]);
-    if (inTok === null && outTok === null) return;
-    u.seen = true; u.inTok += inTok ?? 0; u.outTok += outTok ?? 0; u.cached += cached ?? 0;
-  } catch { /* usage is optional */ }
-}
 /** Ledger usage columns priced with the active rate snapshot; never throws. */
-async function usageColumns(u: Usage) {
+export async function usageColumns(u: Usage, MODEL: string) {
   if (!u.seen) return { model: MODEL, kind: "reply" };
   try {
     const { data: rate } = await supabaseAdmin.from("ai_model_rates").select("*").eq("model", MODEL).eq("is_active", true).maybeSingle();
