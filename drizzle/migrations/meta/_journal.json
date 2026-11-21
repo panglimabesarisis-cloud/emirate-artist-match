@@ -260,6 +260,13 @@
       "when": 1795269493886,
       "tag": "0036_add_basic_plan_and_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795269769781,
+      "tag": "0037_artist_profile_portfolio_clients",
+      "breakpoints": true
     }
   ]
 }

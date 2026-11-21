@@ -272,12 +272,48 @@ export type Database = {
           },
         ]
       }
+      artist_clients: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          is_public: boolean
+          name: string
+          year: number | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          name: string
+          year?: number | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          name?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_clients_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_media: {
         Row: {
           artist_id: string
           caption: string | null
           created_at: string
           id: string
+          is_cover: boolean
           kind: string
           sort: number
           storage_path: string | null
@@ -288,6 +324,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          is_cover?: boolean
           kind: string
           sort?: number
           storage_path?: string | null
@@ -298,6 +335,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          is_cover?: boolean
           kind?: string
           sort?: number
           storage_path?: string | null
@@ -386,6 +424,53 @@ export type Database = {
           },
         ]
       }
+      artist_portfolio: {
+        Row: {
+          artist_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_path: string | null
+          kind: string | null
+          link: string | null
+          sort: number
+          title: string
+          year: number | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string | null
+          link?: string | null
+          sort?: number
+          title: string
+          year?: number | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string | null
+          link?: string | null
+          sort?: number
+          title?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_portfolio_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_subscriptions: {
         Row: {
           artist_id: string
@@ -466,8 +551,10 @@ export type Database = {
           area_id: string | null
           base_price: number | null
           bio: string | null
+          body: Json
           calendar_token: string
           category_id: string | null
+          category_ids: string[]
           contract_accepted_at: string | null
           created_at: string
           emirate_id: string | null
@@ -481,9 +568,11 @@ export type Database = {
           manager_phone: string | null
           notify_phone: string | null
           onboarding_complete: boolean | null
+          photo_path: string | null
           plan: string
           registration_paid_at: string | null
           response_rate: number | null
+          skills: string[]
           slug: string
           specialty_ids: string[]
           stage_name: string
@@ -498,8 +587,10 @@ export type Database = {
           area_id?: string | null
           base_price?: number | null
           bio?: string | null
+          body?: Json
           calendar_token?: string
           category_id?: string | null
+          category_ids?: string[]
           contract_accepted_at?: string | null
           created_at?: string
           emirate_id?: string | null
@@ -513,9 +604,11 @@ export type Database = {
           manager_phone?: string | null
           notify_phone?: string | null
           onboarding_complete?: boolean | null
+          photo_path?: string | null
           plan?: string
           registration_paid_at?: string | null
           response_rate?: number | null
+          skills?: string[]
           slug: string
           specialty_ids?: string[]
           stage_name: string
@@ -530,8 +623,10 @@ export type Database = {
           area_id?: string | null
           base_price?: number | null
           bio?: string | null
+          body?: Json
           calendar_token?: string
           category_id?: string | null
+          category_ids?: string[]
           contract_accepted_at?: string | null
           created_at?: string
           emirate_id?: string | null
@@ -545,9 +640,11 @@ export type Database = {
           manager_phone?: string | null
           notify_phone?: string | null
           onboarding_complete?: boolean | null
+          photo_path?: string | null
           plan?: string
           registration_paid_at?: string | null
           response_rate?: number | null
+          skills?: string[]
           slug?: string
           specialty_ids?: string[]
           stage_name?: string
