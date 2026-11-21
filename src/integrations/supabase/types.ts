@@ -1955,6 +1955,7 @@ export type Database = {
           is_active: boolean
           name: string
           price_aed: number
+          question_count: number | null
           tier: string
           updated_at: string
         }
@@ -1966,6 +1967,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price_aed?: number
+          question_count?: number | null
           tier?: string
           updated_at?: string
         }
@@ -1977,6 +1979,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price_aed?: number
+          question_count?: number | null
           tier?: string
           updated_at?: string
         }
@@ -2965,7 +2968,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string | null
           price_aed?: number | null
-          question_count?: never
+          question_count?: number | null
           tier?: string | null
           updated_at?: string | null
         }
@@ -2976,7 +2979,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string | null
           price_aed?: number | null
-          question_count?: never
+          question_count?: number | null
           tier?: string | null
           updated_at?: string | null
         }

@@ -14,3 +14,4 @@
 - Processor amounts/currencies are immutable order snapshots separate from accounting amounts; only verified server settlement may apply accounting amounts, and pending purchases use durable keys rather than in-memory locks.
 - Billing and quota checks derive from verified environment-scoped subscription periods; paid invoice-line periods preserve historical monthly allocations, and quote-approval commission snapshots never change with later plans.
 - Paid library items (prompts, flow/form templates) settle only via settle_test_purchase after Stripe verification; full refunds set refunded_at and revoke use but keep copied content.
+- Paid content (prompt bodies, form template fields) is hidden by column grants; listings are security-invoker views and admins read hidden content via definer functions.
