@@ -386,9 +386,9 @@ ${locked.iban}` : bank.trim();
         <p className="mt-1 text-sm text-muted-foreground">{t("After platform fee, withdrawals and pending requests.")}</p>
 <Button asChild className="mt-5"><a href="#studio-withdrawal">{t("Request withdrawal")}</a></Button></div><div className="studio-wallet-process"><span>{t("Client pays")}</span><span aria-hidden="true">→</span><span>{t("Escrow")}</span><span aria-hidden="true">→</span><span>{t("You withdraw")}</span></div></div>
       <div className="studio-wallet-stats">
-        <Kpi label={t("Completed work")} value={aed(Number(w?.gross ?? 0))} hint={`${w?.jobs ?? 0} jobs, excl. VAT`} />
-        <Kpi label={`${t("Platform fee")} (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint={"Based on your plan"} />
-        <Kpi label={t("Withdrawn / pending")} value={aed(Number(w?.paid_out ?? 0) + Number(w?.pending ?? 0))} hint={`${aed(Number(w?.pending ?? 0))} pending`} />
+        <Kpi label={t("Completed work")} value={aed(Number(w?.gross ?? 0))} hint={`${w?.jobs ?? 0} ${t("jobs, excl. VAT")}`} />
+        <Kpi label={`${t("Platform fee")} (${pct}%)`} value={`- ${aed(Number(w?.fee ?? 0))}`} hint={t("Based on your plan")} />
+        <Kpi label={t("Withdrawn / pending")} value={aed(Number(w?.paid_out ?? 0) + Number(w?.pending ?? 0))} hint={`${aed(Number(w?.pending ?? 0))} ${t("pending")}`} />
       </div>
       <div className="dmr-w-left">
         <div className="space-y-6">

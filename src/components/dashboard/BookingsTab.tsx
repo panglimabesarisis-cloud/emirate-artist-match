@@ -50,7 +50,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
-    try { await fn(); toast.success(ok); qc.invalidateQueries({ queryKey: key }); }
+    try { await fn(); toast.success(t(ok)); qc.invalidateQueries({ queryKey: key }); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
     finally { setBusy(false); }
   };
@@ -68,9 +68,9 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
                 <div className="font-semibold">{b.client_name} · {b.package_title}</div>
                 <div className="text-sm text-muted-foreground">{b.event_date} · {aed(Number(b.total))} {t("incl. VAT")} {b.invoice_no ? `· ${b.invoice_no}` : ""}</div>
                 {(() => { const r = rep(b.client_email); return r ? <div className="text-xs" title={r.notes.join(" · ")}>{t("Client reputation (private):")} <b>{r.avg.toFixed(1)}★</b> {t("from")} {r.n} {t("booking")}{r.n > 1 ? t("s") : ""}{r.notes.length ? ` · “${r.notes[0]}”` : ""}</div> : null; })()}
-                <div className="text-xs text-muted-foreground">{t("Escrow:")} {b.escrow_status}{Number(b.refund_amount) > 0 ? ` · refunded ${aed(Number(b.refund_amount))}` : ""}</div>
+                <div className="text-xs text-muted-foreground">{t("Escrow:")} {t(b.escrow_status)}{Number(b.refund_amount) > 0 ? ` · refunded ${aed(Number(b.refund_amount))}` : ""}</div>
               </div>
-              <Badge variant={b.status === "confirmed" || b.status === "inquiry" ? "default" : "secondary"}>{b.status === "quoted" ? t("offer sent") : b.status === "inquiry" ? t("needs your approval") : b.status}</Badge>
+              <Badge variant={b.status === "confirmed" || b.status === "inquiry" ? "default" : "secondary"}>{b.status === "quoted" ? t("offer sent") : b.status === "inquiry" ? t("needs your approval") : t(b.status)}</Badge>
             </div>
             {b.status === "completed" && b.client_email && !(ratings ?? []).some((x) => x.booking_id === b.id) && (
               rate?.id === b.id ? (
@@ -92,8 +92,8 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
                 <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm(t("Cancel? The client gets a full refund."))) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>{t("Cancel")}</Button>
               </div>
             )}
-            <details className="mt-3"><summary className="cursor-pointer text-primary">{t("Booking information")}</summary><table className="mt-2 w-full text-xs"><tbody>{[["Job detail",b.job_detail??b.notes??"—"],["Email",b.client_email??"—"],["Invoice",b.invoice_no??"—"],["H-7 reminder",b.reminder_sent_at?"Sent":"Pending"],["Calendar error",b.calendar_sync_error??"—"]].map(([k,v])=><tr key={k} className="border-b"><th className="py-2 pe-2 text-start">{k}</th><td className="py-2 whitespace-pre-wrap break-words">{v}</td></tr>)}</tbody></table></details>
-          </td><td className="p-3 whitespace-nowrap" data-label={t("Date & time")}>{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap" data-label={t("Total")}>{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap" data-label={t("Payment")}><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`Paid ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:t("Unpaid")}</Badge></td><td className="p-3 whitespace-nowrap" data-label={t("Balance")}>{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3" data-label={t("Calendar")}>{b.calendar_sync_status}</td></tr>
+            <details className="mt-3"><summary className="cursor-pointer text-primary">{t("Booking information")}</summary><table className="mt-2 w-full text-xs"><tbody>{[["Job detail",b.job_detail??b.notes??"—"],["Email",b.client_email??"—"],["Invoice",b.invoice_no??"—"],["H-7 reminder",b.reminder_sent_at?"Sent":"Pending"],["Calendar error",b.calendar_sync_error??"—"]].map(([k,v])=><tr key={k} className="border-b"><th className="py-2 pe-2 text-start">{t(k ?? "")}</th><td className="py-2 whitespace-pre-wrap break-words">{v}</td></tr>)}</tbody></table></details>
+          </td><td className="p-3 whitespace-nowrap" data-label={t("Date & time")}>{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap" data-label={t("Total")}>{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap" data-label={t("Payment")}><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`${t("Paid")} ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:t("Unpaid")}</Badge></td><td className="p-3 whitespace-nowrap" data-label={t("Balance")}>{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3" data-label={t("Calendar")}>{t(b.calendar_sync_status)}</td></tr>
         ))}
       </tbody></table></div><div className="dmr-q-foot"><span>{bookings?.length ?? 0} {t("bookings")}</span><span>{t("All totals in AED, incl. 5% VAT")}</span></div></section>
       <aside className="dmr-b-side">
@@ -102,7 +102,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
           <div><Label>{t("Conversation")}</Label>
             <Select value={f.conversationId} onValueChange={(v) => { const c = convs?.find((x) => x.id === v); setF({ ...f, conversationId: v, eventDate: c?.quote_requests?.event_date ?? f.eventDate }); }}>
               <SelectTrigger><SelectValue placeholder={t("Choose client")} /></SelectTrigger>
-              <SelectContent>{convs?.map((c) => <SelectItem key={c.id} value={c.id}>{c.quote_requests?.name ?? "Client"}{c.quote_requests?.event_date ? ` · ${c.quote_requests.event_date}` : ""}</SelectItem>)}</SelectContent>
+              <SelectContent>{convs?.map((c) => <SelectItem key={c.id} value={c.id}>{c.quote_requests?.name ?? t("Client")}{c.quote_requests?.event_date ? ` · ${c.quote_requests.event_date}` : ""}</SelectItem>)}</SelectContent>
             </Select></div>
           {packages && packages.length > 0 && <div><Label>{t("From package")}</Label>
             <Select onValueChange={(v) => { const pk = packages.find((x) => x.id === v); if (pk) setF({ ...f, title: pk.title, amount: String(pk.price) }); }}>
