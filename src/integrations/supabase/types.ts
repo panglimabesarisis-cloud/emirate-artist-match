@@ -246,6 +246,53 @@ export type Database = {
           },
         ]
       }
+      artist_bank_details: {
+        Row: {
+          account_type: string
+          artist_id: string
+          bank_name: string | null
+          branch: string | null
+          holder_name: string | null
+          iban: string | null
+          id_number_enc: string | null
+          id_type: string | null
+          swift: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_type?: string
+          artist_id: string
+          bank_name?: string | null
+          branch?: string | null
+          holder_name?: string | null
+          iban?: string | null
+          id_number_enc?: string | null
+          id_type?: string | null
+          swift?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          artist_id?: string
+          bank_name?: string | null
+          branch?: string | null
+          holder_name?: string | null
+          iban?: string | null
+          id_number_enc?: string | null
+          id_type?: string | null
+          swift?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_bank_details_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_calendar: {
         Row: {
           artist_id: string
@@ -1653,7 +1700,8 @@ export type Database = {
           admin_note: string | null
           amount: number
           artist_id: string
-          bank_details: string
+          bank_details: string | null
+          bank_snapshot: Json | null
           created_at: string
           decided_at: string | null
           id: string
@@ -1663,7 +1711,8 @@ export type Database = {
           admin_note?: string | null
           amount: number
           artist_id: string
-          bank_details: string
+          bank_details?: string | null
+          bank_snapshot?: Json | null
           created_at?: string
           decided_at?: string | null
           id?: string
@@ -1673,7 +1722,8 @@ export type Database = {
           admin_note?: string | null
           amount?: number
           artist_id?: string
-          bank_details?: string
+          bank_details?: string | null
+          bank_snapshot?: Json | null
           created_at?: string
           decided_at?: string | null
           id?: string

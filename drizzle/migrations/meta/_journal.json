@@ -267,6 +267,13 @@
       "when": 1795269769781,
       "tag": "0037_artist_profile_portfolio_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795270028248,
+      "tag": "0038_artist_bank_details_payout_snapshot",
+      "breakpoints": true
     }
   ]
 }
