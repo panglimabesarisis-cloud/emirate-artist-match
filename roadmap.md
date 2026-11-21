@@ -1,5 +1,6 @@
 # Roadmap
-- [ ] Finish dashboard reference pages 02–18 presentation: preserve all data/prop contracts; translate visible labels and disable unsupported fields with “segera”; exclude Your AI agent. Stop further tests and screenshots as requested; finish control styling, Team/Media layouts and report unsupported reference differences.
+- [x] Remove the selected duplicate workspace/access strip above the dashboard; retain the existing dashboard header and data behavior.
+- [x] Dashboard reference pages 02–18 presentation updated, with final control styling and Team/Media layouts. Preserve data/prop contracts; translate visible labels and disable unsupported fields with “segera”; Your AI agent excluded. No further tests or screenshots as requested. Reference differences reported for Inbox, Bookings, Calendar, Invoice, Contract, Account, Team, AI credits, Profile, Ratecard, Media and Verification where the existing model does not support reference features; exact visual parity is not claimed.
 - [x] Dealmaker reference refresh: shared tokens, continuous night/beach SceneBackground, navigation and starlight footer.
 - [x] Refresh homepage only, preserving its catalog, featured talents and search navigation.
 - [x] Refresh listing presentation, retaining filters, URL contracts, sorting and quote links.

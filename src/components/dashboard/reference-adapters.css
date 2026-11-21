@@ -1,4 +1,5 @@
 /* Adapt functional shadcn controls to the reference without changing their contracts. */
+html .studio-workspace-access[hidden]{display:none}
 html.dm-dash .studio-reference{min-width:0;font-family:var(--font-sans);letter-spacing:0}
 html.dm-dash .studio-reference .dmr-panel{border-radius:20px;border:1px solid var(--studio-line);background:var(--studio-panel-gradient);padding:22px;min-width:0;position:relative;overflow:hidden}
 html.dm-dash .studio-reference .dmr-ph{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
@@ -208,7 +209,7 @@ html.dm-dash .studio-account-page{max-width:1400px;margin-inline:auto;padding:28
 /* This project keeps the original shadcn controls without data-slot attributes. */
 html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){height:auto;min-height:38px;padding:9px 14px;border-radius:999px;font-size:12px;white-space:normal;line-height:1.5;transition:background .25s,border-color .25s,box-shadow .25s}
 html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.bg-primary:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){background:var(--gradient-gold);color:var(--gold-foreground);box-shadow:var(--studio-gold-shadow)}
-html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.bg-primary:hover{box-shadow:var(--shadow-gold)}
+html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.bg-primary:hover{box-shadow:var(--studio-gold-shadow);filter:brightness(1.06)}
 html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.border-input{background:transparent;border-color:var(--studio-line-2)}
 html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.border-input:hover{border-color:var(--gold);color:var(--gold)}
 html.dm-dash .studio-reference :is(button,a).inline-flex.justify-center.cursor-pointer.w-9{width:38px;height:38px;min-height:38px;flex-shrink:0;padding:9px;border-radius:10px}
