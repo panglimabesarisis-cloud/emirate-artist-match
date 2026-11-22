@@ -58,6 +58,67 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_actions: {
+        Row: {
+          artist_id: string
+          chat_id: string
+          created_at: string
+          id: string
+          kind: string
+          message_id: string
+          payload: Json
+          result: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          chat_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          message_id: string
+          payload: Json
+          result?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          chat_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          message_id?: string
+          payload?: Json
+          result?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_actions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_actions_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "agent_chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_actions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "agent_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_chat_files: {
         Row: {
           artist_id: string

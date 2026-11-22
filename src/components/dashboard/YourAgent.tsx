@@ -2,22 +2,58 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Bot, CalendarCheck, Coins, FileText, History, Inbox as InboxIcon, Paperclip, Plus, Receipt, Send, Sparkles, Trash2, Wallet, X } from "lucide-react";
+import {
+  Bot,
+  CalendarCheck,
+  Coins,
+  FileText,
+  History,
+  Inbox as InboxIcon,
+  Paperclip,
+  Plus,
+  Receipt,
+  Send,
+  Trash2,
+  Wallet,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { askMyAgent } from "@/lib/my-agent.functions";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { AgentResponse } from "./AgentResponse";
+import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputSubmit,
+} from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 
 const BUCKET = "agent-chat";
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 4;
 const MIME_BY_EXT: Record<string, string> = {
-  csv: "text/csv", txt: "text/plain", pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif",
-  doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  csv: "text/csv",
+  txt: "text/plain",
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 const ALLOWED = new Set(Object.values(MIME_BY_EXT));
-const mimeOf = (f: File) => (f.type && ALLOWED.has(f.type) ? f.type : MIME_BY_EXT[f.name.split(".").pop()?.toLowerCase() ?? ""] ?? "");
+const mimeOf = (f: File) =>
+  f.type && ALLOWED.has(f.type)
+    ? f.type
+    : (MIME_BY_EXT[f.name.split(".").pop()?.toLowerCase() ?? ""] ?? "");
 
 type Attached = { id: string; name: string };
 type Msg = { id: string; role: "user" | "assistant"; body: string; created_at: string };
@@ -29,12 +65,34 @@ const QUICK: Array<[string, string, typeof CalendarCheck]> = [
   ["AI credits", "How many credits are left?", Coins],
   ["Inbox and quotes", "Which new quote requests need a reply?", InboxIcon],
   ["Draft a reply", "Draft a reply to a new enquiry", FileText],
+  ["Create Calendar event", "Help me create an event in Calendar", CalendarCheck],
+  ["Show invoice", "Show an existing saved invoice here in our private chat", Receipt],
+  ["Monthly report", "Show this month’s bookings report as a table and bar chart", FileText],
 ];
-const SUGGEST = ["How many bookings do I have?", "Summarize my unpaid invoices", "How many credits are left?", "Draft a reply to a new enquiry"];
-const GO: Array<[string, string, string]> = [["Bookings", "bookings", "Bookings"], ["Invoice", "invoices", "Invoice"], ["Wallet", "wallet", "Wallet"], ["Inbox", "inbox", "Inbox"], ["AI agent settings", "agent", "AI agent settings"]];
+const SUGGEST = [
+  "How many bookings do I have?",
+  "Summarize my unpaid invoices",
+  "How many credits are left?",
+  "Draft a reply to a new enquiry",
+];
+const GO: Array<[string, string, string]> = [
+  ["Bookings", "bookings", "Bookings"],
+  ["Invoice", "invoices", "Invoice"],
+  ["Wallet", "wallet", "Wallet"],
+  ["Inbox", "inbox", "Inbox"],
+  ["AI agent settings", "agent", "AI agent settings"],
+];
 
 /** Artist's private business assistant: answers only from the artist's own data (server side, 1 credit per answer). */
-export function YourAgent({ artistId, stageName, onOpen }: { artistId: string; stageName: string; onOpen: (section: string) => void }) {
+export function YourAgent({
+  artistId,
+  stageName,
+  onOpen,
+}: {
+  artistId: string;
+  stageName: string;
+  onOpen: (section: string) => void;
+}) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const ask$ = useServerFn(askMyAgent);
@@ -48,49 +106,119 @@ export function YourAgent({ artistId, stageName, onOpen }: { artistId: string; s
   const fileInput = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const chats = useQuery({ queryKey: ["agent-chats", artistId], queryFn: async () => (await supabase.from("agent_chats").select("id, title, created_at").eq("artist_id", artistId).order("created_at", { ascending: false }).limit(40)).data ?? [] });
+  const chats = useQuery({
+    queryKey: ["agent-chats", artistId],
+    queryFn: async () =>
+      (
+        await supabase
+          .from("agent_chats")
+          .select("id, title, created_at")
+          .eq("artist_id", artistId)
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ).data ?? [],
+  });
   const msgs = useQuery({
     queryKey: ["agent-chat-msgs", chatId],
     enabled: !!chatId,
-    queryFn: async () => ((await supabase.from("agent_chat_messages").select("id, role, body, created_at").eq("chat_id", chatId ?? "").order("created_at")).data ?? []) as Msg[],
+    queryFn: async () =>
+      ((
+        await supabase
+          .from("agent_chat_messages")
+          .select("id, role, body, created_at")
+          .eq("chat_id", chatId ?? "")
+          .order("created_at")
+      ).data ?? []) as Msg[],
   });
-  const wallet = useQuery({ queryKey: ["agent-credits", artistId], queryFn: async () => Number((await supabase.from("credit_wallets").select("balance").eq("artist_id", artistId).maybeSingle()).data?.balance ?? 0) });
+  const wallet = useQuery({
+    queryKey: ["agent-credits", artistId],
+    queryFn: async () =>
+      Number(
+        (
+          await supabase
+            .from("credit_wallets")
+            .select("balance")
+            .eq("artist_id", artistId)
+            .maybeSingle()
+        ).data?.balance ?? 0,
+      ),
+  });
   const list = useMemo(() => msgs.data ?? [], [msgs.data]);
-  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [list.length, pending, busy]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [list.length, pending, busy]);
 
   const attach = async (picked: FileList | File[] | null) => {
     if (!picked || !picked.length) return;
     const incoming = Array.from(picked);
-    if (files.length + incoming.length > MAX_FILES) { toast.error(`${t("Attach up to")} ${MAX_FILES} ${t("files")}`); return; }
+    if (files.length + incoming.length > MAX_FILES) {
+      toast.error(`${t("Attach up to")} ${MAX_FILES} ${t("files")}`);
+      return;
+    }
     setUploading(true);
     try {
       for (const f of incoming) {
         const mime = mimeOf(f);
-        if (!mime) { toast.error(`${f.name}: ${t("file type not supported")}`); continue; }
-        if (f.size > MAX_BYTES) { toast.error(`${f.name}: ${t("max 10 MB")}`); continue; }
+        if (!mime) {
+          toast.error(`${f.name}: ${t("file type not supported")}`);
+          continue;
+        }
+        if (f.size > MAX_BYTES) {
+          toast.error(`${f.name}: ${t("max 10 MB")}`);
+          continue;
+        }
         const path = `${artistId}/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]/g, "_")}`;
         const up = await supabase.storage.from(BUCKET).upload(path, f, { contentType: mime });
-        if (up.error) { toast.error(`${f.name}: ${t("upload failed")}`); continue; }
-        const row = await supabase.from("agent_chat_files").insert({ artist_id: artistId, storage_path: path, name: f.name.slice(0, 120), mime, bytes: f.size }).select("id, name").single();
-        if (row.error || !row.data) { await supabase.storage.from(BUCKET).remove([path]); toast.error(`${f.name}: ${t("upload failed")}`); continue; }
+        if (up.error) {
+          toast.error(`${f.name}: ${t("upload failed")}`);
+          continue;
+        }
+        const row = await supabase
+          .from("agent_chat_files")
+          .insert({
+            artist_id: artistId,
+            storage_path: path,
+            name: f.name.slice(0, 120),
+            mime,
+            bytes: f.size,
+          })
+          .select("id, name")
+          .single();
+        if (row.error || !row.data) {
+          await supabase.storage.from(BUCKET).remove([path]);
+          toast.error(`${f.name}: ${t("upload failed")}`);
+          continue;
+        }
         setFiles((cur) => [...cur, { id: row.data.id, name: row.data.name }]);
       }
-    } finally { setUploading(false); }
+    } finally {
+      setUploading(false);
+    }
   };
 
   const send = async (override?: string) => {
     const question = (override ?? text).trim();
     if (!question || busy) return;
-    setBusy(true); setPending(question); setText("");
+    setBusy(true);
+    setPending(question);
+    setText("");
     try {
       let id = chatId;
       if (!id) {
-        const created = await supabase.from("agent_chats").insert({ artist_id: artistId, title: question.slice(0, 48) }).select("id").single();
-        if (created.error || !created.data) throw new Error(created.error?.message ?? t("Could not start the chat"));
-        id = created.data.id; setChatId(id);
+        const created = await supabase
+          .from("agent_chats")
+          .insert({ artist_id: artistId, title: question.slice(0, 48) })
+          .select("id")
+          .single();
+        if (created.error || !created.data)
+          throw new Error(created.error?.message ?? t("Could not start the chat"));
+        id = created.data.id;
+        setChatId(id);
         qc.invalidateQueries({ queryKey: ["agent-chats", artistId] });
       }
-      const res = await ask$({ data: { chatId: id, text: question, fileIds: files.map((f) => f.id) } });
+      const res = await ask$({
+        data: { chatId: id, text: question, fileIds: files.map((f) => f.id) },
+      });
       if ("error" in res && res.error) toast.error(res.error);
       setFiles([]);
       qc.invalidateQueries({ queryKey: ["agent-chat-msgs", id] });
@@ -98,13 +226,19 @@ export function YourAgent({ artistId, stageName, onOpen }: { artistId: string; s
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("Something went wrong"));
       setText(question);
-    } finally { setBusy(false); setPending(null); }
+    } finally {
+      setBusy(false);
+      setPending(null);
+    }
   };
 
   const removeChat = async (id: string) => {
     if (!confirm(t("Delete this chat?"))) return;
     const { error } = await supabase.from("agent_chats").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     if (chatId === id) setChatId(null);
     qc.invalidateQueries({ queryKey: ["agent-chats", artistId] });
   };
@@ -116,107 +250,286 @@ export function YourAgent({ artistId, stageName, onOpen }: { artistId: string; s
     <div
       className="grid min-h-[560px] gap-4 lg:h-[calc(100dvh-9rem)] lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)] xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)_300px]"
       onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => { e.preventDefault(); void attach(e.dataTransfer.files); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        void attach(e.dataTransfer.files);
+      }}
     >
-      <aside className={`${showHist ? "flex" : "hidden"} min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background lg:flex`} aria-label={t("Chat history")}>
+      <aside
+        className={`${showHist ? "flex" : "hidden"} min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background lg:flex`}
+        aria-label={t("Chat history")}
+      >
         <div className="border-b border-border p-4">
-          <Button className="w-full rounded-full bg-blue-600 text-white hover:bg-blue-500" onClick={() => { setChatId(null); setFiles([]); setShowHist(false); }}><Plus className="me-1.5 h-4 w-4" />{t("New chat")}</Button>
+          <Button
+            className="w-full rounded-full bg-blue-600 text-white hover:bg-blue-500"
+            onClick={() => {
+              setChatId(null);
+              setFiles([]);
+              setShowHist(false);
+            }}
+          >
+            <Plus className="me-1.5 h-4 w-4" />
+            {t("New chat")}
+          </Button>
         </div>
-        <div className="px-5 pb-1 pt-4 text-[10.5px] font-bold uppercase tracking-[.14em] text-muted-foreground/70">{t("Recent")}</div>
+        <div className="px-5 pb-1 pt-4 text-[10.5px] font-bold uppercase tracking-[.14em] text-muted-foreground/70">
+          {t("Recent")}
+        </div>
         <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-          {(chats.data ?? []).length === 0 && <li className="px-3 py-4 text-xs text-muted-foreground">{t("No earlier chats yet. Your conversations appear here.")}</li>}
+          {(chats.data ?? []).length === 0 && (
+            <li className="px-3 py-4 text-xs text-muted-foreground">
+              {t("No earlier chats yet. Your conversations appear here.")}
+            </li>
+          )}
           {(chats.data ?? []).map((c) => (
             <li key={c.id} className="group flex items-center">
-              <button type="button" aria-current={chatId === c.id ? "true" : undefined} onClick={() => { setChatId(c.id); setShowHist(false); }} className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-start text-sm transition-colors ${chatId === c.id ? "bg-blue-500/15 text-foreground" : "text-muted-foreground hover:bg-foreground/[.04] hover:text-foreground"}`}>{c.title}</button>
-              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 opacity-0 focus-visible:opacity-100 group-hover:opacity-100" aria-label={t("Delete this chat?")} onClick={() => void removeChat(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+              <button
+                type="button"
+                aria-current={chatId === c.id ? "true" : undefined}
+                onClick={() => {
+                  setChatId(c.id);
+                  setShowHist(false);
+                }}
+                className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-start text-sm transition-colors ${chatId === c.id ? "bg-blue-500/15 text-foreground" : "text-muted-foreground hover:bg-foreground/[.04] hover:text-foreground"}`}
+              >
+                {c.title}
+              </button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                aria-label={t("Delete this chat?")}
+                onClick={() => void removeChat(c.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </li>
           ))}
         </ul>
       </aside>
 
-      <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background" aria-labelledby="ya-h">
+      <section
+        className="relative flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background"
+        aria-labelledby="ya-h"
+      >
         <header className="flex items-center gap-3 border-b border-border px-4 py-3.5">
-          <Button type="button" size="icon" variant="outline" className="rounded-xl lg:hidden" aria-label={t("Chat history")} onClick={() => setShowHist((v) => !v)}><History className="h-[18px] w-[18px]" /></Button>
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600/20 text-blue-300"><Bot className="h-5 w-5" aria-hidden /></span>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="rounded-xl lg:hidden"
+            aria-label={t("Chat history")}
+            onClick={() => setShowHist((v) => !v)}
+          >
+            <History className="h-[18px] w-[18px]" />
+          </Button>
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600/20 text-blue-300">
+            <Bot className="h-5 w-5" aria-hidden />
+          </span>
           <div className="min-w-0 flex-1">
-            <h2 id="ya-h" className="font-display text-2xl leading-none">{t("Your")} <span className="it">{t("AI agent")}</span></h2>
-            <small className="flex items-center gap-1.5 text-xs text-muted-foreground"><i className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />{t("Online. Each answer uses 1 credit.")}</small>
+            <h2 id="ya-h" className="font-display text-2xl leading-none">
+              {t("Your")} <span className="it">{t("AI agent")}</span>
+            </h2>
+            <small className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <i className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+              {t("Online. Each answer uses 1 credit.")}
+            </small>
           </div>
-          <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-200" title={t("Each reply uses 1 credit")}>{credits} {t("credits")}</span>
+          <span
+            className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-200"
+            title={t("Each reply uses 1 credit")}
+          >
+            {credits} {t("credits")}
+          </span>
         </header>
 
-        <div className="relative min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(ellipse_at_50%_0%,rgba(232,176,74,.05),transparent_60%)] p-5" role="log" aria-live="polite" aria-label={t("Chat with your AI agent")}>
-          {empty && (
-            <div className="flex gap-3">
-              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600/20 text-blue-300"><Bot className="h-4 w-4" aria-hidden /></span>
-              <p className="max-w-[80%] text-sm leading-relaxed">{t("Hi")} {stageName.split(" ")[0]}! {t("I am your AI agent. Ask me about your bookings, invoices, earnings or credits, or attach a file such as a rider, a price list or a contract and I will keep it with this chat.")}</p>
-            </div>
-          )}
-          {list.map((m) => (
-            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start gap-3"}`}>
-              {m.role === "assistant" && <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600/20 text-blue-300"><Bot className="h-4 w-4" aria-hidden /></span>}
-              <div className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "rounded-ee-sm bg-blue-600 text-white" : "rounded-es-sm bg-foreground/[.06]"}`} dir="auto">{m.body}</div>
-            </div>
-          ))}
-          {pending && <div className="flex justify-end"><div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-ee-sm bg-blue-600/70 px-3.5 py-2.5 text-sm text-white">{pending}</div></div>}
-          {busy && <div className="flex gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600/20 text-blue-300"><Sparkles className="h-4 w-4 animate-pulse" aria-hidden /></span><p className="self-center text-sm text-muted-foreground">{t("Thinking…")}</p></div>}
-          <div ref={endRef} />
-        </div>
+        <Conversation className="min-h-0 flex-1" aria-label={t("Chat with your AI agent")}>
+          <ConversationContent className="space-y-3 p-5">
+            {empty && (
+              <div className="flex gap-3">
+                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600/20 text-blue-300">
+                  <Bot className="h-4 w-4" aria-hidden />
+                </span>
+                <p className="max-w-[80%] text-sm leading-relaxed">
+                  {t("Hi")} {stageName.split(" ")[0]}!{" "}
+                  {t(
+                    "I am your AI agent. Ask me about your bookings, invoices, earnings or credits, or attach a file such as a rider, a price list or a contract and I will keep it with this chat.",
+                  )}
+                </p>
+              </div>
+            )}
+            {list.map((m) => (
+              <Message key={m.id} from={m.role} className="max-w-full">
+                <MessageContent
+                  className={m.role === "user" ? "bg-primary text-primary-foreground" : "w-full"}
+                  dir="auto"
+                >
+                  {m.role === "assistant" ? (
+                    <AgentResponse body={m.body} onOpen={onOpen} />
+                  ) : (
+                    m.body
+                  )}
+                </MessageContent>
+              </Message>
+            ))}
+            {pending && (
+              <Message from="user">
+                <MessageContent className="bg-primary text-primary-foreground">
+                  {pending}
+                </MessageContent>
+              </Message>
+            )}
+            {busy && <Shimmer className="text-sm">{t("Thinking…")}</Shimmer>}
+            <div ref={endRef} />
+          </ConversationContent>
+        </Conversation>
 
         {empty && (
           <div className="flex flex-wrap justify-center gap-2 px-5 pb-3">
-            {SUGGEST.map((q) => <button key={q} type="button" disabled={busy} onClick={() => void send(q)} className="rounded-full border border-border px-3.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:border-blue-400/50 hover:text-foreground">{t(q)}</button>)}
+            {SUGGEST.map((q) => (
+              <button
+                key={q}
+                type="button"
+                disabled={busy}
+                onClick={() => void send(q)}
+                className="rounded-full border border-border px-3.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:border-blue-400/50 hover:text-foreground"
+              >
+                {t(q)}
+              </button>
+            ))}
           </div>
         )}
 
-        <form className="border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+        <div className="border-t border-border p-3">
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5" aria-label={t("Attached files")}>
               {files.map((f) => (
-                <span key={f.id} className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-border bg-foreground/[.05] px-2.5 py-1 text-xs">
-                  <Paperclip className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{f.name}</span>
-                  <button type="button" aria-label={`${t("Remove")} ${f.name}`} onClick={() => setFiles(files.filter((x) => x.id !== f.id))}><X className="h-3 w-3" /></button>
+                <span
+                  key={f.id}
+                  className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-border bg-foreground/[.05] px-2.5 py-1 text-xs"
+                >
+                  <Paperclip className="h-3 w-3 shrink-0" aria-hidden />
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`${t("Remove")} ${f.name}`}
+                    onClick={() => setFiles(files.filter((x) => x.id !== f.id))}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </span>
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-foreground/[.04] p-2 focus-within:border-blue-400/60">
-            <Button type="button" size="icon" variant="ghost" className="shrink-0 rounded-xl" aria-label={t("Attach files")} disabled={uploading || busy} onClick={() => fileInput.current?.click()}><Paperclip className="h-[18px] w-[18px]" /></Button>
-            <textarea
-              rows={1} maxLength={2000} value={text} aria-label={t("Message to your AI agent")} placeholder={t("Message your AI agent")}
+          <PromptInput onSubmit={() => send()}>
+            <PromptInputTextarea
+              rows={1}
+              maxLength={4000}
+              value={text}
+              aria-label={t("Message to your AI agent")}
+              placeholder={t("Message your AI agent")}
               onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-              className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-sm outline-none"
+              className="max-h-32 min-h-12"
             />
-            <Button type="submit" size="icon" className="shrink-0 rounded-xl bg-blue-600 text-white hover:bg-blue-500" aria-label={t("Send message")} disabled={busy || uploading || !text.trim()}><Send className="h-[18px] w-[18px]" /></Button>
-          </div>
-          <input ref={fileInput} type="file" multiple className="sr-only" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx" onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} />
-          <p className="mt-2 px-1 text-[11px] text-muted-foreground">{t("Enter to send, Shift+Enter for a new line. Drag files anywhere here to attach them. Your agent can make mistakes, so check important answers.")}</p>
-        </form>
+            <PromptInputFooter className="justify-between">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={t("Attach files")}
+                disabled={uploading || busy}
+                onClick={() => fileInput.current?.click()}
+              >
+                <Paperclip className="h-[18px] w-[18px]" />
+              </Button>
+              <PromptInputSubmit
+                status={busy ? "submitted" : "ready"}
+                aria-label={t("Send message")}
+                disabled={busy || uploading || !text.trim()}
+              />
+            </PromptInputFooter>
+          </PromptInput>
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            className="sr-only"
+            accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx"
+            onChange={(e) => {
+              void attach(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+            {t(
+              "Enter to send, Shift+Enter for a new line. Drag files anywhere here to attach them. Your agent can make mistakes, so check important answers.",
+            )}
+          </p>
+        </div>
       </section>
 
-      <aside className="hidden min-h-0 overflow-y-auto rounded-[22px] border border-border bg-gradient-to-b from-card to-background p-5 xl:block" aria-label={t("Quick actions")}>
+      <aside
+        className="hidden min-h-0 overflow-y-auto rounded-[22px] border border-border bg-gradient-to-b from-card to-background p-5 xl:block"
+        aria-label={t("Quick actions")}
+      >
         <div className="border-b border-dashed border-border pb-5">
-          <h3 className="font-display text-2xl">{t("Quick")} <span className="it">{t("actions")}</span></h3>
-          <p className="mb-3 text-xs text-muted-foreground">{t("One click and your agent answers.")}</p>
+          <h3 className="font-display text-2xl">
+            {t("Quick")} <span className="it">{t("actions")}</span>
+          </h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {t("One click and your agent answers.")}
+          </p>
           <div className="space-y-1.5">
             {QUICK.map(([label, q, Icon]) => (
-              <button key={label} type="button" disabled={busy} onClick={() => void send(q)} className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-blue-400/50 hover:bg-blue-500/10">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-500/15 text-blue-300"><Icon className="h-3.5 w-3.5" aria-hidden /></span>{t(label)}
+              <button
+                key={label}
+                type="button"
+                disabled={busy}
+                onClick={() => void send(q)}
+                className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-blue-400/50 hover:bg-blue-500/10"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-500/15 text-blue-300">
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                </span>
+                {t(label)}
               </button>
             ))}
           </div>
         </div>
         <div className="border-b border-dashed border-border py-5">
-          <h3 className="font-display text-2xl">{t("Go")} <span className="it">{t("to")}</span></h3>
+          <h3 className="font-display text-2xl">
+            {t("Go")} <span className="it">{t("to")}</span>
+          </h3>
           <div className="mt-3 space-y-1.5">
-            {GO.map(([label, section]) => <button key={section} type="button" onClick={() => onOpen(section)} className="w-full rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-gold/50 hover:bg-gold/10">{t(label)}</button>)}
+            {GO.map(([label, section]) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() => onOpen(section)}
+                className="w-full rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-gold/50 hover:bg-gold/10"
+              >
+                {t(label)}
+              </button>
+            ))}
           </div>
         </div>
         <div className="pt-5">
-          <h3 className="font-display text-2xl">{t("Attach a")} <span className="it">{t("file")}</span></h3>
-          <p className="text-xs text-muted-foreground">{t("Rider, price list, contract or photo. Up to 10 MB, 4 files at once.")}</p>
-          <Button type="button" variant="outline" className="mt-3 w-full rounded-full" disabled={uploading || busy} onClick={() => fileInput.current?.click()}>{t("Choose files")}</Button>
+          <h3 className="font-display text-2xl">
+            {t("Attach a")} <span className="it">{t("file")}</span>
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {t("Rider, price list, contract or photo. Up to 10 MB, 4 files at once.")}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 w-full rounded-full"
+            disabled={uploading || busy}
+            onClick={() => fileInput.current?.click()}
+          >
+            {t("Choose files")}
+          </Button>
         </div>
       </aside>
     </div>

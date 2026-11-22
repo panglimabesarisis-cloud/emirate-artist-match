@@ -379,6 +379,13 @@
       "when": 1795333314559,
       "tag": "0053_owner_only_unpaid_inbox_deletion",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1795333939296,
+      "tag": "0054_private_agent_confirmed_actions",
+      "breakpoints": true
     }
   ]
 }
