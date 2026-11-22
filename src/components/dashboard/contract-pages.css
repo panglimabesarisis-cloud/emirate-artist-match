@@ -1,0 +1,58 @@
+.contract-preview-dialog{max-height:calc(100dvh - 40px);width:min(900px,calc(100vw - 24px));max-width:none;gap:0;overflow-y:auto;border-radius:26px;border:1px solid var(--studio-line-2,var(--border));background:var(--studio-contract-card-gradient,var(--card));padding:0}
+.contract-preview-dialog>button.absolute{display:none}
+.contract-preview-bar{background:var(--studio-top-wash,var(--card))}
+.contract-preview-frame{position:relative;width:100%;min-width:0}
+.contract-pages{display:flex;flex-direction:column;gap:26px;width:794px;margin-inline:auto;align-items:center}
+.contract-a4-page{position:relative;box-sizing:border-box;display:flex;flex-direction:column;flex-shrink:0;width:794px;height:1123px;min-height:1123px;padding:52px 60px 34px;border-radius:6px;background:var(--studio-contract-paper,var(--foreground));color:var(--studio-contract-ink,var(--background));font-family:var(--font-sans);font-size:12px;line-height:1.55;box-shadow:var(--studio-contract-sheet-shadow);overflow:hidden;letter-spacing:0}
+.contract-a4-page::before{content:"";position:absolute;inset-inline:0;top:0;height:5px;background:var(--gradient-gold)}
+.contract-a4-body{flex:1;min-height:0;overflow:hidden;padding-bottom:4px;box-sizing:border-box}
+.contract-a4-body>[data-contract-block]{margin:0 0 14px}
+.contract-a4-body>[data-contract-block]:last-child{margin-bottom:0}
+.contract-measure-source{position:absolute;inset-inline-start:0;top:0;width:674px;visibility:hidden;pointer-events:none;font-family:var(--font-sans);font-size:12px;line-height:1.55;letter-spacing:0}
+.contract-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:22px!important}
+.contract-page-header>div{min-width:0;flex:1}
+.contract-page-brand{font-family:var(--font-display);font-size:34px;line-height:1;color:var(--studio-contract-ink)}
+.contract-page-tag{display:block;margin-top:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--studio-contract-muted)}
+.contract-page-identifiers{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:11px;margin-top:16px}
+.contract-page-identifiers dt{color:var(--studio-contract-muted)}
+.contract-page-identifiers dd{font-weight:700;overflow-wrap:anywhere}
+.contract-page-title{text-align:end}
+.contract-page-title h3{font-family:var(--font-display);font-size:30px;font-weight:400;line-height:1}
+.contract-page-stamp{display:inline-flex;rotate:-3deg;flex-direction:column;align-items:center;gap:2px;max-width:100%;margin-top:10px;padding:6px 12px;border:3px double currentColor;border-radius:10px;color:var(--studio-contract-muted)}
+.contract-page-stamp[data-tone=accepted]{color:var(--studio-contract-accepted)}
+.contract-page-stamp[data-tone=awaiting]{color:var(--studio-contract-awaiting)}
+.contract-page-stamp b{font-size:15px;line-height:1;font-weight:800}
+.contract-page-stamp i{font-size:9px;font-weight:700;font-style:normal;overflow-wrap:anywhere}
+.contract-page-intro{padding-top:12px;border-top:1px solid var(--studio-contract-paper-line);color:var(--studio-contract-muted)}
+.contract-page-party{display:grid;grid-template-columns:145px minmax(0,1fr);gap:12px;padding:6px 0;border-bottom:1px solid var(--studio-contract-paper-line)}
+.contract-page-party dt{font-size:10px;text-transform:uppercase;color:var(--studio-contract-muted);font-weight:700}
+.contract-page-party dd{font-weight:600;overflow-wrap:anywhere;white-space:pre-wrap}
+.contract-page-paragraph{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--studio-contract-ink)}
+.contract-page-article h4{font-size:12.5px;font-weight:800;margin-bottom:6px;color:var(--studio-contract-ink)}
+.contract-page-article h4 span{font-size:9px;text-transform:uppercase;margin-inline-end:10px;color:var(--studio-contract-awaiting)}
+.contract-page-article p{margin:0;font-size:11.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.contract-page-rider h4{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--studio-contract-awaiting);margin-bottom:8px}
+.contract-page-rider p{white-space:pre-wrap;overflow-wrap:anywhere;padding-bottom:7px;border-bottom:1px solid var(--studio-contract-paper-line)}
+.contract-page-note{font-size:11px;color:var(--studio-contract-muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.contract-page-continuation{display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;margin-bottom:18px;border-bottom:1px solid var(--studio-contract-paper-line);font-size:10px;color:var(--studio-contract-muted)}
+.contract-page-continuation b{color:var(--studio-contract-ink)}
+.contract-page-continuation span{max-width:80%;overflow-wrap:anywhere;text-align:end}
+.contract-page-footer{display:flex;flex-shrink:0;justify-content:space-between;align-items:baseline;gap:20px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--studio-contract-paper-line);font-size:10px;line-height:1.4;color:var(--studio-contract-muted)}
+.contract-page-footer>span:first-child{min-width:0;max-width:75%;overflow-wrap:anywhere}
+.contract-page-footer>span:last-child{white-space:nowrap}
+.contract-locked-overlay{position:absolute;inset-inline:0;inset-block-start:300px;bottom:70px;display:grid;place-items:center;padding:24px;text-align:center;background:var(--studio-contract-lock-wash)}
+.contract-locked-overlay>div{max-width:300px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.contract-locked-overlay strong{font-family:var(--font-display);font-size:24px;font-weight:400}
+.contract-skeleton{margin-top:30px;display:flex;flex-direction:column;gap:14px;filter:blur(5px)}
+.contract-skeleton>div{height:10px;background:var(--studio-contract-paper-line);width:96%;border-radius:3px}
+.contract-skeleton>div:nth-child(3n){width:70%}
+.contract-skeleton>div:nth-child(4n){width:85%}
+.contract-skeleton>div:nth-child(5n){margin-top:16px;width:40%;height:14px;background:var(--studio-contract-muted)}
+@page contract-a4{size:A4 portrait;margin:0}
+@media print{
+  body.inv-printing .contract-preview-frame{width:210mm!important}
+  body.inv-printing .contract-pages{zoom:1!important;display:block!important;width:210mm!important;gap:0!important;margin:0!important}
+  body.inv-printing .contract-measure-source{display:none!important}
+  body.inv-printing .contract-a4-page{page:contract-a4;width:210mm!important;height:297mm!important;min-height:297mm!important;padding:52px 60px 34px!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden!important}
+  body.inv-printing .contract-a4-page:last-child{break-after:auto;page-break-after:auto}
+}

@@ -458,6 +458,12 @@ html.dm-dash {
   --studio-panel-gradient: linear-gradient(180deg,#0f1426,#0a0e1b);
   --studio-contract-card-gradient: linear-gradient(180deg,#121830,#0b0f1c);
   --studio-contract-paper: #fbf7ef;
+  --studio-contract-ink: #1a1712;
+  --studio-contract-muted: #7a7062;
+  --studio-contract-accepted: #2f7a45;
+  --studio-contract-awaiting: #b07a1f;
+  --studio-contract-sheet-shadow: 0 30px 70px rgba(0,0,0,.45);
+  --studio-contract-lock-wash: rgba(251,247,239,.35);
   --studio-contract-paper-line: #cfc3ad;
   --studio-contract-free: #3b3f4a;
   --studio-contract-basic: #d8d8d8;
