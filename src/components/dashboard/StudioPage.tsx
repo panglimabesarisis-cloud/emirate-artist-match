@@ -20,7 +20,7 @@ export function StudioHeading({ title, accent, children }: { title: string; acce
     "Account settings": "Your payout bank account lives here. The Wallet page shows locked bank details read-only.",
     "Invite team": "Give a teammate their own login to answer inbox chats for you.",
     "AI credits": "Every AI reply costs one credit.",
-    "Your profile": "This is what clients see before they book you.",
+    "Your profile": "This is what clients see before they book you. A complete profile with a real bio, photo and past work gets more quote requests.",
     "Rate card": "The jobs you offer, with a starting price and how long each one runs. Your AI agent quotes from this list.",
     "Order form": "The questions a client answers when they book you.",
     "Photos and videos": "Photos fill the slider on your profile and videos sit below it.",
@@ -33,9 +33,9 @@ export function StudioHeading({ title, accent, children }: { title: string; acce
   return <header className="dmr-q-head dmr-c-12"><div><h1 className="dmr-serif">{lang === "ar" ? t(fullTitle) : <>{t(title)}{!joined && " "}<span className="it">{t(accent)}</span></>}</h1>{description && <p>{t(description)}</p>}</div>{children}</header>;
 }
 
-export function StudioSection({ title, accent, subtitle, children, className = "", id }: { title: string; accent?: string; subtitle?: string; children: ReactNode; className?: string; id?: string }) {
+export function StudioSection({ title, accent, subtitle, aside, children, className = "", id }: { title: string; accent?: string; subtitle?: string; aside?: ReactNode; children: ReactNode; className?: string; id?: string }) {
   const { t } = useI18n();
-  return <section id={id} className={`dmr-panel ${className}`}><div className="dmr-ph"><h2 className="dmr-serif">{t(title)} {accent && <span className="it">{t(accent)}</span>}</h2>{subtitle && <p className="mt-1 text-xs text-muted-foreground">{t(subtitle)}</p>}</div>{children}</section>;
+  return <section id={id} className={`dmr-panel ${className}`}><div className="dmr-ph" style={aside ? { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 } : undefined}><div><h2 className="dmr-serif">{t(title)} {accent && <span className="it">{t(accent)}</span>}</h2>{subtitle && <p className="mt-1 text-xs text-muted-foreground">{t(subtitle)}</p>}</div>{aside}</div>{children}</section>;
 }
 
 export function StudioSoon({ label }: { label: string }) {

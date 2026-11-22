@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { StudioEmpty, StudioSection } from "./StudioPage";
+import { ChipInput } from "./ChipInput";
 
 const BUCKET = "artist-media";
 
@@ -50,44 +51,29 @@ export function ProfilePhoto({ artistId, name, photoPath, onSaved }: { artistId:
     onSaved();
   };
   return (
-    <div id="pf-photo" className="space-y-2">
-      <span className="studio-profile-avatar overflow-hidden">{url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials(name)}</span>
-      <input ref={input} type="file" accept="image/*" className="sr-only" aria-label={t("Upload photo")} onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
-      <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}><Camera className="me-1.5 h-4 w-4" />{busy ? t("Uploading…") : t("Upload photo")}</Button>
-      {photoPath && <button type="button" disabled={busy} onClick={() => void removePhoto()} className="block text-xs font-bold text-muted-foreground underline underline-offset-4 hover:text-destructive">{t("Remove photo")}</button>}
-      <small className="block text-xs text-muted-foreground">{t("JPG, PNG or WebP, up to 5 MB. Cropped to a square.")}</small>
+    <div id="pf-photo" className="dmr-pf-ph">
+      <div className="dmr-pf-av" aria-hidden="true">{url ? <img src={url} alt="" /> : initials(name)}</div>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label={t("Upload photo")} onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
+      <button type="button" className="dmr-btn dmr-btn-line" disabled={busy} onClick={() => input.current?.click()}>{busy ? t("Uploading…") : t("Upload photo")}</button>
+      {photoPath && <button type="button" className="dmr-pf-rm" disabled={busy} onClick={() => void removePhoto()}>{t("Remove photo")}</button>}
+      <small>{t("JPG, PNG or WebP, up to 5 MB. Cropped to a square.")}</small>
     </div>
   );
 }
 
-/** Skills as removable chips (artists.skills text[]). */
+const SKILL_IDEAS = ["Crowd work", "Improvisation", "Live vocals", "Stage presence", "Scriptwriting", "Corporate events", "Weddings", "Arabic and English", "MC and hosting", "Sound check", "Own sound system", "Costume design", "Kids events", "Hotel galas", "Sketch writing", "Audience interaction"].map((n) => ({ n }));
+const LANG_IDEAS = ["English", "Arabic", "Hindi", "Urdu", "Tagalog", "French", "Russian", "Persian", "Spanish", "Malayalam", "Bengali", "Italian", "German"].map((n) => ({ n }));
+
+/** Skills as tags (artists.skills text[]), the same tag box as the mock. */
 export function SkillsField({ skills, onChange }: { skills: string[]; onChange: (s: string[]) => void }) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState("");
-  const add = () => {
-    const v = draft.trim().slice(0, 40);
-    if (!v || skills.some((s) => s.toLowerCase() === v.toLowerCase())) { setDraft(""); return; }
-    if (skills.length >= 20) { toast.error(t("Up to 20 skills")); return; }
-    onChange([...skills, v]); setDraft("");
-  };
-  return (
-    <div className="dmr-qe-f">
-      <Label htmlFor="skill-draft">{t("Skills")}</Label>
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        {skills.map((s) => (
-          <span key={s} className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs text-gold">
-            {s}
-            <button type="button" aria-label={`${t("Remove")} ${s}`} onClick={() => onChange(skills.filter((x) => x !== s))}><X className="h-3 w-3" /></button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Input id="skill-draft" value={draft} maxLength={40} placeholder={t("e.g. Crowd work, Arabic and English, Corporate events")} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-        <Button type="button" variant="outline" onClick={add}>{t("Add")}</Button>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{skills.length} / 20. {t("Type, press Enter to add another.")}</p>
-    </div>
-  );
+  return <ChipInput id="pf-sk" label={t("Skills")} values={skills} onChange={onChange} source={SKILL_IDEAS} max={15} noun="skill" placeholder={t("e.g. Crowd work, Arabic and English, Corporate events")} />;
+}
+
+/** Languages as tags (artists.languages text[]). */
+export function LanguagesField({ languages, onChange }: { languages: string[]; onChange: (s: string[]) => void }) {
+  const { t } = useI18n();
+  return <ChipInput id="pf-lg" label={t("Languages")} values={languages} onChange={onChange} source={LANG_IDEAS} max={6} noun="language" placeholder={t("e.g. English, Arabic")} />;
 }
 
 const BODY_FIELDS: Array<[string, string, "number" | "text"]> = [
@@ -101,17 +87,17 @@ export function PhysicalFields({ body, onChange }: { body: Record<string, unknow
   const { t } = useI18n();
   return (
     <>
-    <div className="grid grid-cols-2 gap-4">
+    <div className="dmr-pf-bd">
       {BODY_FIELDS.map(([k, label, type]) => (
         <div key={k} className="dmr-qe-f">
-          <Label htmlFor={`body-${k}`}>{t(label)}</Label>
-          <Input id={`body-${k}`} type={type} min={type === "number" ? 0 : undefined} maxLength={20} value={String(body[k] ?? "")}
+          <label htmlFor={`body-${k}`}>{t(label)}</label>
+          <input id={`body-${k}`} type={type} inputMode={type === "number" ? "numeric" : undefined} min={type === "number" ? 0 : undefined} maxLength={20} autoComplete="off" value={String(body[k] ?? "")}
             onChange={(e) => { const next = { ...body }; const v = e.target.value; if (v === "") delete next[k]; else next[k] = type === "number" ? Number(v) : v; onChange(next); }} />
-          {BODY_HINT[k] && <span className="text-xs text-muted-foreground">{t(BODY_HINT[k]!)}</span>}
+          <span className="dmr-f-hint">{BODY_HINT[k] ? t(BODY_HINT[k]!) : ""}</span>
         </div>
       ))}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">{t("Shown to clients only on your model bookings and in casting requests.")}</p>
+    <p className="dmr-cr-note" style={{ marginTop: 12 }}>{t("Shown to clients only on your model bookings and in casting requests.")}</p>
     </>
   );
 }

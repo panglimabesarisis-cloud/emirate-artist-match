@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -31,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/components/dashboard/studio.css";
 import { YourAgent } from "@/components/dashboard/YourAgent";
-import { ClientsSection, PhysicalFields, PortfolioSection, ProfilePhoto, SkillsField } from "@/components/dashboard/ProfileExtras";
+import { ClientsSection, LanguagesField, PhysicalFields, PortfolioSection, ProfilePhoto, SkillsField } from "@/components/dashboard/ProfileExtras";
 import type { Json } from "@/integrations/supabase/types";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
 import { ProfileSide } from "@/components/dashboard/ProfileSide";
@@ -285,27 +286,51 @@ type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: 
 function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode }) {
   const { t } = useI18n();
   const { data: cat } = useCatalog();
+  const bio = (v.bio ?? "").trim().length, tag = v.tagline ?? "", name = v.stage_name ?? "";
+  const catName = cat?.categories.find((c) => c.id === v.category_id)?.name;
+  const specName = cat?.subcategories.find((x) => x.id === v.subcategory_id)?.name;
+  const specs = (cat?.subcategories ?? []).filter((x) => !v.category_id || x.category_id === v.category_id).map((x) => ({ n: x.name, g: cat?.categories.find((c) => c.id === x.category_id)?.name ?? "" }));
   return <div className="studio-profile-fields">
-    <StudioSection title="About" accent="you" subtitle="Your photo, name and a short line that sells you."><div className="studio-profile-about"><div>{photo ?? <><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")}</Button></>}</div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input id="pf-tagline" value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea id="pf-bio" rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} placeholder={t("Who you are, what you perform, and what a client can expect on the day.")} /><div className="mt-1.5 h-1 overflow-hidden rounded-full bg-foreground/10" aria-hidden><i className={`block h-full ${(v.bio ?? "").trim().length >= 150 ? "bg-emerald-400" : "bg-gold"}`} style={{ width: `${Math.min(100, ((v.bio ?? "").trim().length / 150) * 100)}%` }} /></div><span className="text-xs text-muted-foreground">{(v.bio ?? "").trim().length} / 2000 · {t("At least 150 characters.")}</span></div></StudioSection>
-    <StudioSection title="What you" accent="do" subtitle="Add your category and speciality, then the skills clients search for."><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Category")}</Label>
-        <Select value={v.category_id ?? ""} onValueChange={(x) => set({ category_id: x, subcategory_id: null })}>
-          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
-          <SelectContent>{cat?.categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-        </Select></div><div className="dmr-qe-f"><Label>{t("Speciality")}</Label>
-        <Select value={v.subcategory_id ?? ""} onValueChange={(x) => set({ subcategory_id: x })}>
-          <SelectTrigger id="pf-spec"><SelectValue placeholder={t("Choose")} /></SelectTrigger>
-          <SelectContent>{cat?.subcategories.filter((s) => s.category_id === v.category_id).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-        </Select></div></div><SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} /></StudioSection>
-    <StudioSection title="Physical" accent="details" subtitle="Casting details clients ask for on model bookings. Optional unless you list Models as a category."><PhysicalFields body={v.body && typeof v.body === "object" && !Array.isArray(v.body) ? (v.body as Record<string, unknown>) : {}} onChange={(x) => set({ body: x as Json })} /></StudioSection>
-    <StudioSection title="Where and" accent="how much" subtitle="Used to match you with bookings and to quote."><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
-        <Select value={v.emirate_id ?? ""} onValueChange={(x) => set({ emirate_id: x, area_id: null })}>
-          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
-          <SelectContent>{cat?.emirates.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-        </Select></div><div className="dmr-qe-f"><Label>{t("Base area")}</Label>
-        <Select value={v.area_id ?? ""} onValueChange={(x) => set({ area_id: x })}>
-          <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
-          <SelectContent>{cat?.areas.filter((a) => a.emirate_id === v.emirate_id).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-        </Select></div><div className="dmr-qe-f"><Label>{t("Starting price (AED)")}</Label><Input id="pf-price" type="number" min={0} value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value) })} /><span className="text-xs text-muted-foreground">{t("Excluding VAT.")}</span></div><div className="dmr-qe-f"><Label>{t("Travel radius (km)")}</Label><Input type="number" min={0} max={500} value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Number(e.target.value) })} /><span className="text-xs text-muted-foreground">{t("0 to 500.")}</span></div></div><div className="dmr-qe-f"><Label>{t("Languages (comma separated)")}</Label><Input id="pf-lang" placeholder={t("e.g. English, Arabic")} value={(v.languages ?? []).join(", ")} onChange={(e) => set({ languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div></StudioSection>
+    <StudioSection className="dmr-pf-sec" title="About" accent="you" subtitle="Your photo, name and a short line that sells you.">
+      <div className="dmr-pf-id">
+        {photo ?? <div className="dmr-pf-ph"><div className="dmr-pf-av" aria-hidden="true">{initials(name || t("Artist"))}</div><button type="button" className="dmr-btn dmr-btn-line" disabled>{t("Upload photo")}</button></div>}
+        <div className="dmr-pf-fields">
+          <div className="dmr-qe-f"><label htmlFor="pf-name">{t("Stage name")}</label><input id="pf-name" maxLength={50} autoComplete="off" value={name} onChange={(e) => set({ stage_name: e.target.value })} aria-invalid={name.trim().length < 2 ? true : undefined} /><span className={`dmr-f-hint${name.trim().length < 2 ? " bad" : ""}`}>{name.trim().length < 2 ? t("Enter your stage name.") : ""}</span></div>
+          <div className="dmr-qe-f"><label htmlFor="pf-tagline">{t("Tagline")} <span className={`dmr-cnt${tag.trim().length >= 5 ? " ok" : ""}`}>{tag.length} / 80</span></label><input id="pf-tagline" maxLength={80} autoComplete="off" value={tag} onChange={(e) => set({ tagline: e.target.value })} /><span className="dmr-f-hint">{tag.trim().length && tag.trim().length < 5 ? t("Add a short tagline of at least 5 characters.") : ""}</span></div>
+        </div>
+      </div>
+      <div className="dmr-qe-f" style={{ marginTop: 18 }}><label htmlFor="pf-bio">{t("Bio")} <span className={`dmr-cnt${bio >= 150 ? " ok" : ""}`}>{(v.bio ?? "").length} / 800</span></label>
+        <textarea id="pf-bio" className="dmr-pf-bio" maxLength={800} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} placeholder={t("Who you are, what you perform, and what a client can expect on the day.")} />
+        <div className="dmr-pf-bar" aria-hidden="true"><i className={bio >= 150 ? "ok" : ""} style={{ width: `${Math.min(100, (bio / 150) * 100)}%` }} /></div>
+        <span className={`dmr-f-hint${bio && bio < 150 ? " bad" : ""}`}>{bio && bio < 150 ? `${t("Your bio needs at least 150 characters.")} ${150 - bio} ${t("to go.")}` : t("At least 150 characters.")}</span></div>
+    </StudioSection>
+    <StudioSection className="dmr-pf-sec" title="What you" accent="do" subtitle="Add your category and speciality, then the skills clients search for. Type, choose from the list, press comma to add another.">
+      <div className="dmr-a-grid">
+        <ChipInput id="pf-cat" label={t("Categories")} values={catName ? [catName] : []} strict max={1} noun="category" plural="categories" placeholder={t("e.g. Comedians")} source={(cat?.categories ?? []).map((c) => ({ n: c.name }))}
+          onChange={(x) => { const hit = cat?.categories.find((c) => c.name === x[0]); set({ category_id: hit?.id ?? null, subcategory_id: null }); }} />
+        <ChipInput id="pf-sp" label={t("Specialities")} values={specName ? [specName] : []} strict max={1} noun="speciality" plural="specialities" placeholder={t("Start typing, e.g. Stand-up")} source={specs}
+          onChange={(x) => { const hit = cat?.subcategories.find((s) => s.name === x[0] && (!v.category_id || s.category_id === v.category_id)); set(hit ? { subcategory_id: hit.id, category_id: hit.category_id } : { subcategory_id: null }); }} />
+        <SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} />
+      </div>
+    </StudioSection>
+    <StudioSection className="dmr-pf-sec" title="Physical" accent="details" subtitle="Casting details clients ask for on model bookings. Optional unless you list Models as a category." aside={<span className="dmr-wchip">{t("Optional")}</span>}><PhysicalFields body={v.body && typeof v.body === "object" && !Array.isArray(v.body) ? (v.body as Record<string, unknown>) : {}} onChange={(x) => set({ body: x as Json })} /></StudioSection>
+    <StudioSection className="dmr-pf-sec" title="Where and" accent="how much" subtitle="Used to match you with bookings and to quote.">
+      <div className="dmr-a-grid">
+        <div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
+          <Select value={v.emirate_id ?? ""} onValueChange={(x) => set({ emirate_id: x, area_id: null })}>
+            <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
+            <SelectContent>{cat?.emirates.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+          </Select></div>
+        <div className="dmr-qe-f"><Label>{t("Base area")}</Label>
+          <Select value={v.area_id ?? ""} onValueChange={(x) => set({ area_id: x })}>
+            <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
+            <SelectContent>{cat?.areas.filter((a) => a.emirate_id === v.emirate_id).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+          </Select></div>
+        <div className="dmr-qe-f"><label htmlFor="pf-price">{t("Starting price (AED)")}</label><input id="pf-price" inputMode="numeric" maxLength={7} autoComplete="off" value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value.replace(/\D/g, "")) })} /><span className="dmr-f-hint">{t("Excluding VAT.")}</span></div>
+        <div className="dmr-qe-f"><label htmlFor="pf-radius">{t("Travel radius (km)")}</label><input id="pf-radius" inputMode="numeric" maxLength={3} autoComplete="off" value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Math.min(500, Number(e.target.value.replace(/\D/g, ""))) })} /><span className="dmr-f-hint">{t("0 to 500.")}</span></div>
+        <LanguagesField languages={v.languages ?? []} onChange={(x) => set({ languages: x })} />
+      </div>
+    </StudioSection>
   </div>;
 }
 
@@ -339,17 +364,20 @@ function ChangePassword() {
   const [hasPassword, setHasPassword] = useState(true);
   const [f, setF] = useState({ cur: "", next: "", again: "" });
   const [busy, setBusy] = useState(false);
-  const [show, setShow] = useState(false);
+  const [shown, setShown] = useState<Record<string, boolean>>({});
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
       setHasPassword(!data.user?.app_metadata?.["provider"] || data.user.app_metadata["provider"] === "email");
     });
   }, []);
-  const strong = f.next.length >= 10 && /[a-z]/.test(f.next) && /[A-Z]/.test(f.next) && /\d/.test(f.next);
+  const checks = [f.next.length >= 10, /[a-z]/.test(f.next), /[A-Z]/.test(f.next), /\d/.test(f.next)];
+  const score = f.next ? checks.filter(Boolean).length : 0;
+  const strong = checks.every(Boolean);
   const error = f.next && !strong ? t("At least 10 characters with upper case, lower case and a number.") : f.again && f.again !== f.next ? t("The two passwords do not match.") : "";
   const save = async () => {
     if (!email || !f.cur || !strong || f.again !== f.next) { toast.error(error || t("Fill in every field.")); return; }
+    if (f.cur === f.next) { toast.error(t("Choose a new password that is different from the current one.")); return; }
     setBusy(true);
     const check = await supabase.auth.signInWithPassword({ email, password: f.cur });
     if (check.error) { setBusy(false); toast.error(t("Your current password is not correct.")); return; }
@@ -360,14 +388,17 @@ function ChangePassword() {
     toast.success(t("Password changed"));
   };
   return (
-    <StudioSection title="Change" accent="password" subtitle="Saved on its own, apart from your profile.">
+    <StudioSection className="dmr-pf-sec" title="Change" accent="password" subtitle="Saved on its own, apart from your profile.">
       {!hasPassword ? <p className="text-sm text-muted-foreground">{t("You sign in with Google, so there is no password to change here.")}</p> : (
-        <form className="grid gap-3.5" noValidate autoComplete="off" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-          {([["cur", "Current password", "current-password"], ["next", "New password", "new-password"], ["again", "Repeat new password", "new-password"]] as const).map(([k, l, ac]) => (
-            <div key={k} className="dmr-qe-f"><Label htmlFor={`pf-pw-${k}`}>{t(l)}</Label><Input id={`pf-pw-${k}`} type={show ? "text" : "password"} autoComplete={ac} maxLength={64} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>
-          ))}
-          <p className={`text-xs ${error ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{error || t("At least 10 characters with upper case, lower case and a number.")}</p>
-          <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{busy ? t("Saving…") : t("Change password")}</Button><button type="button" aria-pressed={show} onClick={() => setShow(!show)} className="text-xs font-bold text-muted-foreground underline underline-offset-4">{t(show ? "Hide passwords" : "Show passwords")}</button></div>
+        <form noValidate autoComplete="off" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+          <div className="dmr-pf-pw">
+            {([["cur", "Current password", "current-password"], ["next", "New password", "new-password"], ["again", "Repeat new password", "new-password"]] as const).map(([k, l, ac]) => (
+              <div key={k} className="dmr-qe-f dmr-pf-pwi"><label htmlFor={`pf-pw-${k}`}>{t(l)}</label><input id={`pf-pw-${k}`} type={shown[k] ? "text" : "password"} autoComplete={ac} maxLength={64} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /><button type="button" aria-pressed={!!shown[k]} onClick={() => setShown({ ...shown, [k]: !shown[k] })}>{t(shown[k] ? "Hide" : "Show")}</button></div>
+            ))}
+          </div>
+          <div className={`dmr-tm-meter${score ? ` s${score}` : ""}`} aria-hidden="true" style={{ marginTop: 10 }}><i /><i /><i /><i /></div>
+          <span className={`dmr-f-hint${error ? " bad" : ""}`} aria-live="polite">{error || t("At least 10 characters with upper case, lower case and a number.")}</span>
+          <button type="submit" className="dmr-btn dmr-btn-line" disabled={busy} style={{ marginTop: 6 }}>{busy ? t("Saving…") : t("Update password")}</button>
         </form>
       )}
     </StudioSection>
@@ -378,19 +409,32 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   const [v, setV] = useState<Partial<ArtistRow>>(artist);
+  const [base, setBase] = useState<Partial<ArtistRow>>(artist);
+  const { data: plan } = useQuery({ queryKey: ["effective-plan", artist.id], queryFn: async () => ((await supabase.rpc("effective_artist_plan", { _artist: artist.id })).data as string | null) ?? "free" });
+  const dirty = JSON.stringify(v) !== JSON.stringify(base);
   const bioLen = (v.bio ?? "").trim().length;
   const save = async () => {
-    if (bioLen < 150) { toast.error(t("Your bio needs at least 150 characters")); return; }
+    const problem =
+      (v.stage_name ?? "").trim().length < 2 ? t("Enter your stage name.")
+      : !v.category_id ? t("Add at least one category.")
+      : !v.subcategory_id ? t("Add at least one speciality.")
+      : (v.tagline ?? "").trim().length < 5 ? t("Add a short tagline of at least 5 characters.")
+      : bioLen < 150 ? t("Your bio needs at least 150 characters")
+      : v.travel_radius_km != null && (v.travel_radius_km < 0 || v.travel_radius_km > 500) ? t("Use a whole number from 0 to 500.")
+      : "";
+    if (problem) { toast.error(problem); return; }
     const { id: _id, ...rest } = v as ArtistRow;
     const { error } = await supabase.from("artists").update({
       stage_name: rest.stage_name, tagline: rest.tagline, bio: rest.bio, base_price: rest.base_price, languages: rest.languages,
       skills: rest.skills ?? [], body: rest.body ?? {}, travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, subcategory_id: rest.subcategory_id, emirate_id: rest.emirate_id, area_id: rest.area_id,
     }).eq("id", artist.id);
     if (error) { toast.error(error.message); return; }
+    setBase(v);
     toast.success(t("Profile saved"));
     onSaved();
   };
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("This is what clients see before they book you. A complete profile with a real bio, photo and past work gets more quote requests.")}</p><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ category: cat?.categories.find((c) => c.id === v.category_id)?.name ?? "", speciality: cat?.subcategories.find((x) => x.id === v.subcategory_id)?.name ?? "", emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
+  const planName = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "";
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ category: cat?.categories.find((c) => c.id === v.category_id)?.name ?? "", speciality: cat?.subcategories.find((x) => x.id === v.subcategory_id)?.name ?? "", emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {
