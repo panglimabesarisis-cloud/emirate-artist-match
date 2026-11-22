@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "rea
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BadgeCheck, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { confirmVerificationOtp, requestVerificationOtp, submitVerification } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { StudioHeading } from "./StudioPage";
@@ -16,6 +18,7 @@ type Pic = { file: File; url: string };
 type Wiz = {
   step: number; res: "uae" | "foreign"; phone: string; nat: string; name: string; docNo: string; exp: string; dob: string;
   l1: string; city: string; ctry: string; zip: string; files: Record<string, Pic>; selfies: Record<string, Pic>; consent: boolean;
+  code: string; sent: number | null; phoneOk: boolean;
 };
 
 const COUNTRIES = ["Indonesia", "India", "Pakistan", "Bangladesh", "Philippines", "Sri Lanka", "Nepal", "Egypt", "Jordan", "Lebanon", "Syria", "Sudan", "Morocco", "Tunisia", "Iran", "Turkey", "Russia", "Ukraine", "United Kingdom", "United States", "Canada", "Australia", "South Africa", "Nigeria", "Kenya", "France", "Germany", "Italy", "Spain", "Other"];
@@ -25,7 +28,7 @@ const IMG_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fd = (d: Date) => `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`;
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const blank = (res: "uae" | "foreign" = "uae"): Wiz => ({ step: 1, res, phone: "", nat: "", name: "", docNo: "", exp: "", dob: "", l1: "", city: "", ctry: "", zip: "", files: {}, selfies: {}, consent: false });
+const blank = (res: "uae" | "foreign" = "uae"): Wiz => ({ step: 1, res, phone: "", nat: "", name: "", docNo: "", exp: "", dob: "", l1: "", city: "", ctry: "", zip: "", files: {}, selfies: {}, consent: false, code: "", sent: null, phoneOk: false });
 
 const luhn = (s: string) => { let sum = 0, alt = false; for (let i = s.length - 1; i >= 0; i--) { let n = +s[i]!; if (alt) { n *= 2; if (n > 9) n -= 9; } sum += n; alt = !alt; } return sum % 10 === 0; };
 const eidOk = (v: string) => { const d = v.replace(/-/g, ""); return /^784\d{12}$/.test(d) && luhn(d); };
@@ -50,16 +53,18 @@ function useVerification(artistId: string) {
   return useQuery({
     queryKey: ["verification-page", artistId],
     queryFn: async () => {
-      const [apps, badges, plan, bookings] = await Promise.all([
+      const [apps, badges, plan, bookings, rank] = await Promise.all([
         supabase.from("verification_applications").select("*").eq("artist_id", artistId).order("created_at", { ascending: false }),
         supabase.from("artist_badges").select("badge").eq("artist_id", artistId),
         supabase.rpc("effective_artist_plan", { _artist: artistId }),
         supabase.from("bookings").select("client_name, paid_amount, status").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).neq("status", "cancelled"),
+        supabase.rpc("my_verification_rank", { _artist: artistId }),
       ]);
       for (const r of [apps, badges, bookings]) if (r.error) throw new Error(r.error.message);
       const clients = new Set<string>();
       for (const b of bookings.data ?? []) if (Number(b.paid_amount ?? 0) > 0) clients.add((b.client_name ?? "").toLowerCase());
-      return { apps: apps.data ?? [], badges: (badges.data ?? []).map((b) => b.badge), plan: (plan.data as string | null) ?? "free", clients: clients.size };
+      const r = (rank.data ?? null) as { percentile: number | null; next_refresh: string | null; disputes: number } | null;
+      return { apps: apps.data ?? [], badges: (badges.data ?? []).map((b) => b.badge), plan: (plan.data as string | null) ?? "free", clients: clients.size, rank: r };
     },
   });
 }
@@ -81,27 +86,31 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
   const clients = data?.clients ?? 0;
   const decidedOn = latest?.decided_at ? fd(new Date(latest.decided_at)) : "";
   const submittedOn = latest ? fd(new Date(latest.created_at)) : "";
-  const reasons = latest?.admin_note ? [latest.admin_note] : [];
+  const reasons = (latest?.reasons?.length ? latest.reasons : latest?.admin_note ? [latest.admin_note] : []) as string[];
+  const rejectedCount = (data?.apps ?? []).filter((a) => a.status === "rejected").length;
+  const triesLeft = Math.max(0, 2 - rejectedCount);
+  const pct = data?.rank?.percentile ?? null;
+  const nextRefresh = data?.rank?.next_refresh ? fd(new Date(data.rank.next_refresh)) : "";
 
   const vst: [string, string] = status === "approved" ? ["ok", "Active"] : status === "waiting" ? ["wait", "Waiting"] : status === "review" ? ["wait", "In staff review"] : status === "rejected" ? ["bad", "Needs attention"] : ["", "Not started"];
-  const start = () => { setSaved((w) => ({ ...blank(res), ...w, step: 1, res, files: {}, selfies: {}, consent: false })); setOpen(true); };
+  const start = () => { setSaved((w) => ({ ...blank(res), ...w, step: w.phoneOk && status === "rejected" ? 2 : 1, res, files: {}, selfies: {}, consent: false })); setOpen(true); };
   const plansToast = () => toast(t("Plans and billing open in the AI credits page."));
 
   const T: Record<VStatus, [string, string]> = {
     none: ["You are not verified yet", "It takes about 5 minutes. Have your phone and your passport or Emirates ID ready."],
     waiting: ["Waiting for review", `We received your application on ${submittedOn}. Our system checks it first and a person looks at anything it is unsure about. Usually 1 to 2 business days.`],
     review: ["In staff review", "A team member is checking your documents. Usually 1 to 2 business days. We may message you on WhatsApp for a short video call."],
-    rejected: ["We could not verify you yet", "Nothing is lost. Fix the points below and try again."],
+    rejected: ["We could not verify you yet", triesLeft ? "Nothing is lost. Fix the points below and try again." : "You used both tries. Our team will look at your application by hand."],
     approved: ["You are verified", `Approved on ${decidedOn || submittedOn}. Your Verified badge is live on your public profile.`],
   };
   const sent = status !== "none" && status !== "rejected";
-  const steps: [string, boolean][] = [["WhatsApp number given", sent || status === "rejected"], ["Documents and selfie sent", sent || status === "rejected"], ["Checked by our system and our team", status === "approved" || status === "review"], ["Decision", status === "approved"]];
+  const steps: [string, boolean][] = [["WhatsApp code confirmed", sent || status === "rejected"], ["Documents and selfie sent", sent || status === "rejected"], ["Checked by our system and our team", status === "approved" || status === "review"], ["Decision", status === "approved"]];
   const cur = steps.findIndex((s) => !s[1]);
   const top: [string, number, string][] = [
     ["Verified", verified ? 100 : 0, verified ? "Done" : "Not yet"],
     ["Subscribe", subscribed ? 100 : 0, subscribed ? "Active" : "Needs a paid plan"],
     ["Paying clients", Math.min(100, (clients / 3) * 100), `${clients} of 3`],
-    ["Rank in your category", topEarned ? 100 : 0, topEarned ? "Top 10%" : "Calculated monthly"],
+    ["Rank in your category", topEarned ? 100 : pct == null ? 0 : Math.min(100, (10 / Math.max(pct, 0.1)) * 100), pct == null ? "Calculated monthly" : `Top ${Math.max(1, Math.ceil(pct))}%, need top 10%`],
   ];
   const [grow, setGrow] = useState(false);
   useEffect(() => { const id = requestAnimationFrame(() => requestAnimationFrame(() => setGrow(true))); return () => cancelAnimationFrame(id); }, []);
@@ -120,8 +129,8 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
           <Shield kind="w" state={verified ? "on" : status === "waiting" || status === "review" ? "wait" : "off"} />
           <span className={`dmr-vf-st ${vst[0]}`}>{t(vst[1])}</span><h3 className="dmr-serif">{t("Verified")}</h3>
           <p>{t("Proves you are the person on your documents. It stays even if you stop subscribing.")}</p>
-          <ul><Item ok={sent || verified}>{t("WhatsApp number given")}</Item><Item ok={verified}>{t("Passport or Emirates ID approved")}</Item><Item ok={verified}>{t("Live selfie matched")}</Item></ul>
-          {status === "none" ? <button type="button" className="dmr-btn dmr-btn-gold" onClick={start}>{t("Start verification")}</button> : status === "rejected" ? <button type="button" className="dmr-btn dmr-btn-gold" onClick={start}>{t("Fix and try again")}</button> : status === "approved" ? <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("You are verified")}</button> : <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("Under review")}</button>}
+          <ul><Item ok={sent || verified}>{t("WhatsApp code confirmed")}</Item><Item ok={verified}>{t("Passport or Emirates ID approved")}</Item><Item ok={verified}>{t("Live selfie matched")}</Item></ul>
+          {status === "none" ? <button type="button" className="dmr-btn dmr-btn-gold" onClick={start}>{t("Start verification")}</button> : status === "rejected" ? <button type="button" className="dmr-btn dmr-btn-gold" onClick={start} disabled={triesLeft === 0}>{t("Fix and try again")}</button> : status === "approved" ? <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("You are verified")}</button> : <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("Under review")}</button>}
         </article>
         <article className={`dmr-vf-b b${subscribed ? " on" : ""}`}>
           <Shield kind="b" state={subscribed ? "on" : "off"} />
@@ -134,7 +143,7 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
           <Shield kind="g" state={topEarned ? "on" : "off"} />
           <span className={`dmr-vf-st ${topEarned ? "ok" : ""}`}>{t(topEarned ? "Earned" : "Not yet")}</span><h3 className="dmr-serif">{t("Top")}</h3>
           <p>{t("Awarded automatically to the top 10% of earners in each category over the last 6 months. It cannot be bought.")}</p>
-          <ul><Item ok={verified}>{t("Verified")}</Item><Item ok={subscribed}>{t("Subscribe")}</Item><Item ok={clients >= 3}>{t("3 or more paying clients")} ({clients})</Item><Item ok={topEarned}>{t("Top 10% in your category")}</Item></ul>
+          <ul><Item ok={verified}>{t("Verified")}</Item><Item ok={subscribed}>{t("Subscribe")}</Item><Item ok={clients >= 3}>{t("3 or more paying clients")} ({clients})</Item><Item ok={pct != null && pct <= 10}>{t("Top 10% in your category")}{pct != null ? ` (${t("you")}: top ${Math.max(1, Math.ceil(pct))}%)` : ""}</Item></ul>
           <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("Earned automatically")}</button>
         </article>
       </div>
@@ -145,7 +154,7 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
             <Shield kind="w" state={verified ? "on" : status === "waiting" || status === "review" ? "wait" : "off"} />
             <div><h2 className="dmr-serif">{t(T[status][0])}</h2><p>{t(T[status][1])}</p>
               {status === "rejected" && <div className="dmr-vf-rs"><b>{t("What went wrong")}</b><ul>{(reasons.length ? reasons : ["Our team asked for a change. Check the note in your applications below."]).map((r) => <li key={r}>{r}</li>)}</ul></div>}
-              {(status === "none" || status === "rejected") && <div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-gold" onClick={start}>{t(status === "none" ? "Start verification" : "Try again")}</button></div>}
+              {(status === "none" || (status === "rejected" && triesLeft > 0)) && <div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-gold" onClick={start}>{status === "none" ? t("Start verification") : `${t("Try again")} (${triesLeft} ${t("left")})`}</button></div>}
             </div>
           </div>
           <ol className="dmr-vf-tl">{steps.map(([l, ok], i) => <li key={l} className={ok ? "ok" : i === cur ? "cur" : ""}><i /><span>{t(l)}</span></li>)}</ol>
@@ -154,7 +163,7 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
         <section className="dmr-panel">
           <div className="dmr-a-top"><div><h2 className="dmr-serif">{t("Road to the")} <span className="it">{t("Top badge")}</span></h2><p>{t("Top is earned, not bought. It goes to the best earners in each category over the last 6 months.")}</p></div><span className={`dmr-vf-st ${topEarned ? "ok" : ""}`}>{t(topEarned ? "Earned" : "Not yet")}</span></div>
           <div className="dmr-vf-pg">{top.map(([l, p, v]) => <div key={l}><div className="dmr-vt"><span>{t(l)}</span><b>{t(v)}</b></div><div className="dmr-ln"><i style={{ width: `${grow ? p : 0}%` }} /></div></div>)}</div>
-          <p className="dmr-cr-note" style={{ marginTop: 12 }}>{t("Only money released from escrow counts, with no open disputes. Ranking is recalculated on the 1st of each month. You never see other talents' earnings.")}</p>
+          <p className="dmr-cr-note" style={{ marginTop: 12 }}>{t("Only money released from escrow counts, with no open disputes. Ranking is recalculated on the 1st of each month.")}{nextRefresh ? ` ${t("Next on")} ${nextRefresh}.` : ""} {t("You never see other talents' earnings.")}</p>
         </section>
 
         <section className="dmr-panel dmr-q-panel" aria-label={t("Applications")}>
@@ -196,6 +205,11 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
 function Wizard({ artistId, userId, initial, onClose, onDone }: { artistId: string; userId: string; initial: Wiz; onClose: (w?: Wiz) => void; onDone: () => void }) {
   const { t } = useI18n();
   const [w, setW] = useState<Wiz>(initial);
+  const sendOtp = useServerFn(requestVerificationOtp);
+  const checkOtp = useServerFn(confirmVerificationOtp);
+  const submitFn = useServerFn(submitVerification);
+  const [wait, setWait] = useState(0);
+  useEffect(() => { if (wait <= 0) return; const id = window.setTimeout(() => setWait((x) => x - 1), 1000); return () => window.clearTimeout(id); }, [wait]);
   const [err, setErr] = useState("");
   const [hints, setHints] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -249,11 +263,42 @@ function Wizard({ artistId, userId, initial, onClose, onDone }: { artistId: stri
     return <div className={`dmr-vz-tile${f ? " has" : ""}`}>{f ? <><img src={f.url} alt={`${label} preview`} /><button type="button" className="dmr-rm" aria-label={`Remove ${label}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); dropFile(group, k); }}>×</button></> : <><b>{t(label)}</b><span>{t(sub)}</span></>}<input type="file" accept="image/jpeg,image/png,image/webp" aria-label={label} onChange={(e) => { addFile(group, k, e.target.files?.[0]); e.target.value = ""; }} /></div>;
   };
 
+  const sendCode = async () => {
+    if (!/^\+[1-9]\d{7,14}$/.test(w.phone)) { setHints({ "vz-ph": t("Enter your number with the country code, for example +971501234567.") }); return; }
+    setHints({}); setErr(""); setBusy(true);
+    try {
+      const r = await sendOtp({ data: { phone: w.phone } });
+      if (!r.ok) {
+        const m: Record<string, string> = { invalid_phone: t("Enter your number with the country code, for example +971501234567."), not_configured: t("WhatsApp codes are not switched on yet. Please contact support."), send_failed: t("We could not send the code. Try again in a minute."), forbidden: t("Only the artist account can verify.") };
+        if (r.error === "rate_limited") { setWait(r.retry_after ?? 30); setHints({ "vz-ph": t("Please wait before asking for another code.") }); }
+        else setHints({ "vz-ph": m[r.error] ?? t("We could not send the code.") });
+        return;
+      }
+      set({ sent: Date.now(), code: "" }); setWait(r.resend_after ?? 30);
+    } catch { setErr(t("We could not send the code. Try again.")); } finally { setBusy(false); }
+  };
+
   const next = async () => {
     setErr(""); const h: Record<string, string> = {};
     if (w.step === 1) {
       if (!u && !w.nat) { setHints({ "vz-nat": t("Choose your nationality.") }); return; }
-      if (!/^\+\d{8,15}$/.test(w.phone)) { setHints({ "vz-ph": t("Enter your number with the country code, for example +971501234567.") }); return; }
+      if (!w.phoneOk) {
+        if (!w.sent) return setErr(t("Send the code to your WhatsApp first."));
+        if (!/^\d{6}$/.test(w.code)) { setHints({ "vz-code": t("Enter the 6 digit code.") }); return; }
+        setBusy(true);
+        try {
+          const r = await checkOtp({ data: { code: w.code } });
+          if (!r.ok) {
+            const m: Record<string, string> = { expired: t("This code expired. Send a new one."), too_many: t("Too many wrong codes. Send a new code."), forbidden: t("Only the artist account can verify."), not_configured: t("WhatsApp codes are not switched on yet. Please contact support.") };
+            setHints({ "vz-code": r.error === "wrong_code" ? `${t("That code is not right.")} ${r.tries_left ?? 0} ${t("tries left.")}` : m[r.error] ?? t("Could not check the code.") });
+            if (r.error === "too_many" || r.error === "expired") set({ sent: null, code: "" });
+            return;
+          }
+          toast.success(t("WhatsApp number confirmed"));
+          setHints({}); set({ phoneOk: true, step: 2 });
+        } catch { setErr(t("Could not check the code. Try again.")); } finally { setBusy(false); }
+        return;
+      }
       setHints({}); set({ step: 2 }); return;
     }
     if (w.step === 2) {
@@ -287,19 +332,27 @@ function Wizard({ artistId, userId, initial, onClose, onDone }: { artistId: stri
       const stamp = Date.now();
       const up = async (k: string, p: Pic) => {
         const path = `${userId}/${stamp}-${k}-${p.file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-        const r = await supabase.storage.from("verification-docs").upload(path, p.file);
+        const r = await supabase.storage.from("verification-docs").upload(path, p.file, { contentType: p.file.type });
         if (r.error) throw new Error(r.error.message);
         return path;
       };
-      const docs = Object.entries(w.files), selfies = Object.entries(w.selfies);
-      const docPaths: string[] = []; for (const [k, p] of docs) docPaths.push(await up(k, p));
-      const selfiePaths: string[] = []; for (const [k, p] of selfies) selfiePaths.push(await up(`selfie-${k}`, p));
-      const note = u
-        ? `UAE resident | ${w.name} | Emirates ID ${mask(w.docNo.replace(/-/g, ""))} | exp ${w.exp} | WhatsApp ${w.phone} | files: ${[...docPaths.slice(1), ...selfiePaths].join(", ")}`
-        : `Not UAE | ${w.name} | ${w.nat} | Passport ${mask(w.docNo)} | dob ${w.dob} | exp ${w.exp} | ${[w.l1, w.city, w.ctry, w.zip].filter(Boolean).join(", ")} | WhatsApp ${w.phone} | files: ${[...docPaths.slice(1), ...selfiePaths].join(", ")}`;
-      const { error } = await supabase.from("verification_applications").insert({ artist_id: artistId, badge_type: "verified_identity", doc_path: docPaths[0] ?? null, note: note.slice(0, 1500) });
-      if (error) throw new Error(error.message);
-      [...docs, ...selfies].forEach(([, p]) => URL.revokeObjectURL(p.url));
+      const KIND: Record<string, string> = { front: "id_front", back: "id_back", pass: "passport", nid: "national_id" };
+      const SELFIE: Record<string, string> = { c: "selfie_center", l: "selfie_left", r: "selfie_right" };
+      const files: { kind: string; storage_path: string }[] = [];
+      for (const [k, p] of Object.entries(w.files)) files.push({ kind: KIND[k]!, storage_path: await up(k, p) });
+      for (const [k, p] of Object.entries(w.selfies)) files.push({ kind: SELFIE[k]!, storage_path: await up(`selfie-${k}`, p) });
+      const details = {
+        residency: w.res, full_name: w.name, doc_number: u ? w.docNo.replace(/-/g, "") : w.docNo, doc_expiry: w.exp, phone: w.phone,
+        ...(u ? {} : { dob: w.dob, nationality: w.nat, address: { street: w.l1, city: w.city, country: w.ctry, ...(w.zip ? { postal_code: w.zip } : {}) } }),
+      };
+      const r = await submitFn({ data: { artistId, details, files } as never });
+      if (!r.ok) {
+        const m: Record<string, string> = { phone_not_confirmed: t("Confirm your WhatsApp number again."), application_exists: t("You already have an application in review."), staff_review_required: t("You used both tries. Our team will look at your application by hand."), invalid_details: t("Some details look wrong. Go back and check them."), invalid_files: t("A photo could not be used. Add the photos again."), forbidden: t("Only the artist account can verify.") };
+        await supabase.storage.from("verification-docs").remove(files.map((f) => f.storage_path));
+        setErr(m[r.error] ?? t("Could not send the application."));
+        return;
+      }
+      [...Object.values(w.files), ...Object.values(w.selfies)].forEach((p) => URL.revokeObjectURL(p.url));
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t("Could not send the application."));
@@ -324,9 +377,13 @@ function Wizard({ artistId, userId, initial, onClose, onDone }: { artistId: stri
               <label><input type="radio" name="res" checked={!u} onChange={() => set({ res: "foreign" })} /><span>{t("Not a UAE resident")}<small>{t("You use your passport")}</small></span></label>
             </div>
             {!u && select("vz-nat", "Nationality", w.nat, (v) => set({ nat: v }))}
-            <div className="dmr-vz-sn" style={{ marginTop: 6 }}>{t("Your WhatsApp number")}</div>
-            {field("vz-ph", "WhatsApp number", w.phone, (v) => set({ phone: v.replace(/[\s()-]/g, "") }), { inputMode: "tel", placeholder: "+971 50 123 4567" })}
-            <div className="dmr-vz-note">{t("Our team confirms this number on WhatsApp during the review.")}</div>
+            <div className="dmr-vz-sn" style={{ marginTop: 6 }}>{t("Confirm your WhatsApp number")}</div>
+            <div className="dmr-vz-ph">
+              <div className="dmr-qe-f"><label htmlFor="vz-ph">{t("WhatsApp number")}</label><input id="vz-ph" inputMode="tel" value={w.phone} placeholder="+971 50 123 4567" autoComplete="off" disabled={w.phoneOk} aria-invalid={hints["vz-ph"] ? true : undefined} onChange={(e) => set({ phone: e.target.value.replace(/[\s()-]/g, "") })} /><span className={`dmr-f-hint${hints["vz-ph"] ? " bad" : ""}`}>{hints["vz-ph"] ?? ""}</span></div>
+              <button type="button" className="dmr-btn dmr-btn-line" disabled={w.phoneOk || busy || wait > 0} onClick={() => void sendCode()}>{wait > 0 ? `${t("Resend in")} ${wait}s` : w.sent ? t("Resend code") : t("Send code")}</button>
+            </div>
+            {w.sent && !w.phoneOk && <div className="dmr-qe-f"><label htmlFor="vz-code">{t("6 digit code")}</label><input id="vz-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code" value={w.code} aria-invalid={hints["vz-code"] ? true : undefined} onChange={(e) => set({ code: e.target.value.replace(/\D/g, "") })} /><span className={`dmr-f-hint${hints["vz-code"] ? " bad" : ""}`}>{hints["vz-code"] ?? t("The code is valid for 5 minutes. It arrives on WhatsApp.")}</span></div>}
+            {w.phoneOk && <div className="dmr-vz-note" style={{ color: "#7bd88f" }}>{t("Number confirmed.")}</div>}
           </>}
           {w.step === 2 && <>
             <div className="dmr-vz-sn">{t(u ? "Your Emirates ID" : "Your passport")}</div>
