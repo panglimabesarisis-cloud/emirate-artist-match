@@ -16,7 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 import { DashboardArtwork } from "./DashboardArtwork";
-import { ChatsInvoicesChart, YourBalanceChart, escrowNow, useOverviewMoney } from "./OverviewCharts";
+import { ChatsPerformChart, InvoiceProgressChart, JobProgressChart, RevenueChart, escrowNow, useOverviewMoney } from "./OverviewCharts";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty, StudioDonut } from "./StudioPage";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -72,8 +72,10 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
         </div>
       </section>
-      <ChatsInvoicesChart artistId={artistId} />
-      <YourBalanceChart artistId={artistId} wallet={data?.wallet} />
+      <ChatsPerformChart artistId={artistId} />
+      <InvoiceProgressChart artistId={artistId} />
+      <JobProgressChart artistId={artistId} />
+      <RevenueChart artistId={artistId} wallet={data?.wallet} />
       <article className="studio-kpi studio-span-3">
         <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("Available balance")}</span>
         <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{Number(data?.wallet?.available ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>

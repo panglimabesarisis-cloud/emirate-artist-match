@@ -11,19 +11,20 @@ const num = (n: unknown) => Number(n ?? 0) || 0;
 
 type Wallet = { available?: number | string | null; gross?: number | string | null; paid_out?: number | string | null; pending?: number | string | null; commission_pct?: number | string | null } | undefined;
 
-/** Money the artist holds in escrow right now: what clients paid for jobs that are not completed yet, without VAT. */
+/** Everything the Overview charts need, loaded once and shared. */
 export function useOverviewMoney(artistId: string) {
   return useQuery({
     queryKey: ["overview-money", artistId],
     refetchInterval: 30000,
     queryFn: async () => {
       const since = new Date(); since.setMonth(since.getMonth() - MONTHS - 1);
-      const [b, p, c] = await Promise.all([
-        supabase.from("bookings").select("status, amount, total, paid_amount, paid_at, completed_at, cancelled_at, escrow_status").eq("artist_id", artistId).is("deleted_at", null),
+      const [b, p, c, m] = await Promise.all([
+        supabase.from("bookings").select("status, amount, total, paid_amount, paid_at, completed_at, cancelled_at, created_at, escrow_status").eq("artist_id", artistId).is("deleted_at", null),
         supabase.from("payout_requests").select("amount, status, created_at").eq("artist_id", artistId),
         supabase.from("conversations").select("created_at").eq("artist_id", artistId).gte("created_at", since.toISOString()),
+        supabase.from("messages").select("sender, created_at, conversations!inner(artist_id)").eq("conversations.artist_id", artistId).gte("created_at", since.toISOString()).limit(5000),
       ]);
-      return { bookings: b.data ?? [], payouts: p.data ?? [], chats: c.data ?? [] };
+      return { bookings: b.data ?? [], payouts: p.data ?? [], chats: c.data ?? [], messages: m.data ?? [] };
     },
   });
 }
@@ -38,69 +39,109 @@ function monthBuckets() {
   return Array.from({ length: MONTHS }, (_, i) => {
     const start = new Date(now.getFullYear(), now.getMonth() - (MONTHS - 1) + i, 1);
     const end = i === MONTHS - 1 ? now : new Date(start.getFullYear(), start.getMonth() + 1, 1, 0, 0, 0, -1);
-    return { key: start.toISOString().slice(0, 7), label: start.toLocaleString("en-GB", { month: "short" }), start, end };
+    return { label: start.toLocaleString("en-GB", { month: "short" }), start, end };
   });
 }
+const inMonth = (iso: string | null | undefined, m: { start: Date; end: Date }) => !!iso && new Date(iso) >= m.start && new Date(iso) <= m.end;
 
 const tip = { background: "#0f1424", border: "1px solid rgba(246,239,226,.16)", borderRadius: 12, fontSize: 12, color: "#f6efe2" } as const;
 const axis = { fontSize: 11, stroke: "rgba(246,239,226,.4)", tickLine: false, axisLine: false } as const;
 
-function Legend({ items }: { items: Array<{ label: string; value: string; color: string }> }) {
-  return (
-    <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-2">
-      {items.map((it) => (
-        <li key={it.label} className="flex items-center gap-2 text-xs text-muted-foreground"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: it.color }} aria-hidden />{it.label}<b className="font-display text-lg font-normal text-foreground" dir="ltr">{it.value}</b></li>
-      ))}
-    </ul>
-  );
-}
+type Series = { key: string; label: string; color: string; value: string };
 
-/** Left chart: new chats, unpaid invoices and paid invoices per month. */
-export function ChatsInvoicesChart({ artistId }: { artistId: string }) {
+/** One titled card with a legend of current totals and a smooth area chart. */
+function AreaCard({ id, title, accent, subtitle, series, data, empty, emptyText, note, money = false }: {
+  id: string; title: string; accent: string; subtitle: string; series: Series[]; data: Array<Record<string, number | string>>; empty: boolean; emptyText: string; note?: string; money?: boolean;
+}) {
   const { t } = useI18n();
-  const money = useOverviewMoney(artistId);
-  const inv = useInvoiceQuery(artistId);
-  const data = useMemo(() => {
-    const buckets = monthBuckets().map((m) => ({ label: m.label, chats: 0, unpaid: 0, paid: 0, start: m.start, end: m.end }));
-    const at = (iso: string) => buckets.find((m) => new Date(iso) >= m.start && new Date(iso) <= m.end);
-    for (const c of money.data?.chats ?? []) { const m = at(c.created_at); if (m) m.chats += 1; }
-    for (const r of inv.data ?? []) { const m = at(r.created_at); if (!m) continue; if (r.status === "paid") m.paid += 1; else m.unpaid += 1; }
-    return buckets;
-  }, [money.data, inv.data]);
-  const sum = (k: "chats" | "unpaid" | "paid") => data.reduce((n, m) => n + m[k], 0);
-  const empty = data.every((m) => m.chats + m.unpaid + m.paid === 0);
   return (
-    <section className="studio-panel studio-span-6" aria-labelledby="ov-chats">
-      <div className="studio-panel-heading"><h2 id="ov-chats">{t("Chats")} <span className="it">{t("and invoices")}</span><small>{t("Last 6 months")}</small></h2></div>
-      <Legend items={[{ label: t("Incoming chats"), value: String(sum("chats")), color: "#e8b04a" }, { label: t("Unpaid invoices"), value: String(sum("unpaid")), color: "#e2574c" }, { label: t("Paid invoices"), value: String(sum("paid")), color: "#7bd88f" }]} />
-      <div className="relative h-60" role="img" aria-label={t("Chats, unpaid invoices and paid invoices per month")}>
+    <section className="studio-panel studio-span-6" aria-labelledby={`ov-${id}`}>
+      <div className="studio-panel-heading"><h2 id={`ov-${id}`}>{title} <span className="it">{accent}</span><small>{subtitle}</small></h2></div>
+      <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-2">
+        {series.map((s) => <li key={s.key} className="flex items-center gap-2 text-xs text-muted-foreground"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} aria-hidden />{s.label}<b className="font-display text-lg font-normal text-foreground" dir="ltr">{s.value}</b></li>)}
+      </ul>
+      <div className="relative h-60" role="img" aria-label={`${title} ${accent}: ${series.map((s) => s.label).join(", ")}`}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-            <defs>{[["c", "#e8b04a"], ["u", "#e2574c"], ["p", "#7bd88f"]].map(([id, c]) => <linearGradient key={id} id={`g-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity={0.35} /><stop offset="100%" stopColor={c} stopOpacity={0} /></linearGradient>)}</defs>
+          <AreaChart data={data} margin={{ top: 6, right: 8, left: money ? -10 : -18, bottom: 0 }}>
+            <defs>{series.map((s) => <linearGradient key={s.key} id={`g-${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={s.color} stopOpacity={0.32} /><stop offset="100%" stopColor={s.color} stopOpacity={0} /></linearGradient>)}</defs>
             <CartesianGrid stroke="rgba(246,239,226,.09)" strokeDasharray="3 5" vertical={false} />
             <XAxis dataKey="label" tickFormatter={(v: string) => t(v)} {...axis} />
-            <YAxis allowDecimals={false} {...axis} />
-            <Tooltip contentStyle={tip} cursor={{ stroke: "rgba(246,239,226,.2)" }} />
-            <Area type="monotone" dataKey="chats" name={t("Incoming chats")} stroke="#e8b04a" strokeWidth={2} fill="url(#g-c)" />
-            <Area type="monotone" dataKey="unpaid" name={t("Unpaid invoices")} stroke="#e2574c" strokeWidth={2} fill="url(#g-u)" />
-            <Area type="monotone" dataKey="paid" name={t("Paid invoices")} stroke="#7bd88f" strokeWidth={2} fill="url(#g-p)" />
+            <YAxis allowDecimals={false} {...axis} {...(money ? { tickFormatter: (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}K` : String(v)) } : {})} />
+            <Tooltip contentStyle={tip} cursor={{ stroke: "rgba(246,239,226,.2)" }} {...(money ? { formatter: (v: number) => aed(v) } : {})} />
+            {series.map((s) => <Area key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} fill={`url(#g-${id}-${s.key})`} />)}
           </AreaChart>
         </ResponsiveContainer>
-        {empty && <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-sm text-muted-foreground">{t("No chats or invoices yet.")}</p>}
+        {empty && <p className="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center text-sm text-muted-foreground">{emptyText}</p>}
       </div>
+      {note && <p className="mt-2 text-[11px] text-muted-foreground">{note}</p>}
     </section>
   );
 }
 
-/** Right chart: how much money the artist has in escrow, can withdraw, completed and already withdrawn or pending. */
-export function YourBalanceChart({ artistId, wallet }: { artistId: string; wallet: Wallet }) {
+const total = (data: Array<Record<string, number | string>>, k: string) => data.reduce((n, m) => n + num(m[k]), 0);
+
+/** Chats perform: incoming chats, AI replies, client replies and invoices sent, per month. */
+export function ChatsPerformChart({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
+  const money = useOverviewMoney(artistId);
+  const inv = useInvoiceQuery(artistId);
+  const data = useMemo(() => monthBuckets().map((m) => ({
+    label: m.label,
+    incoming: (money.data?.chats ?? []).filter((c) => inMonth(c.created_at, m)).length,
+    ai: (money.data?.messages ?? []).filter((x) => x.sender === "ai" && inMonth(x.created_at, m)).length,
+    client: (money.data?.messages ?? []).filter((x) => x.sender === "client" && inMonth(x.created_at, m)).length,
+    sent: (inv.data ?? []).filter((r) => inMonth(r.created_at, m)).length,
+  })), [money.data, inv.data]);
+  return (
+    <AreaCard id="chats" title={t("Chats")} accent={t("perform")} subtitle={t("Last 6 months")} data={data}
+      series={[{ key: "incoming", label: t("Incoming chat"), color: "#e8b04a", value: String(total(data, "incoming")) }, { key: "ai", label: t("AI reply"), color: "#6aa9ff", value: String(total(data, "ai")) },
+        { key: "client", label: t("Client reply"), color: "#b7a6ff", value: String(total(data, "client")) }, { key: "sent", label: t("Invoice send"), color: "#7bd88f", value: String(total(data, "sent")) }]}
+      empty={data.every((m) => m.incoming + m.ai + m.client + m.sent === 0)} emptyText={t("No chats yet.")} />
+  );
+}
+
+/** Invoice progress: invoices sent, still unpaid and paid, per month. */
+export function InvoiceProgressChart({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
+  const inv = useInvoiceQuery(artistId);
+  const data = useMemo(() => monthBuckets().map((m) => ({
+    label: m.label,
+    sent: (inv.data ?? []).filter((r) => inMonth(r.created_at, m)).length,
+    unpaid: (inv.data ?? []).filter((r) => r.status !== "paid" && inMonth(r.created_at, m)).length,
+    paid: (inv.data ?? []).filter((r) => r.status === "paid" && inMonth(r.paid_at ?? r.created_at, m)).length,
+  })), [inv.data]);
+  return (
+    <AreaCard id="invoices" title={t("Invoice")} accent={t("progress")} subtitle={t("Last 6 months")} data={data}
+      series={[{ key: "sent", label: t("Invoice send"), color: "#e8b04a", value: String(total(data, "sent")) }, { key: "unpaid", label: t("Invoice unpaid"), color: "#e2574c", value: String(total(data, "unpaid")) }, { key: "paid", label: t("Invoice paid"), color: "#7bd88f", value: String(total(data, "paid")) }]}
+      empty={data.every((m) => m.sent + m.unpaid + m.paid === 0)} emptyText={t("No invoices yet.")} />
+  );
+}
+
+/** Job progress: bookings made and jobs completed, per month. */
+export function JobProgressChart({ artistId }: { artistId: string }) {
+  const { t } = useI18n();
+  const money = useOverviewMoney(artistId);
+  const data = useMemo(() => monthBuckets().map((m) => ({
+    label: m.label,
+    booking: (money.data?.bookings ?? []).filter((b) => b.status !== "cancelled" && inMonth(b.created_at, m)).length,
+    completed: (money.data?.bookings ?? []).filter((b) => b.status === "completed" && inMonth(b.completed_at, m)).length,
+  })), [money.data]);
+  return (
+    <AreaCard id="jobs" title={t("Progress")} accent={t("job")} subtitle={t("Last 6 months")} data={data}
+      series={[{ key: "booking", label: t("Job booking"), color: "#e8b04a", value: String(total(data, "booking")) }, { key: "completed", label: t("Job completed"), color: "#7bd88f", value: String(total(data, "completed")) }]}
+      empty={data.every((m) => m.booking + m.completed === 0)} emptyText={t("No bookings yet.")} note={t("Bookings are counted when they are created; jobs when they are marked completed.")} />
+  );
+}
+
+/** Artist revenue: money in escrow, in the wallet (withdrawable) and withdrawn or pending, per month. */
+export function RevenueChart({ artistId, wallet }: { artistId: string; wallet: Wallet }) {
   const { t } = useI18n();
   const money = useOverviewMoney(artistId);
   const pct = num(wallet?.commission_pct);
   const data = useMemo(() => {
     const bookings = money.data?.bookings ?? [];
     const payouts = (money.data?.payouts ?? []).filter((p) => p.status === "pending" || p.status === "paid");
-    const rows = monthBuckets().map((m, i, all) => {
+    return monthBuckets().map((m, i, all) => {
       const last = i === all.length - 1;
       const E = m.end.getTime();
       const completed = bookings.filter((b) => b.status === "completed" && b.completed_at && new Date(b.completed_at).getTime() <= E).reduce((n, b) => n + num(b.amount), 0);
@@ -108,33 +149,14 @@ export function YourBalanceChart({ artistId, wallet }: { artistId: string; walle
       const held = bookings.filter((b) => b.paid_at && new Date(b.paid_at).getTime() <= E && !(b.completed_at && new Date(b.completed_at).getTime() <= E) && !(b.cancelled_at && new Date(b.cancelled_at).getTime() <= E))
         .reduce((n, b) => n + (num(b.total) > 0 ? (num(b.paid_amount) * num(b.amount)) / num(b.total) : 0), 0);
       const available = Math.max(0, completed * (1 - pct / 100) - withdrawn);
-      return { label: m.label, escrow: last ? escrowNow(bookings) : held, available: last && wallet ? num(wallet.available) : available, completed: last && wallet ? num(wallet.gross) : completed, withdrawn: last && wallet ? num(wallet.paid_out) + num(wallet.pending) : withdrawn };
+      return { label: m.label, escrow: last ? escrowNow(bookings) : held, wallet: last && wallet ? num(wallet.available) : available, withdraw: last && wallet ? num(wallet.paid_out) + num(wallet.pending) : withdrawn };
     });
-    return rows;
   }, [money.data, wallet, pct]);
   const now = data[data.length - 1];
-  const empty = data.every((m) => m.escrow + m.available + m.completed + m.withdrawn === 0);
-  const series: Array<[keyof Omit<(typeof data)[number], "label">, string, string, string]> = [
-    ["escrow", "In escrow", "#6aa9ff", "e"], ["available", "Available to withdraw", "#7bd88f", "a"], ["completed", "Completed work", "#e8b04a", "w"], ["withdrawn", "Withdrawn / pending", "#b7a6ff", "d"],
-  ];
   return (
-    <section className="studio-panel studio-span-6" aria-labelledby="ov-balance">
-      <div className="studio-panel-heading"><h2 id="ov-balance">{t("Your")} <span className="it">{t("Balance")}</span><small>{t("Last 6 months, in AED")}</small></h2></div>
-      <Legend items={series.map(([k, label, color]) => ({ label: t(label), value: aed(now?.[k] ?? 0), color }))} />
-      <div className="relative h-60" role="img" aria-label={t("Escrow, available to withdraw, completed work and withdrawn or pending per month")}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
-            <defs>{series.map(([, , c, id]) => <linearGradient key={id} id={`b-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity={0.3} /><stop offset="100%" stopColor={c} stopOpacity={0} /></linearGradient>)}</defs>
-            <CartesianGrid stroke="rgba(246,239,226,.09)" strokeDasharray="3 5" vertical={false} />
-            <XAxis dataKey="label" tickFormatter={(v: string) => t(v)} {...axis} />
-            <YAxis {...axis} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}K` : String(v))} />
-            <Tooltip contentStyle={tip} cursor={{ stroke: "rgba(246,239,226,.2)" }} formatter={(v: number) => aed(v)} />
-            {series.map(([k, label, c, id]) => <Area key={k} type="monotone" dataKey={k} name={t(label)} stroke={c} strokeWidth={2} fill={`url(#b-${id})`} />)}
-          </AreaChart>
-        </ResponsiveContainer>
-        {empty && <p className="pointer-events-none absolute inset-0 grid place-items-center text-center text-sm text-muted-foreground">{t("Your balance appears here after your first paid booking.")}</p>}
-      </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">{t("Past months are estimated from your bookings and withdrawals. The latest point matches your Wallet.")}</p>
-    </section>
+    <AreaCard id="revenue" title={t("Revenue")} accent={t("artist")} subtitle={t("Last 6 months, in AED")} data={data} money
+      series={[{ key: "escrow", label: t("Escrow"), color: "#6aa9ff", value: aed(num(now?.escrow)) }, { key: "wallet", label: t("Wallet"), color: "#7bd88f", value: aed(num(now?.wallet)) }, { key: "withdraw", label: t("Withdraw"), color: "#b7a6ff", value: aed(num(now?.withdraw)) }]}
+      empty={data.every((m) => m.escrow + m.wallet + m.withdraw === 0)} emptyText={t("Your revenue appears here after your first paid booking.")}
+      note={t("Past months are estimated from your bookings and withdrawals. The latest point matches your Wallet.")} />
   );
 }
