@@ -414,6 +414,27 @@
       "when": 1795363497934,
       "tag": "0058_unified_master_libraries",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795374613070,
+      "tag": "0059_private_verification_and_monthly_top_badges",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1795374975602,
+      "tag": "0060_verification_retention_batch_and_file_validation",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1795375363254,
+      "tag": "0061_verification_explicit_private_grants",
+      "breakpoints": true
     }
   ]
 }

@@ -1328,6 +1328,7 @@ export type Database = {
           deposit_pct: number
           drafted_by: string
           end_time: string | null
+          escrow_released_at: string | null
           escrow_status: string
           event_date: string
           event_type_id: string | null
@@ -1380,6 +1381,7 @@ export type Database = {
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
+          escrow_released_at?: string | null
           escrow_status?: string
           event_date: string
           event_type_id?: string | null
@@ -1432,6 +1434,7 @@ export type Database = {
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
+          escrow_released_at?: string | null
           escrow_status?: string
           event_date?: string
           event_type_id?: string | null
@@ -3243,6 +3246,38 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_access_log: {
+        Row: {
+          admin_id: string
+          application_id: string
+          file_id: string | null
+          id: string
+          opened_at: string
+        }
+        Insert: {
+          admin_id: string
+          application_id: string
+          file_id?: string | null
+          id?: string
+          opened_at?: string
+        }
+        Update: {
+          admin_id?: string
+          application_id?: string
+          file_id?: string | null
+          id?: string
+          opened_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_access_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "verification_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       verification_applications: {
         Row: {
           admin_note: string | null
@@ -3253,6 +3288,8 @@ export type Database = {
           doc_path: string | null
           id: string
           note: string | null
+          privacy_purged_at: string | null
+          reasons: string[]
           status: string
         }
         Insert: {
@@ -3264,6 +3301,8 @@ export type Database = {
           doc_path?: string | null
           id?: string
           note?: string | null
+          privacy_purged_at?: string | null
+          reasons?: string[]
           status?: string
         }
         Update: {
@@ -3275,11 +3314,145 @@ export type Database = {
           doc_path?: string | null
           id?: string
           note?: string | null
+          privacy_purged_at?: string | null
+          reasons?: string[]
           status?: string
         }
         Relationships: [
           {
             foreignKeyName: "verification_applications_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_details: {
+        Row: {
+          address: Json | null
+          application_id: string
+          created_at: string
+          dob: string | null
+          doc_expiry: string | null
+          doc_number: string | null
+          full_name: string | null
+          nationality: string | null
+          phone: string | null
+          phone_confirmed_at: string | null
+          redacted_at: string | null
+          residency: string | null
+        }
+        Insert: {
+          address?: Json | null
+          application_id: string
+          created_at?: string
+          dob?: string | null
+          doc_expiry?: string | null
+          doc_number?: string | null
+          full_name?: string | null
+          nationality?: string | null
+          phone?: string | null
+          phone_confirmed_at?: string | null
+          redacted_at?: string | null
+          residency?: string | null
+        }
+        Update: {
+          address?: Json | null
+          application_id?: string
+          created_at?: string
+          dob?: string | null
+          doc_expiry?: string | null
+          doc_number?: string | null
+          full_name?: string | null
+          nationality?: string | null
+          phone?: string | null
+          phone_confirmed_at?: string | null
+          redacted_at?: string | null
+          residency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_details_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "verification_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_files: {
+        Row: {
+          application_id: string
+          created_at: string
+          id: string
+          kind: string
+          storage_path: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          storage_path: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_files_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "verification_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_otps: {
+        Row: {
+          artist_id: string
+          attempts: number
+          code_hash: string
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          provider_message_id: string | null
+          send_status: string
+        }
+        Insert: {
+          artist_id: string
+          attempts?: number
+          code_hash: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone: string
+          provider_message_id?: string | null
+          send_status?: string
+        }
+        Update: {
+          artist_id?: string
+          attempts?: number
+          code_hash?: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          provider_message_id?: string | null
+          send_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_otps_artist_id_fkey"
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
@@ -3635,6 +3808,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_verification_otp: {
+        Args: { _artist: string; _hash: string; _id: string }
+        Returns: Json
+      }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       claim_invoice_archive_jobs: {
         Args: { _limit?: number }
@@ -3663,6 +3840,14 @@ export type Database = {
       claim_payment_followup: { Args: { _id: string }; Returns: boolean }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
       expire_unpaid_records: { Args: never; Returns: Json }
+      finalize_verification_retention: {
+        Args: { _application: string }
+        Returns: boolean
+      }
+      finalize_verification_retention_batch: {
+        Args: { _applications: string[] }
+        Returns: Json
+      }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
       has_role: {
         Args: {
@@ -3721,16 +3906,22 @@ export type Database = {
           unlocked: boolean
         }[]
       }
+      my_verification_rank: { Args: { _artist: string }; Returns: Json }
       next_invoice_no: { Args: never; Returns: string }
       record_test_refund: {
         Args: { _order: string; _processor: number }
         Returns: undefined
       }
+      refresh_top_badges: { Args: never; Returns: Json }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
       reserve_fonnte_revision_credit: {
         Args: { _event: string }
         Returns: boolean
+      }
+      reserve_verification_otp: {
+        Args: { _artist: string; _hash: string; _id: string; _phone: string }
+        Returns: Json
       }
       resolve_booking_contract: {
         Args: {
@@ -3775,12 +3966,30 @@ export type Database = {
       soft_delete_invoices: { Args: { _ids: string[] }; Returns: number }
       soft_delete_quote_requests: { Args: { _ids: string[] }; Returns: number }
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
+      submit_verification: {
+        Args: { _artist: string; _details: Json; _files: Json }
+        Returns: Json
+      }
       use_contract_template: {
         Args: { _booking: string; _template: string }
         Returns: undefined
       }
       use_flow_template: { Args: { _id: string }; Returns: string }
       use_order_form_template: { Args: { _id: string }; Returns: undefined }
+      verification_category_ranks: {
+        Args: never
+        Returns: {
+          artist_id: string
+          category: string
+          clients: number
+          disputes: number
+          percentile: number
+        }[]
+      }
+      verification_file_owned_path: {
+        Args: { _application: string; _path: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"

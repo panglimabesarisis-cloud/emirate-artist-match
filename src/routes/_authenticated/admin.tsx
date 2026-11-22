@@ -21,6 +21,9 @@ import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
 import { ContractsTable } from "@/components/dashboard/ContractsTable";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { AdminLibrary } from "@/components/admin/AdminLibrary";
+import { useServerFn } from "@tanstack/react-start";
+import { decideVerification, openVerificationFile } from "@/lib/verification.functions";
+import { VERIFICATION_REASONS } from "@/lib/verification-rules";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage Dealmaker artists, bookings and the master AI conversation flow." }, { property: "og:title", content: "Admin | Dealmaker" }, { property: "og:description", content: "Dealmaker administration and master AI flow builder." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -163,21 +166,37 @@ function PayoutQueue() {
 
 function VerifyQueue() {
   const qc = useQueryClient();
+  const openFile = useServerFn(openVerificationFile);
+  const saveDecision = useServerFn(decideVerification);
   const { data } = useQuery({
     queryKey: ["admin-verif"],
-    queryFn: async () => (await supabase.from("verification_applications").select("*, artists(stage_name)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      const result = await supabase.from("verification_applications").select("*, artists(stage_name), verification_details(*), verification_files(*)").order("created_at", { ascending: false });
+      if (result.error) throw new Error("Unable to load verification applications");
+      return result.data ?? [];
+    },
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const decide = async (id: string, status: string) => {
-    const { error } = await supabase.from("verification_applications").update({ status, admin_note: notes[id] || null }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Marked ${status.replace(/_/g, " ")}`);
-    qc.invalidateQueries({ queryKey: ["admin-verif"] });
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const decide = async (id: string, status: "approved" | "rejected" | "needs_more_info", savedReasons: string[], savedNote: string | null) => {
+    setBusy(id);
+    try {
+      const result = await saveDecision({ data: { applicationId: id, status, reasons: (reasons[id] ?? savedReasons.join("\n")).split("\n").map((s) => s.trim()).filter(Boolean), admin_note: notes[id] ?? savedNote ?? "" } });
+      if (!result.ok) { toast.error(result.error); return; }
+      toast.success(`Marked ${status.replace(/_/g, " ")}`);
+      await qc.invalidateQueries({ queryKey: ["admin-verif"] });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save decision"); }
+    finally { setBusy(null); }
   };
-  const view = async (path: string) => {
-    const { data, error } = await supabase.storage.from("verification-docs").createSignedUrl(path, 120);
-    if (error || !data) { toast.error("Could not open document"); return; }
-    window.open(data.signedUrl, "_blank", "noopener");
+  const view = async (applicationId: string, fileId?: string) => {
+    const popup = window.open("", "_blank");
+    if (popup) popup.opener = null;
+    try {
+      const result = await openFile({ data: fileId ? { applicationId, fileId } : { applicationId } });
+      if (popup) popup.location.href = result.url;
+      else toast.error("Allow pop-ups to view verification documents");
+    } catch (error) { popup?.close(); toast.error(error instanceof Error ? error.message : "Could not open document"); }
   };
   return (
     <div className="space-y-3">
@@ -186,12 +205,22 @@ function VerifyQueue() {
         <div key={a.id} className="rounded-xl bg-card p-4 shadow-card">
           <div className="flex justify-between"><span className="font-semibold">{a.artists?.stage_name} — {BADGE_LABELS[a.badge_type]}</span><Badge variant="secondary">{a.status.replace(/_/g, " ")}</Badge></div>
           {a.note && <p className="text-sm text-muted-foreground mt-1">{a.note}</p>}
+          {a.verification_details && <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            {Object.entries(a.verification_details).filter(([key]) => !["application_id", "created_at"].includes(key)).map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key.replace(/_/g, " ")}</dt><dd className="break-words">{value === null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}
+          </dl>}
+          <div className="mt-3 flex flex-wrap gap-2">{a.verification_files.map((file) => <Button key={file.id} size="sm" variant="outline" disabled={Boolean(a.privacy_purged_at)} onClick={() => view(a.id, file.id)}>{file.kind.replace(/_/g, " ")}</Button>)}</div>
+          {a.doc_path && !a.verification_files.some((file) => file.storage_path === a.doc_path) && <Button size="sm" variant="outline" disabled={Boolean(a.privacy_purged_at)} onClick={() => view(a.id)}>Legacy document</Button>}
+          {a.privacy_purged_at && <p className="mt-2 text-sm text-muted-foreground">Documents deleted under the 30-day privacy rule.</p>}
+          <div className="mt-3 space-y-2">
+            <label className="block text-sm" htmlFor={`reasons-${a.id}`}>What went wrong</label>
+            <div className="flex flex-wrap gap-2">{VERIFICATION_REASONS.map((reason) => <Button key={reason} size="sm" variant="outline" className="h-auto whitespace-normal text-start" onClick={() => setReasons((previous) => ({ ...previous, [a.id]: [...new Set([...(previous[a.id] ?? a.reasons.join("\n")).split("\n").filter(Boolean), reason])].join("\n") }))}>{reason}</Button>)}</div>
+            <textarea id={`reasons-${a.id}`} className="w-full rounded-md border border-input bg-background p-2 text-sm" rows={3} placeholder="Choose a reason above or type one per line" value={reasons[a.id] ?? a.reasons.join("\n")} onChange={(e) => setReasons({ ...reasons, [a.id]: e.target.value })} />
+          </div>
           <div className="mt-3 flex flex-wrap gap-2 items-center">
-            {a.doc_path && <Button size="sm" variant="outline" onClick={() => view(a.doc_path!)}>View document</Button>}
-            <Input className="max-w-xs" placeholder="Note to artist" value={notes[a.id] ?? ""} onChange={(e) => setNotes({ ...notes, [a.id]: e.target.value })} />
-            <Button size="sm" onClick={() => decide(a.id, "approved")}>Approve</Button>
-            <Button size="sm" variant="outline" onClick={() => decide(a.id, "needs_more_info")}>Need more info</Button>
-            <Button size="sm" variant="ghost" onClick={() => decide(a.id, "rejected")}>Reject</Button>
+            <Input className="max-w-xs" placeholder="Note to artist" value={notes[a.id] ?? a.admin_note ?? ""} onChange={(e) => setNotes({ ...notes, [a.id]: e.target.value })} />
+            <Button size="sm" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "approved", a.reasons, a.admin_note)}>Approve</Button>
+            <Button size="sm" variant="outline" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "needs_more_info", a.reasons, a.admin_note)}>Need more info</Button>
+            <Button size="sm" variant="ghost" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "rejected", a.reasons, a.admin_note)}>Reject</Button>
           </div>
         </div>
       ))}

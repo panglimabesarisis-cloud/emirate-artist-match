@@ -42,6 +42,7 @@ import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
 import { Route as ApiPublicJobsInvoiceArchiveRouteImport } from './routes/api/public/jobs/invoice-archive'
 import { Route as ApiPublicJobsPaymentsRouteImport } from './routes/api/public/jobs/payments'
+import { Route as ApiPublicJobsVerificationRetentionRouteImport } from './routes/api/public/jobs/verification-retention'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicWhatsappFonnteWebhookRouteImport } from './routes/api/public/whatsapp/fonnte-webhook'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -214,6 +215,12 @@ const ApiPublicJobsPaymentsRoute = ApiPublicJobsPaymentsRouteImport.update({
   path: '/api/public/jobs/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsVerificationRetentionRoute =
+  ApiPublicJobsVerificationRetentionRouteImport.update({
+    id: '/api/public/jobs/verification-retention',
+    path: '/api/public/jobs/verification-retention',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -266,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
+  '/api/public/jobs/verification-retention': typeof ApiPublicJobsVerificationRetentionRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -303,6 +311,7 @@ export interface FileRoutesByTo {
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
+  '/api/public/jobs/verification-retention': typeof ApiPublicJobsVerificationRetentionRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -342,6 +351,7 @@ export interface FileRoutesById {
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
   '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
+  '/api/public/jobs/verification-retention': typeof ApiPublicJobsVerificationRetentionRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/api/public/jobs/booking-reminders'
     | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
+    | '/api/public/jobs/verification-retention'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/public/jobs/booking-reminders'
     | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
+    | '/api/public/jobs/verification-retention'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -456,6 +468,7 @@ export interface FileRouteTypes {
     | '/api/public/jobs/booking-reminders'
     | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
+    | '/api/public/jobs/verification-retention'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
     | '/api/public/whatsapp/webhook'
@@ -492,6 +505,7 @@ export interface RootRouteChildren {
   ApiPublicJobsBookingRemindersRoute: typeof ApiPublicJobsBookingRemindersRoute
   ApiPublicJobsInvoiceArchiveRoute: typeof ApiPublicJobsInvoiceArchiveRoute
   ApiPublicJobsPaymentsRoute: typeof ApiPublicJobsPaymentsRoute
+  ApiPublicJobsVerificationRetentionRoute: typeof ApiPublicJobsVerificationRetentionRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicWhatsappFonnteWebhookRoute: typeof ApiPublicWhatsappFonnteWebhookRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -730,6 +744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicJobsPaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/verification-retention': {
+      id: '/api/public/jobs/verification-retention'
+      path: '/api/public/jobs/verification-retention'
+      fullPath: '/api/public/jobs/verification-retention'
+      preLoaderRoute: typeof ApiPublicJobsVerificationRetentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -801,6 +822,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicJobsBookingRemindersRoute: ApiPublicJobsBookingRemindersRoute,
   ApiPublicJobsInvoiceArchiveRoute: ApiPublicJobsInvoiceArchiveRoute,
   ApiPublicJobsPaymentsRoute: ApiPublicJobsPaymentsRoute,
+  ApiPublicJobsVerificationRetentionRoute:
+    ApiPublicJobsVerificationRetentionRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicWhatsappFonnteWebhookRoute: ApiPublicWhatsappFonnteWebhookRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

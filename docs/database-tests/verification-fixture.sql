@@ -1,0 +1,36 @@
+\set ON_ERROR_STOP on
+DO $$ BEGIN IF current_database() NOT LIKE 'verification_test_%' THEN RAISE EXCEPTION 'isolated database required'; END IF; END $$;
+BEGIN;
+CREATE SCHEMA auth;
+CREATE SCHEMA storage;
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+ IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+ IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
+END $$;
+GRANT USAGE ON SCHEMA auth,storage TO authenticated,service_role,anon;
+CREATE TABLE artists(id uuid PRIMARY KEY,user_id uuid,category_id uuid,category_ids uuid[] NOT NULL DEFAULT '{}',is_seed boolean DEFAULT false,status text DEFAULT 'approved',plan text DEFAULT 'free');
+CREATE TABLE categories(id uuid PRIMARY KEY,name text);
+CREATE TABLE user_roles(user_id uuid,role text);
+CREATE FUNCTION is_artist_owner(_artist uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT FROM artists WHERE id=_artist AND user_id=auth.uid()) $$;
+CREATE FUNCTION has_role(_user uuid,_role text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT FROM user_roles WHERE user_id=_user AND role=_role) $$;
+CREATE FUNCTION effective_artist_plan(_artist uuid) RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT plan FROM artists WHERE id=_artist $$;
+CREATE TABLE verification_applications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),artist_id uuid REFERENCES artists(id),badge_type text NOT NULL,status text DEFAULT 'submitted',doc_path text,note text,admin_note text,decided_at timestamptz,created_at timestamptz DEFAULT now());
+GRANT SELECT,INSERT,UPDATE ON verification_applications TO authenticated;
+GRANT ALL ON verification_applications TO service_role;
+ALTER TABLE verification_applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY owner_read ON verification_applications FOR SELECT TO authenticated USING(is_artist_owner(artist_id) OR has_role(auth.uid(),'admin'));
+CREATE POLICY owner_insert ON verification_applications FOR INSERT TO authenticated WITH CHECK(is_artist_owner(artist_id));
+CREATE POLICY admin_update ON verification_applications FOR UPDATE TO authenticated USING(has_role(auth.uid(),'admin'));
+CREATE TABLE artist_badges(id uuid DEFAULT gen_random_uuid(),artist_id uuid,badge text,granted_at timestamptz DEFAULT now(),UNIQUE(artist_id,badge),CONSTRAINT artist_badges_badge_check CHECK(badge IN ('verified_identity','verified_business','verified_performer','top_performer')));
+CREATE TABLE bookings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),artist_id uuid,client_user_id uuid,client_name text,client_email text,client_phone text,paid_amount numeric,refund_amount numeric DEFAULT 0,escrow_status text DEFAULT 'held',is_seed boolean DEFAULT false);
+CREATE TABLE disputes(id uuid DEFAULT gen_random_uuid(),booking_id uuid,status text DEFAULT 'open');
+CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text,metadata jsonb);
+GRANT SELECT,INSERT ON storage.objects TO authenticated;
+GRANT ALL ON storage.objects TO service_role;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY old_read ON storage.objects FOR SELECT TO authenticated USING(true);
+CREATE POLICY own_upload ON storage.objects FOR INSERT TO authenticated WITH CHECK(split_part(name,'/',1)=auth.uid()::text);
+CREATE FUNCTION test_assert(ok boolean,rule text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: %',rule; END IF; END $$;
+CREATE FUNCTION test_error(statement text,expected text) RETURNS void LANGUAGE plpgsql AS $$ DECLARE actual text; BEGIN BEGIN EXECUTE statement; EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS actual=RETURNED_SQLSTATE; END; IF actual IS DISTINCT FROM expected THEN RAISE EXCEPTION 'Expected %, got %',expected,actual; END IF; END $$;
