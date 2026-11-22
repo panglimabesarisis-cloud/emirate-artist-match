@@ -1,15 +1,10 @@
-import { decodeChatMessage } from "@/lib/chat-attachments";
-import { ChatAttachments } from "@/components/chat/ChatAttachments";
-import { artistChatFiles } from "@/lib/chat-files.functions";
-import { decodeInvoice } from "@/lib/invoice";
-import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Bot, Coins, Search, Send, Inbox as InboxIcon } from "lucide-react";
+import { Bot, Coins, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { artistReply, testAgent } from "@/lib/chat.functions";
+import { testAgent } from "@/lib/chat.functions";
 import { BillingPanel } from './BillingPanel';
 import { artistCheckout } from "@/lib/payments.functions";
 import { SandboxCheckout, PaymentTestModeBanner, type CheckoutSession } from "@/components/site/SandboxCheckout";
@@ -19,99 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { PromptLibrary, useArtistPlan } from "./PromptLibrary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "./StudioPage";
-import { initials } from "@/lib/format";
 
-export function Inbox({ artistId }: { artistId: string }) {
-  const { t } = useI18n();
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
-  const qc = useQueryClient();
-  const reply$ = useServerFn(artistReply);
-  const files$ = useServerFn(artistChatFiles);
-  const [open, setOpen] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const { data: convos } = useQuery({
-    queryKey: ["inbox", artistId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchInterval: 10000,
-  });
-  const convoIds = (convos ?? []).map((c) => c.id);
-  const { data: lastMsgs } = useQuery({
-    queryKey: ["inbox-last", artistId, convoIds.join(",")],
-    enabled: convoIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("messages").select("conversation_id, sender, body, created_at").in("conversation_id", convoIds).order("created_at", { ascending: false }).limit(Math.min(1000, convoIds.length * 4));
-      if (error) throw error;
-      const map = new Map<string, { sender: string; body: string }>();
-      for (const m of data ?? []) if (!map.has(m.conversation_id)) map.set(m.conversation_id, m);
-      return map;
-    },
-    refetchInterval: 15000,
-  });
-  useEffect(() => {
-    if (!open && convos && convos.length > 0) setOpen(convos[0]!.id);
-  }, [convos, open]);
-  const { data: msgs } = useQuery({
-    queryKey: ["inbox-msgs", open],
-    enabled: !!open,
-    queryFn: async () => {
-      if (!open) return [];
-      const { data, error } = await supabase.from("messages").select("id, sender, body, created_at").eq("conversation_id", open).order("created_at");
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchInterval: 5000,
-  });
-  const { data: attachments } = useQuery({ queryKey: ["inbox-files", open, msgs?.length], enabled: !!open, queryFn: () => open ? files$({ data: { id: open } }) : Promise.resolve([]), refetchInterval: 300000 });
-  const current = convos?.find((c) => c.id === open);
-  const setMode = async (mode: string) => {
-    if (!open) return;
-    const { error } = await supabase.from("conversations").update({ mode }).eq("id", open);
-    if (error) { toast.error(t("Could not change chat mode")); return; }
-    qc.invalidateQueries({ queryKey: ["inbox", artistId] });
-  };
-  const send = async () => {
-    if (!text.trim() || !open) return;
-    try {
-      await reply$({ data: { id: open, text } });
-      setText("");
-      if (current?.mode === "ai") await setMode("human");
-      qc.invalidateQueries({ queryKey: ["inbox-msgs", open] });
-    } catch { toast.error(t("Reply failed")); }
-  };
-  return (
-    <div className="dmr-ibx">
-      <section className="dmr-list" aria-label={t("Conversations")}>
-        <div className="dmr-l-head">
-          <div className="dmr-l-title"><h2 className="dmr-serif">{t("Inbox")}</h2><span className="dmr-l-n">{convos?.length ?? 0} {t("chats")}</span><Button variant="ghost" disabled title={t("segera")} className="ms-auto">{t("Select")} · {t("segera")}</Button></div>
-          <div className="relative"><Search className="absolute start-3 top-3 size-4 text-gold" /><Input className="ps-10" aria-label={t("Search chats")} placeholder={t("Search chats")} value={search} onChange={e => setSearch(e.target.value)} /></div>
-          <div className="dmr-q-tabs" role="group" aria-label={t("Filter chats")}>{[["all","All"],["ai","AI handling"],["human","You"]].map(([value,label])=><Button key={value} size="sm" variant={filter === value ? "default" : "ghost"} aria-pressed={filter === value} onClick={()=>setFilter(value ?? "all")}>{t(label ?? "")}</Button>)}</div>
-          <div className="studio-soon">{t("Labels")} · {t("segera")}</div>
-        </div>
-        <div className="dmr-threads">
-          {convos?.length === 0 && <StudioEmpty title={t("No conversations yet.")} icon={InboxIcon} />}
-          {convos?.filter(c => (filter === "all" || c.mode === filter) && `${c.quote_requests?.name ?? "Direct chat"} ${c.id}`.toLowerCase().includes(search.toLowerCase())).map(c => <Button variant="ghost" key={c.id} onClick={()=>setOpen(c.id)} className={`studio-thread ${open === c.id ? "is-selected" : ""}`}><span className="studio-thread-avatar">{initials(c.quote_requests?.name ?? t("Client"))}</span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><b className="truncate text-sm">{c.quote_requests?.name ?? `${t("Direct chat")} · ${c.id.slice(0,8)}`}</b><Badge>{t(c.mode === "human" ? "Needs you" : "AI")}</Badge></span><span className="mt-1 block truncate text-xs text-muted-foreground">{lastMsgs?.get(c.id) ? `${lastMsgs.get(c.id)!.sender === "ai" ? "AI: " : lastMsgs.get(c.id)!.sender === "artist" ? `${t("You")}: ` : ""}${decodeChatMessage(lastMsgs.get(c.id)!.body).text}` : `${c.quote_requests?.event_date ?? t("date TBC")} · ${c.ai_replies} ${t("AI replies")}`}</span><span className="block text-[11px] text-muted-foreground/70">{c.last_message_at ? new Date(c.last_message_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""} · {c.quote_requests?.event_date ?? t("date TBC")} · {c.ai_replies} {t("AI replies")}</span></span></Button>)}
-        </div>
-      </section>
-      <section className="dmr-conv" aria-label={t("Conversation")}>
-        {open ? <>
-          <header className="dmr-c-head"><div className="dmr-c-who"><span className="studio-thread-avatar">{initials(current?.quote_requests?.name ?? t("Client"))}</span><div><b>{current?.quote_requests?.name ?? t("Direct chat")}</b><small>{current?.quote_requests?.event_date ?? t("Event date TBC")}</small></div></div><div className="dmr-c-act"><span className="text-xs text-muted-foreground">{t(current?.mode === "human" ? "You're handling this chat" : "AI is handling this chat")}</span><Button size="sm" variant="outline" onClick={()=>setMode(current?.mode === "human" ? "ai" : "human")}>{t(current?.mode === "human" ? "Hand back to AI" : "Take over")}</Button><Button size="icon" variant="ghost" aria-label={t("Back to chats")} onClick={()=>setOpen(null)}><ArrowLeft className="size-4 rtl:rotate-180" /></Button></div></header>
-          <div className="dmr-msgs space-y-3" aria-live="polite">{msgs?.map(m => { const inv = decodeInvoice(m.body); return m.sender === "system" && !inv ? <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div> : <div key={m.id} className={`flex ${m.sender === "client" ? "justify-start" : "justify-end"}`}><div className={`dmr-m ${m.sender === "client" ? "studio-message-client" : m.sender === "ai" ? "studio-message-ai" : "studio-message-artist"}`} dir="auto"><div className="mb-1 text-[10px] uppercase opacity-70">{t(m.sender === "ai" ? "AI assistant" : m.sender === "artist" ? "You" : "Client")}</div>{inv ? <InvoiceCard inv={inv} /> : <>{decodeChatMessage(m.body).text}<ChatAttachments files={attachments?.find(item => item.id === m.id)?.files ?? []} /></>}</div></div>; })}</div>
-          <div className="dmr-composer"><div className="dmr-cmp-note">{t("Replying here takes the chat over from your AI agent.")}</div><div className="dmr-cmp-row"><Input value={text} onChange={e=>setText(e.target.value)} placeholder={t("Reply personally…")} maxLength={2000} onKeyDown={e=>e.key === "Enter" && send()} /><Button onClick={send} aria-label={t("Send")}><Send className="size-4" /></Button></div></div>
-        </> : <div className="dmr-c-empty"><StudioEmpty title={t("No chat selected")} icon={InboxIcon} /></div>}
-      </section>
-    </div>
-  );
-}
+export { Inbox } from "./InboxPage";
 
 const MODEL_LABEL: Record<string, string> = { fast: "Fast", balanced: "Balanced", advanced: "Advanced" };
 
