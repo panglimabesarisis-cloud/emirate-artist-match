@@ -1,0 +1,10 @@
+/* Print / PDF of the invoice popup: show only the paper. */
+@media print {
+  body.inv-printing > *:not(:has([data-ivp-print])) { display: none !important; }
+  body.inv-printing [data-ivp-print] { position: static !important; transform: none !important; max-height: none !important; width: 100% !important; border: 0 !important; background: none !important; overflow: visible !important; box-shadow: none !important; }
+  body.inv-printing [data-ivp-print] .ivp-bar { display: none !important; }
+  body.inv-printing [data-ivp-print] .ivp-sheet { padding: 0 !important; }
+  body.inv-printing [data-ivp-print] [data-testid="invoice-paper"] { box-shadow: none !important; border-radius: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.inv-printing [data-radix-popper-content-wrapper], body.inv-printing [role="status"], body.inv-printing section[aria-label~="Notifications"] { display: none !important; }
+  body.inv-printing { background: #fff !important; }
+}

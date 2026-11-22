@@ -26,16 +26,17 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   const { data } = useQuery({
     queryKey: ["invoices", artistId], refetchInterval: 5000,
     queryFn: async () => {
-      const [c, r] = await Promise.all([
+      const [c, r, bk] = await Promise.all([
         supabase.from("conversations").select("id, quote_requests(name, email, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(100),
         supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort"),
+        supabase.from("bookings").select("id, conversation_id, package_title, event_date, amount, status").eq("artist_id", artistId).eq("is_seed", false).is("deleted_at", null).not("conversation_id", "is", null).neq("status", "cancelled"),
       ]);
       if (c.error) throw c.error;
       const convos = c.data ?? [];
       const ids = convos.map((x) => x.id);
       const stored = (await supabase.from("service_invoices").select("*").eq("artist_id", artistId).is("deleted_at", null).order("created_at", { ascending: false })).data ?? [];
       const m = ids.length ? (await supabase.from("messages").select("id, conversation_id, body, created_at").in("conversation_id", ids).like("body", "[[INVOICE]]%").order("created_at", { ascending: false })).data ?? [] : [];
-      return { convos, rates: r.data ?? [], sent: m, stored };
+      return { convos, rates: r.data ?? [], sent: m, stored, bookings: bk.data ?? [] };
     },
   });
   const [convo, setConvo] = useState("");
@@ -59,6 +60,8 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   })();
   const nameOf = (id: string) => data?.convos.find((c) => c.id === id)?.quote_requests?.name ?? `Direct chat · ${id.slice(0, 8)}`;
   const selectedClient = data?.convos.find((c) => c.id === convo)?.quote_requests;
+  const convoBookings = (data?.bookings ?? []).filter((b) => b.conversation_id === convo);
+  const bookingTitle = (b: { package_title: string | null; event_date: string | null }) => `${b.package_title ?? t("Booking")}${b.event_date ? ` · ${new Date(`${b.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}`;
 
   const submit = async () => {
     if (!convo) { toast.error(t("Choose a client chat")); return; }
@@ -97,6 +100,11 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
           <div className="flex flex-col gap-2.5 rounded-2xl border border-border p-3.5">
             <div className="flex items-center justify-between"><span className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Services")}</span>
               <Button size="sm" variant="outline" className="rounded-full" onClick={() => setItems([...items, { title: "", qty: 1, price: 0 }])}><Plus className="me-1 h-3.5 w-3.5" />{t("Custom item")}</Button></div>
+            {convoBookings.length > 0 && (
+              <div className="flex flex-col gap-1.5 text-[11.5px] text-muted-foreground"><span>{t("From bookings:")}</span>
+                <div className="flex flex-wrap gap-1.5">{convoBookings.map((b) => <button key={b.id} type="button" disabled={items.some((x) => x.title === bookingTitle(b))} onClick={() => setItems([...items, { title: bookingTitle(b), qty: 1, price: Number(b.amount) }])} className="rounded-full border border-dashed border-gold/45 px-2.5 py-1.5 text-xs font-bold text-gold transition-colors hover:bg-gold/10 disabled:opacity-40">{bookingTitle(b)} · {aed(Number(b.amount))}</button>)}</div>
+              </div>
+            )}
             {(data?.rates.length ?? 0) > 0 && (
               <div className="flex flex-col gap-1.5 text-[11.5px] text-muted-foreground"><span>{t("From your ratecard:")}</span>
                 <div className="flex flex-wrap gap-1.5">{data?.rates.map((r) => <button key={r.id} type="button" onClick={() => setItems([...items, { title: r.title, qty: 1, price: Number(r.price) }])} className="rounded-full border border-dashed border-gold/45 px-2.5 py-1.5 text-xs font-bold text-gold transition-colors hover:bg-gold/10">+ {r.title} · {aed(Number(r.price))}</button>)}</div>
@@ -105,7 +113,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
             <div className="flex flex-col gap-2">
               {items.map((it, i) => (
                 <div key={i} className="grid grid-cols-[1fr_64px_110px_34px] items-end gap-2">
-                  <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-item-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Item")}</Label><Input id={`invoice-item-${i}`} placeholder={t("Service")} value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} /></div>
+                  <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-item-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Description")}</Label><Input id={`invoice-item-${i}`} placeholder={t("e.g. Emcee, 2 hours")} value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} /></div>
                   <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-qty-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Qty")}</Label><Input id={`invoice-qty-${i}`} type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, qty: Number(e.target.value) } : x))} /></div>
                   <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-price-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Price (AED)")}</Label><Input id={`invoice-price-${i}`} type="number" min={0} step="0.01" value={it.price} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} /></div>
                   <Button size="icon" variant="outline" className="h-10 w-[34px]" onClick={() => setItems(items.filter((_, j) => j !== i))} aria-label={`${t("Remove item")} ${i + 1}`}><Trash2 className="h-4 w-4" /></Button>
