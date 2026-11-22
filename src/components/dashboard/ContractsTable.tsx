@@ -1,3 +1,4 @@
+import { BulkBar, NOT_DELETABLE, RowCheckbox, bookingDeletable, useHideRows, useSelection } from "./BulkSelect";
 import { ContractTemplateLibrary, TemplatePicker } from "./ContractTemplates";
 import { parseStoredTerms } from "@/lib/contract-terms";
 import { useState } from "react";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type ContractRow = { contract_template_id: string | null; id: string; client_name: string; package_title: string | null; event_date: string | null; total: number | string; contract_accepted_at: string | null; invoice_no: string | null };
+type ContractRow = { paid_amount: number | string; escrow_status: string | null; status: string; contract_template_id: string | null; id: string; client_name: string; package_title: string | null; event_date: string | null; total: number | string; contract_accepted_at: string | null; invoice_no: string | null };
 const fmtD = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const kh = "whitespace-nowrap border-b border-border bg-card px-3.5 py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground";
 const kc = "whitespace-nowrap border-b border-border px-3.5 py-3.5 align-middle";
@@ -26,6 +27,8 @@ function ArtistContractsPanel({ artistId, rows, isPending, error, onView }: { ar
   const [tab, setTab] = useState<"all" | "awaiting" | "accepted">("all");
   const [size, setSize] = useState(10);
   const [page, setPage] = useState(0);
+  const selection = useSelection();
+  const hide = useHideRows("soft_delete_bookings", [["contracts", artistId], ["artist-bookings", artistId], ["cal-jobs", artistId]], () => selection.clear());
   const accepted = rows.filter((r) => r.contract_accepted_at).length;
   const counts = { all: rows.length, awaiting: rows.length - accepted, accepted };
   const needle = q.trim().toLowerCase();
@@ -33,6 +36,7 @@ function ArtistContractsPanel({ artistId, rows, isPending, error, onView }: { ar
   const pages = Math.max(1, Math.ceil(list.length / size));
   const cur = Math.min(page, pages - 1);
   const shown = list.slice(cur * size, cur * size + size);
+  const deletableOnPage = shown.filter(bookingDeletable);
   return (
     <section className="dmr-panel dmr-q-panel dmr-c-12" aria-label={t("Booking contracts")}>
       <div className="dmr-q-tools">
@@ -46,14 +50,16 @@ function ArtistContractsPanel({ artistId, rows, isPending, error, onView }: { ar
           {([["all", "All contracts"], ["awaiting", "Awaiting"], ["accepted", "Accepted"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setPage(0); }} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(l)} <span className="opacity-60">{counts[k]}</span></button>)}
         </div>
       </div>
+      <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "contracts")} />
       {error ? <p role="alert" className="p-5 text-destructive">{t("Could not load contracts.")}</p> : (
         <div className="min-w-0 overflow-x-auto">
           <table className="w-full min-w-[900px] border-separate border-spacing-0 text-[13.5px]">
-            <thead><tr>{["Booking", "Client", "Date", "Total", "Contract", "Accepted at", "Use contract"].map((h) => <th key={h} scope="col" className={`${kh} ${h === "Total" ? "text-end" : "text-start"}`}>{t(h)}</th>)}<th scope="col" className={`${kh} text-end`}>{t("View")}</th></tr></thead>
+            <thead><tr><th scope="col" className={`${kh} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((r) => selection.has(r.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((r) => r.id), on)} /></th>{["Booking", "Client", "Date", "Total", "Contract", "Accepted at", "Use contract"].map((h) => <th key={h} scope="col" className={`${kh} ${h === "Total" ? "text-end" : "text-start"}`}>{t(h)}</th>)}<th scope="col" className={`${kh} text-end`}>{t("View")}</th></tr></thead>
             <tbody>
-              {shown.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No contracts found")}</b>{!isPending && t("Try another word or status.")}</td></tr>}
+              {shown.length === 0 && <tr><td colSpan={9} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No contracts found")}</b>{!isPending && t("Try another word or status.")}</td></tr>}
               {shown.map((r) => (
                 <tr key={r.id} className="transition-colors hover:bg-foreground/[.03]">
+                  <td className={kc}><RowCheckbox label={`${t("Select")} ${r.client_name}`} checked={selection.has(r.id)} disabled={!bookingDeletable(r)} title={bookingDeletable(r) ? undefined : t(NOT_DELETABLE)} onChange={(on) => selection.toggle(r.id, on)} /></td>
                   <td className={kc}><b>{r.package_title ?? r.invoice_no ?? r.id.slice(0, 8)}</b></td>
                   <td className={kc}>{r.client_name}</td>
                   <td className={kc}><b>{fmtD(r.event_date)}</b></td>
@@ -85,8 +91,8 @@ export function ContractsTable({ artistId }: { artistId?: string }) {
   const [status,setStatus] = useState("all");
   const [selected,setSelected] = useState<string | null>(null);
   const { data = [], isPending, error } = useQuery({queryKey:["contracts",artistId],queryFn:async()=>{
-    let query = supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, job_detail, notes, total, contract_accepted_at, contract_template_id, status, invoice_no, artists(stage_name)").in("status",["quoted","confirmed","completed","cancelled","disputed"]).order("created_at",{ascending:false});
-    if(artistId)query=query.eq("artist_id",artistId);
+    let query = supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, job_detail, notes, total, paid_amount, escrow_status, contract_accepted_at, contract_template_id, status, invoice_no, artists(stage_name)").in("status",["quoted","confirmed","completed","cancelled","disputed"]).order("created_at",{ascending:false});
+    if(artistId)query=query.eq("artist_id",artistId).is("deleted_at",null);
     const result=await query; if(result.error)throw result.error; return result.data ?? [];
   }});
   const rows=data.filter(row=>`${row.client_name} ${row.artists?.stage_name} ${row.package_title}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || (status === "accepted" ? !!row.contract_accepted_at : !row.contract_accepted_at)));

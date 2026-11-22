@@ -1,3 +1,4 @@
+import { BulkBar, useHideRows } from "./BulkSelect";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -73,6 +74,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
         .from("quote_requests")
         .select("*, event_types(name), areas(name)")
         .eq("artist_id", artistId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (res.error) throw res.error;
       return (res.data ?? []) as unknown as Quote[];
@@ -82,6 +84,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
   const [tab, setTab] = useState<"all" | Status>("all");
   const [sort, setSort] = useState<{ k: SortKey; dir: 1 | -1 }>({ k: "event_date", dir: -1 });
   const [sel, setSel] = useState<string[]>([]);
+  const hide = useHideRows("soft_delete_quote_requests", [key], () => setSel([]));
 
   const counts = useMemo(
     () => ({
@@ -189,21 +192,10 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
             ))}
           </div>
         </div>
-        {sel.length > 0 && (
-          <div className="flex items-center gap-2.5 border-b border-border bg-gold/[.06] px-5 py-2.5 text-[13px] font-bold">
-            <span>
-              {sel.length} {t("selected")}
-            </span>
-            <Button size="sm" variant="outline" className="rounded-full" onClick={() => mark(sel, "replied")}>
-              <Check className="me-1 h-3.5 w-3.5" />
-              {t("Mark replied")}
-            </Button>
-            <Button size="sm" variant="outline" className="rounded-full" onClick={() => mark(sel, "closed")}>
-              <X className="me-1 h-3.5 w-3.5" />
-              {t("Close")}
-            </Button>
-          </div>
-        )}
+        <BulkBar count={sel.length} busy={hide.busy} onClear={() => setSel([])} onDelete={() => void hide.run(sel, "quote requests")}>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => mark(sel, "replied")}><Check className="me-1 h-3.5 w-3.5" />{t("Mark replied")}</Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => mark(sel, "closed")}><X className="me-1 h-3.5 w-3.5" />{t("Close")}</Button>
+        </BulkBar>
         {error && (
           <p role="alert" className="p-5 text-destructive">
             {t("Could not load quote requests.")}

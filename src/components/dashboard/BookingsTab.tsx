@@ -1,3 +1,4 @@
+import { BulkBar, NOT_DELETABLE, RowCheckbox, bookingDeletable, useHideRows, useSelection } from "./BulkSelect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -52,7 +53,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const dispute$ = useServerFn(openDisputeAsArtist);
   const [phone, setPhone] = useState(notifyPhone ?? "");
   const key = ["artist-bookings", artistId];
-  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("start_time,end_time,job_detail,notes,paid_amount,deposit_pct,calendar_sync_status,calendar_sync_error,reminder_sent_at,id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
+  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("start_time,end_time,job_detail,notes,paid_amount,deposit_pct,calendar_sync_status,calendar_sync_error,reminder_sent_at,id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
   const { data: convs } = useQuery({ queryKey: ["offer-convs", artistId], queryFn: async () => (await supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(50)).data ?? [] });
   const { data: packages } = useQuery({ queryKey: ["offer-packages", artistId], queryFn: async () => (await supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort")).data ?? [] });
   const emails = [...new Set((bookings ?? []).map((b) => b.client_email?.toLowerCase()).filter(Boolean))] as string[];
@@ -73,6 +74,8 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const p = priceBreakdown(Number(f.amount) || 0);
 
   const [page, setPage] = useState(0);
+  const selection = useSelection();
+  const hide = useHideRows("soft_delete_bookings", [key, ["contracts", artistId], ["cal-jobs", artistId]], () => selection.clear());
   const [sort, setSort] = useState<{ k: SortKey | "payment" | "calendar"; dir: 1 | -1 }>({ k: "event_date", dir: -1 });
   const [size, setSize] = useState(10);
   const [info, setInfo] = useState<NonNullable<typeof bookings>[number] | null>(null);
@@ -92,6 +95,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const pages = Math.max(1, Math.ceil(filtered.length / size));
   const cur = Math.min(page, pages - 1);
   const pageRows = filtered.slice(cur * size, cur * size + size);
+  const deletableOnPage = pageRows.filter(bookingDeletable);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
@@ -120,10 +124,12 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
             ))}
           </div>
         </div>
+        <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "bookings")} />
         <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[980px] border-separate border-spacing-0 text-[13.5px]">
+          <table className="w-full min-w-[1020px] border-separate border-spacing-0 text-[13.5px]">
             <thead>
               <tr>
+                <th scope="col" className={`${bkHead} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((b) => selection.has(b.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((b) => b.id), on)} /></th>
                 {COLS.map(([k, label, sortable, num]) => (
                   <th key={label} scope="col" aria-sort={sortable && sort.k === k ? (sort.dir === 1 ? "ascending" : "descending") : undefined} className={`${bkHead} ${num ? "text-end" : "text-start"}`}>
                     {sortable ? (
@@ -135,7 +141,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">{bookings ? t("No bookings yet") : t("Loading…")}</td></tr>}
+              {pageRows.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">{bookings ? t("No bookings yet") : t("Loading…")}</td></tr>}
               {pageRows.map((b) => {
                 const pay = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct);
                 const ps = payState(b);
@@ -145,6 +151,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
                 const cancelled = b.status === "cancelled";
                 return (
                   <tr key={b.id} className="transition-colors hover:bg-foreground/[.03]">
+                    <td className={bkCell}><RowCheckbox label={`${t("Select")} ${b.client_name}`} checked={selection.has(b.id)} disabled={!bookingDeletable(b)} title={bookingDeletable(b) ? undefined : t(NOT_DELETABLE)} onChange={(on) => selection.toggle(b.id, on)} /></td>
                     <td className={`${bkCell} min-w-[230px] ${cancelled ? "opacity-45" : ""}`}>
                       <div className="flex flex-col gap-1">
                         <b className="font-bold">{b.client_name} <em className="font-medium not-italic text-muted-foreground">· {b.package_title}</em></b>

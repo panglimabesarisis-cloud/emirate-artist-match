@@ -1,3 +1,4 @@
+import { BulkBar, NOT_DELETABLE, RowCheckbox, bookingDeletable, useHideRows, useSelection } from "./BulkSelect";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -74,12 +75,14 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const [tab, setTab] = useState<"all" | "waiting" | "done">("all");
   const [size, setSize] = useState(10);
   const [page, setPage] = useState(0);
+  const selection = useSelection();
+  const hide = useHideRows("soft_delete_bookings", [["cal-jobs", artistId], ["artist-bookings", artistId], ["contracts", artistId]], () => selection.clear());
   const month = ymd(new Date(focus.getFullYear(), focus.getMonth(), 1)).slice(0, 7);
 
   const jobsQ = useQuery({
     queryKey: ["cal-jobs", artistId],
     queryFn: async () => {
-      const res = await supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, status, total, paid_amount, notes, job_detail, escrow_status").eq("artist_id", artistId).neq("status", "cancelled").order("event_date").limit(500);
+      const res = await supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, status, total, paid_amount, notes, job_detail, escrow_status").eq("artist_id", artistId).is("deleted_at", null).neq("status", "cancelled").order("event_date").limit(500);
       if (res.error) throw res.error;
       return (res.data ?? []) as unknown as Job[];
     },
@@ -162,6 +165,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const pages = Math.max(1, Math.ceil(rows.length / size));
   const cur = Math.min(page, pages - 1);
   const pageRows = rows.slice(cur * size, cur * size + size);
+  const deletableOnPage = pageRows.filter(bookingDeletable);
   const gStatus = g.isLoading ? t("Checking…") : g.data?.connected ? `${t("Connected")}${g.data.email ? ` · ${g.data.email}` : ""}. ${t("Your events show on the calendar below.")}` : g.data?.reconnectRequired ? t("Your Google Calendar access needs to be renewed.") : g.isError ? t("Couldn't load Google Calendar.") : t("Connect your Google Calendar so your events appear here.");
 
   return (
@@ -249,11 +253,12 @@ export function CalendarTab({ artistId }: { artistId: string }) {
             {([["all", "All"], ["waiting", "Waiting"], ["done", "Done"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setPage(0); }} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(l)} <span className="opacity-60">{counts[k]}</span></button>)}
           </div>
         </div>
+        <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "bookings")} />
         <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[1180px] border-separate border-spacing-0 text-[13.5px]">
-            <thead><tr>{["Client name", "Event name", "Location", "Date event", "Start event", "End event", "Duration perform", "Payment", "Job detail", "Progress"].map((h) => <th key={h} scope="col" className={th}>{t(h)}</th>)}</tr></thead>
+          <table className="w-full min-w-[1220px] border-separate border-spacing-0 text-[13.5px]">
+            <thead><tr><th scope="col" className={`${th} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((b) => selection.has(b.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((b) => b.id), on)} /></th>{["Client name", "Event name", "Location", "Date event", "Start event", "End event", "Duration perform", "Payment", "Job detail", "Progress"].map((h) => <th key={h} scope="col" className={th}>{t(h)}</th>)}</tr></thead>
             <tbody>
-              {pageRows.length === 0 && <tr><td colSpan={10} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{jobsQ.isPending ? t("Loading…") : t("Nothing scheduled")}</b>{!jobsQ.isPending && t("Confirmed bookings and sent offers appear here by date.")}</td></tr>}
+              {pageRows.length === 0 && <tr><td colSpan={11} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{jobsQ.isPending ? t("Loading…") : t("Nothing scheduled")}</b>{!jobsQ.isPending && t("Confirmed bookings and sent offers appear here by date.")}</td></tr>}
               {pageRows.map((b) => {
                 const ps = payState(b);
                 const loc = locationOf(b.notes);
@@ -261,6 +266,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                 const muted = <span className="text-muted-foreground/60">{t("Not set")}</span>;
                 return (
                   <tr key={b.id} className="transition-colors hover:bg-foreground/[.03]">
+                    <td className={td}><RowCheckbox label={`${t("Select")} ${b.client_name}`} checked={selection.has(b.id)} disabled={!bookingDeletable(b)} title={bookingDeletable(b) ? undefined : t(NOT_DELETABLE)} onChange={(on) => selection.toggle(b.id, on)} /></td>
                     <td className={td}><b>{b.client_name}</b></td>
                     <td className={td}>{b.package_title}</td>
                     <td className={td}>{loc || muted}</td>

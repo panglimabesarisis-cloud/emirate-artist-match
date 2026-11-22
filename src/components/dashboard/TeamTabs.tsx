@@ -1,3 +1,4 @@
+import { BulkBar, RowCheckbox, useSelection } from "./BulkSelect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -68,6 +69,13 @@ export function TeamTab({ artistId }: { artistId: string }) {
       return { max: tier?.max_team_members ?? 0, plan: tier?.name ?? String(plan ?? "") };
     },
   });
+  const selection = useSelection();
+  const removeMany = async () => {
+    if (!selection.sel.length || !confirm(`${t("Remove")} ${selection.sel.length} ${t("team members?")}`)) return;
+    const { error } = await supabase.from("artist_members").delete().in("id", selection.sel);
+    if (error) { toast.error(error.message); return; }
+    selection.clear(); toast.success(t("Removed")); qc.invalidateQueries({ queryKey: key });
+  };
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
   const [draft, setDraft] = useState<{ name: string; description: string; menus: string[] }>({ name: "", description: "", menus: ["inbox"] });
@@ -126,12 +134,14 @@ export function TeamTab({ artistId }: { artistId: string }) {
       </StudioHeading>
       <section className="dmr-panel dmr-q-panel studio-team-table">
         <div className="dmr-q-tools"><h2>{t("Team")} <span className="it">{t("members")}</span></h2></div>
+        <BulkBar count={selection.sel.length} onClear={selection.clear} onDelete={() => void removeMany()} />
         <div className="dmr-tbl-wrap">
           <table data-studio-table="true">
-            <thead><tr>{["Member", "Role", "Status", "Last active", "Actions"].map((h) => <th key={h}>{t(h)}</th>)}</tr></thead>
+            <thead><tr><th scope="col" className="w-10"><RowCheckbox label={t("Select all")} checked={(members?.length ?? 0) > 0 && (members ?? []).every((m) => selection.has(m.id))} onChange={(on) => selection.toggleAll((members ?? []).map((m) => m.id), on)} /></th>{["Member", "Role", "Status", "Last active", "Actions"].map((h) => <th key={h}>{t(h)}</th>)}</tr></thead>
             <tbody>
               {members?.map((m) => (
                 <tr key={m.id}>
+                  <td><RowCheckbox label={`${t("Select")} ${m.email}`} checked={selection.has(m.id)} onChange={(on) => selection.toggle(m.id, on)} /></td>
                   <td data-label={t("Member")}>{m.email}</td>
                   <td data-label={t("Role")}>
                     {roles && roles.length > 0 ? (

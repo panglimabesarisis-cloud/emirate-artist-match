@@ -33,7 +33,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
       if (c.error) throw c.error;
       const convos = c.data ?? [];
       const ids = convos.map((x) => x.id);
-      const stored = (await supabase.from("service_invoices").select("*").eq("artist_id", artistId).order("created_at", { ascending: false })).data ?? [];
+      const stored = (await supabase.from("service_invoices").select("*").eq("artist_id", artistId).is("deleted_at", null).order("created_at", { ascending: false })).data ?? [];
       const m = ids.length ? (await supabase.from("messages").select("id, conversation_id, body, created_at").in("conversation_id", ids).like("body", "[[INVOICE]]%").order("created_at", { ascending: false })).data ?? [] : [];
       return { convos, rates: r.data ?? [], sent: m, stored };
     },

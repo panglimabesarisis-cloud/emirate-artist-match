@@ -1,3 +1,4 @@
+import { BulkBar, RowCheckbox, useHideRows, useSelection } from "./BulkSelect";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Search } from "lucide-react";
@@ -25,7 +26,7 @@ export function useInvoiceQuery(artistId?: string) {
     queryKey: ["invoice-records", artistId], refetchInterval: 5000,
     queryFn: async () => {
       let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, artists(stage_name), bookings(client_name, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
-      if (artistId) query = query.eq("artist_id", artistId);
+      if (artistId) query = query.eq("artist_id", artistId).is("deleted_at", null);
       const result = await query;
       if (result.error) throw result.error;
       return result.data ?? [];
@@ -42,18 +43,23 @@ const ih = "whitespace-nowrap border-b border-border bg-card px-3.5 py-3 text-[1
 const ic = "whitespace-nowrap border-b border-border px-3.5 py-3.5 align-middle";
 
 /** Artist view of the sent invoices, laid out as in the design reference. */
-function ArtistInvoiceTable({ rows, isPending, error, onView }: { rows: InvoiceRow[]; isPending: boolean; error: unknown; onView: (r: InvoiceRow) => void }) {
+const invoiceDeletable = (r: InvoiceRow) => r.status !== "paid" && r.paid === 0;
+
+function ArtistInvoiceTable({ artistId, rows, isPending, error, onView }: { artistId: string; rows: InvoiceRow[]; isPending: boolean; error: unknown; onView: (r: InvoiceRow) => void }) {
   const { t } = useI18n();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"all" | "unpaid" | "partial" | "paid">("all");
   const [size, setSize] = useState(10);
   const [page, setPage] = useState(0);
+  const selection = useSelection();
+  const hide = useHideRows("soft_delete_invoices", [["invoice-records", artistId], ["invoices", artistId]], () => selection.clear());
   const counts = { all: rows.length, unpaid: rows.filter((r) => payOf(r) === "unpaid").length, partial: rows.filter((r) => payOf(r) === "partial").length, paid: rows.filter((r) => payOf(r) === "paid").length };
   const needle = q.trim().toLowerCase();
   const list = rows.filter((r) => (tab === "all" || payOf(r) === tab) && (!needle || `${r.number} ${r.client}`.toLowerCase().includes(needle)));
   const pages = Math.max(1, Math.ceil(list.length / size));
   const cur = Math.min(page, pages - 1);
   const shown = list.slice(cur * size, cur * size + size);
+  const deletableOnPage = shown.filter(invoiceDeletable);
   return (
     <>
       <div className="dmr-q-tools">
@@ -67,17 +73,19 @@ function ArtistInvoiceTable({ rows, isPending, error, onView }: { rows: InvoiceR
           {([["all", "All"], ["unpaid", "Unpaid"], ["partial", "Partially paid"], ["paid", "Paid"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setPage(0); }} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(l)} <span className="opacity-60">{counts[k]}</span></button>)}
         </div>
       </div>
+      <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "invoices")} />
       {error ? <p role="alert" className="p-5 text-destructive">{t("Could not load invoices.")}</p> : (
         <div className="min-w-0 overflow-x-auto">
           <table className="w-full min-w-[960px] border-separate border-spacing-0 text-[13.5px]">
-            <thead><tr>{["Invoice", "Client", "Issued", "Due", "Total", "Payment", "Balance", "Paid at"].map((h) => <th key={h} scope="col" className={`${ih} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr></thead>
+            <thead><tr><th scope="col" className={`${ih} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((r) => selection.has(r.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((r) => r.id), on)} /></th>{["Invoice", "Client", "Issued", "Due", "Total", "Payment", "Balance", "Paid at"].map((h) => <th key={h} scope="col" className={`${ih} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr></thead>
             <tbody>
-              {shown.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No invoices found")}</b>{!isPending && t("Try another number or payment status.")}</td></tr>}
+              {shown.length === 0 && <tr><td colSpan={9} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No invoices found")}</b>{!isPending && t("Try another number or payment status.")}</td></tr>}
               {shown.map((r) => {
                 const ps = payOf(r);
                 const due = (r.document as { due?: string | null } | null)?.due ?? null;
                 return (
                   <tr key={r.id} className="transition-colors hover:bg-foreground/[.03]">
+                    <td className={ic}><RowCheckbox label={`${t("Select")} ${r.number}`} checked={selection.has(r.id)} disabled={!invoiceDeletable(r)} title={invoiceDeletable(r) ? undefined : t("Paid invoices can't be deleted")} onChange={(on) => selection.toggle(r.id, on)} /></td>
                     <td className={ic}><button type="button" className="font-bold text-gold underline-offset-2 hover:underline" onClick={() => onView(r)}>{r.number}</button></td>
                     <td className={ic}><b>{r.client}</b></td>
                     <td className={ic}>{fmtD(r.created_at)}</td>
@@ -116,7 +124,7 @@ export function InvoiceRecords({ artistId }: { artistId?: string }) {
   const filtered = rows.filter(row => `${row.number} ${row.client} ${row.artists?.stage_name}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || (status === "paid" ? row.status === "paid" : status === "partial" ? row.paid > 0 && row.status !== "paid" : row.paid === 0)));
   if (artistId) {
     return <section className="studio-invoice-records">
-      <ArtistInvoiceTable rows={rows} isPending={isPending} error={error} onView={(row) => { setPreview(row.document as unknown as Invoice); setPreviewId(row.id); }} />
+      <ArtistInvoiceTable artistId={artistId} rows={rows} isPending={isPending} error={error} onView={(row) => { setPreview(row.document as unknown as Invoice); setPreviewId(row.id); }} />
       <Dialog open={!!preview} onOpenChange={open=>{if(!open)setPreview(null);}}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t("Invoice preview")}</DialogTitle></DialogHeader>{preview && <InvoiceCard inv={preview} status={previewStatus}/>}</DialogContent></Dialog>
     </section>;
   }
