@@ -1,0 +1,205 @@
+-- Run only in a fresh, isolated library_test_* database. All fixtures roll back.
+-- psql -X -v ON_ERROR_STOP=1 -f docs/database-tests/unified-library.sql
+\set ON_ERROR_STOP on
+BEGIN;
+\ir library-fixture.sql
+CREATE FUNCTION test_assert(ok boolean,rule text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: %',rule; END IF; END $$;
+CREATE FUNCTION test_error(statement text,expected text) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE actual text; BEGIN BEGIN EXECUTE statement; EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS actual=RETURNED_SQLSTATE; END;
+IF actual IS DISTINCT FROM expected THEN RAISE EXCEPTION 'Expected %, got % for %',expected,actual,statement; END IF; END $$;
+INSERT INTO plan_tiers(code,name,sort,max_active_prompts,max_flow_blocks,max_form_questions) VALUES('free','Free',0,10,10,10),('basic','Basic',1,10,10,10),('medium','Medium',2,10,10,10),('pro','Pro',3,10,10,10);
+INSERT INTO artists(id,user_id,stage_name) VALUES('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Artist One'),('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','Artist Two');
+INSERT INTO artist_members VALUES('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','active');
+INSERT INTO user_roles VALUES('20000000-0000-0000-0000-000000000004','admin');
+INSERT INTO contract_templates(id,name,clauses,rider) VALUES('30000000-0000-0000-0000-000000000001','Paid contract','[{"title":"Terms","body":"Secret contract {artist}"}]','Private rider');
+CREATE TEMP TABLE original_policies AS SELECT tablename,policyname,roles,cmd,qual,with_check FROM pg_policies;
+\if :{?library_migration}
+\i :library_migration
+\else
+\ir ../../drizzle/migrations/0058_unified_master_libraries.sql
+\endif
+CREATE TRIGGER prompt_enable_guard BEFORE INSERT ON agent_prompt_enabled FOR EACH ROW EXECUTE FUNCTION guard_prompt_enable();
+SELECT test_assert((SELECT version=1 AND price_aed=0 FROM contract_templates),'legacy defaults version one and free price');
+SELECT test_assert(NOT EXISTS(SELECT * FROM original_policies EXCEPT SELECT tablename,policyname,roles,cmd,qual,with_check FROM pg_policies),'all existing policies retained');
+SELECT test_assert(NOT has_function_privilege('anon','can_use_library_item(uuid,text,uuid)','EXECUTE'),'anon entitlement denied');
+SELECT test_assert(NOT has_function_privilege('authenticated','settle_test_purchase(uuid,text,bigint,text)','EXECUTE'),'settlement is service only');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+UPDATE contract_templates SET price_aed=100 WHERE id='30000000-0000-0000-0000-000000000001';
+SELECT test_assert((SELECT version=1 FROM admin_contract_template_content() LIMIT 1),'price edit does not bump content version');
+INSERT INTO agent_prompts(id,kind,title,body) VALUES('40000000-0000-0000-0000-000000000001','master','Prompt','Secret prompt');
+INSERT INTO ai_flow_templates(id,name,published,nodes,edges) VALUES('50000000-0000-0000-0000-000000000001','Flow',true,'[{"type":"message","data":{"text":"Secret flow"}}]','[]');
+INSERT INTO order_form_templates(id,name,fields) VALUES('60000000-0000-0000-0000-000000000001','Form','[{"name":"Secret field"}]');
+SELECT test_assert((SELECT version=1 FROM agent_prompts),'new prompt version defaults to one');
+SELECT test_assert((SELECT version=1 AND tier='free' FROM ai_flow_templates),'new flow version one and free tier');
+SELECT test_assert((SELECT version=1 FROM order_form_templates),'new form version defaults to one');
+SELECT test_error($q$UPDATE ai_flow_templates SET tier='unknown'$q$,'23514');
+SELECT test_error($q$UPDATE contract_templates SET price_aed=-1$q$,'23514');
+SELECT test_error($q$UPDATE contract_templates SET price_aed=100001$q$,'23514');
+UPDATE agent_prompts SET body='Changed prompt',version=99;
+UPDATE ai_flow_templates SET edges='[{"id":"edge"}]',version=99;
+UPDATE order_form_templates SET fields='[{"name":"Changed field"}]',version=99;
+UPDATE contract_templates SET rider='Changed private rider',version=99;
+RESET ROLE;
+SELECT test_assert((SELECT version=2 AND updated_by='20000000-0000-0000-0000-000000000004'::uuid FROM agent_prompts),'prompt body bumps exactly one version and records actor');
+SELECT test_assert((SELECT version=2 FROM ai_flow_templates),'flow edge content bumps one version');
+SELECT test_assert((SELECT version=2 FROM order_form_templates),'form fields bump one version');
+SELECT test_assert((SELECT version=2 FROM contract_templates),'contract rider bumps one version');
+SELECT test_assert(NOT EXISTS(SELECT FROM library_audit WHERE summary::text LIKE '%Secret%' OR summary::text LIKE '%Changed private%'),'audit never stores content');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','agent_prompt','40000000-0000-0000-0000-000000000001'),'free active prompt allowed');
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','flow_template','50000000-0000-0000-0000-000000000001'),'free published flow allowed');
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','form_template','60000000-0000-0000-0000-000000000001'),'free active form allowed');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001'),'unpaid contract denied');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','unknown','30000000-0000-0000-0000-000000000001'),'unknown library kind denied');
+SELECT test_assert((SELECT clauses IS NULL AND rider IS NULL AND NOT unlocked FROM list_contract_templates('10000000-0000-0000-0000-000000000001')),'unpaid contract RPC hides content');
+SELECT test_error('SELECT clauses FROM contract_templates','42501');
+SELECT test_error('SELECT rider FROM contract_templates','42501');
+SELECT test_error('SELECT nodes FROM ai_flow_templates','42501');
+SELECT test_error('SELECT edges FROM ai_flow_templates','42501');
+SELECT test_error('SELECT * FROM admin_contract_template_content()','42501');
+SELECT test_error('SELECT * FROM admin_flow_template_content()','42501');
+SELECT test_error('SELECT * FROM admin_library_usage()','42501');
+SELECT test_error($q$INSERT INTO contract_template_purchases(artist_id,template_id,paid_at) VALUES('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001',now())$q$,'42501');
+SELECT test_error($q$INSERT INTO contract_templates(artist_id,name,price_aed) VALUES('10000000-0000-0000-0000-000000000001','Own paid',1)$q$,'23514');
+INSERT INTO contract_templates(id,artist_id,name,tier,is_active) VALUES('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Own inactive contract','pro',false);
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000002'),'own inactive high-tier contract always allowed');
+SELECT test_error($q$UPDATE contract_templates SET artist_id=NULL,price_aed=10 WHERE id='30000000-0000-0000-0000-000000000002'$q$,'42501');
+SELECT use_order_form_template('60000000-0000-0000-0000-000000000001');
+SELECT use_flow_template('50000000-0000-0000-0000-000000000001');
+INSERT INTO agent_prompt_enabled VALUES('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',now());
+RESET ROLE;
+SELECT test_assert((SELECT source_version=2 AND source_template_id='60000000-0000-0000-0000-000000000001'::uuid FROM artist_order_forms),'form copy records source version');
+SELECT test_assert((SELECT source_version=2 AND source_template_id='50000000-0000-0000-0000-000000000001'::uuid FROM ai_flows),'flow copy records source version');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+UPDATE agent_prompts SET tier='basic';
+UPDATE ai_flow_templates SET tier='basic';
+UPDATE order_form_templates SET tier='basic';
+UPDATE contract_templates SET tier='basic' WHERE artist_id IS NULL;
+RESET ROLE;
+SELECT test_assert((SELECT version=2 FROM ai_flow_templates),'tier metadata does not bump version');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','agent_prompt','40000000-0000-0000-0000-000000000001'),'prompt above plan denied');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','flow_template','50000000-0000-0000-0000-000000000001'),'flow above plan denied');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','form_template','60000000-0000-0000-0000-000000000001'),'form above plan denied');
+SELECT test_assert((SELECT nodes IS NULL AND edges IS NULL AND NOT unlocked FROM list_flow_templates()),'flow listing above plan hides content');
+SELECT test_error($q$SELECT use_flow_template('50000000-0000-0000-0000-000000000001')$q$,'P0001');
+SELECT test_error($q$SELECT use_order_form_template('60000000-0000-0000-0000-000000000001')$q$,'P0001');
+RESET ROLE;
+INSERT INTO artist_subscriptions VALUES('10000000-0000-0000-0000-000000000001','basic',now()+interval '1 month','active','sandbox');
+INSERT INTO bookings(id,artist_id) VALUES('70000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001');
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.sub','',true);
+SELECT test_error($q$SELECT begin_test_purchase('{"kind":"contract_template","artist_id":"10000000-0000-0000-0000-000000000001","target_id":"30000000-0000-0000-0000-000000000001","amount_minor":1,"processor_amount_minor":1,"processor_currency":"idr"}',NULL,'bad-contract-price')$q$,'P0001');
+SELECT test_assert((begin_test_purchase('{"kind":"contract_template","artist_id":"10000000-0000-0000-0000-000000000001","target_id":"30000000-0000-0000-0000-000000000001","amount_minor":10500,"processor_amount_minor":514500,"processor_currency":"idr"}',NULL,'valid-contract-price')).kind='contract_template','order preparation accepts authoritative price and five-percent VAT');
+INSERT INTO payment_orders(id,artist_id,kind,target_id,amount_minor,processor_amount_minor,processor_currency,stripe_session_id) VALUES('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001',10500,10500,'aed','cs_test_library');
+SELECT test_error($q$SELECT settle_test_purchase('80000000-0000-0000-0000-000000000001','cs_test_library',10000,'aed')$q$,'P0001');
+SELECT test_assert((SELECT count(*)=0 FROM contract_template_purchases),'no purchase before verified settlement');
+SELECT test_assert(settle_test_purchase('80000000-0000-0000-0000-000000000001','cs_test_library',10500,'aed'),'verified settlement succeeds');
+SELECT test_assert(NOT settle_test_purchase('80000000-0000-0000-0000-000000000001','cs_test_library',10500,'aed'),'repeated settlement idempotent');
+SELECT test_assert((SELECT count(*)=1 AND min(price_aed)=100 AND bool_and(paid_at IS NOT NULL) FROM contract_template_purchases),'contract purchase snapshot excludes five-percent VAT');
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001'),'service sees paid plan-eligible entitlement');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+SELECT test_assert((SELECT unlocked AND clauses IS NOT NULL AND rider IS NOT NULL FROM list_contract_templates('10000000-0000-0000-0000-000000000001') WHERE artist_id IS NULL),'paid content revealed by authorized RPC');
+SELECT use_contract_template('70000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001');
+UPDATE bookings SET contract_accepted_at=now() WHERE id='70000000-0000-0000-0000-000000000001';
+SELECT test_assert((booking_contract_terms('70000000-0000-0000-0000-000000000001')->'clauses'->0->>'body')='Secret contract Artist One','accepted content frozen with substitutions');
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.sub','',true);
+SELECT record_test_refund('80000000-0000-0000-0000-000000000001',5250);
+SELECT test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001'),'partial refund retains access');
+SELECT record_test_refund('80000000-0000-0000-0000-000000000001',10500);
+SELECT record_test_refund('80000000-0000-0000-0000-000000000001',10500);
+SELECT test_assert((SELECT refunded_at IS NOT NULL FROM contract_template_purchases),'full refund records revocation');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001'),'full refund denies future use');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+SELECT test_assert((booking_contract_terms('70000000-0000-0000-0000-000000000001')->'clauses'->0->>'body')='Secret contract Artist One','full refund preserves accepted terms');
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
+SELECT test_assert((SELECT count(*)=1 FROM contract_template_purchases),'team reads own purchases');
+SELECT test_assert((SELECT count(*)=0 FROM library_audit),'team cannot read audit');
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+SELECT test_assert((SELECT count(*)=0 FROM contract_template_purchases),'other artist cannot read purchase');
+SELECT test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001','flow_template','50000000-0000-0000-0000-000000000001'),'other artist cannot probe entitlement');
+SELECT test_error($q$SELECT * FROM library_updates('10000000-0000-0000-0000-000000000001')$q$,'42501');
+SELECT test_error($q$SELECT * FROM list_contract_templates('10000000-0000-0000-0000-000000000001')$q$,'42501');
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+SELECT test_assert((SELECT artists_using=1 AND purchases=1 AND revenue_aed=100 AND refunded_aed=100 AND last_used IS NOT NULL FROM admin_library_usage() WHERE kind='contract_template' AND item_id='30000000-0000-0000-0000-000000000001'),'admin contract usage and refund totals');
+SELECT test_assert((SELECT artists_using=1 FROM admin_library_usage() WHERE kind='agent_prompt'),'admin prompt distinct artist count');
+SELECT test_assert((SELECT artists_using=1 FROM admin_library_usage() WHERE kind='form_template'),'admin form copy usage');
+SELECT test_assert((SELECT artists_using=1 FROM admin_library_usage() WHERE kind='flow_template'),'admin flow copy usage');
+UPDATE order_form_templates SET fields='[{"name":"Version three"}]';
+UPDATE ai_flow_templates SET nodes='[{"type":"message","data":{"text":"Version three"}}]';
+UPDATE contract_templates SET is_active=false WHERE artist_id IS NULL;
+UPDATE contract_templates SET is_active=true WHERE artist_id IS NULL;
+SELECT test_assert((SELECT count(*)=1 FROM library_audit WHERE action='unpublish' AND kind='contract_template'),'unpublish audited');
+SELECT test_assert((SELECT count(*)=1 FROM library_audit WHERE action='publish' AND kind='contract_template'),'publish audited');
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
+SELECT test_assert((SELECT count(*)=2 AND bool_and(source_version=2 AND current_version=3) FROM library_updates('10000000-0000-0000-0000-000000000001')),'team sees both outdated copies with exact versions');
+RESET ROLE;
+CREATE FUNCTION fail_audit_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Test audit failure'; END $$;
+CREATE TRIGGER test_audit_failure BEFORE INSERT ON library_audit FOR EACH ROW EXECUTE FUNCTION fail_audit_test();
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+UPDATE contract_templates SET rider='Survives audit failure' WHERE artist_id IS NULL;
+SELECT test_assert((SELECT rider='Survives audit failure' FROM admin_contract_template_content() WHERE artist_id IS NULL),'audit failure never blocks original write');
+RESET ROLE;
+DROP TRIGGER test_audit_failure ON library_audit;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.sub','',true);
+INSERT INTO payment_orders(id,artist_id,kind,target_id,amount_minor,processor_amount_minor,processor_currency,stripe_session_id) VALUES('80000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','contract_template','30000000-0000-0000-0000-000000000001',10500,10500,'aed','cs_test_repurchase');
+SELECT test_assert(settle_test_purchase('80000000-0000-0000-0000-000000000002','cs_test_repurchase',10500,'aed'),'fully refunded contract may be repurchased');
+SELECT test_assert((SELECT refunded_at IS NULL FROM contract_template_purchases),'repurchase restores purchase entitlement');
+UPDATE agent_prompts SET price_aed=10;
+UPDATE ai_flow_templates SET price_aed=10;
+UPDATE order_form_templates SET price_aed=10;
+SELECT test_assert((SELECT updated_by IS NULL AND updated_at=now() FROM ai_flow_templates),'service metadata update records nullable actor and timestamp');
+DO $$ DECLARE k text; item uuid; BEGIN
+ FOR k,item IN SELECT * FROM (VALUES('agent_prompt','40000000-0000-0000-0000-000000000001'::uuid),('flow_template','50000000-0000-0000-0000-000000000001'::uuid),('form_template','60000000-0000-0000-0000-000000000001'::uuid)) v LOOP
+  PERFORM test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001',k,item),k||' paid item without purchase denied');
+ END LOOP;
+END $$;
+INSERT INTO agent_prompt_purchases(artist_id,prompt_id,paid_at) VALUES('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',now());
+INSERT INTO ai_flow_template_purchases(artist_id,template_id,paid_at) VALUES('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',now());
+INSERT INTO order_form_template_purchases(artist_id,template_id,paid_at) VALUES('10000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001',now());
+DO $$ DECLARE k text; item uuid; BEGIN
+ FOR k,item IN SELECT * FROM (VALUES('agent_prompt','40000000-0000-0000-0000-000000000001'::uuid),('flow_template','50000000-0000-0000-0000-000000000001'::uuid),('form_template','60000000-0000-0000-0000-000000000001'::uuid),('contract_template','30000000-0000-0000-0000-000000000001'::uuid)) v LOOP
+  PERFORM test_assert(can_use_library_item('10000000-0000-0000-0000-000000000001',k,item),k||' purchased live item within plan allowed');
+ END LOOP;
+END $$;
+UPDATE agent_prompts SET is_active=false;
+UPDATE ai_flow_templates SET published=false;
+UPDATE order_form_templates SET is_active=false;
+UPDATE contract_templates SET is_active=false WHERE artist_id IS NULL;
+DO $$ DECLARE k text; item uuid; BEGIN
+ FOR k,item IN SELECT * FROM (VALUES('agent_prompt','40000000-0000-0000-0000-000000000001'::uuid),('flow_template','50000000-0000-0000-0000-000000000001'::uuid),('form_template','60000000-0000-0000-0000-000000000001'::uuid),('contract_template','30000000-0000-0000-0000-000000000001'::uuid)) v LOOP
+  PERFORM test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001',k,item),k||' unpublished purchased item denied');
+ END LOOP;
+END $$;
+UPDATE agent_prompts SET is_active=true;
+UPDATE ai_flow_templates SET published=true;
+UPDATE order_form_templates SET is_active=true;
+UPDATE agent_prompt_purchases SET refunded_at=now();
+UPDATE ai_flow_template_purchases SET refunded_at=now();
+UPDATE order_form_template_purchases SET refunded_at=now();
+DO $$ DECLARE k text; item uuid; BEGIN
+ FOR k,item IN SELECT * FROM (VALUES('agent_prompt','40000000-0000-0000-0000-000000000001'::uuid),('flow_template','50000000-0000-0000-0000-000000000001'::uuid),('form_template','60000000-0000-0000-0000-000000000001'::uuid)) v LOOP
+  PERFORM test_assert(NOT can_use_library_item('10000000-0000-0000-0000-000000000001',k,item),k||' refunded purchase denied');
+ END LOOP;
+END $$;
+SELECT test_assert((SELECT source_version=2 AND fields='[{"name":"Changed field"}]'::jsonb FROM artist_order_forms),'refunded form keeps copied content');
+SELECT test_assert((SELECT source_version=2 AND edges='[{"id":"edge"}]'::jsonb FROM ai_flows),'refunded flow keeps copied content');
+SELECT test_assert((SELECT count(*)=0 FROM agent_prompt_enabled),'refunded prompt cannot remain enabled');
+DELETE FROM contract_templates WHERE artist_id IS NOT NULL;
+SELECT test_assert(EXISTS(SELECT FROM library_audit WHERE action='delete' AND item_id='30000000-0000-0000-0000-000000000002'),'delete recorded without content');
+SET LOCAL ROLE anon;
+SELECT test_error('SELECT * FROM contract_template_purchases','42501');
+SELECT test_error('SELECT * FROM library_audit','42501');
+SELECT test_error('SELECT * FROM admin_library_usage()','42501');
+RESET ROLE;
+ROLLBACK;
+\echo 'Unified library assertions passed; all fixtures rolled back.'

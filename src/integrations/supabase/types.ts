@@ -325,6 +325,8 @@ export type Database = {
           tier: string
           title: string
           updated_at: string
+          updated_by: string | null
+          version: number
         }
         Insert: {
           applies_when?: string | null
@@ -339,6 +341,8 @@ export type Database = {
           tier?: string
           title: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Update: {
           applies_when?: string | null
@@ -353,6 +357,8 @@ export type Database = {
           tier?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -462,7 +468,10 @@ export type Database = {
           nodes: Json
           price_aed: number
           published: boolean
+          tier: string
           updated_at: string
+          updated_by: string | null
+          version: number
         }
         Insert: {
           description?: string
@@ -472,7 +481,10 @@ export type Database = {
           nodes?: Json
           price_aed?: number
           published?: boolean
+          tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Update: {
           description?: string
@@ -482,7 +494,10 @@ export type Database = {
           nodes?: Json
           price_aed?: number
           published?: boolean
+          tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -493,6 +508,8 @@ export type Database = {
           enabled: boolean
           id: string
           nodes: Json
+          source_template_id: string | null
+          source_version: number | null
           updated_at: string
         }
         Insert: {
@@ -501,6 +518,8 @@ export type Database = {
           enabled?: boolean
           id?: string
           nodes?: Json
+          source_template_id?: string | null
+          source_version?: number | null
           updated_at?: string
         }
         Update: {
@@ -509,6 +528,8 @@ export type Database = {
           enabled?: boolean
           id?: string
           nodes?: Json
+          source_template_id?: string | null
+          source_version?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -845,6 +866,8 @@ export type Database = {
           description: string | null
           enabled: boolean
           fields: Json
+          source_template_id: string | null
+          source_version: number | null
           title: string
           updated_at: string
         }
@@ -853,6 +876,8 @@ export type Database = {
           description?: string | null
           enabled?: boolean
           fields?: Json
+          source_template_id?: string | null
+          source_version?: number | null
           title?: string
           updated_at?: string
         }
@@ -861,6 +886,8 @@ export type Database = {
           description?: string | null
           enabled?: boolean
           fields?: Json
+          source_template_id?: string | null
+          source_version?: number | null
           title?: string
           updated_at?: string
         }
@@ -1537,6 +1564,48 @@ export type Database = {
           },
         ]
       }
+      contract_template_purchases: {
+        Row: {
+          artist_id: string
+          created_at: string
+          paid_at: string | null
+          price_aed: number
+          refunded_at: string | null
+          template_id: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          paid_at?: string | null
+          price_aed?: number
+          refunded_at?: string | null
+          template_id: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          paid_at?: string | null
+          price_aed?: number
+          refunded_at?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_template_purchases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_template_purchases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_templates: {
         Row: {
           artist_id: string | null
@@ -1547,10 +1616,13 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          price_aed: number
           rider: string | null
           role: string | null
           tier: string
           updated_at: string
+          updated_by: string | null
+          version: number
         }
         Insert: {
           artist_id?: string | null
@@ -1561,10 +1633,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          price_aed?: number
           rider?: string | null
           role?: string | null
           tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Update: {
           artist_id?: string | null
@@ -1575,10 +1650,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          price_aed?: number
           rider?: string | null
           role?: string | null
           tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -2056,6 +2134,36 @@ export type Database = {
           },
         ]
       }
+      library_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          changed_at: string
+          id: string
+          item_id: string
+          kind: string
+          summary: Json
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          changed_at?: string
+          id?: string
+          item_id: string
+          kind: string
+          summary?: Json
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          changed_at?: string
+          id?: string
+          item_id?: string
+          kind?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           body: string
@@ -2208,6 +2316,8 @@ export type Database = {
           question_count: number | null
           tier: string
           updated_at: string
+          updated_by: string | null
+          version: number
         }
         Insert: {
           category?: string | null
@@ -2220,6 +2330,8 @@ export type Database = {
           question_count?: number | null
           tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Update: {
           category?: string | null
@@ -2232,6 +2344,8 @@ export type Database = {
           question_count?: number | null
           tier?: string
           updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -3312,6 +3426,66 @@ export type Database = {
           id: string
         }[]
       }
+      admin_contract_template_content: {
+        Args: never
+        Returns: {
+          artist_id: string | null
+          category: string | null
+          clauses: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_aed: number
+          rider: string | null
+          role: string | null
+          tier: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "contract_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_flow_template_content: {
+        Args: never
+        Returns: {
+          description: string
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          price_aed: number
+          published: boolean
+          tier: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_flow_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_library_usage: {
+        Args: never
+        Returns: {
+          artists_using: number
+          item_id: string
+          kind: string
+          last_used: string
+          purchases: number
+          refunded_aed: number
+          revenue_aed: number
+        }[]
+      }
       admin_order_form_template_fields: { Args: { _id: string }; Returns: Json }
       ai_usage: {
         Args: { _artist: string; _from: string; _to: string }
@@ -3444,6 +3618,10 @@ export type Database = {
         }
       }
       booking_contract_terms: { Args: { _booking: string }; Returns: Json }
+      can_use_library_item: {
+        Args: { _artist: string; _id: string; _kind: string }
+        Returns: boolean
+      }
       charge_agent_reply: {
         Args: {
           _artist: string
@@ -3500,6 +3678,36 @@ export type Database = {
       is_any_artist_team: { Args: never; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
+      library_updates: {
+        Args: { _artist: string }
+        Returns: {
+          current_version: number
+          kind: string
+          source_template_id: string
+          source_version: number
+          template_name: string
+        }[]
+      }
+      list_contract_templates: {
+        Args: { _artist: string }
+        Returns: {
+          artist_id: string
+          category: string
+          clauses: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          price_aed: number
+          rider: string
+          role: string
+          tier: string
+          unlocked: boolean
+          updated_at: string
+          updated_by: string
+          version: number
+        }[]
+      }
       list_flow_templates: {
         Args: never
         Returns: {
