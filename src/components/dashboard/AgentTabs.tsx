@@ -90,42 +90,4 @@ export function AgentSettings({ artistId }: { artistId: string }) {
   );
 }
 
-export function Credits({ artistId }: { artistId: string }) {
-  const { t } = useI18n();
-  const qc = useQueryClient();
-  const top$ = useServerFn(artistCheckout);
-  const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
-  const { data } = useQuery({
-    queryKey: ["wallet", artistId],
-    queryFn: async () => {
-      const [w, l] = await Promise.all([
-        supabase.from("credit_wallets").select("balance").eq("artist_id", artistId).maybeSingle(),
-        supabase.from("credit_ledger").select("*").eq("artist_id", artistId).order("created_at", { ascending: false }).limit(30),
-      ]);
-      return { balance: w.data?.balance ?? 0, ledger: l.data ?? [] };
-    },
-  });
-  const [busy, setBusy] = useState<string | null>(null);
-  const buy = async (id: string) => {
-    setBusy(id);
-    try { const r = await top$({ data: { kind: "credits", packageId: id } }); if ("error" in r) throw new Error(r.error); setCheckout(r); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Top-up failed"); } finally { setBusy(null); }
-  };
-  const labels: Record<string, string> = { plan_allocation: "Plan credits", ai_reply: "AI reply", topup_demo: "Top-up (demo)", topup_stripe_sandbox: "Stripe sandbox top-up" };
-  return (
-    <div className="dmr-wrap dmr-cpage">
-      <StudioHeading title="AI" accent="credits" />
-      <div className="dmr-c-12"><PaymentTestModeBanner />{checkout && <SandboxCheckout session={checkout} onPaid={()=>{setCheckout(null);toast.success(t("Payment verified — credits added"));qc.invalidateQueries({queryKey:["wallet",artistId]});}} />}</div>
-      <section className="dmr-panel studio-credit-hero"><div><p className="text-xs uppercase text-muted-foreground">{t("AI credit balance")}</p><div className="font-display text-6xl mt-3">{data?.balance ?? "—"}</div><p className="text-xs text-muted-foreground mt-4">{t("1 credit = 1 AI reply. Clients never pay for AI.")}</p><Button asChild className="mt-6"><a href="#studio-credit-packs"><Coins className="size-4" />{t("Buy credits")}</a></Button></div><div className="studio-credit-chart"><h2>{t("Usage")} <span className="it">{t("per day")}</span></h2><div className="studio-credit-bars">{Array.from({length:7},(_,i)=>{const date=new Date();date.setDate(date.getDate()-6+i);const key=date.toISOString().slice(0,10);const usage=(data?.ledger ?? []).filter(l=>l.created_at.slice(0,10) === key && l.delta < 0).reduce((sum,l)=>sum-l.delta,0);return <div key={key}><span>{usage}</span><i style={{height:Math.min(100,usage*5)+"%"}} /><span>{date.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</span></div>;})}</div><p className="text-xs text-muted-foreground mt-3">{t("Latest 30 credit entries")}</p></div></section>
-      {data && data.balance < 20 && <div className="dmr-c-12 dmr-w-banner">{t("Your credits are running low. When they run out, new chats wait for your personal reply.")}</div>}
-      <div className="dmr-w-left">
-        <StudioSection title="Usage by" accent="model"><div className="grid grid-cols-2 gap-3"><StudioSoon label="Model" /><StudioSoon label="Input / output tokens" /><StudioSoon label="Cost" /><StudioSoon label="Share" /></div></StudioSection>
-        <section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Usage")} <span className="it">{t("history")}</span></h2></div><div className="dmr-tbl-wrap"><table><thead><tr>{["Date and time","Activity","Credits"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.ledger.map(l=><tr key={l.id}><td>{new Date(l.created_at).toLocaleString("en-GB")}</td><td>{t(labels[l.reason] ?? l.reason)}</td><td className={l.delta < 0 ? "text-destructive" : "text-success"}>{l.delta > 0 ? "+" : ""}{l.delta}</td></tr>)}</tbody></table></div>{data?.ledger.length === 0 && <StudioEmpty title={t("No usage found")} />}</section>
-        <StudioSection title="Your" accent="plan"><BillingPanel artistId={artistId} /></StudioSection>
-        <StudioSection title="Top up" accent="credits"><div id="studio-credit-packs" className="studio-credit-packs">{TOPUP_PACKAGES.map(p=><div key={p.id} className="studio-credit-pack"><div className="font-display">{p.credits}</div><span className="text-xs text-muted-foreground">{t("credits")}</span><p className="mt-3 text-sm font-semibold">{t("AED")} {(p.priceAed * 1.05).toFixed(2)}</p><p className="text-xs text-muted-foreground">{t("incl. VAT 5%")}</p><Button disabled={busy !== null} onClick={()=>buy(p.id)}>{t(busy === p.id ? "Processing…" : "Buy · Stripe sandbox")}</Button></div>)}</div></StudioSection>
-      </div>
-      <div className="dmr-w-side"><StudioSection title="Token" accent="rates"><StudioSoon label="Provider rates" /></StudioSection><StudioSection title="How credits" accent="work"><div className="space-y-4 text-sm text-muted-foreground"><p>{t("1 credit = 1 AI reply. Clients never pay for AI.")}</p><p>{t("When credits run out, new chats wait for your personal reply.")}</p></div></StudioSection></div>
-    </div>
-  );
-}
-
+export { CreditsPage as Credits } from "./CreditsPage";
