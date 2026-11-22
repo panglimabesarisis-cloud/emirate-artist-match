@@ -68,3 +68,12 @@ The folder registry primary key prevents duplicate **registry rows**, not duplic
 - Two simultaneous local test sessions claimed different jobs using SKIP LOCKED; both claims rolled back. Concurrent registry inserts retained one key/Drive ID. The isolated database and test roles were removed.
 - Existing invoice-visibility, conversation and schedule-item SQL regressions passed.
 - No app code, PDF worker, job route, or cron was created. Automatic real-invoice PDF archiving awaits part 2; only the temporary PDF upload was exercised.
+
+## Part 2: managed schedule (2026-11-22)
+
+- Created and re-listed active managed HTTP schedule **invoice-drive-archive**, job ID **4**, expression `*/5 * * * *`, POST target `/api/public/jobs/invoice-archive`, JSON body `{}`. It uses the same platform-managed authentication and production targeting as booking-reminders and payments; no credentials were copied or changed.
+- Observed its actual automatic invocation at **09:30 UTC**: `POST https://project--89c85f90-b1b5-4df1-aefa-90971ead26d6.lovable.app/api/public/jobs/invoice-archive` returned **HTTP 404**, HTML rather than `{ "ok": true, ... }`. The network response record and published request log agree. The new route is present locally but absent from the published deployment; **publish the deployment containing the route and worker**, then verify a subsequent scheduled run. No publication was performed in this request.
+- After that run: **10 issued/pending**, **1 paid/pending**, all attempts **0**, all `last_error` **NULL**. The folder registry is empty.
+- Read-only Google Drive inspection using **Dealmaker File** returned HTTP 200 and an empty archive root: no Artist / Year / Month folders or PDFs yet. Nothing was deleted or modified in Drive.
+- This is a deployment blocker, not an observed Drive permission failure or a worker job error; the worker did not execute, so no failing code line can be identified. Successful PDF generation/upload and the HTTP-200 result remain unverified.
+- Cadence is 288 runs per day, with up to five minutes before the next attempt; idle checks can increase Cloud compute costs. Existing schedules and application code remain unchanged.
