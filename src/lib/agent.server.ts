@@ -1,4 +1,5 @@
 import { decodeChatMessage } from "./chat-attachments";
+import { clientNameFromMessages } from "./chat-client-name";
 import { ensureAgentForm, nextSavedForm, reachableForms } from "./agent-forms";
 import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
@@ -21,6 +22,11 @@ import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUs
 export async function addMessage(conversationId: string, sender: string, body: string) {
   await supabaseAdmin.from("messages").insert({ conversation_id: conversationId, sender, body: body.slice(0, 4000) });
   await supabaseAdmin.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conversationId);
+  if (sender === "client") {
+    // Remember the client's name the first time they give it, so the Inbox can show it instead of "Direct chat".
+    const name = clientNameFromMessages([decodeChatMessage(body).text]);
+    if (name) await supabaseAdmin.from("conversations").update({ client_name: name }).eq("id", conversationId).is("client_name", null);
+  }
 }
 
 /** Runs the artist's AI agent for one reply, charging the artist's credit wallet. */

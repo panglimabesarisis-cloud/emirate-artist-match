@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Hand, Inbox as InboxIcon, Search, Send } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Hand, Inbox as InboxIcon, Search, Send, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { artistReply } from "@/lib/chat.functions";
 import { artistChatFiles } from "@/lib/chat-files.functions";
 import { decodeChatMessage } from "@/lib/chat-attachments";
 import { decodeInvoice } from "@/lib/invoice";
 import { clientNameFromMessages, inboxLabelFor, INBOX_LABELS, type InboxLabel } from "@/lib/chat-client-name";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { ChatAttachments } from "@/components/chat/ChatAttachments";
 import { useI18n } from "@/lib/i18n";
@@ -35,13 +37,17 @@ export function Inbox({ artistId }: { artistId: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [text, setText] = useState("");
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [ask, setAsk] = useState<string[] | null>(null);
+  const [busy, setBusy] = useState(false);
   const msgsEnd = useRef<HTMLDivElement>(null);
   const needle = search.trim().toLowerCase();
 
   const { data: convos } = useQuery({
     queryKey: ["inbox", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
+      const { data, error } = await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, label, client_name, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -90,10 +96,10 @@ export function Inbox({ artistId }: { artistId: string }) {
   const rows = useMemo(() => (convos ?? []).map((c) => {
     const own = (bookings ?? []).filter((b) => b.conversation_id === c.id);
     const booked = own.find((b) => b.client_name && !/^(client|direct chat)$/i.test(b.client_name.trim()))?.client_name;
-    const name = c.quote_requests?.name || booked || clientNameFromMessages(clientTexts?.get(c.id) ?? []) || `${t("Direct chat")} · ${c.id.slice(0, 8)}`;
+    const name = c.quote_requests?.name || c.client_name || booked || clientNameFromMessages(clientTexts?.get(c.id) ?? []) || `${t("Direct chat")} · ${c.id.slice(0, 8)}`;
     const named = !name.startsWith(`${t("Direct chat")} ·`);
     const date = c.quote_requests?.event_date ?? own.find((b) => b.event_date)?.event_date ?? null;
-    return { ...c, name, named, date, label: inboxLabelFor(own) };
+    return { ...c, name, named, date, label: (c.label as InboxLabel | null) ?? inboxLabelFor(own), manualLabel: c.label !== null };
   }), [convos, bookings, clientTexts, t]);
 
   const lastLine = (id: string) => {
@@ -142,6 +148,38 @@ export function Inbox({ artistId }: { artistId: string }) {
     } catch { toast.error(t("Reply failed")); }
   };
   const pick = (id: string) => { setOpen(id); setShowChat(true); };
+  const refresh = () => { void qc.invalidateQueries({ queryKey: ["inbox", artistId] }); void qc.invalidateQueries({ queryKey: ["inbox-last", artistId] }); };
+  const setLabel = async (id: string, label: InboxLabel | null) => {
+    const { error } = await supabase.rpc("set_conversation_label", { _id: id, _label: label as string });
+    if (error) { toast.error(t("Could not change the label")); return; }
+    toast.success(label ? `${t("Labelled")} "${t(INBOX_LABELS[label])}"` : t("Label removed"));
+    refresh();
+  };
+  const hide = async () => {
+    const ids = ask ?? [];
+    if (ids.length === 0) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("soft_delete_conversations", { _ids: ids });
+    setBusy(false);
+    setAsk(null);
+    if (error) { toast.error(t("Delete failed")); return; }
+    setPicked((cur) => cur.filter((id) => !ids.includes(id)));
+    if (open && ids.includes(open)) { setOpen(null); setShowChat(false); }
+    refresh();
+    toast(ids.length > 1 ? `${ids.length} ${t("chats deleted")}` : t("Chat deleted"), { duration: 6000, action: { label: t("Undo"), onClick: () => { void supabase.rpc("restore_conversations", { _ids: ids }).then(() => refresh()); } } });
+  };
+  const togglePick = (id: string, on?: boolean) => setPicked((cur) => (on ?? !cur.includes(id)) ? (cur.includes(id) ? cur : [...cur, id]) : cur.filter((x) => x !== id));
+  const labelMenu = (id: string, current: InboxLabel | null, trigger: React.ReactNode) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-60 rounded-[18px] border-[rgba(246,239,226,.16)] bg-[rgba(16,21,38,.98)] p-2">
+        {(Object.keys(INBOX_LABELS) as InboxLabel[]).map((k) => (
+          <DropdownMenuItem key={k} onSelect={() => void setLabel(id, k)} className="flex items-center justify-between rounded-xl px-2.5 py-2"><span className={`lbl ${k}`}>{t(INBOX_LABELS[k])}</span>{current === k && <Check className="h-4 w-4 text-[#e8b04a]" />}</DropdownMenuItem>
+        ))}
+        <DropdownMenuItem onSelect={() => void setLabel(id, null)} className="mt-1 rounded-xl px-2.5 py-2 text-[13px] text-muted-foreground">{t("Reset to automatic label")}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const tabs: ["all" | "ai" | "human", string][] = [["all", "All"], ["ai", "AI handling"], ["human", "You"]];
   const aiCount = (n: number) => `${n} ${t(n === 1 ? "AI reply" : "AI replies")}`;
@@ -150,7 +188,8 @@ export function Inbox({ artistId }: { artistId: string }) {
     <div className={`ibx-root${showChat ? " open" : ""}`}>
       <section className="ibx-list" aria-label={t("Conversations")}>
         <div className="l-head">
-          <div className="l-title"><h2 className="ibx-serif">{t("Inbox")}</h2><span className="l-n">{rows.length} {t(rows.length === 1 ? "chat" : "chats")}</span></div>
+          <div className="l-title"><h2 className="ibx-serif">{t("Inbox")}</h2><span className="l-n">{rows.length} {t(rows.length === 1 ? "chat" : "chats")}</span>
+            <button type="button" className="sel-btn" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setPicked([]); }}>{t(selecting ? "Done" : "Select")}</button></div>
           <label className="srch"><Search aria-hidden="true" /><span className="sr-only">{t("Search chats")}</span>
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("Search chats or messages")} autoComplete="off" /></label>
           <div className="tabs" role="tablist" aria-label={t("Filter chats")}>
@@ -161,20 +200,30 @@ export function Inbox({ artistId }: { artistId: string }) {
             {(Object.keys(INBOX_LABELS) as InboxLabel[]).map((k) => <button key={k} type="button" className={k} aria-pressed={labelFilter === k} onClick={() => setLabelFilter(k)}>{t(INBOX_LABELS[k])}</button>)}
           </div>
         </div>
-        <ul className="threads">
+        {selecting && (
+          <div className="bulk">
+            <label className="ck"><input type="checkbox" checked={visible.length > 0 && visible.every((c) => picked.includes(c.id))} onChange={(e) => setPicked(e.target.checked ? visible.map((c) => c.id) : [])} /><span />{t("Select all")}</label>
+            <button type="button" className="btn btn-danger" disabled={picked.length === 0} onClick={() => setAsk(picked)}><Trash2 className="size-[15px]" />{t("Delete")} {picked.length ? `(${picked.length})` : ""}</button>
+          </div>
+        )}
+        <ul className={`threads${selecting ? " selecting" : ""}`}>
           {visible.map((c) => {
             const preview = lastLine(c.id);
             return (
               <li key={c.id} className={`th${c.id === open ? " on" : ""}`}>
-                <button type="button" className="th-b" aria-current={c.id === open} onClick={() => pick(c.id)}>
+                <div role="button" tabIndex={0} className="th-b" aria-current={c.id === open}
+                  onClick={() => (selecting ? togglePick(c.id) : pick(c.id))}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (selecting) togglePick(c.id); else pick(c.id); } }}>
+                  {selecting && <label className="ck" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => togglePick(c.id, e.target.checked)} /><span /><span className="sr-only">{t("Select")} {c.name}</span></label>}
                   <span className="av2" aria-hidden="true">{c.named ? initials(c.name) : "D"}<i className={c.mode === "human" ? "you" : ""}>{c.mode === "human" ? t("YOU") : t("AI")}</i></span>
                   <span className="th-t">
                     <span className="th-r1"><b><Hit text={c.name} needle={needle} /></b><time>{hhmm(c.last_message_at)}</time></span>
                     <span className="th-pv">{preview ? <Hit text={preview} needle={needle} /> : t("No messages yet")}</span>
                     <span className="th-meta">{c.date ?? t("date TBC")} · {aiCount(c.ai_replies)}</span>
-                    <span className="th-lbl"><span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span></span>
+                    <span className="th-lbl">{selecting ? <span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span> : labelMenu(c.id, c.manualLabel ? c.label : null, <button type="button" className="lbl-btn" aria-label={`${t("Label for")} ${c.name}: ${t(INBOX_LABELS[c.label])}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span><ChevronDown className="size-3" aria-hidden="true" /></button>)}</span>
                   </span>
-                </button>
+                </div>
+                {!selecting && <button type="button" className="th-del" aria-label={`${t("Delete")} ${c.name}`} onClick={() => setAsk([c.id])}><Trash2 className="size-4" /></button>}
               </li>
             );
           })}
@@ -191,13 +240,14 @@ export function Inbox({ artistId }: { artistId: string }) {
             <div className="c-who">
               <span className="c-av" aria-hidden="true">{current.named ? initials(current.name) : "D"}</span>
               <div>
-                <span className="c-name"><b>{current.name}</b><span className={`lbl ${current.label}`}>{t(INBOX_LABELS[current.label])}</span></span>
+                {labelMenu(current.id, current.manualLabel ? current.label : null, <button type="button" className="c-name" aria-label={`${t("Label for")} ${current.name}: ${t(INBOX_LABELS[current.label])}`}><b>{current.name}</b><span className={`lbl ${current.label}`}>{t(INBOX_LABELS[current.label])}</span><ChevronDown className="size-2.5 text-[#e8b04a]" aria-hidden="true" /></button>)}
                 <small>{t("Event")} {current.date ?? t("date TBC")} · {aiCount(current.ai_replies)}</small>
               </div>
             </div>
             <div className="c-act">
               <span className="mode"><span className="dot" /><span>{t(mine ? "You are handling this chat" : "AI is handling this chat")}</span></span>
               <button type="button" className="btn btn-line" onClick={() => void setMode(mine ? "ai" : "human")}><Hand className="size-4" /><span>{t(mine ? "Hand back to AI" : "Take over")}</span></button>
+              <button type="button" className="icon-del" aria-label={t("Delete this chat")} onClick={() => setAsk([current.id])}><Trash2 className="size-[17px]" /></button>
             </div>
           </header>
           <div className="msgs" aria-live="polite">
@@ -228,6 +278,17 @@ export function Inbox({ artistId }: { artistId: string }) {
           <div className="c-empty"><span className="orb"><InboxIcon aria-hidden="true" /></span><b className="ibx-serif">{t("No chat selected")}</b><p>{t("Pick a conversation on the left. Your AI agent keeps answering in the meantime.")}</p></div>
         )}
       </section>
+      <Dialog open={ask !== null} onOpenChange={(o) => { if (!o) setAsk(null); }}>
+        <DialogContent className="w-[min(420px,calc(100vw-24px))] rounded-3xl border-[rgba(246,239,226,.16)] bg-[linear-gradient(180deg,#141a2e,#0c1120)] p-7 text-center sm:text-center">
+          <span className="mx-auto grid h-[54px] w-[54px] place-items-center rounded-full border border-[rgba(226,87,76,.35)] bg-[rgba(226,87,76,.12)] text-[#ff8a7a]"><Trash2 className="size-6" /></span>
+          <DialogTitle className="text-center font-display text-[30px] font-normal leading-none tracking-normal">{(ask?.length ?? 0) > 1 ? `${t("Delete")} ${ask?.length} ${t("chats")}?` : t("Delete this chat?")}</DialogTitle>
+          <DialogDescription className="text-center text-[13.5px]">{t("The conversation is removed from your inbox. You can undo for a few seconds. Bookings and invoices stay untouched.")}</DialogDescription>
+          <div className="flex justify-center gap-2.5">
+            <button type="button" autoFocus className="btn btn-line" onClick={() => setAsk(null)}>{t("Cancel")}</button>
+            <button type="button" className="btn btn-danger" disabled={busy} onClick={() => void hide()}>{t("Delete")}</button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { BulkBar, RowCheckbox, useHideRows, useSelection } from "./BulkSelect";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Eye, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, EyeOff, Search } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invoiceMoney, type Invoice } from "@/lib/invoice";
 import { bookingPayment } from "@/lib/booking-payment-rules";
@@ -25,7 +26,7 @@ export function useInvoiceQuery(artistId?: string) {
   return useQuery({
     queryKey: ["invoice-records", artistId], refetchInterval: 5000,
     queryFn: async () => {
-      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, artists(stage_name, trn), bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
+      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, hidden_at, artists(stage_name, trn), bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
       if (artistId) query = query.eq("artist_id", artistId).is("deleted_at", null);
       const result = await query;
       if (result.error) throw result.error;
@@ -60,13 +61,30 @@ function ArtistInvoiceTable({ artistId, rows, isPending, error, onView }: { arti
   const [page, setPage] = useState(0);
   const selection = useSelection();
   const hide = useHideRows("soft_delete_invoices", [["invoice-records", artistId], ["invoices", artistId]], () => selection.clear());
-  const counts = { all: rows.length, unpaid: rows.filter((r) => payOf(r) === "unpaid").length, partial: rows.filter((r) => payOf(r) === "partial").length, paid: rows.filter((r) => payOf(r) === "paid").length };
+  const qc = useQueryClient();
+  const [showAll, setShowAll] = useState(false);
+  const [hiding, setHiding] = useState(false);
+  const hiddenCount = rows.filter((r) => r.hidden_at).length;
+  /** Hide (or show again) invoices in this list. Nothing is deleted and the invoices stay archived. */
+  const setHidden = async (ids: string[], hidden: boolean) => {
+    if (ids.length === 0) return;
+    setHiding(true);
+    const { error } = await supabase.rpc("set_invoices_hidden", { _ids: ids, _hidden: hidden });
+    setHiding(false);
+    if (error) { toast.error(t("Could not update the invoices")); return; }
+    toast.success(`${ids.length} ${t(hidden ? "hidden from the list" : "shown again")}`);
+    selection.clear();
+    void qc.invalidateQueries({ queryKey: ["invoice-records", artistId] });
+  };
+  const listed = showAll ? rows : rows.filter((r) => !r.hidden_at);
+  const counts = { all: listed.length, unpaid: listed.filter((r) => payOf(r) === "unpaid").length, partial: listed.filter((r) => payOf(r) === "partial").length, paid: listed.filter((r) => payOf(r) === "paid").length };
   const needle = q.trim().toLowerCase();
-  const list = rows.filter((r) => (tab === "all" || payOf(r) === tab) && (!needle || `${r.number} ${r.client}`.toLowerCase().includes(needle)));
+  const list = listed.filter((r) => (tab === "all" || payOf(r) === tab) && (!needle || `${r.number} ${r.client}`.toLowerCase().includes(needle)));
   const pages = Math.max(1, Math.ceil(list.length / size));
   const cur = Math.min(page, pages - 1);
   const shown = list.slice(cur * size, cur * size + size);
-  const deletableOnPage = shown.filter(invoiceDeletable);
+  const selectableOnPage = shown;
+  const picked = rows.filter((r) => selection.has(r.id));
   return (
     <>
       <div className="dmr-q-tools">
@@ -76,24 +94,28 @@ function ArtistInvoiceTable({ artistId, rows, isPending, error, onView }: { arti
           <span className="sr-only">{t("Search invoices")}</span>
           <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder={t("Search invoice number or client")} className="h-10 w-full rounded-full border border-border bg-foreground/[.04] pe-4 ps-10 text-sm outline-none focus-visible:border-gold" />
         </label>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" aria-pressed={showAll} onClick={() => { setShowAll(!showAll); setPage(0); }}>{showAll ? <EyeOff className="me-1.5 h-3.5 w-3.5" /> : <Eye className="me-1.5 h-3.5 w-3.5" />}{showAll ? t("Hide hidden invoices") : t("Show all invoices")}{hiddenCount > 0 && <span className="ms-1.5 rounded-full bg-gold/20 px-1.5 text-[11px] text-gold">{hiddenCount}</span>}</Button>
         <div className="flex gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("Filter by payment")}>
           {([["all", "All"], ["unpaid", "Unpaid"], ["partial", "Partially paid"], ["paid", "Paid"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setPage(0); }} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(l)} <span className="opacity-60">{counts[k]}</span></button>)}
         </div>
       </div>
-      <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "invoices")} />
+      <BulkBar count={selection.sel.length} busy={hide.busy || hiding} onClear={selection.clear} onDelete={() => { const ids = picked.filter(invoiceDeletable).map((r) => r.id); if (ids.length === 0) toast.error(t("Paid invoices can't be deleted. Use Hide from list instead.")); else void hide.run(ids, "invoices"); }}>
+        <Button size="sm" variant="outline" className="rounded-full" disabled={hiding} onClick={() => void setHidden(picked.filter((r) => !r.hidden_at).map((r) => r.id), true)}><EyeOff className="me-1 h-3.5 w-3.5" />{t("Hide from list")}</Button>
+        {picked.some((r) => r.hidden_at) && <Button size="sm" variant="outline" className="rounded-full" disabled={hiding} onClick={() => void setHidden(picked.filter((r) => r.hidden_at).map((r) => r.id), false)}><Eye className="me-1 h-3.5 w-3.5" />{t("Show again")}</Button>}
+      </BulkBar>
       {error ? <p role="alert" className="p-5 text-destructive">{t("Could not load invoices.")}</p> : (
         <div className="min-w-0 overflow-x-auto">
           <table className="w-full min-w-[960px] border-separate border-spacing-0 text-[13.5px]">
-            <thead><tr><th scope="col" className={`${ih} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((r) => selection.has(r.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((r) => r.id), on)} /></th>{["Invoice", "Client", "Issued", "Due", "Total", "Payment", "Balance", "Paid at"].map((h) => <th key={h} scope="col" className={`${ih} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr></thead>
+            <thead><tr><th scope="col" className={`${ih} w-10`}><RowCheckbox label={t("Select all")} checked={selectableOnPage.length > 0 && selectableOnPage.every((r) => selection.has(r.id))} disabled={selectableOnPage.length === 0} onChange={(on) => selection.toggleAll(selectableOnPage.map((r) => r.id), on)} /></th>{["Invoice", "Client", "Issued", "Due", "Total", "Payment", "Balance", "Paid at"].map((h) => <th key={h} scope="col" className={`${ih} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr></thead>
             <tbody>
               {shown.length === 0 && <tr><td colSpan={9} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No invoices found")}</b>{!isPending && t("Try another number or payment status.")}</td></tr>}
               {shown.map((r) => {
                 const ps = payOf(r);
                 const due = (r.document as { due?: string | null } | null)?.due ?? null;
                 return (
-                  <tr key={r.id} className="transition-colors hover:bg-foreground/[.03]">
-                    <td className={ic}><RowCheckbox label={`${t("Select")} ${r.number}`} checked={selection.has(r.id)} disabled={!invoiceDeletable(r)} title={invoiceDeletable(r) ? undefined : t("Paid invoices can't be deleted")} onChange={(on) => selection.toggle(r.id, on)} /></td>
-                    <td className={ic}><button type="button" className="font-bold text-gold underline-offset-2 hover:underline" onClick={() => onView(r)}>{r.number}</button></td>
+                  <tr key={r.id} className={`transition-colors hover:bg-foreground/[.03] ${r.hidden_at ? "opacity-55" : ""}`}>
+                    <td className={ic}><RowCheckbox label={`${t("Select")} ${r.number}`} checked={selection.has(r.id)} onChange={(on) => selection.toggle(r.id, on)} /></td>
+                    <td className={ic}><button type="button" className="font-bold text-gold underline-offset-2 hover:underline" onClick={() => onView(r)}>{r.number}</button>{r.hidden_at && <span className="ms-2 rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("Hidden")}</span>}</td>
                     <td className={ic}><b>{r.client}</b></td>
                     <td className={ic}>{fmtD(r.created_at)}</td>
                     <td className={ic}>{fmtD(due)}</td>

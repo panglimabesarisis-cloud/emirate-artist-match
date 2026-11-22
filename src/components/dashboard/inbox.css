@@ -94,6 +94,33 @@ html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","A
 .ibx-root .cmp-row:focus-within{border-color:var(--ibx-gold);box-shadow:0 0 0 4px rgba(232,176,74,.1)}
 .ibx-root .cmp-row textarea{flex:1;min-width:0;resize:none;background:transparent;border:0;outline:0;color:var(--ibx-cream);font-size:14.5px;line-height:1.5;padding:8px 0;max-height:140px}
 .ibx-root .cmp-row textarea::placeholder{color:var(--ibx-mute-2)}
+html.dm-dash .ibx-root .sel-btn{margin-inline-start:auto;font-size:12.5px;font-weight:700;color:var(--ibx-gold);padding:6px 10px;border-radius:999px;transition:background .3s}
+html.dm-dash .ibx-root .sel-btn:hover,html.dm-dash .ibx-root .sel-btn[aria-pressed=true]{background:rgba(232,176,74,.12)}
+html.dm-dash .ibx-root .bulk{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-bottom:1px solid var(--ibx-line);background:rgba(232,176,74,.05)}
+html.dm-dash .ibx-root .ck{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer}
+html.dm-dash .ibx-root .ck input{position:absolute;opacity:0;width:1px;height:1px}
+html.dm-dash .ibx-root .ck span:not(.sr-only){width:20px;height:20px;border-radius:7px;border:1.5px solid var(--ibx-line-2);display:grid;place-items:center;transition:background .25s,border-color .25s}
+html.dm-dash .ibx-root .ck input:checked+span{background:var(--ibx-grad);border-color:transparent}
+html.dm-dash .ibx-root .ck input:checked+span::after{content:"";width:9px;height:5px;border-left:2px solid var(--ibx-ink);border-bottom:2px solid var(--ibx-ink);rotate:-45deg;translate:0 -1px}
+html.dm-dash .ibx-root .ck input:focus-visible+span{outline:2px solid var(--ibx-gold);outline-offset:2px}
+html.dm-dash .btn-danger{background:#e2574c;color:#fff}
+html.dm-dash .btn-danger:hover{background:#f06a5f}
+.ibx-root .selecting .th-b{grid-template-columns:auto 44px minmax(0,1fr)}
+.ibx-root .th-b{cursor:pointer}
+.ibx-root .th-del{position:absolute;right:10px;top:50%;translate:0 -50%;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--ibx-mute);background:#151b30;border:1px solid var(--ibx-line-2);opacity:0;scale:.8;transition:opacity .25s,scale .35s var(--ibx-ease),color .25s,background .25s}
+.ibx-root .th:hover .th-del,.ibx-root .th-del:focus-visible{opacity:1;scale:1}
+.ibx-root .th-del:hover{color:#fff;background:#e2574c;border-color:transparent}
+.ibx-root .lbl-btn{display:inline-flex;align-items:center;gap:6px;color:var(--ibx-gold)}
+.ibx-root .icon-del{width:40px;height:40px;border-radius:12px;border:1px solid var(--ibx-line);display:grid;place-items:center;color:var(--ibx-mute);transition:border-color .3s,background .3s,color .3s}
+.ibx-root .icon-del:hover{border-color:#e2574c;background:rgba(226,87,76,.12);color:#ff8a7a}
+.ibx-root .c-name:hover b{color:var(--ibx-gold)}
+html.dm-dash [role=dialog] .btn,html.dm-dash [role=menu] .btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:10px 16px;border-radius:999px;white-space:nowrap}
+html.dm-dash [role=dialog] .btn-line{border:1px solid rgba(246,239,226,.16)}
+html.dm-dash [role=menu] .lbl{display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:24px;padding:0 12px;font-size:11px;font-weight:800;border-radius:999px}
+html.dm-dash [role=menu] .lbl.inquiry{background:#3a3f4b;color:#fff}
+html.dm-dash [role=menu] .lbl.pending{background:#9aa0ab;color:#fff}
+html.dm-dash [role=menu] .lbl.partial{background:rgba(232,176,74,.4);color:#fff}
+html.dm-dash [role=menu] .lbl.paid{background:linear-gradient(100deg,#f0c062,#e8a33f 45%,#d4842a);color:#07090f}
 @media (max-width:980px){
   html.dm-dash .ibx-root{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 130px)}
   .ibx-root .ibx-conv{display:none}
