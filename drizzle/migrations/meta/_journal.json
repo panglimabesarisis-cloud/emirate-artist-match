@@ -344,6 +344,13 @@
       "when": 1795320591797,
       "tag": "0048_contract_templates_and_frozen_booking_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795321878926,
+      "tag": "0049_dashboard_soft_delete",
+      "breakpoints": true
     }
   ]
 }

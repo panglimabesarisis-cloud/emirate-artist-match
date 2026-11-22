@@ -5,7 +5,7 @@ import { extractForm } from './ai-flow';
 const mocks = vi.hoisted(() => ({
   generate: vi.fn(), calendar: vi.fn(), notify: vi.fn(), contact: vi.fn(),
   writes: [] as { table: string; value: unknown }[],
-  existing: false, sparseQuote: false, formScenario: false,
+  existing: false, deleted: false, sparseQuote: false, formScenario: false,
 }));
 
 const flow = {
@@ -17,7 +17,8 @@ const flow = {
   ],
   edges: [{ id: '1', source: 'start', target: 'buttons' }, { id: '2', source: 'buttons', sourceHandle: 'b0', target: 'wa' }],
 };
-function result(table: string, inserting: boolean) {
+function result(table: string, inserting: boolean, visibleOnly = false) {
+  const existing = mocks.existing && !(visibleOnly && mocks.deleted);
   const data: Record<string, unknown> = {
     conversations: { id: 'conversation-fixture', artist_id: 'artist-fixture', mode: 'ai', ai_replies: 2, quote_requests: mocks.sparseQuote ? { name: 'Maya' } : { name: 'Maya', email: 'maya@example.com', phone: '0501234567', guests: 1000 } },
     artists: { user_id: 'owner-fixture', stage_name: 'Dede', base_price: 5000 },
@@ -27,7 +28,7 @@ function result(table: string, inserting: boolean) {
       { sender: 'ai', body: 'Proceed?\n[BUTTONS: Book Now | Book Later]' },
       { sender: 'client', body: 'Event Date: 2026-11-29\nEvent Start: 19:00\nEvent End: 21:00\nVenue: Dubai Chamber\nGuests: 1000\nJob Detail: Emcee' },
     ],
-    bookings: inserting ? { id: 'booking-fixture', artist_key: 'fixture-key' } : mocks.existing ? { status: 'inquiry', artist_invoice_required: false, paid_amount: 0, total: 5250, cancelled_by: null } : null,
+    bookings: inserting ? { id: 'booking-fixture', artist_key: 'fixture-key' } : existing ? { status: 'inquiry', artist_invoice_required: false, paid_amount: 0, total: 5250, cancelled_by: null } : null,
   };
   if (mocks.formScenario) {
     data['ai_flows'] = [{ artist_id: 'artist-fixture', enabled: true, nodes: [
@@ -37,19 +38,21 @@ function result(table: string, inserting: boolean) {
     ], edges: [{ id: '1', source: 'start', target: 'choice' }, { id: '2', source: 'choice', sourceHandle: 'b0', target: 'details' }] }];
     data['messages'] = [{ sender: 'client', body: 'Yes' }, { sender: 'ai', body: 'Ready?\n[BUTTONS: Yes | No]' }];
   }
-  return { data: data[table] ?? null, error: null, count: mocks.existing ? 1 : 0 };
+  return { data: data[table] ?? null, error: null, count: existing ? 1 : 0 };
 }
 
 vi.mock('@/integrations/supabase/client.server', () => ({
   supabaseAdmin: {
     from: (table: string) => {
       let inserting = false;
+      let visibleOnly = false;
       const chain = {
         select: () => chain, eq: () => chain, in: () => chain, or: () => chain, order: () => chain, limit: () => chain,
+        is: (column: string, value: unknown) => { if (column === 'deleted_at' && value === null) visibleOnly = true; return chain; },
         insert: (value: unknown) => { inserting = true; mocks.writes.push({ table, value }); return chain; },
         update: (value: unknown) => { mocks.writes.push({ table, value }); return chain; },
-        single: async () => result(table, inserting), maybeSingle: async () => result(table, inserting),
-        then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result(table, inserting)).then(resolve),
+        single: async () => result(table, inserting, visibleOnly), maybeSingle: async () => result(table, inserting, visibleOnly),
+        then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result(table, inserting, visibleOnly)).then(resolve),
       };
       return chain;
     },
@@ -63,7 +66,7 @@ vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('
 import { runAgent } from './agent.server';
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.sparseQuote = false; mocks.formScenario = false;
+  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.deleted = false; mocks.sparseQuote = false; mocks.formScenario = false;
   mocks.calendar.mockResolvedValue({ status: 'available', window: calendarWindow({ date: '2026-11-29', startTime: '19:00', endTime: '21:00' }) });
   mocks.contact.mockResolvedValue({ phone: '+971509999999', email: null });
   mocks.notify.mockResolvedValue(undefined);
@@ -164,5 +167,12 @@ describe('Book Now → artist WhatsApp dispatch', () => {
     await runAgent('conversation-fixture');
     expect(mocks.notify).not.toHaveBeenCalled();
     expect(mocks.writes.filter(write => write.table === 'bookings')).toHaveLength(0);
+  });
+  it('ignores a soft-deleted inquiry in booking conflict checks', async () => {
+    mocks.existing = true;
+    mocks.deleted = true;
+    await runAgent('conversation-fixture');
+    expect(mocks.writes.filter(write => write.table === 'bookings')).toHaveLength(1);
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
   });
 });

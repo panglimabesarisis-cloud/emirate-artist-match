@@ -1235,6 +1235,7 @@ export type Database = {
           contract_terms: Json | null
           conversation_id: string | null
           created_at: string
+          deleted_at: string | null
           deposit_pct: number
           drafted_by: string
           end_time: string | null
@@ -1285,6 +1286,7 @@ export type Database = {
           contract_terms?: Json | null
           conversation_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
@@ -1335,6 +1337,7 @@ export type Database = {
           contract_terms?: Json | null
           conversation_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
@@ -2400,6 +2403,7 @@ export type Database = {
           budget: number | null
           client_user_id: string | null
           created_at: string
+          deleted_at: string | null
           email: string
           end_time: string | null
           event_date: string | null
@@ -2419,6 +2423,7 @@ export type Database = {
           budget?: number | null
           client_user_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           email: string
           end_time?: string | null
           event_date?: string | null
@@ -2438,6 +2443,7 @@ export type Database = {
           budget?: number | null
           client_user_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string
           end_time?: string | null
           event_date?: string | null
@@ -2585,6 +2591,7 @@ export type Database = {
           booking_id: string | null
           conversation_id: string
           created_at: string
+          deleted_at: string | null
           document: Json
           id: string
           number: string
@@ -2597,6 +2604,7 @@ export type Database = {
           booking_id?: string | null
           conversation_id: string
           created_at?: string
+          deleted_at?: string | null
           document: Json
           id?: string
           number: string
@@ -2609,6 +2617,7 @@ export type Database = {
           booking_id?: string | null
           conversation_id?: string
           created_at?: string
+          deleted_at?: string | null
           document?: Json
           id?: string
           number?: string
@@ -3288,6 +3297,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      soft_delete_bookings: { Args: { _ids: string[] }; Returns: number }
+      soft_delete_invoices: { Args: { _ids: string[] }; Returns: number }
+      soft_delete_quote_requests: { Args: { _ids: string[] }; Returns: number }
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
       use_contract_template: {
         Args: { _booking: string; _template: string }

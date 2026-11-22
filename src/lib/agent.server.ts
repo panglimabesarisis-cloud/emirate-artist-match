@@ -77,7 +77,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   }
 
   const invoiceAction = invoiceWorkflow(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
-  const {data: existingBooking} = await supabaseAdmin.from("bookings").select("status,artist_invoice_required,paid_amount,total").eq("conversation_id",conversationId).in("status",["inquiry","quoted","confirmed"]).limit(1).maybeSingle();
+  const {data: existingBooking} = await supabaseAdmin.from("bookings").select("status,artist_invoice_required,paid_amount,total").eq("conversation_id",conversationId).is("deleted_at",null).in("status",["inquiry","quoted","confirmed"]).limit(1).maybeSingle();
   const maxDiscount = settings?.max_discount_pct ?? 10;
   const pricing = agentRates(rates ?? [], artist.base_price);
   const floor = pricing.minimum === null ? Infinity : pricing.minimum * (pricing.startingOnly ? 1 : 1 - maxDiscount / 100);
@@ -204,7 +204,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
 async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>) {
-  const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).in("status", ["inquiry", "quoted", "confirmed"]);
+  const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).is("deleted_at", null).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
   if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
   const amount = invoiceAction ? 0 : Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
