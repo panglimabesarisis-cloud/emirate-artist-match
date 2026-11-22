@@ -351,6 +351,13 @@
       "when": 1795321878926,
       "tag": "0049_dashboard_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795325423414,
+      "tag": "0050_unpaid_record_expiry",
+      "breakpoints": true
     }
   ]
 }

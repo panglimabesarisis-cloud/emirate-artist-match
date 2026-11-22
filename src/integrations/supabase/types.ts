@@ -1236,6 +1236,7 @@ export type Database = {
           conversation_id: string | null
           created_at: string
           deleted_at: string | null
+          deleted_reason: string | null
           deposit_pct: number
           drafted_by: string
           end_time: string | null
@@ -1287,6 +1288,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          deleted_reason?: string | null
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
@@ -1338,6 +1340,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          deleted_reason?: string | null
           deposit_pct?: number
           drafted_by?: string
           end_time?: string | null
@@ -1752,6 +1755,30 @@ export type Database = {
           name?: string
           slug?: string
           sort?: number | null
+        }
+        Relationships: []
+      }
+      expiry_runs: {
+        Row: {
+          bookings_hidden: number
+          id: string
+          invoices_hidden: number
+          purged: number
+          ran_at: string
+        }
+        Insert: {
+          bookings_hidden?: number
+          id?: string
+          invoices_hidden?: number
+          purged?: number
+          ran_at?: string
+        }
+        Update: {
+          bookings_hidden?: number
+          id?: string
+          invoices_hidden?: number
+          purged?: number
+          ran_at?: string
         }
         Relationships: []
       }
@@ -2592,6 +2619,7 @@ export type Database = {
           conversation_id: string
           created_at: string
           deleted_at: string | null
+          deleted_reason: string | null
           document: Json
           id: string
           number: string
@@ -2605,6 +2633,7 @@ export type Database = {
           conversation_id: string
           created_at?: string
           deleted_at?: string | null
+          deleted_reason?: string | null
           document: Json
           id?: string
           number: string
@@ -2618,6 +2647,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           deleted_at?: string | null
+          deleted_reason?: string | null
           document?: Json
           id?: string
           number?: string
@@ -3233,6 +3263,7 @@ export type Database = {
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       claim_payment_followup: { Args: { _id: string }; Returns: boolean }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
+      expire_unpaid_records: { Args: never; Returns: Json }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
       has_role: {
         Args: {
