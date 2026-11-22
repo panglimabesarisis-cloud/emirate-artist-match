@@ -40,6 +40,7 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
+import { Route as ApiPublicJobsInvoiceArchiveRouteImport } from './routes/api/public/jobs/invoice-archive'
 import { Route as ApiPublicJobsPaymentsRouteImport } from './routes/api/public/jobs/payments'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicWhatsappFonnteWebhookRouteImport } from './routes/api/public/whatsapp/fonnte-webhook'
@@ -202,6 +203,12 @@ const ApiPublicJobsBookingRemindersRoute =
     path: '/api/public/jobs/booking-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicJobsInvoiceArchiveRoute =
+  ApiPublicJobsInvoiceArchiveRouteImport.update({
+    id: '/api/public/jobs/invoice-archive',
+    path: '/api/public/jobs/invoice-archive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicJobsPaymentsRoute = ApiPublicJobsPaymentsRouteImport.update({
   id: '/api/public/jobs/payments',
   path: '/api/public/jobs/payments',
@@ -257,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
@@ -293,6 +301,7 @@ export interface FileRoutesByTo {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
@@ -331,6 +340,7 @@ export interface FileRoutesById {
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
+  '/api/public/jobs/invoice-archive': typeof ApiPublicJobsInvoiceArchiveRoute
   '/api/public/jobs/payments': typeof ApiPublicJobsPaymentsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/whatsapp/fonnte-webhook': typeof ApiPublicWhatsappFonnteWebhookRoute
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
@@ -442,6 +454,7 @@ export interface FileRouteTypes {
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
+    | '/api/public/jobs/invoice-archive'
     | '/api/public/jobs/payments'
     | '/api/public/payments/webhook'
     | '/api/public/whatsapp/fonnte-webhook'
@@ -477,6 +490,7 @@ export interface RootRouteChildren {
   ApiOauthGoogle_calendarReturnRoute: typeof ApiOauthGoogle_calendarReturnRoute
   ApiPublicCalendarTokenRoute: typeof ApiPublicCalendarTokenRoute
   ApiPublicJobsBookingRemindersRoute: typeof ApiPublicJobsBookingRemindersRoute
+  ApiPublicJobsInvoiceArchiveRoute: typeof ApiPublicJobsInvoiceArchiveRoute
   ApiPublicJobsPaymentsRoute: typeof ApiPublicJobsPaymentsRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicWhatsappFonnteWebhookRoute: typeof ApiPublicWhatsappFonnteWebhookRoute
@@ -702,6 +716,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicJobsBookingRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/invoice-archive': {
+      id: '/api/public/jobs/invoice-archive'
+      path: '/api/public/jobs/invoice-archive'
+      fullPath: '/api/public/jobs/invoice-archive'
+      preLoaderRoute: typeof ApiPublicJobsInvoiceArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/jobs/payments': {
       id: '/api/public/jobs/payments'
       path: '/api/public/jobs/payments'
@@ -778,6 +799,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOauthGoogle_calendarReturnRoute: ApiOauthGoogle_calendarReturnRoute,
   ApiPublicCalendarTokenRoute: ApiPublicCalendarTokenRoute,
   ApiPublicJobsBookingRemindersRoute: ApiPublicJobsBookingRemindersRoute,
+  ApiPublicJobsInvoiceArchiveRoute: ApiPublicJobsInvoiceArchiveRoute,
   ApiPublicJobsPaymentsRoute: ApiPublicJobsPaymentsRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicWhatsappFonnteWebhookRoute: ApiPublicWhatsappFonnteWebhookRoute,
