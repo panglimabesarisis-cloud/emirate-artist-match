@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { CalendarDays, ChevronLeft, ChevronRight, Search, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { completeCalendarConnect, disconnectCalendar, getCalendarEvents, startCalendarConnect } from "@/lib/calendar.functions";
 import { completeBooking } from "@/lib/bookings.functions";
@@ -12,6 +12,9 @@ import { bookingPay, bookingStage, STAGE_LABEL, stageClasses } from "@/lib/booki
 import { aed } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StudioDonut, StudioHeading } from "./StudioPage";
 
@@ -51,6 +54,7 @@ function waitForOAuth(popup: Window) {
   });
 }
 
+type ScheduleItem = { id: string; title: string; event_date: string; start_time: string; end_time: string; notes: string | null };
 type Job = {
   id: string; client_name: string; package_title: string; event_date: string; start_time: string | null; end_time: string | null; status: string;
   total: number; paid_amount: number; notes: string | null; job_detail: string | null; escrow_status: string;
@@ -74,6 +78,10 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Job | null>(null);
   const [q, setQ] = useState("");
+  const [item, setItem] = useState<ScheduleItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ title: "", date: "", start: "09:00", end: "10:00", notes: "" });
+  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"all" | "waiting" | "done">("all");
   const [size, setSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -90,6 +98,14 @@ export function CalendarTab({ artistId }: { artistId: string }) {
     },
   });
   const blockedQ = useQuery({ queryKey: ["cal-blocked", artistId], queryFn: async () => (await supabase.from("availability").select("id, date, note").eq("artist_id", artistId)).data ?? [] });
+  const itemsQ = useQuery({
+    queryKey: ["schedule-items", artistId],
+    queryFn: async () => {
+      const res = await supabase.from("schedule_items").select("id, title, event_date, start_time, end_time, notes").eq("artist_id", artistId).order("event_date").order("start_time").limit(1000);
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+  });
   const g = useQuery({ queryKey: ["gcal", month], queryFn: () => events$({ data: { month } }), retry: false });
 
   const jobs = jobsQ.data ?? [];
@@ -99,6 +115,30 @@ export function CalendarTab({ artistId }: { artistId: string }) {
     for (const j of jobs) m.set(j.event_date, [...(m.get(j.event_date) ?? []), j].sort((a, b) => (a.start_time ?? "99").localeCompare(b.start_time ?? "99")));
     return m;
   }, [jobs]);
+  const itemsByDate = useMemo(() => {
+    const m = new Map<string, ScheduleItem[]>();
+    for (const i of itemsQ.data ?? []) m.set(i.event_date, [...(m.get(i.event_date) ?? []), i]);
+    return m;
+  }, [itemsQ.data]);
+  const openAdd = () => { setForm({ title: "", date: ymd(focus), start: "09:00", end: "10:00", notes: "" }); setAdding(true); };
+  const saveItem = async () => {
+    if (!form.title.trim() || !form.date || !form.start || !form.end) { toast.error(t("Add a title, a date, a start time and an end time.")); return; }
+    setSaving(true);
+    const { error } = await supabase.from("schedule_items").insert({ artist_id: artistId, title: form.title.trim(), event_date: form.date, start_time: form.start, end_time: form.end, notes: form.notes.trim() || null });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("Schedule added"));
+    setAdding(false);
+    void qc.invalidateQueries({ queryKey: ["schedule-items", artistId] });
+  };
+  const removeItem = async (i: ScheduleItem) => {
+    if (!confirm(t("Delete this schedule?"))) return;
+    const { error } = await supabase.from("schedule_items").delete().eq("id", i.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("Schedule deleted"));
+    setItem(null);
+    void qc.invalidateQueries({ queryKey: ["schedule-items", artistId] });
+  };
   const gOn = (date: string) => (g.data?.events ?? []).filter((e) => (e.allDay ? e.start <= date && date < e.end : ymd(new Date(e.start)) <= date && date <= ymd(new Date(e.end))));
 
   const days = useMemo(() => {
@@ -200,8 +240,11 @@ export function CalendarTab({ artistId }: { artistId: string }) {
             <Button variant="outline" size="icon" className="rounded-full" aria-label={t("Next")} onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <h2 className="font-display text-3xl leading-none md:text-center" aria-live="polite">{title}</h2>
-          <div className="flex gap-0.5 justify-self-end rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("View")}>
+          <div className="flex flex-wrap items-center gap-2 justify-self-end">
+          <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={openAdd}><Plus className="me-1.5 h-4 w-4" />{t("Add Schedule")}</Button>
+          <div className="flex gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("View")}>
             {(["day", "week", "month"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${view === v ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{v === "day" ? t("Daily") : v === "week" ? t("Weekly") : t("Monthly")}</button>)}
+          </div>
           </div>
         </div>
         <div role="grid" aria-label={title} className={`grid ${view === "day" ? "grid-cols-1" : "grid-cols-7"} ${view === "month" ? "" : ""}`}>
@@ -215,7 +258,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
             return (
               <div
                 key={k} role="gridcell" tabIndex={0}
-                aria-label={`${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}${isBlocked ? ", blocked" : ""}${list.length ? `, ${list.length} booking${list.length > 1 ? "s" : ""}` : ""}`}
+                aria-label={`${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}${isBlocked ? ", blocked" : ""}${list.length ? `, ${list.length} booking${list.length > 1 ? "s" : ""}` : ""}${itemsByDate.get(k)?.length ? `, ${itemsByDate.get(k)?.length} schedule` : ""}`}
                 onClick={() => clickDay(d)} onDoubleClick={() => openDay(d)}
                 onKeyDown={(e) => { if (e.key === "Enter") openDay(d); else if (e.key === " ") { e.preventDefault(); void toggleBlock(k); } }}
                 className={`relative flex cursor-pointer flex-col gap-1 border-b border-e border-border p-2 text-start outline-none transition-colors hover:bg-foreground/[.03] focus-visible:shadow-[inset_0_0_0_2px_var(--gold)] ${view === "month" ? "min-h-[112px]" : view === "week" ? "min-h-[260px]" : "min-h-[300px]"} ${out ? "opacity-35" : ""} ${isBlocked ? "bg-[repeating-linear-gradient(135deg,rgba(226,87,76,.1)_0_8px,rgba(226,87,76,.04)_8px_16px)]" : ""}`}
@@ -231,8 +274,15 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                     {view !== "month" && <small className="block text-[10px] font-extrabold uppercase tracking-wider opacity-80">{t(STAGE_LABEL[bookingStage(b)])}</small>}
                   </button>
                 ))}
+                {(itemsByDate.get(k) ?? []).map((i) => (
+                  <button key={i.id} type="button" title={i.title} onClick={(e) => { e.stopPropagation(); setItem(i); }}
+                    className={`overflow-hidden text-ellipsis rounded-[7px] border-s-[3px] border-violet-400 bg-violet-400/15 px-2 py-0.5 text-start text-[11.5px] font-bold transition-[background,translate] hover:translate-x-0.5 hover:bg-violet-400/25 ${view === "month" ? "whitespace-nowrap" : "whitespace-normal py-1.5 text-xs"}`}>
+                    <small className="me-1 font-semibold text-muted-foreground">{hhmm(i.start_time)}</small>{i.title}
+                    {view !== "month" && <small className="block font-semibold text-muted-foreground">{hhmm(i.start_time)} – {hhmm(i.end_time)}{i.notes ? ` · ${i.notes}` : ""}</small>}
+                  </button>
+                ))}
                 {ev.slice(0, view === "month" ? 2 : 8).map((e) => <div key={e.id + k} className="truncate rounded-[7px] border-s-[3px] border-blue-400 bg-blue-400/10 px-2 py-0.5 text-[11px]">{e.allDay ? "" : `${hm(e.start)} `}{e.title}</div>)}
-                {view !== "month" && list.length === 0 && ev.length === 0 && <span className="text-xs font-medium text-muted-foreground/60">{t("No bookings")}</span>}
+                {view !== "month" && list.length === 0 && ev.length === 0 && !(itemsByDate.get(k)?.length) && <span className="text-xs font-medium text-muted-foreground/60">{t("No bookings")}</span>}
               </div>
             );
           })}
@@ -242,6 +292,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/40" />{t("Job Booking (down payment)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/80" />{t("Job Booking (paid in full)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-400/70" />{t("Job Complete")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-violet-400/60" />{t("My schedule")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-red-500/35" />{t("Blocked (clients can't book)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-gradient-gold" />{t("Today")}</span>
         </div>
@@ -303,6 +354,37 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           <div className="flex gap-2"><Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>{t("Prev")}</Button><Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button></div>
         </div>
       </section>
+
+      <Dialog open={adding} onOpenChange={setAdding}>
+        <DialogContent className="max-w-lg rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+          <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{t("Add")} <span className="it">{t("schedule")}</span></DialogTitle><DialogDescription>{t("A private entry on your calendar. Clients do not see it.")}</DialogDescription></DialogHeader>
+          <form className="grid gap-3.5" onSubmit={(e) => { e.preventDefault(); void saveItem(); }}>
+            <div className="space-y-2"><Label htmlFor="sch-title">{t("Title")}</Label><Input id="sch-title" maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t("e.g. Rehearsal, studio session")} autoFocus /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2"><Label htmlFor="sch-date">{t("Date")}</Label><Input id="sch-date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="sch-start">{t("Start time")}</Label><Input id="sch-start" type="time" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="sch-end">{t("End time")}</Label><Input id="sch-end" type="time" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} /></div>
+            </div>
+            <div className="space-y-2"><Label htmlFor="sch-notes">{t("Description")}</Label><Textarea id="sch-notes" rows={3} maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setAdding(false)}>{t("Cancel")}</Button><Button type="submit" disabled={saving} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t(saving ? "Saving…" : "Save schedule")}</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!item} onOpenChange={(o) => { if (!o) setItem(null); }}>
+        <DialogContent className="max-w-md rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+          {item && (
+            <>
+              <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{item.title}</DialogTitle><DialogDescription>{fmtDate(item.event_date)} · {hhmm(item.start_time)} – {hhmm(item.end_time)}</DialogDescription></DialogHeader>
+              <p className={`whitespace-pre-wrap break-words text-sm ${item.notes ? "" : "text-muted-foreground/60"}`}>{item.notes || t("No description")}</p>
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="outline" className="rounded-full border-red-400/40 text-red-300 hover:bg-red-500/10" onClick={() => void removeItem(item)}><Trash2 className="me-1.5 h-4 w-4" />{t("Delete")}</Button>
+                <Button variant="outline" className="rounded-full" onClick={() => setItem(null)}>{t("Close")}</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!open} onOpenChange={(o) => { if (!o) setOpen(null); }}>
         <DialogContent className="max-w-lg rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
