@@ -2633,6 +2633,7 @@ export type Database = {
           deleted_at: string | null
           deleted_reason: string | null
           document: Json
+          hidden_at: string | null
           id: string
           number: string
           paid_at: string | null
@@ -2647,6 +2648,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_reason?: string | null
           document: Json
+          hidden_at?: string | null
           id?: string
           number: string
           paid_at?: string | null
@@ -2661,6 +2663,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_reason?: string | null
           document?: Json
+          hidden_at?: string | null
           id?: string
           number?: string
           paid_at?: string | null
@@ -3326,6 +3329,10 @@ export type Database = {
       set_conversation_label: {
         Args: { _id: string; _label: string }
         Returns: undefined
+      }
+      set_invoices_hidden: {
+        Args: { _hidden: boolean; _ids: string[] }
+        Returns: number
       }
       settle_sandbox_order: {
         Args: {
