@@ -75,9 +75,9 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
       <ChatsInvoicesChart artistId={artistId} />
       <YourBalanceChart artistId={artistId} wallet={data?.wallet} />
       <article className="studio-kpi studio-span-3">
-        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("In escrow")}</span>
-        <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{escrow.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-        <div className="studio-kpi-action"><span>{t("Held until the job is completed")}</span><Button variant="outline" size="sm" className="studio-button" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button></div>
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("Available balance")}</span>
+        <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{Number(data?.wallet?.available ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div className="studio-kpi-action"><span>{t("In escrow")}: <b dir="ltr">AED {escrow.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></span><Button variant="outline" size="sm" className="studio-button" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button></div>
       </article>
       <article className="studio-kpi studio-span-3">
         <span className="studio-kpi-label"><span className="studio-kpi-icon"><FileSignature aria-hidden="true" /></span>{t("Jobs completed")}</span>
