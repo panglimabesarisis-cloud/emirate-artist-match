@@ -372,6 +372,13 @@
       "when": 1795331724472,
       "tag": "0052_artist_invoice_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795333314559,
+      "tag": "0053_owner_only_unpaid_inbox_deletion",
+      "breakpoints": true
     }
   ]
 }

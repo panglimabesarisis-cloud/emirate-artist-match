@@ -17,6 +17,7 @@ import { InvoiceCard } from "@/components/site/InvoiceCard";
 import { ChatAttachments } from "@/components/chat/ChatAttachments";
 import { useI18n } from "@/lib/i18n";
 import { initials } from "@/lib/format";
+import { useAuth } from "@/hooks/use-auth";
 import "./inbox.css";
 
 const hhmm = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
@@ -31,6 +32,7 @@ function Hit({ text, needle }: { text: string; needle: string }) {
 export function Inbox({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const reply$ = useServerFn(artistReply);
   const files$ = useServerFn(artistChatFiles);
   const [search, setSearch] = useState("");
@@ -54,6 +56,22 @@ export function Inbox({ artistId }: { artistId: string }) {
     },
     refetchInterval: 10000,
   });
+  const { data: deletionAccess } = useQuery({
+    queryKey: ["inbox-deletion-access", artistId, user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [owner, eligible] = await Promise.all([
+        supabase.rpc("is_artist_owner", { _artist: artistId }),
+        supabase.rpc("inbox_deletable_conversations", { _artist: artistId }),
+      ]);
+      if (owner.error) throw owner.error;
+      if (eligible.error) throw eligible.error;
+      return { owner: owner.data === true, ids: eligible.data ?? [] };
+    },
+    refetchInterval: 10000,
+  });
+  const canDelete = deletionAccess?.owner === true;
+  const deletable = new Set(deletionAccess?.ids ?? []);
   const convoIds = useMemo(() => (convos ?? []).map((c) => c.id), [convos]);
   const idsKey = convoIds.join(",");
 
@@ -112,6 +130,9 @@ export function Inbox({ artistId }: { artistId: string }) {
   const visible = rows.filter((c) => (!labelFilter || c.label === labelFilter) && (filter === "all" || c.mode === filter)
     && (!needle || `${c.name} ${lastLine(c.id)}`.toLowerCase().includes(needle)));
 
+  const selectable = visible.filter((c) => canDelete && deletable.has(c.id));
+  const selectedIds = picked.filter((id) => canDelete && deletable.has(id));
+
   useEffect(() => {
     const first = rows[0];
     if (!open && first) setOpen(first.id);
@@ -150,7 +171,7 @@ export function Inbox({ artistId }: { artistId: string }) {
     } catch { toast.error(t("Reply failed")); }
   };
   const pick = (id: string) => { setOpen(id); setShowChat(true); };
-  const refresh = () => { void qc.invalidateQueries({ queryKey: ["inbox", artistId] }); void qc.invalidateQueries({ queryKey: ["inbox-last", artistId] }); };
+  const refresh = () => { void qc.invalidateQueries({ queryKey: ["inbox", artistId] }); void qc.invalidateQueries({ queryKey: ["inbox-last", artistId] }); void qc.invalidateQueries({ queryKey: ["inbox-deletion-access", artistId] }); };
   const setLabel = async (id: string, label: InboxLabel | null) => {
     const { error } = await supabase.rpc("set_conversation_label", { _id: id, _label: label as string });
     if (error) { toast.error(t("Could not change the label")); return; }
@@ -158,17 +179,18 @@ export function Inbox({ artistId }: { artistId: string }) {
     refresh();
   };
   const hide = async () => {
-    const ids = ask ?? [];
+    const ids = (ask ?? []).filter((id) => canDelete && deletable.has(id)).slice(0, 200);
     if (ids.length === 0) return;
     setBusy(true);
-    const { error } = await supabase.rpc("soft_delete_conversations", { _ids: ids });
+    const { data: hiddenCount, error } = await supabase.rpc("soft_delete_conversations", { _ids: ids });
     setBusy(false);
     setAsk(null);
     if (error) { toast.error(t("Delete failed")); return; }
+    if (!hiddenCount) { refresh(); toast.error(t("Paid chats cannot be deleted. Only the artist owner can delete unpaid chats.")); return; }
     setPicked((cur) => cur.filter((id) => !ids.includes(id)));
     if (open && ids.includes(open)) { setOpen(null); setShowChat(false); }
     refresh();
-    toast(ids.length > 1 ? `${ids.length} ${t("chats deleted")}` : t("Chat deleted"), { duration: 6000, action: { label: t("Undo"), onClick: () => { void supabase.rpc("restore_conversations", { _ids: ids }).then(() => refresh()); } } });
+    toast(hiddenCount > 1 ? `${hiddenCount} ${t("chats deleted")}` : t("Chat deleted"), { duration: 6000, action: { label: t("Undo"), onClick: () => { void supabase.rpc("restore_conversations", { _ids: ids }).then(() => refresh()); } } });
   };
   const togglePick = (id: string, on?: boolean) => setPicked((cur) => (on ?? !cur.includes(id)) ? (cur.includes(id) ? cur : [...cur, id]) : cur.filter((x) => x !== id));
   const labelMenu = (id: string, current: InboxLabel | null, trigger: React.ReactNode) => (
@@ -202,11 +224,11 @@ export function Inbox({ artistId }: { artistId: string }) {
             {(Object.keys(INBOX_LABELS) as InboxLabel[]).map((k) => <Button variant="ghost" key={k} type="button" className={k} aria-pressed={labelFilter === k} onClick={() => setLabelFilter(k)}>{t(INBOX_LABELS[k])}</Button>)}
           </div>
         </div>
-        <div className="bulk">
-            <label className="ck"><Checkbox className="inbox-checkbox" checked={visible.length > 0 && visible.every((c) => picked.includes(c.id)) ? true : visible.some((c) => picked.includes(c.id)) ? "indeterminate" : false} onCheckedChange={(checked) => setPicked(checked === true ? visible.map((c) => c.id) : [])} />{t("Select all")}</label>
-            <Button variant="destructive" type="button" className="btn btn-danger" disabled={picked.length === 0} onClick={() => setAsk(picked)}><Trash2 className="size-[15px]" />{t("Delete")} {picked.length ? `(${picked.length})` : ""}</Button>
-        </div>
-        <ul className="threads selecting">
+        {canDelete && <div className="bulk">
+            <label className="ck"><Checkbox className="inbox-checkbox" disabled={selectable.length === 0} checked={selectable.length > 0 && selectable.every((c) => selectedIds.includes(c.id)) ? true : selectable.some((c) => selectedIds.includes(c.id)) ? "indeterminate" : false} onCheckedChange={(checked) => setPicked(checked === true ? selectable.slice(0, 200).map((c) => c.id) : [])} />{t("Select all")}</label>
+            <Button variant="destructive" type="button" className="btn btn-danger" disabled={selectedIds.length === 0} onClick={() => setAsk(selectedIds.slice(0, 200))}><Trash2 className="size-[15px]" />{t("Delete")} {selectedIds.length ? `(${selectedIds.length})` : ""}</Button>
+        </div>}
+        <ul className={`threads${canDelete ? " selecting" : ""}`}>
           {visible.map((c) => {
             const preview = lastLine(c.id);
             return (
@@ -214,7 +236,7 @@ export function Inbox({ artistId }: { artistId: string }) {
                 <div role="button" tabIndex={0} className="th-b" aria-current={c.id === open}
                   onClick={() => pick(c.id)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c.id); } }}>
-                  <span className="ck" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><Checkbox className="inbox-checkbox" aria-label={`${t("Select")} ${c.name}`} checked={picked.includes(c.id)} onCheckedChange={(checked) => togglePick(c.id, checked === true)} /></span>
+                  {canDelete && <span className="ck" title={!deletable.has(c.id) ? t("Paid chats cannot be deleted") : undefined} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><Checkbox className="inbox-checkbox" disabled={!deletable.has(c.id) || (selectedIds.length >= 200 && !selectedIds.includes(c.id))} aria-label={`${t("Select")} ${c.name}`} checked={selectedIds.includes(c.id)} onCheckedChange={(checked) => togglePick(c.id, checked === true)} /></span>}
                   <span className="av2" aria-hidden="true">{c.named ? initials(c.name) : "D"}<i className={c.mode === "human" ? "you" : ""}>{c.mode === "human" ? t("YOU") : t("AI")}</i></span>
                   <span className="th-t">
                     <span className="th-r1"><b><Hit text={c.name} needle={needle} /></b><time>{hhmm(c.last_message_at)}</time></span>
@@ -223,7 +245,7 @@ export function Inbox({ artistId }: { artistId: string }) {
                     <span className="th-lbl">{labelMenu(c.id, c.manualLabel ? c.label : null, <button type="button" className="lbl-btn" aria-label={`${t("Label for")} ${c.name}: ${t(INBOX_LABELS[c.label])}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span><ChevronDown className="size-3" aria-hidden="true" /></button>)}</span>
                   </span>
                 </div>
-                {picked.length === 0 && <button type="button" className="th-del" aria-label={`${t("Delete")} ${c.name}`} onClick={() => setAsk([c.id])}><Trash2 className="size-4" /></button>}
+                {canDelete && deletable.has(c.id) && selectedIds.length === 0 && <Button variant="ghost" type="button" className="th-del" aria-label={`${t("Delete")} ${c.name}`} onClick={() => setAsk([c.id])}><Trash2 className="size-4" /></Button>}
               </li>
             );
           })}
@@ -247,7 +269,7 @@ export function Inbox({ artistId }: { artistId: string }) {
             <div className="c-act">
               <span className="mode"><span className="dot" /><span>{t(mine ? "You are handling this chat" : "AI is handling this chat")}</span></span>
               <button type="button" className="btn btn-line" onClick={() => void setMode(mine ? "ai" : "human")}><Hand className="size-4" /><span>{t(mine ? "Hand back to AI" : "Take over")}</span></button>
-              <button type="button" className="icon-del" aria-label={t("Delete this chat")} onClick={() => setAsk([current.id])}><Trash2 className="size-[17px]" /></button>
+              {canDelete && deletable.has(current.id) && <Button variant="ghost" type="button" className="icon-del" aria-label={t("Delete this chat")} onClick={() => setAsk([current.id])}><Trash2 className="size-[17px]" /></Button>}
             </div>
           </header>
           <div className="msgs" aria-live="polite">

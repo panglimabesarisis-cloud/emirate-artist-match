@@ -3287,6 +3287,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      inbox_deletable_conversations: {
+        Args: { _artist: string }
+        Returns: string[]
+      }
       is_any_artist_team: { Args: never; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
