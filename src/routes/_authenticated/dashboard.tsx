@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -269,7 +270,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "packages" && <RateCardTable artistId={artist.id} />}
           {section === "orderform" && <OrderFormBuilder artistId={artist.id} />}
           {section === "media" && <MediaTab artistId={artist.id} />}
-          {section === "verify" && <Verification artistId={artist.id} userId={userId} />}
+          {section === "verify" && <VerificationPage artistId={artist.id} userId={userId} />}
           {section === "agent" && <AgentSettings artistId={artist.id} />}
           {section === "flow" && <FlowBuilder artistId={artist.id} />}
           {section === "team" && <><TeamTab artistId={artist.id}/><TeamPhones artistId={artist.id}/></>}
@@ -478,38 +479,6 @@ function Visibility({ artistId }: { artistId: string }) {
       <p className="text-xs text-muted-foreground">Reviews are always public to keep the marketplace trustworthy.</p>
     </div>
   );
-}
-
-function Verification({ artistId, userId }: { artistId: string; userId: string }) {
-  const { t } = useI18n();
-  const qc = useQueryClient();
-  const key = ["verif", artistId];
-  const { data } = useQuery({
-    queryKey: key,
-    queryFn: async () => {
-      const [apps, badges] = await Promise.all([
-        supabase.from("verification_applications").select("*").eq("artist_id", artistId).order("created_at", { ascending: false }),
-        supabase.from("artist_badges").select("badge").eq("artist_id", artistId),
-      ]);
-      return { apps: apps.data ?? [], badges: (badges.data ?? []).map((b) => b.badge) };
-    },
-  });
-  const [type, setType] = useState("verified_identity");
-  const [file, setFile] = useState<File | null>(null);
-  const [note, setNote] = useState("");
-  const submit = async () => {
-    if (!file) { toast.error(t("Attach a document (PDF or image).")); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error(t("Max 10 MB.")); return; }
-    const path = `${userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-    const up = await supabase.storage.from("verification-docs").upload(path, file);
-    if (up.error) { toast.error(up.error.message); return; }
-    const { error } = await supabase.from("verification_applications").insert({ artist_id: artistId, badge_type: type, doc_path: path, note: note.slice(0, 500) });
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("Application submitted. Review takes up to 3 business days."));
-    setFile(null); setNote("");
-    qc.invalidateQueries({ queryKey: key });
-  };
-  return <div className="dmr-wrap dmr-vfpage"><StudioHeading title="Veri" accent="fication" /><div className="studio-verification-ladder">{["verified_identity","verified_business","verified_performer"].map(badge=><section key={badge} className={`studio-verification-step ${data?.badges.includes(badge) ? "is-earned" : ""}`}><BadgeCheck className="size-8 text-gold" /><h3>{t(BADGE_LABELS[badge] ?? badge)}</h3><Badge>{t(data?.badges.includes(badge) ? "Verified" : "Not verified")}</Badge></section>)}</div><div className="dmr-w-left"><StudioSection title="Apply for a" accent="badge"><div className="space-y-4"><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="verified_identity">{t("ID Verified (Emirates ID / passport)")}</SelectItem><SelectItem value="verified_business">{t("Business Verified (trade licence)")}</SelectItem><SelectItem value="verified_performer">{t("Verified Performer (portfolio / references)")}</SelectItem></SelectContent></Select><Input type="file" accept=".pdf,image/*" onChange={e=>setFile(e.target.files?.[0] ?? null)} /><Textarea placeholder={t("Notes for the reviewer (optional)")} value={note} onChange={e=>setNote(e.target.value)} /><Button onClick={submit}>{t("Submit application")}</Button></div></StudioSection><StudioSection title="Road to the" accent="Top badge"><StudioSoon label="Top badge progress" /></StudioSection><section className="dmr-panel dmr-q-panel"><div className="dmr-q-tools"><h2>{t("Your")} <span className="it">{t("applications")}</span></h2></div><div className="dmr-tbl-wrap"><table data-studio-table="true"><thead><tr>{["Date","Type","Status","Note"].map(h=><th key={h}>{t(h)}</th>)}</tr></thead><tbody>{data?.apps.map(a=><tr key={a.id}><td data-label={t("Date")}>{new Date(a.created_at).toLocaleDateString("en-GB")}</td><td data-label={t("Type")}>{t(BADGE_LABELS[a.badge_type] ?? a.badge_type)}</td><td data-label={t("Status")}><Badge>{t(a.status.replace(/_/g," "))}</Badge></td><td data-label={t("Note")}>{a.admin_note ?? "—"}</td></tr>)}</tbody></table></div>{!data?.apps.length && <StudioEmpty title={t("No applications yet")} icon={BadgeCheck} />}</section></div><aside className="dmr-w-side"><StudioSection title="What you" accent="need"><div className="space-y-4 text-sm text-muted-foreground"><p>{t("ID Verified (Emirates ID / passport)")}</p><p>{t("Business Verified (trade licence)")}</p><p>{t("Verified Performer (portfolio / references)")}</p></div></StudioSection><StudioSection title="How we protect" accent="your data"><p className="text-sm text-muted-foreground">{t("Documents are stored privately and only visible to our verification team.")}</p><StudioSoon label="WhatsApp OTP and identity screening" /></StudioSection></aside></div>;
 }
 
 function Reviews({ artistId }: { artistId: string }) {
