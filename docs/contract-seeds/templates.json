@@ -1,0 +1,343 @@
+{
+  "note": "Draft contract templates for Dealmaker. They are not legal advice and must be reviewed by a qualified lawyer in the UAE before they are activated. Seed them with is_active = false.",
+  "placeholders": [
+    "{artist}",
+    "{client}",
+    "{service}",
+    "{date}",
+    "{time}",
+    "{venue}",
+    "{total}",
+    "{vat}"
+  ],
+  "templates": [
+    {
+      "slug": "emcee",
+      "name": "Emcee for an event",
+      "category": "Hosts and speakers",
+      "role": "Emcee",
+      "description": "Master of ceremonies for weddings, galas and corporate evenings.",
+      "tier": "free",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): master of ceremonies, running the programme, introductions and audience engagement. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Programme and run of show",
+          "body": "The client shares the run of show at least three days before {date}. {artist} may adapt wording and pacing for the audience while keeping the agreed programme."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Wireless microphone with a backup, a table or podium, water, and a printed run of show.",
+      "is_active": false
+    },
+    {
+      "slug": "host",
+      "name": "Event host",
+      "category": "Hosts and speakers",
+      "role": "Host",
+      "description": "Presenter and host for launches, awards and brand activations.",
+      "tier": "free",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): hosting and presenting, including scripted segments and live interaction. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Scripts and approvals",
+          "body": "The client supplies scripts, names and pronunciations at least three days before {date}. Last minute changes are made in good faith."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Autocue or printed script, microphone, a green room, and a named contact on site.",
+      "is_active": false
+    },
+    {
+      "slug": "speaker",
+      "name": "Keynote speaker",
+      "category": "Hosts and speakers",
+      "role": "Speaker",
+      "description": "Keynote or panel talk with agreed topic and duration.",
+      "tier": "basic",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): a keynote or panel contribution on the agreed topic and duration. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Topic, slides and recording",
+          "body": "The topic and duration are agreed in advance. Slides are shared two days before {date}. Recording or streaming of the talk needs the prior written consent of {artist}."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Clicker, confidence monitor, microphone, and a test slot before the session.",
+      "is_active": false
+    },
+    {
+      "slug": "model",
+      "name": "Model for a shoot or show",
+      "category": "Models and creators",
+      "role": "Model",
+      "description": "Runway, catalogue or event modelling with usage terms.",
+      "tier": "basic",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): modelling for the agreed shoot, show or activation, including fittings and rehearsals. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Usage of images",
+          "body": "Images may be used for the campaign described in the booking and for the period agreed in writing. Any other use, and any retouching that changes the appearance of {artist}, needs prior written consent."
+        },
+        {
+          "title": "Wardrobe, hair and make-up",
+          "body": "Wardrobe, hair and make-up are approved with {artist} in advance. Changing facilities and breaks are provided on site."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Private changing room, meals and water, breaks every two hours, and safe transport for late finishes.",
+      "is_active": false
+    },
+    {
+      "slug": "creator",
+      "name": "Content creator collaboration",
+      "category": "Models and creators",
+      "role": "Creator",
+      "description": "Sponsored posts, videos and appearances with disclosure rules.",
+      "tier": "medium",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): creating and publishing the agreed content, with the deliverables listed in the booking. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Deliverables, approval and disclosure",
+          "body": "Deliverables, dates and platforms are listed in the booking. {client} approves drafts within two days. Paid content is clearly labelled as an advertisement as UAE rules require."
+        },
+        {
+          "title": "Usage and exclusivity",
+          "body": "{client} may reshare the content on its own channels for the agreed period. Exclusivity applies only if stated in writing."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Product or brief delivered a week ahead, brand guidelines, and one named approver.",
+      "is_active": false
+    },
+    {
+      "slug": "singer",
+      "name": "Singer or live vocalist",
+      "category": "Performers",
+      "role": "Performer",
+      "description": "Live vocal performance with sound requirements.",
+      "tier": "free",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): a live vocal performance of the agreed length and style. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Set length and sound",
+          "body": "The set length is stated in the booking. The client provides professional sound and a sound check before {date}. {artist} may stop if conditions are unsafe for the performer or the equipment."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "PA system with monitor, two microphones, a stage or clear performance area, water, and a changing room.",
+      "is_active": false
+    },
+    {
+      "slug": "band",
+      "name": "Live band",
+      "category": "Performers",
+      "role": "Band",
+      "description": "Band performance with crew, load-in and sound needs.",
+      "tier": "basic",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): a live band performance of the agreed length with the listed line-up. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Line-up, load-in and sound",
+          "body": "The line-up is listed in the booking. Substitutions of members are made with notice. Load-in access, parking and a sound check slot are provided by the client."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "Stage plot and input list followed, backline as agreed, power points, a green room, meals and water for the crew.",
+      "is_active": false
+    },
+    {
+      "slug": "dancer",
+      "name": "Dancer or dance troupe",
+      "category": "Performers",
+      "role": "Dancer",
+      "description": "Dance performance with floor and safety requirements.",
+      "tier": "free",
+      "clauses": [
+        {
+          "title": "Parties and services",
+          "body": "{artist} (the talent) will provide the following services to {client} (the client): a dance performance of the agreed length and style, with the listed performers. The service is booked as {service} on {date} at {time}, at {venue}."
+        },
+        {
+          "title": "Fee, deposit and escrow",
+          "body": "The total fee for {service} is {total} including 5% VAT of {vat}. The client pays the deposit shown in the booking into Dealmaker escrow, and any remaining balance is due seven days before {date}. Funds are released to {artist} after the event, once the dispute window has passed."
+        },
+        {
+          "title": "Arrival, timing and delivery",
+          "body": "{artist} arrives and is ready at the agreed time. The client confirms access to the venue, the schedule and a contact person on site. Delays caused by the venue or the client extend the booked time at the same rate."
+        },
+        {
+          "title": "Floor, space and safety",
+          "body": "The client provides a clean, even and safe performance floor and enough space for the performers. {artist} may delay or stop the performance if the floor or conditions are unsafe."
+        },
+        {
+          "title": "Cancellation and refunds",
+          "body": "If {client} cancels 14 or more days before {date}, the refund is 100%. Between 7 and 13 days the refund is 50%. Under 7 days there is no refund. If {artist} cancels, {client} receives a 100% refund."
+        },
+        {
+          "title": "Recording and content rights",
+          "body": "Photos or recordings of the performance may be made by {client} for private and promotional use only. Commercial rebroadcast or resale needs the written agreement of {artist}."
+        },
+        {
+          "title": "Law, conduct and content",
+          "body": "Both parties follow the laws of the United Arab Emirates and the rules of the venue at {venue}. Content, language and dress must respect local cultural norms and licensing requirements."
+        }
+      ],
+      "rider": "A clean non-slip floor of the stated size, a private changing room, music playback with a technician, and water.",
+      "is_active": false
+    }
+  ]
+}
