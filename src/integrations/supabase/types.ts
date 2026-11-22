@@ -1786,6 +1786,24 @@ export type Database = {
           },
         ]
       }
+      drive_folders: {
+        Row: {
+          created_at: string
+          drive_id: string
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          drive_id: string
+          key: string
+        }
+        Update: {
+          created_at?: string
+          drive_id?: string
+          key?: string
+        }
+        Relationships: []
+      }
       emirates: {
         Row: {
           id: string
@@ -1978,6 +1996,62 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_archive_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          drive_file_id: string | null
+          drive_file_name: string | null
+          drive_folder_path: string | null
+          id: string
+          invoice_id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          run_after: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_path?: string | null
+          id?: string
+          invoice_id: string
+          kind: string
+          last_error?: string | null
+          locked_at?: string | null
+          run_after?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_path?: string | null
+          id?: string
+          invoice_id?: string
+          kind?: string
+          last_error?: string | null
+          locked_at?: string | null
+          run_after?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_archive_jobs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "service_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -3381,6 +3455,30 @@ export type Database = {
         Returns: boolean
       }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
+      claim_invoice_archive_jobs: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          drive_file_id: string | null
+          drive_file_name: string | null
+          drive_folder_path: string | null
+          id: string
+          invoice_id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          run_after: string
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "invoice_archive_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_payment_followup: { Args: { _id: string }; Returns: boolean }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
       expire_unpaid_records: { Args: never; Returns: Json }
