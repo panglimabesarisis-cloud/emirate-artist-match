@@ -21,6 +21,11 @@ export function AdminLibrary() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("contracts");
+  const bookingTemplates = useQuery({ queryKey: ["admin-library-contract-bookings"], ...libraryRefresh, enabled: tab === "contracts", queryFn: async () => {
+    const { data, error } = await supabase.from("bookings").select("contract_template_id").in("status", ["quoted", "confirmed", "completed", "cancelled", "disputed"]);
+    if (error) throw error;
+    return (data ?? []).map((row) => row.contract_template_id);
+  } });
   const catalog = useQuery({ queryKey: ["admin-library-counts"], ...libraryRefresh, queryFn: async () => {
     const [p, f, o, c] = await Promise.all([
       supabase.from("agent_prompts").select("id, title, is_active"),
@@ -65,7 +70,7 @@ export function AdminLibrary() {
       <Button variant={tab === "audit" ? "default" : "outline"} onClick={() => setTab("audit")}><History className="size-4" />{t("Audit history")}</Button>
       <Button variant={tab === "rates" ? "default" : "outline"} onClick={() => setTab("rates")}>{t("AI model rates")}</Button>
     </div>
-    {tab === "contracts" && <AdminContractTemplates />}
+    {tab === "contracts" && <section className="dmr-wrap dmr-kpage" aria-label={t("Contract templates")}><div className="dmr-panel dmr-c-12"><h2 className="mb-5 font-display text-[28px]">{t("Contract")} <span className="it">{t("templates")}</span></h2><AdminContractTemplates cards bookingTemplates={bookingTemplates.data ?? []} /></div></section>}
     {tab === "flows" && <FlowBuilder artistId={null} libraryOnly />}
     {tab === "forms" && <AdminFormTemplates />}
     {tab === "prompts" && <AdminPrompts />}

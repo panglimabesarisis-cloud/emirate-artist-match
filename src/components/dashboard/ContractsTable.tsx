@@ -1,4 +1,3 @@
-import { AdminContractTemplates } from "@/components/admin/AdminMarketplace";
 import { ContractTemplateLibrary, TemplatePicker, useContractTemplates } from "./ContractTemplates";
 import { ContractPreviewDialog, type ContractDoc } from "./ContractPreview";
 import { parseStoredTerms } from "@/lib/contract-terms";
@@ -149,7 +148,7 @@ export function ContractsTable({ artistId }: { artistId?: string }) {
     clauses: CONTRACT_TERMS.map((term) => ({ title: "", body: t(term) })),
     footer: contract.contract_accepted_at ? `${t("Accepted at")} ${new Date(contract.contract_accepted_at).toLocaleString("en-GB")}` : t("Awaiting acceptance"),
   } : null;
-  return <section className="dmr-wrap dmr-kpage"><StudioHeading title="Contr" accent="acts"><div className="dmr-q-stats"><div className="dmr-qs"><small>{t("Awaiting")}</small><b>{data.filter(row=>!row.contract_accepted_at).length}</b></div><div className="dmr-qs"><small>{t("Accepted")}</small><b>{data.filter(row=>row.contract_accepted_at).length}</b></div></div></StudioHeading>{artistId ? <ContractTemplateLibrary artistId={artistId} bookingTemplates={data.map((row) => row.contract_template_id)} /> : <div className="dmr-panel dmr-c-12"><h2 className="mb-5 font-display text-[28px]">{t("Contract")} <span className="it">{t("templates")}</span></h2><AdminContractTemplates cards bookingTemplates={data.map((row) => row.contract_template_id)} /></div>}
+  return <section className="dmr-wrap dmr-kpage"><StudioHeading title="Contr" accent="acts"><div className="dmr-q-stats"><div className="dmr-qs"><small>{t("Awaiting")}</small><b>{data.filter(row=>!row.contract_accepted_at).length}</b></div><div className="dmr-qs"><small>{t("Accepted")}</small><b>{data.filter(row=>row.contract_accepted_at).length}</b></div></div></StudioHeading>{artistId && <ContractTemplateLibrary artistId={artistId} bookingTemplates={data.map((row) => row.contract_template_id)} />}
     {artistId ? <ArtistContractsPanel key={storageKey} artistId={artistId} rows={data as unknown as ContractRow[]} isPending={isPending} error={error} onView={setSelected} storageKey={storageKey} /> : <BookingContractsPanel key={storageKey} rows={data as unknown as ContractRow[]} isPending={isPending} error={error} onView={setSelected} storageKey={storageKey} />}
     {artistId ? <ArtistContractDialog artistId={artistId} contract={contract as unknown as ContractFull | undefined} onClose={() => setSelected(null)} /> : <ContractPreviewDialog doc={adminDoc} title={`${t("Booking contract")} ${t("· Dealmaker")}`} onClose={() => setSelected(null)} />}
   </section>;
