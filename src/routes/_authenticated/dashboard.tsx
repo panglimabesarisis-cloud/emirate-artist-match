@@ -15,7 +15,7 @@ import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
 import { QuoteRequests } from "@/components/dashboard/QuoteRequests";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
-import { CalendarSync,TeamTab } from "@/components/dashboard/TeamTabs";
+import { TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
 import { BadgeCheck, Bell, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
@@ -258,7 +258,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
           {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
-          {section === "calendar" && <><CalendarTab artistId={artist.id} /><CalendarSync artistId={artist.id} /></>}
+          {section === "calendar" && <CalendarTab artistId={artist.id} />}
           {section === "contracts" && <ContractsTable artistId={artist.id} />}
           {section === "invoices" && <InvoicesTab artistId={artist.id} />}
           {section === "wallet" && <WalletTab artistId={artist.id} />}
