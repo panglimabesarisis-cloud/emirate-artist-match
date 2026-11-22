@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/public/calendar/$token")({
         if (!cal) return new Response("Not found", { status: 404 });
         const since = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
         const [{ data: bookings }, { data: blocks }] = await Promise.all([
-          supabaseAdmin.from("bookings").select("id, client_name, package_title, event_date, status, guests, invoice_no").eq("artist_id", cal.artist_id).in("status", ["confirmed", "completed", "quoted", "inquiry"]).gte("event_date", since),
+          supabaseAdmin.from("bookings").select("id, client_name, package_title, event_date, status, guests, invoice_no").eq("artist_id", cal.artist_id).is("deleted_at", null).in("status", ["confirmed", "completed", "quoted", "inquiry"]).gte("event_date", since),
           supabaseAdmin.from("availability").select("id, date, note").eq("artist_id", cal.artist_id).gte("date", since),
         ]);
         const label: Record<string, string> = { confirmed: "Booked", completed: "Done", quoted: "Offer sent", inquiry: "Needs approval" };

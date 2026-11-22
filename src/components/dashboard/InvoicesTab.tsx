@@ -93,7 +93,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
             <div className="space-y-2"><Label htmlFor="inv-issue">{t("Issue date")}</Label><Input id="inv-issue" type="date" value={today} disabled aria-describedby="inv-issue-note" /></div>
             <div className="space-y-2"><Label htmlFor="inv-due">{t("Due date")}</Label><Input id="inv-due" type="date" min={today} value={due} onChange={(e) => setDue(e.target.value)} /></div>
           </div>
-          <p id="inv-issue-note" className="-mt-2 text-[11px] text-muted-foreground">{t("Issue date is set to the day you send it.")}</p>
+          <p id="inv-issue-note" className="-mt-2 text-[11px] text-muted-foreground">{t("Issue date is set to the day you send it.")} {t("An unpaid invoice is removed automatically once its due date has passed (hidden first, deleted permanently after 90 days).")}</p>
           <div className="flex flex-col gap-2.5 rounded-2xl border border-border p-3.5">
             <div className="flex items-center justify-between"><span className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Services")}</span>
               <Button size="sm" variant="outline" className="rounded-full" onClick={() => setItems([...items, { title: "", qty: 1, price: 0 }])}><Plus className="me-1 h-3.5 w-3.5" />{t("Custom item")}</Button></div>

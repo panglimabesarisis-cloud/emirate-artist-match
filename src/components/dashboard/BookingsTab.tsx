@@ -193,7 +193,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
             <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button>
           </div>
         </div>
-        <p className="px-5 pb-4 text-xs text-muted-foreground">{t("All totals in AED, incl. 5% VAT")}</p>
+        <p className="px-5 pb-4 text-xs text-muted-foreground">{t("All totals in AED, incl. 5% VAT")}. {t("Unpaid bookings are removed automatically once the event date has passed (hidden first, deleted permanently after 90 days).")}</p>
       </section>
       <Dialog open={!!info} onOpenChange={(o) => { if (!o) setInfo(null); }}>
         <DialogContent className="w-[min(600px,100%)] max-w-none rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120] p-[26px]">
