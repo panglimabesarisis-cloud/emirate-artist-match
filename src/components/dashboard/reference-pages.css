@@ -2086,3 +2086,19 @@ html.dm-dash .studio-reference .dmr-fl-ins{border-inline-start:0;border-top:1px 
 @media (max-width:720px){html.dm-dash .studio-reference .dmr-fl-tg{padding:14px}
 html.dm-dash .studio-reference .dmr-fl-state{padding:16px}}
 html.dm-dash .studio-reference .dmr-fl-n.run{border-color:var(--studio-reference-tone-101);box-shadow:0 0 0 3px var(--studio-reference-tone-58)}
+
+/* .btn family from dashboard.html (.dmr-btn-base marks that it is present) */
+html.dm-dash .studio-reference .dmr-btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:10px 16px;border-radius:999px;border:1px solid transparent;cursor:pointer;transition:transform .4s var(--studio-ease),background .3s,color .3s,border-color .3s,box-shadow .3s;white-space:nowrap}
+html.dm-dash .studio-reference .dmr-btn:active{transform:scale(.96)}
+html.dm-dash .studio-reference .dmr-btn-gold{background:var(--gradient-gold);color:var(--background);box-shadow:0 8px 24px rgba(232,164,63,.22)}
+html.dm-dash .studio-reference .dmr-btn-gold:hover{box-shadow:0 12px 30px rgba(232,164,63,.35);transform:translateY(-1px)}
+html.dm-dash .studio-reference .dmr-btn-line{border-color:var(--studio-line-2);color:var(--foreground);background:transparent}
+html.dm-dash .studio-reference .dmr-btn-line:hover{border-color:var(--gold);color:var(--gold)}
+html.dm-dash .studio-reference .dmr-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+html.dm-dash .studio-reference .dmr-btn-base{}
+
+/* the global table cell styling must not leak into the compact summary tables */
+html.dm-dash .studio-reference .dmr-pf-sm th, html.dm-dash .studio-reference .dmr-pf-sm td{background:none;border-bottom:0;white-space:normal;font-family:inherit}
+html.dm-dash .studio-reference .dmr-pf-sm td{font-size:13px;text-transform:none;letter-spacing:0}
+html.dm-dash .studio-reference .dmr-pf-cf td{white-space:nowrap}
+html.dm-dash .studio-reference .dmr-pf-cf tr.hl th, html.dm-dash .studio-reference .dmr-pf-cf tr.hl td{background:none}

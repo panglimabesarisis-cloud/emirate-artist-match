@@ -397,7 +397,7 @@ function ChangePassword() {
             ))}
           </div>
           <div className={`dmr-tm-meter${score ? ` s${score}` : ""}`} aria-hidden="true" style={{ marginTop: 10 }}><i /><i /><i /><i /></div>
-          <span className={`dmr-f-hint${error ? " bad" : ""}`} aria-live="polite">{error || t("At least 10 characters with upper case, lower case and a number.")}</span>
+          <div><span className={`dmr-f-hint${error ? " bad" : ""}`} aria-live="polite">{error || t("At least 10 characters with upper case, lower case and a number.")}</span></div>
           <button type="submit" className="dmr-btn dmr-btn-line" disabled={busy} style={{ marginTop: 6 }}>{busy ? t("Saving…") : t("Update password")}</button>
         </form>
       )}
