@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ChevronDown, DollarSign, FileSignature, Lock, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { libraryRefresh } from "@/lib/library-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useI18n } from "@/lib/i18n";
@@ -18,7 +19,7 @@ import { StudioEmpty } from "./StudioPage";
 import { useArtistPlan } from "./PromptLibrary";
 import { ContractPreviewDialog, type ContractDoc } from "./ContractPreview";
 
-export type Template = { id: string; artist_id: string | null; name: string; category: string | null; role: string | null; description: string | null; clauses: Clause[]; rider: string | null; tier: string; is_active: boolean };
+export type Template = { id: string; artist_id: string | null; name: string; category: string | null; role: string | null; description: string | null; clauses: Clause[]; rider: string | null; tier: string; is_active: boolean; price_aed?: number; version?: number; unlocked?: boolean };
 
 const asClauses = (v: unknown): Clause[] => (Array.isArray(v) ? (v as Array<Record<string, unknown>>).filter((c) => c && typeof c["title"] === "string" && typeof c["body"] === "string").map((c) => ({ title: String(c["title"]), body: String(c["body"]) })) : []);
 
@@ -26,16 +27,16 @@ const asClauses = (v: unknown): Clause[] => (Array.isArray(v) ? (v as Array<Reco
 export function useContractTemplates(artistId: string) {
   const plan = useArtistPlan(artistId);
   const list = useQuery({
-    queryKey: ["contract-templates", artistId],
+    queryKey: ["contract-templates", artistId], ...libraryRefresh,
     queryFn: async () => {
-      const res = await supabase.from("contract_templates").select("id, artist_id, name, category, role, description, clauses, rider, tier, is_active").order("name");
+      const res = await supabase.rpc("list_contract_templates", { _artist: artistId });
       if (res.error) throw res.error;
       return (res.data ?? []).map((r) => ({ ...r, clauses: asClauses(r.clauses) })) as Template[];
     },
   });
   const rank = useMemo(() => new Map((plan.data?.tiers ?? []).map((x) => [x.code, x.sort])), [plan.data]);
   const myRank = rank.get(plan.data?.code ?? "free") ?? 1;
-  const usable = (tpl: Template) => tpl.artist_id !== null || (tpl.is_active && (rank.get(tpl.tier) ?? 99) <= myRank);
+  const usable = (tpl: Template) => tpl.unlocked === true;
   return { templates: list.data ?? [], isPending: list.isPending, error: list.error, plan, rank, myRank, usable };
 }
 
@@ -175,7 +176,8 @@ export function ContractTemplateLibrary({ artistId }: { artistId: string }) {
       {error ? <p role="alert" className="text-destructive">{t("Could not load templates.")}</p> : isPending ? <p className="text-sm text-muted-foreground">{t("Loading…")}</p> : shown.length === 0 ? <StudioEmpty title={visible.length === 0 ? t("No templates yet") : t("No template matches your search.")} /> : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {shown.map((x) => {
-            const locked = x.artist_id === null && (rank.get(x.tier) ?? 99) > myRank;
+            const locked = x.unlocked !== true;
+            const tierLocked = (rank.get(x.tier) ?? 99) > myRank;
             return (
               <li key={x.id} className="flex flex-col gap-2 rounded-2xl border border-border p-4">
                 <div className="flex items-start gap-3">
@@ -186,13 +188,15 @@ export function ContractTemplateLibrary({ artistId }: { artistId: string }) {
                       {x.category && <Badge variant="outline">{x.category}</Badge>}
                       {x.artist_id === null ? <Badge variant="secondary">Dealmaker</Badge> : <Badge className="bg-gold/20 text-gold">{t("Yours")}</Badge>}
                       {x.tier !== "free" && <Badge variant="outline">{tierName(x.tier)}+</Badge>}
-                      <Badge variant="outline">{x.clauses.length} {t("clauses")}</Badge>
+                      {!locked && <Badge variant="outline">{x.clauses.length} {t("clauses")}</Badge>}
+                      {x.version && <Badge variant="outline">v{x.version}</Badge>}
+                      {Number(x.price_aed) > 0 && <Badge variant="outline">AED {Number(x.price_aed).toFixed(2)} + {t("VAT 5%")}</Badge>}
                     </div>
                   </div>
                 </div>
                 {x.description && <p className="text-xs text-muted-foreground">{x.description}</p>}
                 <div className="mt-auto flex items-center justify-end gap-1 pt-1">
-                  {locked && <span className="me-auto inline-flex items-center gap-1 text-xs text-gold"><Lock className="h-3 w-3" aria-hidden />{t("Needs")} {tierName(x.tier)}</span>}
+                  {locked && <span className="me-auto inline-flex items-center gap-1 text-xs text-gold"><Lock className="h-3 w-3" aria-hidden />{tierLocked ? `${t("Needs")} ${tierName(x.tier)}` : t("Purchase required")}</span>}
                   {locked
                     ? <Button size="icon" variant="ghost" title={t("Locked: not part of your plan")} aria-label={`${t("Locked template")} ${x.name}`} onClick={() => setView(x)}><span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-gold text-gold-foreground"><DollarSign className="h-4 w-4" strokeWidth={3} /></span></Button>
                     : <Button size="sm" variant="outline" className="rounded-full" onClick={() => setView(x)}>{t("Preview")}</Button>}
@@ -214,7 +218,7 @@ export function ContractTemplateLibrary({ artistId }: { artistId: string }) {
         <div className="flex gap-2"><Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>{t("Prev")}</Button><Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button></div>
       </div>
 
-      <ContractPreviewDialog doc={view ? templateDoc(view, t) : null} title={view ? `${view.name} ${t("· template")}` : ""} locked={!!view && view.artist_id === null && (rank.get(view.tier) ?? 99) > myRank} planName={view ? tierName(view.tier) : ""} artistId={artistId} onClose={() => setView(null)} />
+      <ContractPreviewDialog doc={view ? templateDoc(view, t) : null} title={view ? `${view.name} ${t("· template")}` : ""} locked={!!view && view.unlocked !== true} purchaseRequired={!!view && Number(view.price_aed) > 0 && (rank.get(view.tier) ?? 99) <= myRank} planName={view ? tierName(view.tier) : ""} artistId={artistId} onClose={() => setView(null)} />
       <ContractPreviewDialog doc={previewing && edit ? templateDoc({ ...blankTemplate, name: edit.name.trim(), role: edit.role.trim() || null, clauses: edit.clauses, rider: edit.rider.trim() || null }, t) : null} title={`${edit?.name.trim() || t("Template")} ${t("· template")}`} artistId={artistId} onClose={() => setPreviewing(false)} />
 
       <Dialog open={!!edit && !previewing} onOpenChange={(o) => { if (!o && !saving) { setEdit(null); setErr(""); setBad({}); } }}>

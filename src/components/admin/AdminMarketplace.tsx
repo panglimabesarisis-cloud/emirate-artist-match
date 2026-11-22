@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const card = "rounded-xl border bg-card";
+import { FormQuestionEditor } from "./FormQuestionEditor";
+import { ContractPaper, type ContractDoc } from "@/components/dashboard/ContractPreview";
+import { invalidateLibraries, libraryRefresh } from "@/lib/library-query";
+import { useI18n } from "@/lib/i18n";
+
+const card = "rounded-lg border bg-card";
 const field = "space-y-1.5";
 
 function useTiers() {
@@ -31,8 +36,8 @@ export function AdminPrompts() {
   const [edit, setEdit] = useState<PromptDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const list = useQuery({
-    queryKey: ["admin-prompts"],
-    queryFn: async () => (await supabase.from("agent_prompts").select("id, kind, title, category, description, applies_when, priority, tier, price_aed, is_active, updated_at").order("title")).data ?? [],
+    queryKey: ["admin-prompts"], ...libraryRefresh,
+    queryFn: async () => { const { data, error } = await supabase.from("agent_prompts").select("id, kind, title, category, description, applies_when, priority, tier, price_aed, is_active, updated_at, version").order("title"); if (error) throw error; return data ?? []; },
   });
 
   const open = async (row?: NonNullable<typeof list.data>[number]) => {
@@ -58,13 +63,13 @@ export function AdminPrompts() {
     const { error } = edit.id ? await supabase.from("agent_prompts").update(row).eq("id", edit.id) : await supabase.from("agent_prompts").insert(row);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Prompt saved"); setEdit(null); void qc.invalidateQueries({ queryKey: ["admin-prompts"] });
+    toast.success("Prompt saved"); setEdit(null); void invalidateLibraries(qc);
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this prompt? Artists who enabled it lose it. Purchases are removed too.")) return;
     const { error } = await supabase.from("agent_prompts").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    void qc.invalidateQueries({ queryKey: ["admin-prompts"] });
+    void invalidateLibraries(qc);
   };
 
   return (
@@ -77,10 +82,12 @@ export function AdminPrompts() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-start text-xs uppercase text-muted-foreground"><tr>{["Title", "Type", "Tier", "Price (AED)", "Status", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
           <tbody>
+            {list.isPending && <tr><td colSpan={6} className="p-6">Loading…</td></tr>}
+            {list.error && <tr><td colSpan={6} className="p-6 text-destructive" role="alert">{list.error.message}<Button variant="ghost" onClick={() => void list.refetch()}>Retry</Button></td></tr>}
             {list.data?.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No prompts yet.</td></tr>}
             {list.data?.map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="p-3"><b>{p.title}</b><div className="text-xs text-muted-foreground">{p.category ?? ""}</div></td>
+                <td className="p-3"><b>{p.title}</b><Badge variant="outline" className="ms-2">v{p.version}</Badge><div className="text-xs text-muted-foreground">{p.category ?? ""}</div></td>
                 <td className="p-3">{p.kind === "know" ? "Knowledge" : "Instruction"}</td>
                 <td className="p-3 capitalize">{p.tier}</td>
                 <td className="p-3">{Number(p.price_aed) > 0 ? Number(p.price_aed).toFixed(0) : "Free"}</td>
@@ -145,8 +152,8 @@ export function AdminFormTemplates() {
   const [edit, setEdit] = useState<FormDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const list = useQuery({
-    queryKey: ["admin-form-templates"],
-    queryFn: async () => (await supabase.from("order_form_templates").select("id, name, category, description, tier, price_aed, is_active, question_count").order("name")).data ?? [],
+    queryKey: ["admin-form-templates"], ...libraryRefresh,
+    queryFn: async () => { const { data, error } = await supabase.from("order_form_templates").select("id, name, category, description, tier, price_aed, is_active, question_count, version").order("name"); if (error) throw error; return data ?? []; },
   });
   const open = async (row?: NonNullable<typeof list.data>[number]) => {
     if (!row) { setEdit({ name: "", category: "", description: "", tier: "free", price_aed: "0", is_active: true, fields: sampleFields }); return; }
@@ -166,13 +173,13 @@ export function AdminFormTemplates() {
     const { error } = edit.id ? await supabase.from("order_form_templates").update(row).eq("id", edit.id) : await supabase.from("order_form_templates").insert(row);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Template saved"); setEdit(null); void qc.invalidateQueries({ queryKey: ["admin-form-templates"] });
+    toast.success("Template saved"); setEdit(null); void invalidateLibraries(qc);
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this template? Forms artists already copied stay as they are.")) return;
     const { error } = await supabase.from("order_form_templates").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    void qc.invalidateQueries({ queryKey: ["admin-form-templates"] });
+    void invalidateLibraries(qc);
   };
   return (
     <div className="space-y-4">
@@ -184,10 +191,12 @@ export function AdminFormTemplates() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Questions", "Tier", "Price (AED)", "Status", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
           <tbody>
+            {list.isPending && <tr><td colSpan={6} className="p-6">Loading…</td></tr>}
+            {list.error && <tr><td colSpan={6} className="p-6 text-destructive" role="alert">{list.error.message}<Button variant="ghost" onClick={() => void list.refetch()}>Retry</Button></td></tr>}
             {list.data?.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No templates yet.</td></tr>}
             {list.data?.map((t) => (
               <tr key={t.id} className="border-t">
-                <td className="p-3"><b>{t.name}</b><div className="text-xs text-muted-foreground">{t.category ?? ""}</div></td>
+                <td className="p-3"><b>{t.name}</b><Badge variant="outline" className="ms-2">v{t.version}</Badge><div className="text-xs text-muted-foreground">{t.category ?? ""}</div></td>
                 <td className="p-3">{t.question_count ?? 0}</td>
                 <td className="p-3 capitalize">{t.tier}</td>
                 <td className="p-3">{Number(t.price_aed) > 0 ? Number(t.price_aed).toFixed(0) : "Free"}</td>
@@ -203,7 +212,7 @@ export function AdminFormTemplates() {
       </div>
       <Dialog open={!!edit} onOpenChange={(o) => { if (!o && !saving) setEdit(null); }}>
         <DialogContent className="max-h-[92dvh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>{edit?.id ? "Edit form template" : "New form template"}</DialogTitle><DialogDescription>Questions are a JSON list: id, label, type ({FIELD_TYPES.join(", ")}), required, options.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{edit?.id ? "Edit form template" : "New form template"}</DialogTitle><DialogDescription>Order form questions</DialogDescription></DialogHeader>
           {edit && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className={field}><Label htmlFor="ft-name">Name</Label><Input id="ft-name" maxLength={100} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
@@ -212,7 +221,7 @@ export function AdminFormTemplates() {
                 <Select value={edit.tier} onValueChange={(v) => setEdit({ ...edit, tier: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.data?.map((t) => <SelectItem key={t.code} value={t.code}>{t.name}</SelectItem>)}</SelectContent></Select></div>
               <div className={field}><Label htmlFor="ft-price">Price (AED, excl. VAT; 0 = free)</Label><Input id="ft-price" type="number" min={0} value={edit.price_aed} onChange={(e) => setEdit({ ...edit, price_aed: e.target.value })} /></div>
               <div className={`${field} sm:col-span-2`}><Label htmlFor="ft-desc">Description</Label><Textarea id="ft-desc" rows={2} maxLength={300} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
-              <div className={`${field} sm:col-span-2`}><Label htmlFor="ft-fields">Questions (JSON)</Label><Textarea id="ft-fields" rows={12} className="font-mono text-xs" value={edit.fields} onChange={(e) => setEdit({ ...edit, fields: e.target.value })} /></div>
+              <div className="sm:col-span-2"><FormQuestionEditor value={edit.fields} onChange={(fields) => setEdit({ ...edit, fields })} /></div>
               <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={edit.is_active} onCheckedChange={(c) => setEdit({ ...edit, is_active: c })} />Visible in the artist library</label>
             </div>
           )}
@@ -231,7 +240,7 @@ export function AdminModelRates() {
   const qc = useQueryClient();
   const [edit, setEdit] = useState<RateDraft | null>(null);
   const [saving, setSaving] = useState(false);
-  const list = useQuery({ queryKey: ["admin-model-rates"], queryFn: async () => (await supabase.from("ai_model_rates").select("*").order("model")).data ?? [] });
+  const list = useQuery({ queryKey: ["admin-model-rates"], ...libraryRefresh, queryFn: async () => (await supabase.from("ai_model_rates").select("*").order("model")).data ?? [] });
   const save = async () => {
     if (!edit) return;
     const nums = [edit.usd_in_per_mtok, edit.usd_cached_per_mtok, edit.usd_out_per_mtok].map(Number);
@@ -241,13 +250,13 @@ export function AdminModelRates() {
     const { error } = edit.isNew ? await supabase.from("ai_model_rates").insert(row) : await supabase.from("ai_model_rates").update(row).eq("model", edit.model);
     setSaving(false);
     if (error) { toast.error(error.code === "23505" ? "This model already has a rate" : error.message); return; }
-    toast.success("Rate saved"); setEdit(null); void qc.invalidateQueries({ queryKey: ["admin-model-rates"] });
+    toast.success("Rate saved"); setEdit(null); void invalidateLibraries(qc);
   };
   const remove = async (model: string) => {
     if (!confirm(`Delete the rate for ${model}? Past usage keeps its saved rate snapshot.`)) return;
     const { error } = await supabase.from("ai_model_rates").delete().eq("model", model);
     if (error) { toast.error(error.message); return; }
-    void qc.invalidateQueries({ queryKey: ["admin-model-rates"] });
+    void invalidateLibraries(qc);
   };
   const today = new Date().toISOString().slice(0, 10);
   return (
@@ -300,20 +309,22 @@ export function AdminModelRates() {
 
 /* -------------------------------------------------------- Contract templates */
 
-type CtDraft = { id?: string; name: string; category: string; role: string; description: string; tier: string; is_active: boolean; clauses: Array<{ title: string; body: string }>; rider: string };
-type CtRow = { id: string; name: string; category: string | null; role: string | null; description: string | null; tier: string; is_active: boolean; clauses: unknown; rider: string | null };
+type CtDraft = { id?: string; name: string; category: string; role: string; description: string; tier: string; price_aed: string; is_active: boolean; clauses: Array<{ title: string; body: string }>; rider: string };
+type CtRow = { id: string; name: string; category: string | null; role: string | null; description: string | null; tier: string; price_aed: number; version: number; is_active: boolean; clauses: unknown; rider: string | null };
 const asCl = (v: unknown): Array<{ title: string; body: string }> => (Array.isArray(v) ? (v as Array<Record<string, unknown>>).filter((c) => c && typeof c["title"] === "string" && typeof c["body"] === "string").map((c) => ({ title: String(c["title"]), body: String(c["body"]) })) : []);
 
 export function AdminContractTemplates() {
+  const { t } = useI18n();
+  const [preview, setPreview] = useState<ContractDoc | null>(null);
   const qc = useQueryClient();
   const tiers = useTiers();
   const [edit, setEdit] = useState<CtDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const list = useQuery({
-    queryKey: ["admin-contract-templates"],
-    queryFn: async () => ((await supabase.from("contract_templates").select("id, name, category, role, description, tier, is_active, clauses, rider").is("artist_id", null).order("name")).data ?? []) as CtRow[],
+    queryKey: ["admin-contract-templates"], ...libraryRefresh,
+    queryFn: async () => { const { data, error } = await supabase.rpc("admin_contract_template_content"); if (error) throw error; return (data ?? []).filter((row) => row.artist_id === null) as CtRow[]; },
   });
-  const refresh = () => void qc.invalidateQueries({ queryKey: ["admin-contract-templates"] });
+  const refresh = () => void invalidateLibraries(qc);
   const toggle = async (r: CtRow) => {
     const { error } = await supabase.from("contract_templates").update({ is_active: !r.is_active }).eq("id", r.id);
     if (error) { toast.error(error.message); return; }
@@ -324,7 +335,9 @@ export function AdminContractTemplates() {
     const clauses = edit.clauses.map((c) => ({ title: c.title.trim(), body: c.body.trim() })).filter((c) => c.title || c.body);
     if (!edit.name.trim()) { toast.error("Name is required"); return; }
     if (clauses.length === 0 || clauses.some((c) => !c.title || !c.body)) { toast.error("Every clause needs a title and text"); return; }
-    const row = { name: edit.name.trim(), category: edit.category.trim() || null, role: edit.role.trim() || null, description: edit.description.trim() || null, tier: edit.tier, is_active: edit.is_active, clauses: clauses as unknown as Json, rider: edit.rider.trim() || null };
+    const price = Number(edit.price_aed);
+    if (!Number.isFinite(price) || price < 0 || price > 100000) { toast.error("Invalid price"); return; }
+    const row = { price_aed: price, name: edit.name.trim(), category: edit.category.trim() || null, role: edit.role.trim() || null, description: edit.description.trim() || null, tier: edit.tier, is_active: edit.is_active, clauses: clauses as unknown as Json, rider: edit.rider.trim() || null };
     setSaving(true);
     const { error } = edit.id ? await supabase.from("contract_templates").update(row).eq("id", edit.id) : await supabase.from("contract_templates").insert({ ...row, artist_id: null });
     setSaving(false);
@@ -343,22 +356,23 @@ export function AdminContractTemplates() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">Dealmaker library of contract templates. Drafts stay hidden from artists until you switch them on. Have a qualified lawyer in the UAE review each template first.</p>
-        <Button onClick={() => setEdit({ name: "", category: "", role: "", description: "", tier: "free", is_active: false, clauses: [{ title: "", body: "" }], rider: "" })}><Plus className="me-1 h-4 w-4" />New template</Button>
+        <Button onClick={() => setEdit({ name: "", category: "", role: "", description: "", tier: "free", price_aed: "0", is_active: false, clauses: [{ title: "", body: "" }], rider: "" })}><Plus className="me-1 h-4 w-4" />New template</Button>
       </div>
       <div className={`${card} overflow-x-auto`}>
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Category", "Clauses", "Tier", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Category", "Clauses", "Tier", "Price (AED)", "Version", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
           <tbody>
-            {list.data?.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No library templates yet.</td></tr>}
+            {list.data?.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No library templates yet.</td></tr>}
             {list.data?.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-3"><b>{r.name}</b><div className="text-xs text-muted-foreground">{r.role ?? ""}</div></td>
                 <td className="p-3">{r.category ?? "—"}</td>
                 <td className="p-3">{asCl(r.clauses).length}</td>
-                <td className="p-3 capitalize">{r.tier}</td>
+                <td className="p-3 capitalize">{r.tier}</td><td className="p-3">{Number(r.price_aed).toFixed(2)}</td><td className="p-3">v{r.version}</td>
                 <td className="p-3"><Switch checked={r.is_active} onCheckedChange={() => void toggle(r)} aria-label={`Live: ${r.name}`} /></td>
                 <td className="p-3 text-end whitespace-nowrap">
-                  <Button size="icon" variant="ghost" aria-label={`Edit ${r.name}`} onClick={() => setEdit({ id: r.id, name: r.name, category: r.category ?? "", role: r.role ?? "", description: r.description ?? "", tier: r.tier, is_active: r.is_active, clauses: asCl(r.clauses).length ? asCl(r.clauses) : [{ title: "", body: "" }], rider: r.rider ?? "" })}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" title="Preview as artist" aria-label={`Preview ${r.name}`} onClick={() => setPreview({ number: "TEMPLATE", templateName: r.name, stamp: { word: "TEMPLATE", sub: r.role ?? "", tone: "template" }, clauses: asCl(r.clauses), rider: r.rider })}><Eye className="size-4" /></Button>
+                  <Button size="icon" variant="ghost" aria-label={`Edit ${r.name}`} onClick={() => setEdit({ id: r.id, name: r.name, category: r.category ?? "", role: r.role ?? "", description: r.description ?? "", tier: r.tier, price_aed: String(r.price_aed), is_active: r.is_active, clauses: asCl(r.clauses).length ? asCl(r.clauses) : [{ title: "", body: "" }], rider: r.rider ?? "" })}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" aria-label={`Delete ${r.name}`} onClick={() => void remove(r)}><Trash2 className="h-4 w-4" /></Button>
                 </td>
               </tr>
@@ -366,6 +380,7 @@ export function AdminContractTemplates() {
           </tbody>
         </table>
       </div>
+      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}><DialogContent className="max-h-[92dvh] max-w-4xl overflow-y-auto"><DialogTitle>Contract preview</DialogTitle><DialogDescription>{preview?.templateName}</DialogDescription>{preview && <ContractPaper doc={preview} locked={false} t={t} />}</DialogContent></Dialog>
       <Dialog open={!!edit} onOpenChange={(o) => { if (!o && !saving) setEdit(null); }}>
         <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto">
           <DialogHeader><DialogTitle>{edit?.id ? "Edit contract template" : "New contract template"}</DialogTitle><DialogDescription>Placeholders: {"{artist} {client} {service} {date} {time} {venue} {total} {vat}"}</DialogDescription></DialogHeader>
@@ -374,6 +389,7 @@ export function AdminContractTemplates() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className={field}><Label htmlFor="ca-name">Name</Label><Input id="ca-name" maxLength={100} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
                 <div className={field}><Label htmlFor="ca-cat">Category</Label><Input id="ca-cat" maxLength={40} value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })} /></div>
+                <div className={field}><Label htmlFor="ca-price">Price (AED, excl. VAT)</Label><Input id="ca-price" type="number" min={0} max={100000} step="0.01" value={edit.price_aed} onChange={(e) => setEdit({ ...edit, price_aed: e.target.value })} /></div>
                 <div className={field}><Label htmlFor="ca-role">Role</Label><Input id="ca-role" maxLength={40} value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value })} /></div>
                 <div className={field}><Label>Plan tier</Label>
                   <Select value={edit.tier} onValueChange={(v) => setEdit({ ...edit, tier: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.data?.map((t) => <SelectItem key={t.code} value={t.code}>{t.name}</SelectItem>)}</SelectContent></Select></div>

@@ -41,7 +41,7 @@ const NAV = [
   { id: "payouts", label: "Artist payouts", group: "Business" },
   { id: "reviews", label: "Review moderation", group: "Business" },
   { id: "catalog", label: "Event types", group: "Business" },
-  { id: "library", label: "Library", group: "AI library" },
+  { id: "library", label: "Master Library", group: "Libraries" },
   { id: "flow", label: "AI flow builder", group: "System" },
   { id: "settings", label: "Settings", group: "System" },
 ] as const;
@@ -121,7 +121,7 @@ function Admin() {
           {section === "payouts" && <PayoutQueue />}
           {section === "reviews" && <ReviewQueue />}
           {section === "catalog" && <EventTypeManager />}
-          {section === "library" && <AdminLibrary onOpenFlowBuilder={() => setSection("flow")} />}
+          {section === "library" && <AdminLibrary />}
           {section === "settings" && <AdminSettings />}
           {section === "flow" && <FlowBuilder artistId={null} />}
         </main>

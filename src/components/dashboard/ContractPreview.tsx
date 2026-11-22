@@ -79,7 +79,7 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
           <div className="flex max-w-xs flex-col items-center gap-2.5">
             <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-gold text-gold-foreground shadow-[0_12px_30px_rgba(232,164,63,.4)]"><DollarSign className="h-8 w-8" strokeWidth={2.5} aria-hidden /></span>
             <b className="font-display text-2xl font-normal text-[#111]">{t("This contract is locked")}</b>
-            <p className="text-[13px] text-[#4d463b]">{t("It is not part of your plan. Buy it to read and use it.")}</p>
+            <p className="text-[13px] text-[#4d463b]">{t("Access is required to read and use this contract.")}</p>
           </div>
         </div>
       )}
@@ -88,7 +88,7 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
 }
 
 /** "Booking contract · Dealmaker" popup: Print / PDF, and for a contract outside the artist's plan a blurred sheet with a Buy contract button. */
-export function ContractPreviewDialog({ doc, title, locked = false, planName, artistId, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; planName?: string; artistId: string; onClose: () => void }) {
+export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequired = false, planName, artistId, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; purchaseRequired?: boolean; planName?: string; artistId: string; onClose: () => void }) {
   const { t } = useI18n();
   const [buying, setBuying] = useState(false);
   const print = () => {
@@ -105,7 +105,8 @@ export function ContractPreviewDialog({ doc, title, locked = false, planName, ar
             <DialogTitle className="font-display text-[26px] font-normal leading-none tracking-normal">{title}</DialogTitle>
             <div className="flex flex-wrap gap-2.5">
               <Button type="button" variant="outline" className="rounded-full" onClick={print} disabled={locked}><Printer className="me-2 h-4 w-4" />{t("Print / PDF")}</Button>
-              {locked && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setBuying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")}</Button>}
+              {locked && purchaseRequired && <Button type="button" variant="outline" disabled>{t("Contract checkout unavailable")}</Button>}
+              {locked && !purchaseRequired && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setBuying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")}</Button>}
               <DialogClose asChild><Button type="button" variant="outline" size="icon" aria-label={t("Close preview")}><X className="h-4 w-4" /></Button></DialogClose>
             </div>
           </div>

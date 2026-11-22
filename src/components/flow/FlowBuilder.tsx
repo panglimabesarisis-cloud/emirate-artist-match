@@ -21,6 +21,7 @@ import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
 import { FlowTemplateLibrary } from "./FlowTemplateLibrary";
 import type { TemplateFlow } from "@/lib/flow-templates";
+import { LibraryUpdateNotice } from "@/components/dashboard/LibraryUpdateNotice";
 import { StudioHeading } from "@/components/dashboard/StudioPage";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -342,9 +343,10 @@ const parse = (row: { nodes: unknown; edges: unknown } | null | undefined) =>
   row && Array.isArray(row.nodes) && row.nodes.length ? { nodes: row.nodes as FlowNode[], edges: (row.edges ?? []) as FlowEdge[] } : null;
 
 /** artistId = null edits the master flow (admin); otherwise the artist's own flow with fallback to master. */
-export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | null; canEdit?: boolean }) {
+export function FlowBuilder({ artistId, canEdit = true, libraryOnly = false }: { artistId: string | null; canEdit?: boolean; libraryOnly?: boolean }) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [draftSource, setDraftSource] = useState<{ id: string; version: number } | null>(null);
   const [draft, setDraft] = useState<TemplateFlow | null>(null);
   const { t } = useI18n();
   const { data, isLoading } = useQuery({
@@ -369,7 +371,7 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
       for (const node of f.nodes.filter(n => n.type === "whatsapp")) approvalAction([node], []);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Invalid WhatsApp number"); return; }
     setSaving(true);
-    const payload = { nodes: f.nodes, edges: f.edges, enabled, updated_at: new Date().toISOString() };
+    const payload = { ...(draftSource ? { source_template_id: draftSource.id, source_version: draftSource.version } : {}), nodes: f.nodes, edges: f.edges, enabled, updated_at: new Date().toISOString() };
     const existing = artistId ? data.own : data.master;
     const { error } = existing
       ? await supabase.from("ai_flows").update(payload).eq("id", existing.id)
@@ -378,15 +380,17 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
     if (error) { toast.error(error.message); return; }
     toast.success(t("Flow saved"));
     await qc.invalidateQueries({ queryKey: ["ai-flow", artistId] });
-    setDraft(null);
+    setDraft(null); setDraftSource(null);
   };
+
+  if (libraryOnly) return <FlowTemplateLibrary admin current={savedFlow} onUse={setDraft} renderEditor={(flow, save, busy) => <ReactFlowProvider><Canvas initial={flow} onSave={save} saving={busy} /></ReactFlowProvider>} />;
 
   return (
     <ReactFlowProvider>
       <div className="studio-flow-page">
         <StudioHeading title="AI" accent="flow"><Button variant="outline" asChild><a href="#studio-workflow-templates">{t("Choose template")}</a></Button></StudioHeading>
 
-        {draft && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{t("Template loaded · not saved")}</span><Button variant="ghost" size="sm" onClick={() => setDraft(null)}>{t("Discard template")}</Button></div>}
+        {draft && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{t("Template loaded · not saved")}</span><Button variant="ghost" size="sm" onClick={() => { setDraft(null); setDraftSource(null); }}>{t("Discard template")}</Button></div>}
         {artistId ? (
           <div className="studio-flow-custom">
             <div>
@@ -400,7 +404,8 @@ export function FlowBuilder({ artistId, canEdit = true }: { artistId: string | n
         )}
         <Canvas initial={draft ?? savedFlow} readOnly={!canEdit} onSave={(f) => persist(f, true)} saving={saving} />
         <section id="studio-workflow-templates" className="dmr-panel"><h2 className="mb-5">{t("Workflow")} <span className="it">{t("templates")}</span></h2>
-        {canEdit && <FlowTemplateLibrary admin={!artistId} current={draft ?? savedFlow} onUse={setDraft} renderEditor={(flow, saveTemplate, templateSaving) => <ReactFlowProvider><Canvas initial={flow} onSave={saveTemplate} saving={templateSaving} /></ReactFlowProvider>} />}
+        {artistId && <LibraryUpdateNotice artistId={artistId} kind="flow_template" />}
+        {canEdit && <FlowTemplateLibrary artistId={artistId} admin={!artistId} current={draft ?? savedFlow} onUse={(flow, source) => { setDraft(flow); setDraftSource(source ?? null); }} renderEditor={(flow, saveTemplate, templateSaving) => <ReactFlowProvider><Canvas initial={flow} onSave={saveTemplate} saving={templateSaving} /></ReactFlowProvider>} />}
         </section>
       </div>
     </ReactFlowProvider>

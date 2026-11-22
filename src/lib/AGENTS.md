@@ -7,6 +7,7 @@
 - Managed booking jobs retry failed calendar writes and claim H-7 reminders before dispatch; WhatsApp acceptance is not delivery and public jobs must authenticate managed cron requests.
 
 # Library rules
+- Master Library reads protected content through existing admin/team RPCs; shared query refresh updates separate sessions, and copied form/workflow content stays independent with source-version tracking.
 
 - UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
 - CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.

@@ -1,127 +1,76 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { BarChart3, FileSignature, History, ListChecks, RefreshCw, Sparkles, Workflow } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { invalidateLibraries, libraryRefresh } from "@/lib/library-query";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { AdminContractTemplates, AdminFormTemplates, AdminModelRates, AdminPrompts } from "./AdminMarketplace";
 
-type Tab = "prompts" | "flows" | "forms" | "contracts" | "rates";
-const card = "rounded-xl border bg-card";
+const LIBRARIES = [
+  { id: "contracts", kind: "contract_template", label: "Contract templates", icon: FileSignature },
+  { id: "flows", kind: "flow_template", label: "Workflow templates", icon: Workflow },
+  { id: "forms", kind: "form_template", label: "Form templates", icon: ListChecks },
+  { id: "prompts", kind: "agent_prompt", label: "Agent prompts", icon: Sparkles },
+] as const;
+type Tab = typeof LIBRARIES[number]["id"] | "usage" | "audit" | "rates";
 
-/** Live and draft counts for each library, straight from the tables artists read. */
-function useLibraryCounts() {
-  return useQuery({
-    queryKey: ["admin-library-counts"],
-    refetchInterval: 30000,
-    queryFn: async () => {
-      const [p, f, o, c, r] = await Promise.all([
-        supabase.from("agent_prompts").select("id, is_active"),
-        supabase.from("ai_flow_templates").select("id, published"),
-        supabase.from("order_form_templates").select("id, is_active"),
-        supabase.from("contract_templates").select("id, is_active").is("artist_id", null),
-        supabase.from("ai_model_rates").select("model, is_active"),
-      ]);
-      const split = <T,>(rows: T[] | null, live: (x: T) => boolean) => ({ total: rows?.length ?? 0, live: (rows ?? []).filter(live).length });
-      return {
-        prompts: split(p.data, (x) => x.is_active), flows: split(f.data, (x) => x.published), forms: split(o.data, (x) => x.is_active),
-        contracts: split(c.data, (x) => x.is_active), rates: split(r.data, (x) => x.is_active),
-      };
-    },
-  });
-}
-
-/** Workflow templates the artists can buy and copy. Editing the flow itself happens on the canvas in the AI flow builder. */
-function AdminFlowTemplates({ onOpenBuilder }: { onOpenBuilder: () => void }) {
+export function AdminLibrary() {
+  const { t } = useI18n();
   const qc = useQueryClient();
-  const list = useQuery({
-    queryKey: ["admin-flow-templates"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ai_flow_templates").select("id, name, description, price_aed, published, updated_at, nodes").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const refresh = () => { void qc.invalidateQueries({ queryKey: ["admin-flow-templates"] }); void qc.invalidateQueries({ queryKey: ["admin-library-counts"] }); };
-  const setLive = async (id: string, published: boolean) => {
-    const { error } = await supabase.from("ai_flow_templates").update({ published }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(published ? "Workflow is live for artists" : "Workflow hidden from artists");
-    refresh();
-  };
-  const remove = async (id: string, name: string) => {
-    if (!confirm(`Delete the workflow "${name}"? Artists who already bought it keep their copy.`)) return;
-    const { error } = await supabase.from("ai_flow_templates").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    refresh();
-  };
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Ready-made chat workflows artists can buy and copy into their own AI flow. Drafts stay hidden until you switch them on.</p>
-        <Button variant="outline" onClick={onOpenBuilder}><ExternalLink className="me-1 h-4 w-4" />Create or edit on the canvas</Button>
-      </div>
-      <div className={`${card} overflow-x-auto`}>
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Blocks", "Price (AED)", "Status", "Updated", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
-          <tbody>
-            {list.data?.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No workflow templates yet. Build one on the canvas and save it as a template.</td></tr>}
-            {list.data?.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="p-3"><b>{r.name}</b><div className="max-w-md truncate text-xs text-muted-foreground">{r.description}</div></td>
-                <td className="p-3">{Array.isArray(r.nodes) ? r.nodes.length : 0}</td>
-                <td className="p-3">{Number(r.price_aed) > 0 ? Number(r.price_aed).toFixed(0) : "Free"}</td>
-                <td className="p-3"><Badge variant={r.published ? "default" : "secondary"}>{r.published ? "Live" : "Draft"}</Badge></td>
-                <td className="whitespace-nowrap p-3 text-muted-foreground">{new Date(r.updated_at).toLocaleDateString("en-GB")}</td>
-                <td className="p-3"><Switch checked={r.published} onCheckedChange={(v) => void setLive(r.id, v)} aria-label={`Live: ${r.name}`} /></td>
-                <td className="whitespace-nowrap p-3 text-end"><Button size="icon" variant="ghost" aria-label={`Delete ${r.name}`} onClick={() => void remove(r.id, r.name)}><Trash2 className="h-4 w-4" /></Button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const [tab, setTab] = useState<Tab>("contracts");
+  const catalog = useQuery({ queryKey: ["admin-library-counts"], ...libraryRefresh, queryFn: async () => {
+    const [p, f, o, c] = await Promise.all([
+      supabase.from("agent_prompts").select("id, title, is_active"),
+      supabase.from("ai_flow_templates").select("id, name, published"),
+      supabase.from("order_form_templates").select("id, name, is_active"),
+      supabase.from("contract_templates").select("id, name, is_active").is("artist_id", null),
+    ]);
+    for (const result of [p, f, o, c]) if (result.error) throw result.error;
+    return [
+      ...(p.data ?? []).map((r) => ({ id: r.id, name: r.title, live: r.is_active, kind: "agent_prompt" })),
+      ...(f.data ?? []).map((r) => ({ id: r.id, name: r.name, live: r.published, kind: "flow_template" })),
+      ...(o.data ?? []).map((r) => ({ id: r.id, name: r.name, live: r.is_active, kind: "form_template" })),
+      ...(c.data ?? []).map((r) => ({ id: r.id, name: r.name, live: r.is_active, kind: "contract_template" })),
+    ];
+  } });
+  const usage = useQuery({ queryKey: ["admin-library-usage"], ...libraryRefresh, queryFn: async () => {
+    const { data, error } = await supabase.rpc("admin_library_usage");
+    if (error) throw error;
+    return data ?? [];
+  } });
+  const audit = useQuery({ queryKey: ["admin-library-audit"], ...libraryRefresh, enabled: tab === "audit", queryFn: async () => {
+    const { data, error } = await supabase.from("library_audit").select("id, kind, item_id, action, actor, changed_at, summary").order("changed_at", { ascending: false }).limit(100);
+    if (error) throw error;
+    return data ?? [];
+  } });
+  const name = (kind: string, id: string) => catalog.data?.find((r) => r.kind === kind && r.id === id)?.name ?? id;
+  const label = (kind: string) => t(LIBRARIES.find((r) => r.kind === kind)?.label ?? kind);
+  return <div className="space-y-6 min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-display text-3xl">{t("Master Library")}</h2><Button variant="outline" size="icon" title={t("Refresh libraries")} aria-label={t("Refresh libraries")} disabled={catalog.isFetching || usage.isFetching} onClick={() => void invalidateLibraries(qc)}><RefreshCw className="size-4" /></Button></div>
+    {catalog.error && <p role="alert" className="text-sm text-destructive">{catalog.error.message}</p>}
+    <nav className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("Master Library")}>
+      {LIBRARIES.map((lib) => {
+        const rows = catalog.data?.filter((row) => row.kind === lib.kind);
+        const active = rows?.filter((r) => r.live).length;
+        const adopted = usage.data?.filter((r) => r.kind === lib.kind).reduce((sum, r) => sum + r.artists_using, 0);
+        const Icon = lib.icon;
+        return <Button key={lib.id} variant="outline" aria-pressed={tab === lib.id} onClick={() => setTab(lib.id)} className={`h-auto min-h-36 w-full items-start justify-start whitespace-normal rounded-lg p-4 text-start ${tab === lib.id ? "border-gold bg-gold/10" : ""}`}><div className="w-full space-y-3"><div className="flex items-center gap-2"><Icon className="size-5 shrink-0 text-gold" /><span className="font-semibold">{t(lib.label)}</span></div><div className="font-display text-3xl">{active ?? "…"}<span className="ms-2 font-sans text-xs text-muted-foreground">{t("live")} / {rows?.length ?? "…"}</span></div><div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>{rows ? rows.length - (active ?? 0) : "…"} {t("draft")}</span><span>{adopted ?? "…"} {t("artist uses")}</span></div></div></Button>;
+      })}
+    </nav>
+    <div className="flex flex-wrap gap-2 border-b border-border pb-4" role="group" aria-label={t("Library reports")}>
+      <Button variant={tab === "usage" ? "default" : "outline"} onClick={() => setTab("usage")}><BarChart3 className="size-4" />{t("Usage & sales")}</Button>
+      <Button variant={tab === "audit" ? "default" : "outline"} onClick={() => setTab("audit")}><History className="size-4" />{t("Audit history")}</Button>
+      <Button variant={tab === "rates" ? "default" : "outline"} onClick={() => setTab("rates")}>{t("AI model rates")}</Button>
     </div>
-  );
-}
-
-const TABS: { id: Tab; label: string; hint: string }[] = [
-  { id: "prompts", label: "Agent prompts", hint: "Instructions and knowledge artists switch on for their AI agent." },
-  { id: "flows", label: "Workflow templates", hint: "Chat workflows artists copy into their AI flow." },
-  { id: "forms", label: "Form templates", hint: "Ready-made order forms artists copy into their booking form." },
-  { id: "contracts", label: "Contract templates", hint: "Formal contracts artists attach to bookings." },
-  { id: "rates", label: "AI model rates", hint: "Provider prices behind the token cost artists see." },
-];
-
-/** One place for everything the master admin publishes to artists: what is live, what is draft, and where artists see it. */
-export function AdminLibrary({ onOpenFlowBuilder }: { onOpenFlowBuilder: () => void }) {
-  const [tab, setTab] = useState<Tab>("prompts");
-  const counts = useLibraryCounts();
-  const c = counts.data;
-  const count = (id: Tab) => c?.[id === "flows" ? "flows" : id];
-  return (
-    <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">Everything here is read by the artist dashboards right away. Live items appear for artists on a matching plan; drafts stay hidden. Artists see prompts under AI agent, workflows under AI flow, forms under Order form and contracts under Contract.</p>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {TABS.map((x) => {
-          const n = count(x.id);
-          return (
-            <button key={x.id} type="button" onClick={() => setTab(x.id)} aria-pressed={tab === x.id} className={`rounded-2xl border p-4 text-start transition-colors ${tab === x.id ? "border-gold bg-gold/[.08]" : "border-border hover:border-gold/50"}`}>
-              <small className="block text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{x.label}</small>
-              <b className="mt-1 block font-display text-3xl font-normal">{n ? n.live : "-"}<span className="ms-1 text-sm text-muted-foreground">{n ? `live of ${n.total}` : ""}</span></b>
-              <span className="mt-1 block text-xs text-muted-foreground">{n && n.total - n.live > 0 ? `${n.total - n.live} draft` : x.hint}</span>
-            </button>
-          );
-        })}
-      </div>
-      <section aria-label={TABS.find((x) => x.id === tab)?.label}>
-        {tab === "prompts" && <AdminPrompts />}
-        {tab === "flows" && <AdminFlowTemplates onOpenBuilder={onOpenFlowBuilder} />}
-        {tab === "forms" && <AdminFormTemplates />}
-        {tab === "contracts" && <AdminContractTemplates />}
-        {tab === "rates" && <AdminModelRates />}
-      </section>
-    </div>
-  );
+    {tab === "contracts" && <AdminContractTemplates />}
+    {tab === "flows" && <FlowBuilder artistId={null} libraryOnly />}
+    {tab === "forms" && <AdminFormTemplates />}
+    {tab === "prompts" && <AdminPrompts />}
+    {tab === "rates" && <AdminModelRates />}
+    {tab === "usage" && <section className="space-y-4"><h3 className="font-display text-2xl">{t("Usage & sales")}</h3>{usage.error ? <p role="alert" className="text-destructive">{usage.error.message}</p> : usage.isPending ? <p>{t("Loading…")}</p> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{["Item", "Library", "Artists using", "Purchases", "Revenue (AED, excl. VAT)", "Refunds (AED, excl. VAT)", "Last used"].map((h) => <th key={h} className="p-3 text-start whitespace-nowrap">{t(h)}</th>)}</tr></thead><tbody>{usage.data?.map((r) => <tr key={`${r.kind}:${r.item_id}`} className="border-t border-border"><td className="p-3">{name(r.kind, r.item_id)}</td><td className="p-3">{label(r.kind)}</td><td className="p-3">{r.artists_using}</td><td className="p-3">{r.purchases}</td><td className="p-3">{Number(r.revenue_aed).toFixed(2)}</td><td className="p-3">{Number(r.refunded_aed).toFixed(2)}</td><td className="p-3 whitespace-nowrap">{r.last_used ? new Date(r.last_used).toLocaleString("en-GB") : ""}</td></tr>)}{!usage.data?.length && <tr><td colSpan={7} className="p-6 text-center">{t("No library activity yet")}</td></tr>}</tbody></table></div>}</section>}
+    {tab === "audit" && <section className="space-y-4"><h3 className="font-display text-2xl">{t("Audit history")}</h3>{audit.error ? <p role="alert" className="text-destructive">{audit.error.message}</p> : audit.isPending ? <p>{t("Loading…")}</p> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{["Item", "Library", "Action", "Actor", "Date"].map((h) => <th key={h} className="p-3 text-start">{t(h)}</th>)}</tr></thead><tbody>{audit.data?.map((r) => <tr key={r.id} className="border-t border-border"><td className="p-3">{name(r.kind, r.item_id)}</td><td className="p-3">{label(r.kind)}</td><td className="p-3"><Badge variant="outline">{t(r.action)}</Badge></td><td className="p-3 break-all">{r.actor ?? t("System")}</td><td className="p-3 whitespace-nowrap">{new Date(r.changed_at).toLocaleString("en-GB")}</td></tr>)}{!audit.data?.length && <tr><td colSpan={5} className="p-6 text-center">{t("No changes recorded")}</td></tr>}</tbody></table></div>}</section>}
+  </div>;
 }

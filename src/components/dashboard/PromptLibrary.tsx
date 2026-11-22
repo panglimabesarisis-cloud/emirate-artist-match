@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
+import { libraryRefresh } from "@/lib/library-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -36,11 +37,11 @@ export function PromptLibrary({ artistId }: { artistId: string }) {
   const [buying, setBuying] = useState<Prompt | null>(null);
   const [filter, setFilter] = useState<"all" | "on" | "free" | "paid">("all");
   const prompts = useQuery({
-    queryKey: ["agent-prompts"],
-    queryFn: async () => ((await supabase.from("agent_prompts_public").select("id, kind, title, category, description, tier, price_aed").order("title")).data ?? []) as Prompt[],
+    queryKey: ["agent-prompts"], ...libraryRefresh,
+    queryFn: async () => { const { data, error } = await supabase.from("agent_prompts_public").select("id, kind, title, category, description, tier, price_aed").order("title"); if (error) throw error; return (data ?? []) as Prompt[]; },
   });
-  const enabled = useQuery({ queryKey: ["agent-prompts-enabled", artistId], queryFn: async () => new Set(((await supabase.from("agent_prompt_enabled").select("prompt_id").eq("artist_id", artistId)).data ?? []).map((r) => r.prompt_id)) });
-  const owned = useQuery({ queryKey: ["agent-prompts-owned", artistId], queryFn: async () => new Set(((await supabase.from("agent_prompt_purchases").select("prompt_id").eq("artist_id", artistId).not("paid_at", "is", null).is("refunded_at", null)).data ?? []).map((r) => r.prompt_id)) });
+  const enabled = useQuery({ queryKey: ["agent-prompts-enabled", artistId], ...libraryRefresh, queryFn: async () => new Set(((await supabase.from("agent_prompt_enabled").select("prompt_id").eq("artist_id", artistId)).data ?? []).map((r) => r.prompt_id)) });
+  const owned = useQuery({ queryKey: ["agent-prompts-owned", artistId], ...libraryRefresh, queryFn: async () => new Set(((await supabase.from("agent_prompt_purchases").select("prompt_id").eq("artist_id", artistId).not("paid_at", "is", null).is("refunded_at", null)).data ?? []).map((r) => r.prompt_id)) });
 
   const rank = useMemo(() => new Map((plan.data?.tiers ?? []).map((x) => [x.code, x.sort])), [plan.data]);
   const myRank = rank.get(plan.data?.code ?? "free") ?? 1;
@@ -69,7 +70,7 @@ export function PromptLibrary({ artistId }: { artistId: string }) {
           </div>
         </div>
       </div>
-      {prompts.isPending ? <p className="text-sm text-muted-foreground">{t("Loading…")}</p> : shown.length === 0 ? <StudioEmpty title={t("No prompts yet")} /> : (
+      {prompts.error ? <p role="alert" className="text-destructive">{prompts.error.message}</p> : prompts.isPending ? <p className="text-sm text-muted-foreground">{t("Loading…")}</p> : shown.length === 0 ? <StudioEmpty title={t("No prompts yet")} /> : (
         <ul className="grid gap-3 md:grid-cols-2">
           {shown.map((p) => {
             const price = Number(p.price_aed);
