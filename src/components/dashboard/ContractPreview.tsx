@@ -51,7 +51,7 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
     return () => { disposed = true; observer.disconnect(); document.fonts.removeEventListener("loadingdone", rebuild); };
   }, [doc, locked, t]);
   return <div ref={frame} className="contract-preview-frame">
-    <div ref={pages} className="contract-pages" style={{ zoom: scale }}>
+    <div key={locked ? "locked" : "unlocked"} ref={pages} className="contract-pages" style={{ zoom: scale }}>
       {locked && <article data-paper dir="ltr" className="contract-a4-page" aria-label={`${t("Page")} 1 ${t("of")} 1`}>
         <div className="contract-a4-body"><ContractHeader doc={doc} t={t} /><div className="contract-skeleton" aria-hidden>{Array.from({ length: 20 }, (_, index) => <div key={index} />)}</div></div>
         <footer className="contract-page-footer"><span>{doc.number}</span><span>{t("Page")} 1 {t("of")} 1</span></footer>

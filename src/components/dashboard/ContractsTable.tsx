@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { NOT_DELETABLE, bookingDeletable, useHideRows, useSelection } from "./BulkSelect";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ContractRow = { artists?: { stage_name: string } | null; paid_amount: number | string; escrow_status: string | null; status: string; contract_template_id: string | null; id: string; client_name: string; package_title: string | null; event_date: string | null; total: number | string; contract_accepted_at: string | null; invoice_no: string | null };
 const fmtD = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -141,9 +140,17 @@ export function ContractsTable({ artistId }: { artistId?: string }) {
   }});
   const contract=data.find(row=>row.id===selected);
   /** The admin overview shows the standard terms; stored template terms are read only in the artist popup. */
-  const terms={data:null as ReturnType<typeof parseStoredTerms>};
+  const adminDoc: ContractDoc | null = contract ? {
+    number: `DM-C-${(contract.event_date ?? "").replace(/-/g, "")}-${contract.id.slice(0, 6).toUpperCase()}`,
+    templateName: t("Standard terms"),
+    stamp: contract.contract_accepted_at ? { word: "ACCEPTED", sub: new Date(contract.contract_accepted_at).toLocaleDateString("en-GB"), tone: "accepted" } : { word: "AWAITING", sub: "HIRER ACCEPTANCE", tone: "awaiting" },
+    parties: [["Artist", contract.artists?.stage_name], ["Client", contract.client_name], ["Service", contract.package_title], ["Date", contract.event_date], ["Time", `${contract.start_time?.slice(0, 5) ?? "—"} – ${contract.end_time?.slice(0, 5) ?? "—"}`], ["Total", invoiceMoney(Number(contract.total))], ["Booking status", contract.status]],
+    jobDetail: contract.job_detail ?? contract.notes,
+    clauses: CONTRACT_TERMS.map((term) => ({ title: "", body: t(term) })),
+    footer: contract.contract_accepted_at ? `${t("Accepted at")} ${new Date(contract.contract_accepted_at).toLocaleString("en-GB")}` : t("Awaiting acceptance"),
+  } : null;
   return <section className="dmr-wrap dmr-kpage"><StudioHeading title="Contr" accent="acts"><div className="dmr-q-stats"><div className="dmr-qs"><small>{t("Awaiting")}</small><b>{data.filter(row=>!row.contract_accepted_at).length}</b></div><div className="dmr-qs"><small>{t("Accepted")}</small><b>{data.filter(row=>row.contract_accepted_at).length}</b></div></div></StudioHeading>{artistId ? <ContractTemplateLibrary artistId={artistId} bookingTemplates={data.map((row) => row.contract_template_id)} /> : <div className="dmr-panel dmr-c-12"><h2 className="mb-5 font-display text-[28px]">{t("Contract")} <span className="it">{t("templates")}</span></h2><AdminContractTemplates cards bookingTemplates={data.map((row) => row.contract_template_id)} /></div>}
     {artistId ? <ArtistContractsPanel key={storageKey} artistId={artistId} rows={data as unknown as ContractRow[]} isPending={isPending} error={error} onView={setSelected} storageKey={storageKey} /> : <BookingContractsPanel key={storageKey} rows={data as unknown as ContractRow[]} isPending={isPending} error={error} onView={setSelected} storageKey={storageKey} />}
-    {artistId ? <ArtistContractDialog artistId={artistId} contract={contract as unknown as ContractFull | undefined} onClose={() => setSelected(null)} /> : <Dialog open={!!contract} onOpenChange={open=>{if(!open)setSelected(null);}}><DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{t("Booking contract")} {t("· Dealmaker")}</DialogTitle></DialogHeader>{contract && <div className="space-y-5 text-sm"><dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 border-y py-4">{[["Artist",contract.artists?.stage_name],["Client",contract.client_name],["Service",contract.package_title],["Date",contract.event_date],["Time",`${contract.start_time?.slice(0,5) ?? "—"} – ${contract.end_time?.slice(0,5) ?? "—"}`],["Total",invoiceMoney(Number(contract.total))],["Booking status",contract.status]].map(([label,value])=><div key={label} className="contents"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="break-words font-medium">{value ?? "—"}</dd></div>)}</dl><p className="whitespace-pre-wrap break-words">{contract.job_detail ?? contract.notes}</p>{terms.data&&terms.data.clauses.length>0?<><ol className="list-decimal space-y-3 ps-5">{terms.data.clauses.map((c,i)=><li key={i}><b>{c.title}</b><p className="whitespace-pre-wrap break-words text-muted-foreground">{c.body}</p></li>)}</ol>{terms.data.rider&&<div className="border-t pt-3"><h3 className="font-semibold">{t("Rider")}</h3><p className="whitespace-pre-wrap text-muted-foreground">{terms.data.rider}</p></div>}</>:<ol className="list-decimal space-y-3 ps-5">{CONTRACT_TERMS.map(term=><li key={term}>{t(term)}</li>)}</ol>}<p className="border-t pt-4 text-muted-foreground">{contract.contract_accepted_at ? `${t("Accepted at")} ${new Date(contract.contract_accepted_at).toLocaleString("en-GB")}` : t("Awaiting acceptance")}</p></div>}</DialogContent></Dialog>}
+    {artistId ? <ArtistContractDialog artistId={artistId} contract={contract as unknown as ContractFull | undefined} onClose={() => setSelected(null)} /> : <ContractPreviewDialog doc={adminDoc} title={`${t("Booking contract")} ${t("· Dealmaker")}`} onClose={() => setSelected(null)} />}
   </section>;
 }
