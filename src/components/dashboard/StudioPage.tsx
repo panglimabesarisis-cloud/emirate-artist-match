@@ -48,9 +48,52 @@ export function StudioEmpty({ title, icon: Icon = Clock3 }: { title: string; ico
   return <div className="dmr-q-empty"><span className="studio-empty-icon"><Icon aria-hidden="true" /></span><b className="dmr-serif">{t(title)}</b></div>;
 }
 
-export function StudioDonut({ title, entries }: { title: string; entries: { label: string; value: number }[] }) {
+const DONUT_COLORS: Record<string, string> = {
+  Done: "#7bd88f", Waiting: "#e8b04a", Unpaid: "#e2574c", Partial: "rgba(232,176,74,.55)", Paid: "#f0c062", Collected: "#7bd88f", Due: "#e2574c", "Balance due": "#e2574c",
+};
+const DONUT_FALLBACK = ["#e8b04a", "#7bd88f", "#e2574c", "#f0c062"];
+
+/** Ring chart with a total in the middle and a legend, as in the design reference. */
+export function StudioDonut({ title, subtitle, entries, center, unit, format }: {
+  title: string; subtitle?: string; entries: { label: string; value: number; color?: string }[]; center?: string | number; unit?: string; format?: (n: number) => string;
+}) {
   const { t } = useI18n();
-  const total = entries.reduce((sum, entry) => sum + entry.value, 0);
-  let offset = 0;
-  return <section className="dmr-panel studio-donut-panel"><h2>{t(title)}</h2><div className="studio-donut-content"><div className="studio-donut"><svg viewBox="0 0 120 120" aria-label={t(title)} role="img"><circle className="studio-donut-track" cx="60" cy="60" r="48" />{entries.map((entry, i) => { const length = total ? entry.value / total * 301.59 : 0; const start = offset; offset += length; return <circle key={entry.label} className={`studio-donut-segment studio-donut-color-${i % 3}`} cx="60" cy="60" r="48" strokeDasharray={`${length} ${301.59 - length}`} strokeDashoffset={-start} />; })}</svg><strong>{total}</strong></div><dl>{entries.map((entry, i) => <div key={entry.label}><dt><i className={`studio-donut-key studio-donut-color-${i % 3}`} />{t(entry.label)}</dt><dd>{entry.value}</dd></div>)}</dl></div></section>;
+  const total = entries.reduce((sum, e) => sum + e.value, 0);
+  const R = 54, C = 2 * Math.PI * R;
+  const live = entries.filter((e) => e.value > 0);
+  const gap = live.length > 1 ? 2 : 0;
+  let off = 0;
+  const [first, ...rest] = title.split(" ");
+  const fmt = format ?? ((n: number) => String(n));
+  return (
+    <section className="dmr-panel studio-donut-panel">
+      <div className="mb-1.5">
+        <h2 className="dmr-serif">{first} {rest.length > 0 && <span className="it">{rest.join(" ")}</span>}</h2>
+        {subtitle && <small className="block text-xs font-normal text-muted-foreground">{t(subtitle)}</small>}
+      </div>
+      <div className="flex flex-wrap items-center gap-7">
+        <svg viewBox="0 0 140 140" className="h-[170px] w-[170px] shrink-0" role="img" aria-label={`${title}: ${entries.map((e) => `${t(e.label)} ${fmt(e.value)}`).join(", ")}`}>
+          <circle r={R} cx="70" cy="70" fill="none" stroke="rgba(246,239,226,.07)" strokeWidth="16" />
+          {total > 0 && entries.map((e, i) => {
+            if (e.value <= 0) return null;
+            const len = (C * e.value) / total;
+            const start = off; off += len;
+            return <circle key={e.label} r={R} cx="70" cy="70" fill="none" stroke={e.color ?? DONUT_COLORS[e.label] ?? DONUT_FALLBACK[i % DONUT_FALLBACK.length]} strokeWidth="16" strokeDasharray={`${Math.max(0, len - gap)} ${C}`} strokeDashoffset={-start} transform="rotate(-90 70 70)"><title>{`${t(e.label)}: ${fmt(e.value)}`}</title></circle>;
+          })}
+          <text x="70" y="68" textAnchor="middle" style={{ fill: "var(--foreground)", fontFamily: "var(--font-display)", fontSize: 34 }}>{center ?? total}</text>
+          {unit && <text x="70" y="88" textAnchor="middle" style={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase" }}>{t(unit)}</text>}
+        </svg>
+        <ul className="flex min-w-[180px] flex-1 flex-col gap-2">
+          {entries.map((e, i) => (
+            <li key={e.label} className="grid grid-cols-[12px_1fr_auto_44px] items-center gap-2.5 rounded-xl border border-border bg-foreground/[.02] px-3 py-2.5 text-[13.5px]">
+              <i className="h-3 w-3 rounded" style={{ background: e.color ?? DONUT_COLORS[e.label] ?? DONUT_FALLBACK[i % DONUT_FALLBACK.length] }} aria-hidden />
+              <span>{t(e.label)}</span>
+              <b className="whitespace-nowrap font-display text-[22px] font-normal" dir="ltr">{fmt(e.value)}</b>
+              <em className="text-end text-xs not-italic text-muted-foreground">{total ? Math.round((e.value / total) * 100) : 0}%</em>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
 }

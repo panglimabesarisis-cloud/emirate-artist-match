@@ -183,8 +183,8 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           : <Button className="rounded-full bg-gradient-gold font-bold text-gold-foreground" disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : g.data?.reconnectRequired ? t("Reconnect Google Calendar") : t("Connect Google Calendar")}</Button>}
       </section>
 
-      <StudioDonut title={t("Job progress")} entries={[{ label: "Done", value: counts.done }, { label: "Waiting", value: counts.waiting }]} />
-      <StudioDonut title={t("Payment status")} entries={[{ label: "Unpaid", value: jobs.filter((j) => payState(j) === "unpaid").length }, { label: "Partial", value: jobs.filter((j) => payState(j) === "partial").length }, { label: "Paid", value: jobs.filter((j) => payState(j) === "paid").length }]} />
+      <StudioDonut title={t("Job progress")} subtitle="Done vs waiting" unit="jobs" entries={[{ label: "Done", value: counts.done }, { label: "Waiting", value: counts.waiting }]} />
+      <StudioDonut title={t("Payment status")} subtitle="Unpaid, partial and paid jobs" unit="jobs" entries={[{ label: "Unpaid", value: jobs.filter((j) => payState(j) === "unpaid").length }, { label: "Partial", value: jobs.filter((j) => payState(j) === "partial").length }, { label: "Paid", value: jobs.filter((j) => payState(j) === "paid").length }]} />
 
       <section className="dmr-panel dmr-c-12 overflow-hidden !p-0" aria-label={t("Calendar")}>
         <div className="grid items-center gap-3 border-b border-border px-5 py-4 md:grid-cols-[1fr_auto_1fr]">

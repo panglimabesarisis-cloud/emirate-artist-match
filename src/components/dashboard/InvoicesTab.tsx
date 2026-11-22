@@ -27,7 +27,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
     queryKey: ["invoices", artistId], refetchInterval: 5000,
     queryFn: async () => {
       const [c, r] = await Promise.all([
-        supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(100),
+        supabase.from("conversations").select("id, quote_requests(name, email, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(100),
         supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort"),
       ]);
       if (c.error) throw c.error;
@@ -44,6 +44,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   const [busy, setBusy] = useState(false);
   const [due, setDue] = useState("");
   const [notes, setNotes] = useState("");
+  const me = useQuery({ queryKey: ["invoice-artist", artistId], queryFn: async () => (await supabase.from("artists").select("stage_name, trn").eq("id", artistId).maybeSingle()).data });
   const invQ = useInvoiceQuery(artistId);
   const invRows = toInvoiceRows(invQ.data ?? []);
   const outstanding = invRows.reduce((n, r) => n + Math.max(0, Number(r.total) - r.paid), 0);
@@ -79,45 +80,45 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
         <div className="dmr-qs"><small>{t("Invoices sent")}</small><b>{invRows.length}</b></div>
         <div className="dmr-qs"><small>{t("Paid")}</small><b>{paidCount}</b></div>
       </div></StudioHeading>
-      <StudioDonut title={t("Payment status")} entries={[{ label: "Unpaid", value: unpaidCount }, { label: "Partial", value: partialCount }, { label: "Paid", value: paidCount }]} />
-      <StudioDonut title={t("Collected vs due")} entries={[{ label: "Collected", value: collected }, { label: "Due", value: outstanding }]} />
-      <div className="dmr-c-12">
-        <h2 className="mb-5 font-display text-3xl leading-none">{t("New")} <span className="it">{t("invoice")}</span></h2>
-        <div className="studio-invoice-new">
-        <section aria-label={t("Invoice items")} className="studio-invoice-editor space-y-5">
-          <div className="space-y-2"><Label>{t("Client chat")}</Label>
-            <Select value={convo} onValueChange={setConvo}><SelectTrigger><SelectValue placeholder={t("Choose a client")} /></SelectTrigger>
+      <StudioDonut title={t("Payment status")} subtitle="Invoices by payment" unit="invoices" entries={[{ label: "Unpaid", value: unpaidCount }, { label: "Partial", value: partialCount }, { label: "Paid", value: paidCount }]} />
+      <StudioDonut title={t("Collected vs due")} subtitle="Amounts across all invoices, AED" unit="AED total" center={((n: number) => (n >= 1000 ? `${Math.round(n / 1000)}K` : String(Math.round(n))))(collected + outstanding)} format={aed} entries={[{ label: "Collected", value: collected }, { label: "Balance due", value: outstanding }]} />
+      <section className="dmr-panel dmr-c-12 grid gap-7 !p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" aria-labelledby="in-h">
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <h2 id="in-h" className="font-display text-[32px] leading-none">{t("New")} <span className="it">{t("invoice")}</span></h2>
+          <div className="space-y-2"><Label htmlFor="inv-client">{t("Client chat")}</Label>
+            <Select value={convo} onValueChange={setConvo}><SelectTrigger id="inv-client"><SelectValue placeholder={t("Choose a client")} /></SelectTrigger>
               <SelectContent>{data?.convos.map((c) => <SelectItem key={c.id} value={c.id}>{nameOf(c.id)} · {c.quote_requests?.event_date ?? "date TBC"}</SelectItem>)}</SelectContent></Select>
           </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2"><Label htmlFor="inv-issue">{t("Issue date")}</Label><Input id="inv-issue" type="date" value={today} disabled aria-describedby="inv-issue-note" /><p id="inv-issue-note" className="text-[11px] text-muted-foreground">{t("Set to the day you send it.")}</p></div>
-          <div className="space-y-2"><Label htmlFor="inv-due">{t("Due date")}</Label><Input id="inv-due" type="date" min={today} value={due} onChange={(e) => setDue(e.target.value)} /></div>
-        </div>
-        <div>
-          <Label>{t("Services")}</Label>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {data?.rates.map((r) => <Button key={r.id} size="sm" variant="outline" className="h-auto max-w-full whitespace-normal py-2 text-start" onClick={() => setItems([...items, { title: r.title, qty: 1, price: Number(r.price) }])}><Plus className="me-1 h-3 w-3 shrink-0" />{r.title} · {aed(Number(r.price))}</Button>)}
-            <Button size="sm" variant="outline" onClick={() => setItems([...items, { title: "", qty: 1, price: 0 }])}><Plus className="me-1 h-3 w-3" />{t("Custom item")}</Button>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label htmlFor="inv-issue">{t("Issue date")}</Label><Input id="inv-issue" type="date" value={today} disabled aria-describedby="inv-issue-note" /></div>
+            <div className="space-y-2"><Label htmlFor="inv-due">{t("Due date")}</Label><Input id="inv-due" type="date" min={today} value={due} onChange={(e) => setDue(e.target.value)} /></div>
           </div>
-          <div className="mt-3 space-y-2">
-            {items.map((it, i) => (
-              <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] gap-2 border-b py-3 xl:grid-cols-[minmax(0,1fr)_4rem_7rem_2.5rem]">
-                <div className="col-span-3 min-w-0 space-y-1 xl:col-span-1"><Label htmlFor={`invoice-item-${i}`} className="text-xs text-muted-foreground">{t("Item")}</Label><Input id={`invoice-item-${i}`} placeholder={t("Service")} value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} /></div>
-                <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-qty-${i}`} className="text-xs text-muted-foreground">{t("Qty")}</Label><Input id={`invoice-qty-${i}`} type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, qty: Number(e.target.value) } : x))} /></div>
-                <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-price-${i}`} className="text-xs text-muted-foreground">{t("Price (AED)")}</Label><Input id={`invoice-price-${i}`} type="number" min={0} step="0.01" value={it.price} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} /></div>
-                <Button size="icon" variant="ghost" className="self-end" onClick={() => setItems(items.filter((_, j) => j !== i))} aria-label={`${t("Remove item")} ${i + 1}`}><Trash2 className="h-4 w-4" /></Button>
+          <p id="inv-issue-note" className="-mt-2 text-[11px] text-muted-foreground">{t("Issue date is set to the day you send it.")}</p>
+          <div className="flex flex-col gap-2.5 rounded-2xl border border-border p-3.5">
+            <div className="flex items-center justify-between"><span className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Services")}</span>
+              <Button size="sm" variant="outline" className="rounded-full" onClick={() => setItems([...items, { title: "", qty: 1, price: 0 }])}><Plus className="me-1 h-3.5 w-3.5" />{t("Custom item")}</Button></div>
+            {(data?.rates.length ?? 0) > 0 && (
+              <div className="flex flex-col gap-1.5 text-[11.5px] text-muted-foreground"><span>{t("From your ratecard:")}</span>
+                <div className="flex flex-wrap gap-1.5">{data?.rates.map((r) => <button key={r.id} type="button" onClick={() => setItems([...items, { title: r.title, qty: 1, price: Number(r.price) }])} className="rounded-full border border-dashed border-gold/45 px-2.5 py-1.5 text-xs font-bold text-gold transition-colors hover:bg-gold/10">+ {r.title} · {aed(Number(r.price))}</button>)}</div>
               </div>
-            ))}
+            )}
+            <div className="flex flex-col gap-2">
+              {items.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_64px_110px_34px] items-end gap-2">
+                  <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-item-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Item")}</Label><Input id={`invoice-item-${i}`} placeholder={t("Service")} value={it.title} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} /></div>
+                  <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-qty-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Qty")}</Label><Input id={`invoice-qty-${i}`} type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, qty: Number(e.target.value) } : x))} /></div>
+                  <div className="min-w-0 space-y-1"><Label htmlFor={`invoice-price-${i}`} className={`text-[10px] ${i > 0 ? "sr-only" : ""}`}>{t("Price (AED)")}</Label><Input id={`invoice-price-${i}`} type="number" min={0} step="0.01" value={it.price} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} /></div>
+                  <Button size="icon" variant="outline" className="h-10 w-[34px]" onClick={() => setItems(items.filter((_, j) => j !== i))} aria-label={`${t("Remove item")} ${i + 1}`}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              ))}
+            </div>
+            {items.length === 0 && <p className="text-[12.5px] text-muted-foreground/70">{t("No items yet. Add a custom item or pick one from your ratecard.")}</p>}
           </div>
+          <div className="space-y-2"><Label htmlFor="inv-notes">{t("Notes (optional)")}</Label><Textarea id="inv-notes" rows={3} maxLength={500} placeholder={t("Event details, rehearsal, wardrobe")} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <Button disabled={busy || !draft || !convo} onClick={submit} className="h-auto w-full whitespace-normal rounded-full bg-gradient-gold py-3 font-bold text-gold-foreground"><Send className="me-2 h-4 w-4 shrink-0" />{t(busy ? "Sending…" : "Create & send to chat")}</Button>
         </div>
-        <div className="space-y-2"><Label htmlFor="inv-notes">{t("Notes (optional)")}</Label><Textarea id="inv-notes" rows={3} maxLength={500} placeholder={t("Event details, rehearsal, wardrobe")} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-        <div className="border-t pt-4">
-          <Button disabled={busy || !draft || !convo} onClick={submit} className="h-auto w-full whitespace-normal bg-gradient-gold py-3 text-gold-foreground"><Send className="me-2 h-4 w-4 shrink-0" />{t(busy ? "Sending…" : "Create & send to chat")}</Button>
-        </div>
-        </section>
-        <InvoiceLivePreview invoice={draft} client={selectedClient?.name ?? "Client"} eventDate={selectedClient?.event_date} />
-        </div>
-      </div>
+        <InvoiceLivePreview invoice={draft} client={selectedClient?.name ?? null} clientEmail={selectedClient?.email} eventDate={selectedClient?.event_date} artistName={me.data?.stage_name ?? ""} issued={today} due={due || null} trn={me.data?.trn} />
+      </section>
       <div className="dmr-panel dmr-q-panel dmr-c-12">
         <InvoiceRecords artistId={artistId} />
         {data?.sent.filter(m => !decodeInvoice(m.body)?.id).map(m => { const inv = decodeInvoice(m.body); return inv && <div key={m.id} className="mt-3"><p className="text-xs text-muted-foreground">{t("Legacy invoice · payment status not tracked")}</p><InvoiceCard inv={inv} /></div>; })}
