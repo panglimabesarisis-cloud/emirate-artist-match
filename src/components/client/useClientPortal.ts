@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getClientBookingExtras, listClientConversations } from "@/lib/client-portal.functions";
 import type { CommissionRow, PayoutRow } from "@/lib/client-portal-rules";
 
-export const BOOKING_FIELDS = "id, access_key, status, escrow_status, invoice_no, package_title, event_date, start_time, end_time, amount, vat_amount, total, paid_amount, refund_amount, deposit_pct, notes, job_detail, guests, client_name, client_phone, conversation_id, created_at, paid_at, completed_at, cancelled_at, escrow_released_at, contract_accepted_at, client_confirmed_at, client_commission_pct, artist_id, artists(stage_name, slug, hue), event_types(name)";
+export const BOOKING_FIELDS = "id, access_key, status, escrow_status, invoice_no, package_title, event_date, start_time, end_time, amount, vat_amount, total, paid_amount, refund_amount, deposit_pct, notes, job_detail, guests, invoice_items, client_name, client_phone, conversation_id, created_at, paid_at, completed_at, cancelled_at, escrow_released_at, contract_accepted_at, client_confirmed_at, client_commission_pct, artist_id, artists(stage_name, slug, hue), event_types(name)";
 
 const key = (uid: string, name: string) => ["cp", uid, name] as const;
 
