@@ -12,7 +12,7 @@ export function verifiedPaidPeriod(invoice:{status:string|null;currency:string;l
  if(invoice.status!=='paid'||invoice.currency!=='idr'||invoice.livemode||invoice.customer!==identity.customer||invoice.subscription!==identity.subscription)return null;
  if(line.currency!=='idr'||line.livemode||line.amount<0||line.quantity!==1||line.subscription!==identity.subscription||!Number.isFinite(line.start)||!Number.isFinite(line.end)||line.end<=line.start)return null;
  return {start:line.start,end:line.end};
-}export const ITEM_KINDS=['agent_prompt','flow_template','order_form_template'] as const;
+}export const ITEM_KINDS=['agent_prompt','flow_template','order_form_template','contract_template'] as const;
 export type ItemKind=typeof ITEM_KINDS[number];
 export function itemAmountMinor(priceAed:number){if(!Number.isFinite(priceAed)||priceAed<=0)throw new Error('This item is free');return Math.round(priceAed*1.05*100);}
 export function tierAllowed(plan:string,tier:string|null){return tier==null||(PLAN_RANK[plan]??0)>=(PLAN_RANK[tier]??99);}

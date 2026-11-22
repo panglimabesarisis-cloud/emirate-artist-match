@@ -4,6 +4,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { BillingPanel } from "./BillingPanel";
+import { ItemCheckoutDialog } from "./ItemCheckoutDialog";
 import "./invoice-print.css";
 
 export type ContractDoc = {
@@ -88,9 +89,10 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
 }
 
 /** "Booking contract · Dealmaker" popup: Print / PDF, and for a contract outside the artist's plan a blurred sheet with a Buy contract button. */
-export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequired = false, planName, artistId, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; purchaseRequired?: boolean; planName?: string; artistId?: string; onClose: () => void }) {
+export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequired = false, planName, artistId, templateId, priceAed = 0, onPaid, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; purchaseRequired?: boolean; planName?: string; artistId?: string; templateId?: string; priceAed?: number; onPaid?: () => void; onClose: () => void }) {
   const { t } = useI18n();
   const [buying, setBuying] = useState(false);
+  const [paying, setPaying] = useState(false);
   const print = () => {
     document.body.classList.add("inv-printing");
     const done = () => { document.body.classList.remove("inv-printing"); window.removeEventListener("afterprint", done); };
@@ -105,7 +107,7 @@ export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequ
             <DialogTitle className="font-display text-[26px] font-normal leading-none tracking-normal">{title}</DialogTitle>
             <div className="flex flex-wrap gap-2.5">
               <Button type="button" variant="outline" className="rounded-full" onClick={print} disabled={locked}><Printer className="me-2 h-4 w-4" />{t("Print / PDF")}</Button>
-              {locked && purchaseRequired && <Button type="button" variant="outline" disabled>{t("Contract checkout unavailable")}</Button>}
+              {locked && purchaseRequired && templateId && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setPaying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")} · AED {(priceAed * 1.05).toFixed(2)}</Button>}
               {locked && !purchaseRequired && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setBuying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")}</Button>}
               <DialogClose asChild><Button type="button" variant="outline" size="icon" aria-label={t("Close preview")}><X className="h-4 w-4" /></Button></DialogClose>
             </div>
@@ -114,6 +116,8 @@ export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequ
           <div className="ivp-sheet p-3 sm:p-7">{doc && <ContractPaper doc={doc} locked={locked} t={t} />}</div>
         </DialogContent>
       </Dialog>
+
+      {templateId && doc && <ItemCheckoutDialog kind="contract_template" itemId={templateId} title={doc.templateName} priceAed={priceAed} open={paying} onClose={() => setPaying(false)} onPaid={() => { setPaying(false); onPaid?.(); }} />}
 
       <Dialog open={buying} onOpenChange={(o) => { if (!o) setBuying(false); }}>
         <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">

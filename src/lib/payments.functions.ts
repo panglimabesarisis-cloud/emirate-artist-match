@@ -20,10 +20,12 @@ export const artistCheckout=createServerFn({method:'POST'}).middleware([requireS
    let title:string,price:number,tier:string|null=null;
    if(kind==='agent_prompt'){const {data:p}=await db.from('agent_prompts').select('title,price_aed,tier,is_active').eq('id',itemId).maybeSingle();if(!p?.is_active)throw new Error('Item unavailable');title=p.title;price=Number(p.price_aed);tier=p.tier;}
    else if(kind==='flow_template'){const {data:t}=await db.from('ai_flow_templates').select('name,price_aed,published').eq('id',itemId).maybeSingle();if(!t?.published)throw new Error('Item unavailable');title=t.name;price=Number(t.price_aed);}
-   else {const {data:t}=await db.from('order_form_templates').select('name,price_aed,tier,is_active').eq('id',itemId).maybeSingle();if(!t?.is_active)throw new Error('Item unavailable');title=t.name;price=Number(t.price_aed);tier=t.tier;}
+   else if(kind==='order_form_template'){const {data:t}=await db.from('order_form_templates').select('name,price_aed,tier,is_active').eq('id',itemId).maybeSingle();if(!t?.is_active)throw new Error('Item unavailable');title=t.name;price=Number(t.price_aed);tier=t.tier;}
+   else {const {data:t}=await db.from('contract_templates').select('name,price_aed,tier,is_active,artist_id').eq('id',itemId).maybeSingle();if(!t?.is_active||t.artist_id!==null)throw new Error('Item unavailable');if(Number(t.price_aed)<=0)throw new Error('This contract is included in its plan');title=t.name;price=Number(t.price_aed);tier=t.tier;}
    if(!tierAllowed(String(plan??'free'),tier))throw new Error('Your plan does not include this item');
    const owned=kind==='agent_prompt'?(await db.from('agent_prompt_purchases').select('artist_id').eq('artist_id',a.id).eq('prompt_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data
     :kind==='flow_template'?(await db.from('ai_flow_template_purchases').select('artist_id').eq('artist_id',a.id).eq('template_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data
+    :kind==='contract_template'?(await db.from('contract_template_purchases').select('artist_id').eq('artist_id',a.id).eq('template_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data
     :(await db.from('order_form_template_purchases').select('artist_id').eq('artist_id',a.id).eq('template_id',itemId).not('paid_at','is',null).is('refunded_at',null).maybeSingle()).data;
    if(owned)throw new Error('You already own this item');
    return await openOrder({artist_id:a.id,kind,target_id:itemId,credits:0,amount_minor:itemAmountMinor(price)},`Dealmaker ${title} (incl. VAT 5%)`,{userId:context.userId,email:user?.email},returnUrl);

@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
-export type ItemKind = "agent_prompt" | "flow_template" | "order_form_template";
+export type ItemKind = "agent_prompt" | "flow_template" | "order_form_template" | "contract_template";
 
 /**
  * One-time purchase of a library item (AI prompt, flow template, order form template).
