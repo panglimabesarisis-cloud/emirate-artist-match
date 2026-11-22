@@ -337,6 +337,13 @@
       "when": 1795273902584,
       "tag": "0047_restrict_ai_model_rates_read",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795320591797,
+      "tag": "0048_contract_templates_and_frozen_booking_terms",
+      "breakpoints": true
     }
   ]
 }

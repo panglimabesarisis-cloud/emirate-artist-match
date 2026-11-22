@@ -1231,6 +1231,8 @@ export type Database = {
           commission_rate: number | null
           completed_at: string | null
           contract_accepted_at: string | null
+          contract_template_id: string | null
+          contract_terms: Json | null
           conversation_id: string | null
           created_at: string
           deposit_pct: number
@@ -1279,6 +1281,8 @@ export type Database = {
           commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
+          contract_template_id?: string | null
+          contract_terms?: Json | null
           conversation_id?: string | null
           created_at?: string
           deposit_pct?: number
@@ -1327,6 +1331,8 @@ export type Database = {
           commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
+          contract_template_id?: string | null
+          contract_terms?: Json | null
           conversation_id?: string | null
           created_at?: string
           deposit_pct?: number
@@ -1361,6 +1367,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_contract_template_id_fkey"
+            columns: ["contract_template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
             referencedColumns: ["id"]
           },
           {
@@ -1454,6 +1467,66 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "bookings"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_templates: {
+        Row: {
+          artist_id: string | null
+          category: string | null
+          clauses: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          rider: string | null
+          role: string | null
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id?: string | null
+          category?: string | null
+          clauses?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          rider?: string | null
+          role?: string | null
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string | null
+          category?: string | null
+          clauses?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          rider?: string | null
+          role?: string | null
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_templates_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_tiers"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -3134,6 +3207,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      booking_contract_terms: { Args: { _booking: string }; Returns: Json }
       charge_agent_reply: {
         Args: {
           _artist: string
@@ -3185,6 +3259,17 @@ export type Database = {
         Args: { _event: string }
         Returns: boolean
       }
+      resolve_booking_contract: {
+        Args: {
+          _booking: Database["public"]["Tables"]["bookings"]["Row"]
+          _template: Database["public"]["Tables"]["contract_templates"]["Row"]
+        }
+        Returns: Json
+      }
+      resolve_contract_text: {
+        Args: { _text: string; _values: Json }
+        Returns: string
+      }
       settle_sandbox_order: {
         Args: {
           _amount: number
@@ -3204,6 +3289,10 @@ export type Database = {
         Returns: boolean
       }
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
+      use_contract_template: {
+        Args: { _booking: string; _template: string }
+        Returns: undefined
+      }
       use_flow_template: { Args: { _id: string }; Returns: string }
       use_order_form_template: { Args: { _id: string }; Returns: undefined }
     }
