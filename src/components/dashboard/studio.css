@@ -169,3 +169,7 @@ html.dm-dash[dir="rtl"] .studio-text-link span,html.dm-dash[dir="rtl"] .studio-a
  html.dm-dash .studio-embers{display:none}
  html.dm-dash .studio-nav-item:hover,html.dm-dash .studio-kpi:hover{translate:none}
 }
+
+/* Two charts side by side in their own row above the KPI cards; stacked on narrow screens */
+html.dm-dash .studio-span-6{grid-column:span 6;min-width:0}
+@media(max-width:1240px){html.dm-dash .studio-span-6{grid-column:span 12}}
