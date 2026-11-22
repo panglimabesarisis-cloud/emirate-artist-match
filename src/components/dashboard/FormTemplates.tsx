@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,9 @@ export function FormTemplates({ artistId, onUsed }: { artistId: string; onUsed: 
   const plan = useArtistPlan(artistId);
   const [buying, setBuying] = useState<Tpl | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState("");
+  const [tier, setTier] = useState("");
   const list = useQuery({
     queryKey: ["form-templates"],
     queryFn: async () => ((await supabase.from("order_form_templates_public").select("id, name, category, description, tier, price_aed, question_count").order("name")).data ?? []) as Tpl[],
@@ -42,11 +45,24 @@ export function FormTemplates({ artistId, onUsed }: { artistId: string; onUsed: 
     onUsed();
   };
 
-  if (!list.data?.length) return null;
+  const all = list.data ?? [];
+  const cats = [...new Set(all.map((x) => x.category).filter(Boolean) as string[])].sort();
+  const needle = q.trim().toLowerCase();
+  const shown = all.filter((x) => (!cat || x.category === cat) && (!tier || x.tier === tier) && (!needle || `${x.name} ${x.description ?? ""} ${x.category ?? ""}`.toLowerCase().includes(needle)));
+  const sel = "h-10 rounded-xl border border-border bg-foreground/[.05] px-3 pe-7 text-[13px] font-bold";
   return (
-    <StudioSection title="Form" accent="templates">
+    <StudioSection title="Form" accent="templates" subtitle="Made by Dealmaker. Pick one to fill your form, then change anything.">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <label className="relative flex h-10 min-w-48 max-w-xs flex-1 items-center"><Search className="pointer-events-none absolute start-3.5 h-4 w-4 text-gold" aria-hidden /><span className="sr-only">{t("Search templates")}</span>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search templates")} autoComplete="off" className="h-full w-full rounded-[14px] border border-border bg-foreground/[.03] pe-3 ps-10 text-sm outline-none focus-visible:border-gold" /></label>
+        <label><span className="sr-only">{t("Category")}</span><select value={cat} onChange={(e) => setCat(e.target.value)} className={sel}><option value="">{t("All categories")}</option>{cats.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+        <label><span className="sr-only">{t("Plan")}</span><select value={tier} onChange={(e) => setTier(e.target.value)} className={sel}><option value="">{t("All plans")}</option>{(plan.data?.tiers ?? []).map((x) => <option key={x.code} value={x.code}>{x.name}</option>)}</select></label>
+      </div>
+      {shown.length === 0 && (
+        <div className="flex flex-col items-center gap-2 px-5 py-10 text-center"><span className="grid h-[60px] w-[60px] place-items-center rounded-full border border-gold/25 bg-[radial-gradient(circle,rgba(232,176,74,.22),rgba(232,176,74,.04)_70%)] text-gold"><ClipboardList className="h-[22px] w-[22px]" /></span><b className="font-display text-2xl font-normal">{t("No templates found")}</b><p className="text-[13px] text-muted-foreground">{t("Try another search or plan.")}</p></div>
+      )}
       <ul className="grid gap-3 md:grid-cols-2">
-        {list.data.map((tpl) => {
+        {shown.map((tpl) => {
           const price = Number(tpl.price_aed);
           const tierLocked = (rank.get(tpl.tier) ?? 99) > myRank;
           const needsBuy = price > 0 && !have.has(tpl.id);
