@@ -1,8 +1,8 @@
-import { ChatComposer } from "@/components/chat/ChatComposer";
+import { ScheduleDialog, type BusySlot } from "@/components/site/ScheduleDialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { submitQuote, startChat } from "@/lib/chat.functions";
+import { submitQuote } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
@@ -142,7 +142,7 @@ function ArtistPage() {
               <p className="mt-3 text-[11px] text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
             </section>
           )}
-          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} similar={a.similar} packages={a.rateCards} />
+          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} />
         </div>
       </div>
     </PublicLayout>
@@ -152,8 +152,8 @@ function ArtistPage() {
 type Similar = { id: string; slug: string; stage_name: string; base_price: number; rating: number | null };
 type Sent = { name: string; conversationId: string; key: string };
 
-function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar, packages }: {
-  artistId: string; artistName: string; basePrice: number; blocked: string[]; similar: Similar[];
+function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, similar, packages }: {
+  artistId: string; artistName: string; basePrice: number; blocked: string[]; busy: BusySlot[]; similar: Similar[];
   packages: { id: string; title: string; description: string | null; price: number; duration_minutes: number | null }[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
@@ -164,14 +164,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
   const pickedPkgs = packages.filter((p) => picked.includes(p.id));
   const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
-  const chat$ = useServerFn(startChat);
-  const [chatting, setChatting] = useState(false);
-  const [quickText, setQuickText] = useState("");
-  const openChat = async (text?: string) => {
-    setChatting(true);
-    try { const r = await chat$({ data: { artistId, ...(text ? { text } : {}) } }); navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } }); }
-    catch { toast.error(t("Could not open the chat. Please try again.")); setChatting(false); }
-  };
+  const [showForm, setShowForm] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const { data: orderForm } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
     const { data } = await (supabase as any).from("artist_order_forms").select("title, description, fields, enabled").eq("artist_id", artistId).maybeSingle();
     return data as { title: string; description: string | null; fields: OrderField[]; enabled: boolean } | null;
@@ -228,6 +222,12 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
               <span>{s.name}</span><span>{t("Open chat")} →</span>
             </Button>
           ))}
+        </div>
+      ) : !showForm ? (
+        <div className="mt-5 space-y-3">
+          <Button type="button" onClick={() => setShowForm(true)} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">{t("Book Artist")}</Button>
+          <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
+          <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
@@ -295,13 +295,11 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, similar,
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
-          <Button type="button" variant="outline" disabled={chatting} onClick={() => openChat()} className="w-full">
-            {chatting ? t("Opening chat…") : t("Chat With Us")}
-          </Button>
+          <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
-      <div className="mt-5 border-t pt-4"><div className="mb-2 text-sm font-semibold">{t("Chat With Us")}</div><ChatComposer text={quickText} onChange={setQuickText} busy={chatting} onSend={() => { if (quickText.trim()) void openChat(quickText); }} /></div>
+      <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
     </aside>
   );
 }

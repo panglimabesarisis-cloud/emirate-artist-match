@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StudioDonut, StudioHeading } from "./StudioPage";
+import { HourlyDay } from "@/components/site/HourlyDay";
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -236,7 +237,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
         <div className="grid items-center gap-3 border-b border-border px-5 py-4 md:grid-cols-[1fr_auto_1fr]">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" className="rounded-full" aria-label={t("Previous")} onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-            <Button variant="outline" className="rounded-full" onClick={() => { const d = new Date(); setFocus(new Date(d.getFullYear(), d.getMonth(), d.getDate())); }}>{t("Today")}</Button>
+            <Button variant="outline" className="rounded-full" onClick={() => { const d = new Date(); setFocus(new Date(d.getFullYear(), d.getMonth(), d.getDate())); setView("day"); }}>{t("Today")}</Button>
             <Button variant="outline" size="icon" className="rounded-full" aria-label={t("Next")} onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <h2 className="font-display text-3xl leading-none md:text-center" aria-live="polite">{title}</h2>
@@ -247,8 +248,16 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           </div>
           </div>
         </div>
-        <div role="grid" aria-label={title} className={`grid ${view === "day" ? "grid-cols-1" : "grid-cols-7"} ${view === "month" ? "" : ""}`}>
-          {view !== "day" && DOW.map((d) => <div key={d} role="columnheader" className="border-b border-border p-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.12em] text-gold">{t(d)}</div>)}
+        {view === "day" ? (() => { const k = ymd(focus); const isB = blocked.has(k); return (
+          <div className="p-4">
+            <HourlyDay blocks={[
+              ...(isB ? [{ start: null, end: null, label: t("Unavailable"), className: "bg-red-500/15 text-red-300" }] : []),
+              ...(byDate.get(k) ?? []).map((b) => ({ start: b.start_time, end: b.end_time, label: `${b.client_name} · ${b.package_title}`, className: `border-s-[3px] ${stageClasses(b).entry}`, onClick: () => setOpen(b) })),
+              ...(itemsByDate.get(k) ?? []).map((i) => ({ start: i.start_time, end: i.end_time, label: i.title, className: i.source === "ai" ? "border-s-[3px] border-orange-400 bg-orange-400/20" : "border-s-[3px] border-blue-400 bg-blue-400/15", onClick: () => setItem(i) })),
+            ]} />
+          </div>); })() : (
+        <div role="grid" aria-label={title} className={`grid ${"grid-cols-7"} ${view === "month" ? "" : ""}`}>
+          {DOW.map((d) => <div key={d} role="columnheader" className="border-b border-border p-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.12em] text-gold">{t(d)}</div>)}
           {days.map((d) => {
             const k = ymd(d);
             const list = byDate.get(k) ?? [];
@@ -286,7 +295,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
               </div>
             );
           })}
-        </div>
+        </div>)}
         <div className="flex flex-wrap gap-4 px-5 py-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-zinc-400/60" />{t("Soft Booking")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/40" />{t("Job Booking (down payment)")}</span>

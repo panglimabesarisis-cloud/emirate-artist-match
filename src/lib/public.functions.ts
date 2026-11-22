@@ -175,6 +175,9 @@ export const getArtist = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const signed = paths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
     // The cover photo goes first; everything else keeps the order the artist chose.
+    // Anonymous busy slots for the public schedule: only dates and times, never client or event details.
+    const { data: busyRows } = await supabaseAdmin.from("bookings").select("event_date, start_time, end_time").eq("artist_id", card.id).is("deleted_at", null).neq("status", "cancelled").gte("event_date", new Date().toISOString().slice(0, 10)).limit(1000);
+    const busy = (busyRows ?? []).map((b) => ({ date: b.event_date as string, start: (b.start_time as string | null)?.slice(0, 5) ?? null, end: (b.end_time as string | null)?.slice(0, 5) ?? null }));
     const media = [...(mediaRows ?? [])].sort((a, b) => Number(b.is_cover) - Number(a.is_cover)).map((m) => ({
       id: m.id, kind: m.kind as "photo" | "video" | "youtube", caption: m.caption,
       src: m.storage_path ? signed.find((x) => x.path === m.storage_path)?.signedUrl ?? "" : m.url,
@@ -186,6 +189,7 @@ export const getArtist = createServerFn({ method: "GET" })
       rateCards: rates ?? [],
       reviews: reviews ?? [],
       blockedDates: (blocked ?? []).map((b) => b.date),
+      busy,
       similar,
       media,
     };
