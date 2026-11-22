@@ -1,4 +1,6 @@
 import { bookingStage, STAGE_LABEL } from "./booking-stage";
+import { MORE_TOOLS, MORE_TOOL_NAMES, executeMoreTool } from "./my-agent-more-tools.server";
+import type { AgentProposal } from "./my-agent-proposals";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
@@ -10,7 +12,6 @@ import {
   reportRequestSchema,
   templateAllowed,
   type AgentReport,
-  type CalendarDraft,
   type ReportRecord,
 } from "./my-agent-rules";
 export type AgentDb = SupabaseClient<Database>;
@@ -135,7 +136,7 @@ export const AGENT_TOOLS = [
       additionalProperties: false,
     },
   },
-].map((tool) => ({ type: "function" as const, strict: true, ...tool }));
+].map((tool) => ({ type: "function" as const, strict: true, ...tool })).concat(MORE_TOOLS as never);
 export type AgentToolContext = {
   db: AgentDb;
   artistId: string;
@@ -143,18 +144,20 @@ export type AgentToolContext = {
   reports: AgentReport[];
   invoices: PrivateInvoice[];
   contracts: PrivateContract[];
-  proposals: CalendarDraft[];
+  proposals: AgentProposal[];
+  attachedFiles: { id: string; name: string; mime: string }[];
 };
 export async function executeAgentTool(
   name: string,
   input: unknown,
   ctx: AgentToolContext,
 ): Promise<unknown> {
+  if (MORE_TOOL_NAMES.has(name)) return executeMoreTool(name, input, ctx);
   if (name === "prepare_calendar_event") {
     const payload = calendarDraftSchema.parse(input);
     if (!calendarAllowed(ctx.plan.inheritedFeatures))
       throw new Error("Calendar sync is not included in your current subscription.");
-    ctx.proposals.push(payload);
+    ctx.proposals.push({ kind: "calendar_event", payload });
     return {
       prepared: true,
       event: payload,

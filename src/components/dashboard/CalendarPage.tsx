@@ -54,7 +54,7 @@ function waitForOAuth(popup: Window) {
   });
 }
 
-type ScheduleItem = { id: string; title: string; event_date: string; start_time: string; end_time: string; notes: string | null };
+type ScheduleItem = { id: string; title: string; event_date: string; start_time: string; end_time: string; notes: string | null; source: string };
 type Job = {
   id: string; client_name: string; package_title: string; event_date: string; start_time: string | null; end_time: string | null; status: string;
   total: number; paid_amount: number; notes: string | null; job_detail: string | null; escrow_status: string;
@@ -101,7 +101,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const itemsQ = useQuery({
     queryKey: ["schedule-items", artistId],
     queryFn: async () => {
-      const res = await supabase.from("schedule_items").select("id, title, event_date, start_time, end_time, notes").eq("artist_id", artistId).order("event_date").order("start_time").limit(1000);
+      const res = await supabase.from("schedule_items").select("id, title, event_date, start_time, end_time, notes, source").eq("artist_id", artistId).order("event_date").order("start_time").limit(1000);
       if (res.error) throw res.error;
       return res.data ?? [];
     },
@@ -276,7 +276,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                 ))}
                 {(itemsByDate.get(k) ?? []).map((i) => (
                   <button key={i.id} type="button" title={i.title} onClick={(e) => { e.stopPropagation(); setItem(i); }}
-                    className={`overflow-hidden text-ellipsis rounded-[7px] border-s-[3px] border-violet-400 bg-violet-400/15 px-2 py-0.5 text-start text-[11.5px] font-bold transition-[background,translate] hover:translate-x-0.5 hover:bg-violet-400/25 ${view === "month" ? "whitespace-nowrap" : "whitespace-normal py-1.5 text-xs"}`}>
+                    className={`overflow-hidden text-ellipsis rounded-[7px] border-s-[3px] px-2 py-0.5 text-start text-[11.5px] font-bold transition-[background,translate] hover:translate-x-0.5 ${i.source === "ai" ? "border-orange-400 bg-orange-400/20 hover:bg-orange-400/30" : "border-blue-400 bg-blue-400/15 hover:bg-blue-400/25"} ${view === "month" ? "whitespace-nowrap" : "whitespace-normal py-1.5 text-xs"}`}>
                     <small className="me-1 font-semibold text-muted-foreground">{hhmm(i.start_time)}</small>{i.title}
                     {view !== "month" && <small className="block font-semibold text-muted-foreground">{hhmm(i.start_time)} – {hhmm(i.end_time)}{i.notes ? ` · ${i.notes}` : ""}</small>}
                   </button>
@@ -292,7 +292,8 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/40" />{t("Job Booking (down payment)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/80" />{t("Job Booking (paid in full)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-400/70" />{t("Job Complete")}</span>
-          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-violet-400/60" />{t("My schedule")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-blue-400/60" />{t("My schedule")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-orange-400/70" />{t("Added by your AI agent")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-red-500/35" />{t("Blocked (clients can't book)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-gradient-gold" />{t("Today")}</span>
         </div>
@@ -375,7 +376,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
         <DialogContent className="max-w-md rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
           {item && (
             <>
-              <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{item.title}</DialogTitle><DialogDescription>{fmtDate(item.event_date)} · {hhmm(item.start_time)} – {hhmm(item.end_time)}</DialogDescription></DialogHeader>
+              <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{item.title}</DialogTitle><DialogDescription>{fmtDate(item.event_date)} · {hhmm(item.start_time)} – {hhmm(item.end_time)} · {t(item.source === "ai" ? "Added by your AI agent" : "Added by you")}</DialogDescription></DialogHeader>
               <p className={`whitespace-pre-wrap break-words text-sm ${item.notes ? "" : "text-muted-foreground/60"}`}>{item.notes || t("No description")}</p>
               <div className="flex items-center justify-between gap-2">
                 <Button variant="outline" className="rounded-full border-red-400/40 text-red-300 hover:bg-red-500/10" onClick={() => void removeItem(item)}><Trash2 className="me-1.5 h-4 w-4" />{t("Delete")}</Button>

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { calendarAllowed, calendarDraftSchema, googleEventPayload } from "./my-agent-rules";
+import { parseProposal } from "./my-agent-proposals";
 export const confirmMyAgentAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -17,8 +18,39 @@ export const confirmMyAgentAction = createServerFn({ method: "POST" })
     const owner = await context.supabase.rpc("is_artist_owner", { _artist: action.artist_id });
     if (owner.error || !owner.data)
       throw new Error("Only the artist owner can confirm this action");
-    if (action.kind !== "calendar_event")
-      throw new Error("Invoices are displayed privately, never sent to clients by this agent");
+    if (action.kind !== "calendar_event") {
+      // Schedule entry, rate card, photo, video, invoice: nothing runs until the owner confirms this exact saved proposal.
+      const proposal = parseProposal(action.kind, action.payload);
+      if (!proposal) throw new Error("This proposal is no longer valid");
+      if (action.status === "completed") return { ok: true };
+      if (action.status !== "pending") throw new Error("This action is already processed. Check before trying again.");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const claim = await supabaseAdmin
+        .from("agent_actions")
+        .update({ status: data.cancel ? "cancelled" : "running", updated_at: new Date().toISOString() })
+        .eq("id", action.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claim.error || !claim.data) throw new Error("Action already processed");
+      if (data.cancel) return { ok: true };
+      try {
+        const { runConfirmedProposal } = await import("./my-agent-actions.server");
+        const result = await runConfirmedProposal(proposal, { artistId: action.artist_id, userId: context.userId });
+        await supabaseAdmin
+          .from("agent_actions")
+          .update({ status: "completed", result: JSON.parse(JSON.stringify(result)), updated_at: new Date().toISOString() })
+          .eq("id", action.id);
+        return { ok: true };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "The action failed";
+        await supabaseAdmin
+          .from("agent_actions")
+          .update({ status: action.kind === "send_invoice" ? "unknown" : "failed", result: { error: message }, updated_at: new Date().toISOString() })
+          .eq("id", action.id);
+        return { ok: false, error: message };
+      }
+    }
     if (action.status === "completed") return { ok: true };
     if (action.status !== "pending")
       throw new Error("This action is already processed. Check Calendar before trying again.");

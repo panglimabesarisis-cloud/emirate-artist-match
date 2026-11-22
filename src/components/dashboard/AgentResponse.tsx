@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { CalendarCheck, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Send, Tag, X, Youtube } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -18,7 +18,8 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmMyAgentAction } from "@/lib/my-agent-actions.functions";
-import { calendarDraftSchema, decodeAgentBody, type AgentReport } from "@/lib/my-agent-rules";
+import { decodeAgentBody, type AgentReport } from "@/lib/my-agent-rules";
+import { parseProposal, proposalLines } from "@/lib/my-agent-proposals";
 import { invoiceMoney } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -154,7 +155,17 @@ function Report({ report }: { report: AgentReport }) {
   );
 }
 
-function EventProposal({ id, onOpen }: { id: string; onOpen: (section: string) => void }) {
+const KIND_UI: Record<string, { icon: typeof CalendarCheck; confirm: string; done: string; running: string; open: string; section: string; refresh: string[] }> = {
+  calendar_event: { icon: CalendarCheck, confirm: "Confirm event & invitations", done: "Event created", running: "Creating event…", open: "Open Calendar", section: "calendar", refresh: ["calendar-events"] },
+  schedule_item: { icon: CalendarPlus, confirm: "Add to my schedule", done: "Added to your schedule", running: "Adding…", open: "Open Calendar", section: "calendar", refresh: ["schedule-items"] },
+  rate_card: { icon: Tag, confirm: "Create this rate card", done: "Rate card created", running: "Creating…", open: "Open Ratecard", section: "packages", refresh: ["rate-cards", "ratecards"] },
+  media_photo: { icon: ImageIcon, confirm: "Add this photo", done: "Photo added", running: "Adding…", open: "Open Photos & videos", section: "media", refresh: ["artist-media", "media"] },
+  media_youtube: { icon: Youtube, confirm: "Add this video", done: "Video added", running: "Adding…", open: "Open Photos & videos", section: "media", refresh: ["artist-media", "media"] },
+  send_invoice: { icon: Send, confirm: "Send this invoice to the client", done: "Invoice sent", running: "Sending…", open: "Open Invoice", section: "invoices", refresh: ["invoices", "invoice-records", "inbox-msgs"] },
+};
+
+/** A proposal from the agent. Nothing happens until the artist presses Confirm. */
+function ActionProposal({ id, onOpen }: { id: string; onOpen: (section: string) => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const confirm$ = useServerFn(confirmMyAgentAction);
@@ -162,95 +173,62 @@ function EventProposal({ id, onOpen }: { id: string; onOpen: (section: string) =
   const { data: action } = useQuery({
     queryKey: ["agent-action", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("agent_actions")
-        .select("id,payload,status,result")
-        .eq("id", id)
-        .maybeSingle();
+      const { data, error } = await supabase.from("agent_actions").select("id,kind,payload,status,result").eq("id", id).maybeSingle();
       if (error) throw error;
       return data;
     },
     refetchInterval: 5000,
   });
-  const draft = calendarDraftSchema.safeParse(action?.payload);
-  if (!action || !draft.success) return null;
+  const proposal = action ? parseProposal(action.kind, action.payload) : null;
+  if (!action || !proposal) return null;
+  const ui = KIND_UI[action.kind] ?? KIND_UI["calendar_event"]!;
+  const Icon = ui.icon;
+  const view = proposalLines(proposal);
+  const attendees = proposal.kind === "calendar_event" ? proposal.payload.attendees : [];
   const act = async (cancel: boolean) => {
     setBusy(true);
     try {
       const result = await confirm$({ data: { id, cancel } });
       if ("error" in result && result.error) toast.error(result.error);
-      else toast.success(t(cancel ? "Cancelled" : "Event created"));
+      else toast.success(t(cancel ? "Cancelled" : ui.done));
       await qc.invalidateQueries({ queryKey: ["agent-action", id] });
-      await qc.invalidateQueries({ queryKey: ["calendar-events"] });
+      for (const key of ui.refresh) await qc.invalidateQueries({ queryKey: [key] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("Action failed"));
     } finally {
       setBusy(false);
     }
   };
-  const error =
-    action.result &&
-    typeof action.result === "object" &&
-    !Array.isArray(action.result) &&
-    typeof action.result["error"] === "string"
-      ? action.result["error"]
-      : null;
+  const error = action.result && typeof action.result === "object" && !Array.isArray(action.result) && typeof action.result["error"] === "string" ? action.result["error"] : null;
   return (
     <div className="my-4 rounded-md border border-border p-4">
       <div className="flex items-start gap-3">
-        <CalendarCheck className="mt-1 size-5 shrink-0 text-primary" />
+        <Icon className="mt-1 size-5 shrink-0 text-primary" />
         <div className="min-w-0">
-          <h3 className="font-semibold [overflow-wrap:anywhere]">{draft.data.title}</h3>
-          <p className="text-sm text-muted-foreground">
-            {draft.data.date} · {draft.data.startTime}–{draft.data.endTime} · Asia/Dubai
-          </p>
+          <h3 className="font-semibold [overflow-wrap:anywhere]">{view.title}</h3>
+          {view.lines.map((line, i) => <p key={i} className={`whitespace-pre-wrap text-sm [overflow-wrap:anywhere] ${i === 0 ? "text-muted-foreground" : ""}`}>{line}</p>)}
         </div>
       </div>
-      {draft.data.description && (
-        <p className="mt-2 whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
-          {draft.data.description}
-        </p>
-      )}
-      {draft.data.attendees.length > 0 && (
-        <p className="mt-2 text-xs [overflow-wrap:anywhere]">
-          {t("Invitations")}: {draft.data.attendees.join(", ")}
-        </p>
-      )}
+      {attendees.length > 0 && <p className="mt-2 text-xs [overflow-wrap:anywhere]">{t("Invitations")}: {attendees.join(", ")}</p>}
       {action.status === "pending" ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button disabled={busy} onClick={() => void act(false)}>
-            <Check />
-            {t("Confirm event & invitations")}
-          </Button>
-          <Button variant="outline" disabled={busy} onClick={() => void act(true)}>
-            <X />
-            {t("Cancel")}
-          </Button>
+          <Button disabled={busy} onClick={() => void act(false)}><Check />{t(ui.confirm)}</Button>
+          <Button variant="outline" disabled={busy} onClick={() => void act(true)}><X />{t("Cancel")}</Button>
         </div>
       ) : (
-        <p className="mt-3 text-sm font-medium">
-          {t(
-            action.status === "completed"
-              ? "Event created"
-              : action.status === "running"
-                ? "Creating event…"
-                : action.status === "cancelled"
-                  ? "Cancelled"
-                  : "Check Calendar before retrying",
-          )}
-        </p>
+        <p className="mt-3 text-sm font-medium">{t(action.status === "completed" ? ui.done : action.status === "running" ? ui.running : action.status === "cancelled" ? "Cancelled" : action.kind === "send_invoice" ? "Check the chat before retrying" : "Could not be completed")}</p>
       )}
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-      {action.status === "failed" ||
-      action.status === "unknown" ||
-      action.status === "completed" ? (
-        <Button className="mt-2" variant="outline" onClick={() => onOpen("calendar")}>
-          {t("Open Calendar")}
-        </Button>
-      ) : null}
+      {action.status === "failed" || action.status === "unknown" || action.status === "completed" ? <Button className="mt-2" variant="outline" onClick={() => onOpen(ui.section)}>{t(ui.open)}</Button> : null}
     </div>
   );
 }
+
+const TOOL_TITLE: Record<string, string> = {
+  build_report: "Report", show_invoice: "Invoice", get_contract_template: "Contract template", prepare_calendar_event: "Calendar event",
+  read_inbox: "Inbox", read_quote_requests: "Quote requests", read_bookings: "Bookings", read_calendar: "Calendar", read_wallet: "Wallet (read only)", list_invoices: "Invoices",
+  read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
+};
 
 export function AgentResponse({
   body,
@@ -270,13 +248,7 @@ export function AgentResponse({
             type="dynamic-tool"
             toolName={tool.name}
             title={t(
-              tool.name === "build_report"
-                ? "Report"
-                : tool.name === "show_invoice"
-                  ? "Invoice"
-                  : tool.name === "get_contract_template"
-                    ? "Contract template"
-                    : "Calendar event",
+              TOOL_TITLE[tool.name] ?? "Calendar event",
             )}
             state={tool.error ? "output-error" : "output-available"}
           />
@@ -355,7 +327,7 @@ export function AgentResponse({
         <Report key={i} report={report} />
       ))}
       {data.actionIds.map((id) => (
-        <EventProposal key={id} id={id} onOpen={onOpen} />
+        <ActionProposal key={id} id={id} onOpen={onOpen} />
       ))}
     </div>
   );

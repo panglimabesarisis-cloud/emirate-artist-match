@@ -61,6 +61,7 @@ function context(record: unknown, sort = 1) {
     invoices: [],
     contracts: [],
     proposals: [],
+    attachedFiles: [],
   };
   return { ctx, from, query };
 }

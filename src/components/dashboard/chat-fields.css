@@ -1,0 +1,37 @@
+/*
+ * Chat inputs sit inside a rounded box that already has its own border (search field, reply box, AI agent composer).
+ * The dashboard's general field style gives every input and textarea its own border, background and 100% width,
+ * which drew a second box inside the first. These rules take that off, so there is one box and the layout holds.
+ */
+html.dm-dash .ibx-root .srch input[type],
+html.dm-dash .ibx-root .srch input,
+html.dm-dash .ibx-root .cmp-row textarea,
+html.dm-dash .studio-reference .ibx-root .srch input,
+html.dm-dash .studio-reference .ibx-root .cmp-row textarea,
+html.dm-dash [data-slot="input-group"] textarea,
+html.dm-dash .studio-reference [data-slot="input-group"] textarea,
+html.dm-dash .studio-reference [data-slot="input-group-control"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  min-height: 0;
+  width: auto;
+  resize: none;
+}
+html.dm-dash .ibx-root .srch input { flex: 1 1 auto; min-width: 0; padding: 0; height: 100%; }
+html.dm-dash .ibx-root .cmp-row textarea { flex: 1 1 auto; min-width: 0; padding: 8px 0; line-height: 1.5; max-height: 140px; }
+html.dm-dash [data-slot="input-group"] textarea { width: 100%; padding: 10px 6px; }
+/* The composer box of Your AI Agent, as .ya-cp in dashboard.html */
+html.dm-dash .ya-composer [data-slot="input-group"] {
+  border: 1px solid rgba(246, 239, 226, 0.16);
+  border-radius: 24px;
+  background: rgba(246, 239, 226, 0.04);
+  box-shadow: none;
+  padding: 6px 8px 4px;
+}
+html.dm-dash .ya-composer [data-slot="input-group"]:focus-within {
+  border-color: #e8b04a;
+  box-shadow: 0 0 0 4px rgba(232, 176, 74, 0.12);
+}

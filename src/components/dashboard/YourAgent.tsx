@@ -16,9 +16,14 @@ import {
   Trash2,
   Wallet,
   X,
+  BadgeCheck,
+  CalendarPlus,
+  Image as ImageIcon,
+  Tag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { askMyAgent } from "@/lib/my-agent.functions";
+import { RATE_CARD_TEMPLATE } from "@/lib/my-agent-knowledge";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { AgentResponse } from "./AgentResponse";
@@ -31,6 +36,7 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import "./chat-fields.css";
 
 const BUCKET = "agent-chat";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -58,12 +64,21 @@ const mimeOf = (f: File) =>
 type Attached = { id: string; name: string };
 type Msg = { id: string; role: "user" | "assistant"; body: string; created_at: string };
 
+/** "+ Rate Card" does not send: it puts the format in the message box for the artist to fill in. */
+const FILL_FORMAT: Array<[string, string, typeof CalendarCheck]> = [
+  ["+ Rate Card", RATE_CARD_TEMPLATE, Tag],
+];
 const QUICK: Array<[string, string, typeof CalendarCheck]> = [
-  ["My bookings", "How many bookings do I have?", CalendarCheck],
+  ["How many chats came in?", "How many chats came into my inbox, and which need my reply?", InboxIcon],
+  ["Quote requests", "Show my new quote requests", FileText],
+  ["My bookings", "How many bookings do I have, per stage?", CalendarCheck],
+  ["This week's schedule", "What is on my calendar in the next 7 days?", CalendarCheck],
+  ["Add schedule", "I want to add a schedule entry to my calendar", CalendarPlus],
+  ["Update Photo", "Update Photo", ImageIcon],
+  ["How to get verified", "How do I get verified?", BadgeCheck],
   ["Unpaid invoices", "Summarize my unpaid invoices", Receipt],
   ["Earnings and wallet", "How much can I withdraw and what did I earn this month?", Wallet],
   ["AI credits", "How many credits are left?", Coins],
-  ["Inbox and quotes", "Which new quote requests need a reply?", InboxIcon],
   ["Draft a reply", "Draft a reply to a new enquiry", FileText],
   ["Create Calendar event", "Help me create an event in Calendar", CalendarCheck],
   ["Show invoice", "Show an existing saved invoice here in our private chat", Receipt],
@@ -256,12 +271,12 @@ export function YourAgent({
       }}
     >
       <aside
-        className={`${showHist ? "flex" : "hidden"} min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background lg:flex`}
+        className={`${showHist ? "flex" : "hidden"} min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-[linear-gradient(180deg,#0f1426,#0a0e1b)] lg:flex`}
         aria-label={t("Chat history")}
       >
         <div className="border-b border-border p-4">
           <Button
-            className="w-full rounded-full bg-blue-600 text-white hover:bg-blue-500"
+            className="w-full rounded-full bg-gradient-gold font-bold text-gold-foreground hover:opacity-90"
             onClick={() => {
               setChatId(null);
               setFiles([]);
@@ -290,7 +305,7 @@ export function YourAgent({
                   setChatId(c.id);
                   setShowHist(false);
                 }}
-                className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-start text-sm transition-colors ${chatId === c.id ? "bg-blue-500/15 text-foreground" : "text-muted-foreground hover:bg-foreground/[.04] hover:text-foreground"}`}
+                className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-start text-sm transition-colors ${chatId === c.id ? "bg-gold/[.13] text-foreground" : "text-muted-foreground hover:bg-foreground/[.04] hover:text-foreground"}`}
               >
                 {c.title}
               </button>
@@ -310,7 +325,7 @@ export function YourAgent({
       </aside>
 
       <section
-        className="relative flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-b from-card to-background"
+        className="relative flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border bg-[linear-gradient(180deg,#0f1426,#0a0e1b)]"
         aria-labelledby="ya-h"
       >
         <header className="flex items-center gap-3 border-b border-border px-4 py-3.5">
@@ -324,7 +339,7 @@ export function YourAgent({
           >
             <History className="h-[18px] w-[18px]" />
           </Button>
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600/20 text-blue-300">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-gold text-gold-foreground">
             <Bot className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
@@ -337,18 +352,18 @@ export function YourAgent({
             </small>
           </div>
           <span
-            className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-200"
+            className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-bold text-gold"
             title={t("Each reply uses 1 credit")}
           >
             {credits} {t("credits")}
           </span>
         </header>
 
-        <Conversation className="min-h-0 flex-1" aria-label={t("Chat with your AI agent")}>
+        <Conversation className="min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_0%,rgba(232,176,74,.05),transparent_60%)]" aria-label={t("Chat with your AI agent")}>
           <ConversationContent className="space-y-3 p-5">
             {empty && (
               <div className="flex gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600/20 text-blue-300">
+                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground">
                   <Bot className="h-4 w-4" aria-hidden />
                 </span>
                 <p className="max-w-[80%] text-sm leading-relaxed">
@@ -362,7 +377,7 @@ export function YourAgent({
             {list.map((m) => (
               <Message key={m.id} from={m.role} className="max-w-full">
                 <MessageContent
-                  className={m.role === "user" ? "bg-primary text-primary-foreground" : "w-full"}
+                  className={m.role === "user" ? "rounded-[18px_18px_4px_18px] bg-[rgba(246,239,226,.09)] text-foreground" : "w-full"}
                   dir="auto"
                 >
                   {m.role === "assistant" ? (
@@ -375,7 +390,7 @@ export function YourAgent({
             ))}
             {pending && (
               <Message from="user">
-                <MessageContent className="bg-primary text-primary-foreground">
+                <MessageContent className="rounded-[18px_18px_4px_18px] bg-[rgba(246,239,226,.09)] text-foreground">
                   {pending}
                 </MessageContent>
               </Message>
@@ -393,7 +408,7 @@ export function YourAgent({
                 type="button"
                 disabled={busy}
                 onClick={() => void send(q)}
-                className="rounded-full border border-border px-3.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:border-blue-400/50 hover:text-foreground"
+                className="rounded-full border border-border px-3.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-foreground"
               >
                 {t(q)}
               </button>
@@ -422,7 +437,7 @@ export function YourAgent({
               ))}
             </div>
           )}
-          <PromptInput onSubmit={() => send()}>
+          <PromptInput onSubmit={() => send()} className="ya-composer">
             <PromptInputTextarea
               rows={1}
               maxLength={4000}
@@ -430,7 +445,7 @@ export function YourAgent({
               aria-label={t("Message to your AI agent")}
               placeholder={t("Message your AI agent")}
               onChange={(e) => setText(e.target.value)}
-              className="max-h-32 min-h-12"
+              className="max-h-32 min-h-12 bg-transparent"
             />
             <PromptInputFooter className="justify-between">
               <Button
@@ -470,7 +485,7 @@ export function YourAgent({
       </section>
 
       <aside
-        className="hidden min-h-0 overflow-y-auto rounded-[22px] border border-border bg-gradient-to-b from-card to-background p-5 xl:block"
+        className="hidden min-h-0 overflow-y-auto rounded-[22px] border border-border bg-[linear-gradient(180deg,#0f1426,#0a0e1b)] p-5 xl:block"
         aria-label={t("Quick actions")}
       >
         <div className="border-b border-dashed border-border pb-5">
@@ -481,15 +496,27 @@ export function YourAgent({
             {t("One click and your agent answers.")}
           </p>
           <div className="space-y-1.5">
+            {FILL_FORMAT.map(([label, format, Icon]) => (
+              <button
+                key={label}
+                type="button"
+                disabled={busy}
+                onClick={() => { setText(format); window.setTimeout(() => document.querySelector<HTMLTextAreaElement>(".ya-composer textarea")?.focus(), 0); }}
+                className="flex w-full items-center gap-3 rounded-xl border border-gold/40 bg-gold/[.06] px-3 py-2 text-start text-sm font-semibold transition-colors hover:border-gold hover:bg-gold/10"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gold/15 text-gold"><Icon className="h-3.5 w-3.5" aria-hidden /></span>
+                {t(label)}
+              </button>
+            ))}
             {QUICK.map(([label, q, Icon]) => (
               <button
                 key={label}
                 type="button"
                 disabled={busy}
                 onClick={() => void send(q)}
-                className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-blue-400/50 hover:bg-blue-500/10"
+                className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-gold/50 hover:bg-gold/10"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-500/15 text-blue-300">
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-gold/15 text-gold">
                   <Icon className="h-3.5 w-3.5" aria-hidden />
                 </span>
                 {t(label)}

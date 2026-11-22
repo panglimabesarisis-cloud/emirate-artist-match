@@ -19,6 +19,7 @@ import { useI18n } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import "./inbox.css";
+import "./chat-fields.css";
 
 const hhmm = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
 
