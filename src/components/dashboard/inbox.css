@@ -1,10 +1,10 @@
 /* Inbox page, rebuilt from the dashboard.html reference (docs/design-reference/02-halaman-inbox.html). Scoped to .ibx-root. */
 html.dm-dash .ibx-root{--ibx-line:rgba(246,239,226,.09);--ibx-line-2:rgba(246,239,226,.16);--ibx-cream:#f6efe2;--ibx-mute:rgba(246,239,226,.58);--ibx-mute-2:rgba(246,239,226,.4);--ibx-gold:#e8b04a;--ibx-grad:linear-gradient(100deg,#f0c062 0%,#e8a33f 45%,#d4842a 100%);--ibx-green:#7bd88f;--ibx-ink:#07090f;--ibx-ease:cubic-bezier(.22,1,.36,1);
-  flex:1;min-height:620px;height:calc(100dvh - 165px);display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:18px;color:var(--ibx-cream)}
+  flex:1;min-height:620px;height:calc(100dvh - 165px);display:grid;grid-template-columns:minmax(360px,420px) minmax(0,1fr);gap:18px;color:var(--ibx-cream)}
 html.dm-dash .ibx-root :is(button,input,textarea){font:inherit;color:inherit}
-html.dm-dash .ibx-root button{background:none;border:0;cursor:pointer;padding:0;text-align:start}
+html.dm-dash .ibx-root button{background:none;border:0;cursor:pointer;padding:0;text-align:center}
 html.dm-dash .ibx-root .ibx-list,html.dm-dash .ibx-root .ibx-conv{min-height:0;border-radius:22px;border:1px solid var(--ibx-line);background:linear-gradient(180deg,#0f1426,#0a0e1b);display:flex;flex-direction:column;overflow:hidden}
-html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","Arial Narrow",Impact,sans-serif);font-weight:400;letter-spacing:-.01em}
+html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","Arial Narrow",Impact,sans-serif);font-weight:400;letter-spacing:0}
 .ibx-root .l-head{padding:20px 18px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--ibx-line)}
 .ibx-root .l-title{display:flex;align-items:baseline;gap:10px}
 .ibx-root .l-title h2{font-size:32px;line-height:1;margin:0}
@@ -15,11 +15,11 @@ html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","A
 .ibx-root .srch input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--ibx-cream);font-size:14px}
 .ibx-root .srch input::placeholder{color:var(--ibx-mute-2)}
 .ibx-root .tabs{position:relative;display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:12px;background:rgba(246,239,226,.04)}
-.ibx-root .tabs button{position:relative;z-index:1;font-size:12.5px;font-weight:700;padding:7px 4px;color:var(--ibx-mute);border-radius:10px;text-align:center;transition:color .3s,background .3s}
-.ibx-root .tabs button[aria-selected=true]{color:var(--ibx-ink);background:var(--ibx-grad)}
+html.dm-dash .ibx-root .tabs button{position:relative;z-index:1;font-size:12.5px;font-weight:700;padding:7px 4px;color:var(--ibx-mute);border-radius:10px;text-align:center;display:flex;align-items:center;justify-content:center;min-width:0;height:34px;transition:color .3s,background .3s}
+html.dm-dash .ibx-root .tabs button[aria-selected=true]{color:var(--ibx-ink);background:var(--ibx-grad)}
 .ibx-root .lfil{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.ibx-root .lfil button{display:flex;align-items:center;justify-content:center;text-align:center;height:30px;padding:0 6px;font-size:11px;font-weight:700;line-height:1.15;border-radius:10px;border:1px solid var(--ibx-line-2);color:var(--ibx-mute);transition:border-color .3s,color .3s,background .3s}
-.ibx-root .lfil button:hover{color:var(--ibx-cream);border-color:var(--ibx-gold)}
+html.dm-dash .ibx-root .lfil button{display:flex;align-items:center;justify-content:center;text-align:center;height:32px;min-width:0;white-space:nowrap;padding:0 6px;font-size:11px;font-weight:700;line-height:1.15;border-radius:10px;border:1px solid var(--ibx-line-2);color:var(--ibx-mute);transition:border-color .3s,color .3s,background .3s}
+html.dm-dash .ibx-root .lfil button:hover{color:var(--ibx-cream);border-color:var(--ibx-gold)}
 .ibx-root .lfil button[aria-pressed=true]{border-color:transparent}
 .ibx-root .lfil button[aria-pressed=true].inquiry{background:#3a3f4b;color:#fff}
 .ibx-root .lfil button[aria-pressed=true].pending{background:#9aa0ab;color:#fff}
@@ -28,7 +28,7 @@ html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","A
 .ibx-root .lfil button[aria-pressed=true].any{background:rgba(246,239,226,.12);color:var(--ibx-cream)}
 .ibx-root .threads{list-style:none;margin:0;flex:1;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:var(--ibx-line-2) transparent}
 .ibx-root .th{position:relative;border-radius:16px;margin-bottom:4px;overflow:hidden}
-.ibx-root .th-b{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;padding:12px;border-radius:16px;border:1px solid transparent;transition:background .3s,border-color .3s}
+.ibx-root .th-b{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;padding:12px;border-radius:16px;border:1px solid transparent;transition:background .3s,border-color .3s}
 .ibx-root .th-b:hover{background:rgba(246,239,226,.04)}
 .ibx-root .th.on .th-b{background:linear-gradient(100deg,rgba(232,176,74,.16),rgba(232,176,74,.04));border-color:rgba(232,176,74,.35)}
 .ibx-root .av2,.ibx-root .c-av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display,"Bebas Neue","Arial Narrow",Impact,sans-serif);font-size:18px;color:var(--ibx-cream);background:linear-gradient(150deg,#2b3460,#151a30);border:1px solid var(--ibx-line-2);position:relative}
@@ -43,7 +43,7 @@ html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","A
 .ibx-root .th-meta{display:block;font-size:11px;color:var(--ibx-mute-2);margin-top:3px}
 .ibx-root .th-lbl{display:block;margin-top:6px}
 .ibx-root .th mark{background:rgba(232,176,74,.3);color:var(--ibx-cream);border-radius:3px;padding:0 1px}
-.ibx-root .lbl{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-width:120px;height:24px;padding:0 12px;box-sizing:border-box;font-size:11px;font-weight:800;letter-spacing:.03em;line-height:1;border-radius:999px;white-space:nowrap}
+.ibx-root .lbl{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-width:76px;height:24px;padding:0 12px;box-sizing:border-box;font-size:11px;font-weight:800;letter-spacing:0;line-height:1;border-radius:999px;white-space:nowrap}
 .ibx-root .lbl.inquiry{background:#3a3f4b;color:#fff}
 .ibx-root .lbl.pending{background:#9aa0ab;color:#fff}
 .ibx-root .lbl.partial{background:rgba(232,176,74,.4);color:#fff}
@@ -97,6 +97,7 @@ html.dm-dash .ibx-root .ibx-serif{font-family:var(--font-display,"Bebas Neue","A
 html.dm-dash .ibx-root .sel-btn{margin-inline-start:auto;font-size:12.5px;font-weight:700;color:var(--ibx-gold);padding:6px 10px;border-radius:999px;transition:background .3s}
 html.dm-dash .ibx-root .sel-btn:hover,html.dm-dash .ibx-root .sel-btn[aria-pressed=true]{background:rgba(232,176,74,.12)}
 html.dm-dash .ibx-root .bulk{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-bottom:1px solid var(--ibx-line);background:rgba(232,176,74,.05)}
+html.dm-dash .ibx-root .bulk .btn{justify-content:center;padding:8px 12px;flex-shrink:0;background:var(--destructive);color:var(--destructive-foreground)}
 html.dm-dash .ibx-root .ck{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer}
 html.dm-dash .ibx-root .ck input{position:absolute;opacity:0;width:1px;height:1px}
 html.dm-dash .ibx-root .ck span:not(.sr-only){width:20px;height:20px;border-radius:7px;border:1.5px solid var(--ibx-line-2);display:grid;place-items:center;transition:background .25s,border-color .25s}
@@ -105,7 +106,11 @@ html.dm-dash .ibx-root .ck input:checked+span::after{content:"";width:9px;height
 html.dm-dash .ibx-root .ck input:focus-visible+span{outline:2px solid var(--ibx-gold);outline-offset:2px}
 html.dm-dash .btn-danger{background:#e2574c;color:#fff}
 html.dm-dash .btn-danger:hover{background:#f06a5f}
-.ibx-root .selecting .th-b{grid-template-columns:auto 44px minmax(0,1fr)}
+.ibx-root .selecting .th-b{grid-template-columns:20px 44px minmax(0,1fr)}
+html.dm-dash .ibx-root .inbox-checkbox{width:20px;height:20px;padding:0;border:1.5px solid var(--ibx-line-2);border-radius:5px;display:grid;place-content:center;color:var(--ibx-cream)}
+html.dm-dash .ibx-root .inbox-checkbox[data-state=checked],html.dm-dash .ibx-root .inbox-checkbox[data-state=indeterminate]{background:var(--ibx-grad);border-color:transparent;color:var(--ibx-ink)}
+html.dm-dash .ibx-root .inbox-checkbox span{width:auto;height:auto;border:0;border-radius:0}
+html.dm-dash .ibx-root .inbox-checkbox[data-state=indeterminate]::after{content:"";width:10px;height:2px;background:currentColor}
 .ibx-root .th-b{cursor:pointer}
 .ibx-root .th-del{position:absolute;right:10px;top:50%;translate:0 -50%;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--ibx-mute);background:#151b30;border:1px solid var(--ibx-line-2);opacity:0;scale:.8;transition:opacity .25s,scale .35s var(--ibx-ease),color .25s,background .25s}
 .ibx-root .th:hover .th-del,.ibx-root .th-del:focus-visible{opacity:1;scale:1}
@@ -129,5 +134,5 @@ html.dm-dash [role=menu] .lbl.paid{background:linear-gradient(100deg,#f0c062,#e8
   .ibx-root .c-back{display:grid}
   .ibx-root .c-act .mode span:last-child{display:none}
 }
-@media (max-width:520px){.ibx-root .c-act .btn span{display:none}.ibx-root .m{max-width:88%}.ibx-root .msgs{padding:18px 14px}.ibx-root .lfil button{font-size:10.5px;padding:0 4px}}
+@media (max-width:520px){.ibx-root .c-act .btn span{display:none}.ibx-root .m{max-width:88%}.ibx-root .msgs{padding:18px 14px}html.dm-dash .ibx-root .lfil button{font-size:10.5px;padding:0 4px}}
 @media (prefers-reduced-motion:reduce){.ibx-root .mode .dot{animation:none}}

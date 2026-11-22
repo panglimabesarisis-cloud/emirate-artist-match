@@ -9,6 +9,8 @@ import { artistChatFiles } from "@/lib/chat-files.functions";
 import { decodeChatMessage } from "@/lib/chat-attachments";
 import { decodeInvoice } from "@/lib/invoice";
 import { clientNameFromMessages, inboxLabelFor, INBOX_LABELS, type InboxLabel } from "@/lib/chat-client-name";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InvoiceCard } from "@/components/site/InvoiceCard";
@@ -37,7 +39,6 @@ export function Inbox({ artistId }: { artistId: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [text, setText] = useState("");
-  const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [ask, setAsk] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -112,7 +113,8 @@ export function Inbox({ artistId }: { artistId: string }) {
     && (!needle || `${c.name} ${lastLine(c.id)}`.toLowerCase().includes(needle)));
 
   useEffect(() => {
-    if (!open && rows.length > 0) setOpen(rows[0]!.id);
+    const first = rows[0];
+    if (!open && first) setOpen(first.id);
   }, [rows, open]);
 
   const { data: msgs } = useQuery({
@@ -181,7 +183,7 @@ export function Inbox({ artistId }: { artistId: string }) {
     </DropdownMenu>
   );
 
-  const tabs: ["all" | "ai" | "human", string][] = [["all", "All"], ["ai", "AI handling"], ["human", "You"]];
+  const tabs: ["all" | "ai" | "human", string][] = [["all", "All"], ["ai", "Ai"], ["human", "You"]];
   const aiCount = (n: number) => `${n} ${t(n === 1 ? "AI reply" : "AI replies")}`;
 
   return (
@@ -189,41 +191,39 @@ export function Inbox({ artistId }: { artistId: string }) {
       <section className="ibx-list" aria-label={t("Conversations")}>
         <div className="l-head">
           <div className="l-title"><h2 className="ibx-serif">{t("Inbox")}</h2><span className="l-n">{rows.length} {t(rows.length === 1 ? "chat" : "chats")}</span>
-            <button type="button" className="sel-btn" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setPicked([]); }}>{t(selecting ? "Done" : "Select")}</button></div>
+          </div>
           <label className="srch"><Search aria-hidden="true" /><span className="sr-only">{t("Search chats")}</span>
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("Search chats or messages")} autoComplete="off" /></label>
           <div className="tabs" role="tablist" aria-label={t("Filter chats")}>
-            {tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)}>{t(label)}</button>)}
+            {tabs.map(([value, label]) => <Button variant="ghost" key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)}>{t(label)}</Button>)}
           </div>
           <div className="lfil" role="group" aria-label={t("Filter by label")}>
-            <button type="button" className="any" aria-pressed={labelFilter === ""} onClick={() => setLabelFilter("")}>{t("All")}</button>
-            {(Object.keys(INBOX_LABELS) as InboxLabel[]).map((k) => <button key={k} type="button" className={k} aria-pressed={labelFilter === k} onClick={() => setLabelFilter(k)}>{t(INBOX_LABELS[k])}</button>)}
+            <Button variant="ghost" type="button" className="any" aria-pressed={labelFilter === ""} onClick={() => setLabelFilter("")}>{t("All")}</Button>
+            {(Object.keys(INBOX_LABELS) as InboxLabel[]).map((k) => <Button variant="ghost" key={k} type="button" className={k} aria-pressed={labelFilter === k} onClick={() => setLabelFilter(k)}>{t(INBOX_LABELS[k])}</Button>)}
           </div>
         </div>
-        {selecting && (
-          <div className="bulk">
-            <label className="ck"><input type="checkbox" checked={visible.length > 0 && visible.every((c) => picked.includes(c.id))} onChange={(e) => setPicked(e.target.checked ? visible.map((c) => c.id) : [])} /><span />{t("Select all")}</label>
-            <button type="button" className="btn btn-danger" disabled={picked.length === 0} onClick={() => setAsk(picked)}><Trash2 className="size-[15px]" />{t("Delete")} {picked.length ? `(${picked.length})` : ""}</button>
-          </div>
-        )}
-        <ul className={`threads${selecting ? " selecting" : ""}`}>
+        <div className="bulk">
+            <label className="ck"><Checkbox className="inbox-checkbox" checked={visible.length > 0 && visible.every((c) => picked.includes(c.id)) ? true : visible.some((c) => picked.includes(c.id)) ? "indeterminate" : false} onCheckedChange={(checked) => setPicked(checked === true ? visible.map((c) => c.id) : [])} />{t("Select all")}</label>
+            <Button variant="destructive" type="button" className="btn btn-danger" disabled={picked.length === 0} onClick={() => setAsk(picked)}><Trash2 className="size-[15px]" />{t("Delete")} {picked.length ? `(${picked.length})` : ""}</Button>
+        </div>
+        <ul className="threads selecting">
           {visible.map((c) => {
             const preview = lastLine(c.id);
             return (
               <li key={c.id} className={`th${c.id === open ? " on" : ""}`}>
                 <div role="button" tabIndex={0} className="th-b" aria-current={c.id === open}
-                  onClick={() => (selecting ? togglePick(c.id) : pick(c.id))}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (selecting) togglePick(c.id); else pick(c.id); } }}>
-                  {selecting && <label className="ck" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => togglePick(c.id, e.target.checked)} /><span /><span className="sr-only">{t("Select")} {c.name}</span></label>}
+                  onClick={() => pick(c.id)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c.id); } }}>
+                  <span className="ck" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><Checkbox className="inbox-checkbox" aria-label={`${t("Select")} ${c.name}`} checked={picked.includes(c.id)} onCheckedChange={(checked) => togglePick(c.id, checked === true)} /></span>
                   <span className="av2" aria-hidden="true">{c.named ? initials(c.name) : "D"}<i className={c.mode === "human" ? "you" : ""}>{c.mode === "human" ? t("YOU") : t("AI")}</i></span>
                   <span className="th-t">
                     <span className="th-r1"><b><Hit text={c.name} needle={needle} /></b><time>{hhmm(c.last_message_at)}</time></span>
                     <span className="th-pv">{preview ? <Hit text={preview} needle={needle} /> : t("No messages yet")}</span>
                     <span className="th-meta">{c.date ?? t("date TBC")} · {aiCount(c.ai_replies)}</span>
-                    <span className="th-lbl">{selecting ? <span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span> : labelMenu(c.id, c.manualLabel ? c.label : null, <button type="button" className="lbl-btn" aria-label={`${t("Label for")} ${c.name}: ${t(INBOX_LABELS[c.label])}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span><ChevronDown className="size-3" aria-hidden="true" /></button>)}</span>
+                    <span className="th-lbl">{labelMenu(c.id, c.manualLabel ? c.label : null, <button type="button" className="lbl-btn" aria-label={`${t("Label for")} ${c.name}: ${t(INBOX_LABELS[c.label])}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><span className={`lbl ${c.label}`}>{t(INBOX_LABELS[c.label])}</span><ChevronDown className="size-3" aria-hidden="true" /></button>)}</span>
                   </span>
                 </div>
-                {!selecting && <button type="button" className="th-del" aria-label={`${t("Delete")} ${c.name}`} onClick={() => setAsk([c.id])}><Trash2 className="size-4" /></button>}
+                {picked.length === 0 && <button type="button" className="th-del" aria-label={`${t("Delete")} ${c.name}`} onClick={() => setAsk([c.id])}><Trash2 className="size-4" /></button>}
               </li>
             );
           })}

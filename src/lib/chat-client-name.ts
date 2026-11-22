@@ -35,7 +35,7 @@ export function clientNameFromMessages(bodies: readonly string[]): string | null
 }
 
 export type InboxLabel = "inquiry" | "pending" | "partial" | "paid";
-export const INBOX_LABELS: Record<InboxLabel, string> = { inquiry: "Inquiry", pending: "Pending Payment", partial: "Partially Paid", paid: "Fully Paid" };
+export const INBOX_LABELS: Record<InboxLabel, string> = { inquiry: "Inquiry", pending: "Unpaid", partial: "Partial", paid: "Paid" };
 
 type LabelBooking = { status: string; total: number | string; paid_amount: number | string };
 
