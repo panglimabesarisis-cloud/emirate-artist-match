@@ -1541,8 +1541,12 @@ export type Database = {
           access_key: string
           ai_replies: number
           artist_id: string
+          client_name: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_reason: string | null
           id: string
+          label: string | null
           last_message_at: string
           mode: string
           quote_request_id: string | null
@@ -1551,8 +1555,12 @@ export type Database = {
           access_key?: string
           ai_replies?: number
           artist_id: string
+          client_name?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           id?: string
+          label?: string | null
           last_message_at?: string
           mode?: string
           quote_request_id?: string | null
@@ -1561,8 +1569,12 @@ export type Database = {
           access_key?: string
           ai_replies?: number
           artist_id?: string
+          client_name?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           id?: string
+          label?: string | null
           last_message_at?: string
           mode?: string
           quote_request_id?: string | null
@@ -3310,6 +3322,11 @@ export type Database = {
         Args: { _text: string; _values: Json }
         Returns: string
       }
+      restore_conversations: { Args: { _ids: string[] }; Returns: number }
+      set_conversation_label: {
+        Args: { _id: string; _label: string }
+        Returns: undefined
+      }
       settle_sandbox_order: {
         Args: {
           _amount: number
@@ -3329,6 +3346,7 @@ export type Database = {
         Returns: boolean
       }
       soft_delete_bookings: { Args: { _ids: string[] }; Returns: number }
+      soft_delete_conversations: { Args: { _ids: string[] }; Returns: number }
       soft_delete_invoices: { Args: { _ids: string[] }; Returns: number }
       soft_delete_quote_requests: { Args: { _ids: string[] }; Returns: number }
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
