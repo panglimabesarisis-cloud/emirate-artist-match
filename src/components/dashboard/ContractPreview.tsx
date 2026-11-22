@@ -66,7 +66,7 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
         <>
           <ol className="mt-6 space-y-4">
             {doc.clauses.map((c, i) => (
-              <li key={i}><b className="block text-[13.5px] text-[#111]">{t("Article")} {i + 1}{c.title ? ` · ${c.title}` : ""}</b><p className="mt-1 whitespace-pre-wrap break-words text-[#2a2d3d]">{c.body}</p></li>
+              <li key={i} className="contract-print-article"><b className="block text-[13.5px] text-[#111]">{t("Article")} {i + 1}{c.title ? ` · ${c.title}` : ""}</b>{c.body.split(/\n\s*\n/).map((paragraph, j, rows) => <p key={j} className="mt-1 whitespace-pre-wrap break-words text-[#2a2d3d]">{rows.length > 1 && <b className="me-2">{i + 1}.{j + 1}</b>}{paragraph}</p>)}</li>
             ))}
           </ol>
           {doc.rider && <div className="mt-6 rounded-lg bg-[#f3ebdb] px-4 py-3.5 text-xs text-[#4d463b]"><span className="mb-1 block text-[9.5px] font-extrabold uppercase tracking-[.14em] text-[#b07a1f]">{t("Schedule C: technical and hospitality rider")}</span><p className="whitespace-pre-wrap">{doc.rider}</p></div>}
@@ -88,7 +88,7 @@ export function ContractPaper({ doc, locked, t }: { doc: ContractDoc; locked: bo
 }
 
 /** "Booking contract · Dealmaker" popup: Print / PDF, and for a contract outside the artist's plan a blurred sheet with a Buy contract button. */
-export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequired = false, planName, artistId, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; purchaseRequired?: boolean; planName?: string; artistId: string; onClose: () => void }) {
+export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequired = false, planName, artistId, onClose }: { doc: ContractDoc | null; title: string; locked?: boolean; purchaseRequired?: boolean; planName?: string; artistId?: string; onClose: () => void }) {
   const { t } = useI18n();
   const [buying, setBuying] = useState(false);
   const print = () => {
@@ -119,7 +119,7 @@ export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequ
         <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
           <DialogTitle className="font-display text-3xl font-normal">{t("Buy")} <span className="it">{t("contract")}</span></DialogTitle>
           <DialogDescription>{doc?.templateName ? `"${doc.templateName}" ${t("is part of the")} ${planName ?? t("higher")} ${t("plan and above.")}` : ""} {t("Upgrade your plan to unlock it. Contracts you already accepted keep their terms.")}</DialogDescription>
-          <BillingPanel artistId={artistId} />
+          {artistId && <BillingPanel artistId={artistId} />}
           <div className="flex justify-end"><Button type="button" variant="outline" className="rounded-full" onClick={() => setBuying(false)}>{t("Back to the contract")}</Button></div>
         </DialogContent>
       </Dialog>

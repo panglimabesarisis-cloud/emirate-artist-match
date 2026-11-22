@@ -8,6 +8,7 @@
 
 # Library rules
 - Master Library reads protected content through existing admin/team RPCs; shared query refresh updates separate sessions, and copied form/workflow content stays independent with source-version tracking.
+- Uploaded contract reference content is imported only through an authenticated admin server function as inactive drafts; handler-local imports keep restricted clauses out of browser bundles and preserve existing templates.
 
 - UI translation uses `src/lib/i18n.tsx` (`t()` with English text as key, Arabic fallback to English; catalog rows use `name_ar` via `localName`); use logical CSS (start/end, ps/pe) so RTL works.
 - CSV exports go through `toCsv` in `src/lib/csv.ts`, which neutralises spreadsheet formulas.

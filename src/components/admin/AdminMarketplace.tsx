@@ -13,8 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { importReferenceContracts } from "@/lib/reference-contracts.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { ContractTemplateEditor } from "@/components/dashboard/ContractTemplateEditor";
 import { FormQuestionEditor } from "./FormQuestionEditor";
-import { ContractPaper, type ContractDoc } from "@/components/dashboard/ContractPreview";
+import { ContractPreviewDialog, type ContractDoc } from "@/components/dashboard/ContractPreview";
 import { invalidateLibraries, libraryRefresh } from "@/lib/library-query";
 import { useI18n } from "@/lib/i18n";
 
@@ -314,12 +317,14 @@ type CtRow = { id: string; name: string; category: string | null; role: string |
 const asCl = (v: unknown): Array<{ title: string; body: string }> => (Array.isArray(v) ? (v as Array<Record<string, unknown>>).filter((c) => c && typeof c["title"] === "string" && typeof c["body"] === "string").map((c) => ({ title: String(c["title"]), body: String(c["body"]) })) : []);
 
 export function AdminContractTemplates() {
+  const importTemplates = useServerFn(importReferenceContracts);
   const { t } = useI18n();
   const [preview, setPreview] = useState<ContractDoc | null>(null);
   const qc = useQueryClient();
   const tiers = useTiers();
   const [edit, setEdit] = useState<CtDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const list = useQuery({
     queryKey: ["admin-contract-templates"], ...libraryRefresh,
     queryFn: async () => { const { data, error } = await supabase.rpc("admin_contract_template_content"); if (error) throw error; return (data ?? []).filter((row) => row.artist_id === null) as CtRow[]; },
@@ -350,14 +355,25 @@ export function AdminContractTemplates() {
     if (error) { toast.error(error.message); return; }
     refresh();
   };
-  const setCl = (i: number, patch: Partial<{ title: string; body: string }>) => edit && setEdit({ ...edit, clauses: edit.clauses.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const importReference = async () => {
+    if (!confirm(t("Import reference templates as inactive drafts? Review the clauses before publishing."))) return;
+    setImporting(true);
+    try {
+      const result = await importTemplates();
+      toast.success(t(result.imported ? "Reference templates imported as drafts" : "All reference templates are already imported")); refresh();
+    } catch (error) { toast.error(error instanceof Error ? error.message : t("Could not import templates")); }
+    finally { setImporting(false); }
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">Dealmaker library of contract templates. Drafts stay hidden from artists until you switch them on. Have a qualified lawyer in the UAE review each template first.</p>
-        <Button onClick={() => setEdit({ name: "", category: "", role: "", description: "", tier: "free", price_aed: "0", is_active: false, clauses: [{ title: "", body: "" }], rider: "" })}><Plus className="me-1 h-4 w-4" />New template</Button>
+        <Button variant="outline" disabled={importing || !list.data || !tiers.data} onClick={() => void importReference()}>{t(importing ? "Importing…" : "Import 37 reference templates")}</Button>
+        <Button className="rounded-full bg-gradient-gold text-gold-foreground" onClick={() => setEdit({ name: "", category: "", role: "", description: "", tier: "free", price_aed: "0", is_active: false, clauses: [{ title: "", body: "" }], rider: "" })}><Plus className="me-1 h-4 w-4" />New template</Button>
       </div>
+      {list.error && <p role="alert" className="text-destructive">{t("Could not load templates.")}</p>}
+      {list.isPending && <p>{t("Loading…")}</p>}
       <div className={`${card} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Category", "Clauses", "Tier", "Price (AED)", "Version", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
@@ -380,38 +396,16 @@ export function AdminContractTemplates() {
           </tbody>
         </table>
       </div>
-      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}><DialogContent className="max-h-[92dvh] max-w-4xl overflow-y-auto"><DialogTitle>Contract preview</DialogTitle><DialogDescription>{preview?.templateName}</DialogDescription>{preview && <ContractPaper doc={preview} locked={false} t={t} />}</DialogContent></Dialog>
-      <Dialog open={!!edit} onOpenChange={(o) => { if (!o && !saving) setEdit(null); }}>
-        <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto">
-          <DialogHeader><DialogTitle>{edit?.id ? "Edit contract template" : "New contract template"}</DialogTitle><DialogDescription>Placeholders: {"{artist} {client} {service} {date} {time} {venue} {total} {vat}"}</DialogDescription></DialogHeader>
-          {edit && (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className={field}><Label htmlFor="ca-name">Name</Label><Input id="ca-name" maxLength={100} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
-                <div className={field}><Label htmlFor="ca-cat">Category</Label><Input id="ca-cat" maxLength={40} value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })} /></div>
-                <div className={field}><Label htmlFor="ca-price">Price (AED, excl. VAT)</Label><Input id="ca-price" type="number" min={0} max={100000} step="0.01" value={edit.price_aed} onChange={(e) => setEdit({ ...edit, price_aed: e.target.value })} /></div>
-                <div className={field}><Label htmlFor="ca-role">Role</Label><Input id="ca-role" maxLength={40} value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value })} /></div>
-                <div className={field}><Label>Plan tier</Label>
-                  <Select value={edit.tier} onValueChange={(v) => setEdit({ ...edit, tier: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.data?.map((t) => <SelectItem key={t.code} value={t.code}>{t.name}</SelectItem>)}</SelectContent></Select></div>
-              </div>
-              <div className={field}><Label htmlFor="ca-desc">Description</Label><Input id="ca-desc" maxLength={200} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between"><Label>Clauses</Label><Button type="button" size="sm" variant="outline" onClick={() => setEdit({ ...edit, clauses: [...edit.clauses, { title: "", body: "" }] })}><Plus className="me-1 h-3.5 w-3.5" />Add clause</Button></div>
-                {edit.clauses.map((c, i) => (
-                  <div key={i} className="space-y-2 rounded-lg border p-3">
-                    <div className="flex gap-2"><Input aria-label={`Clause title ${i + 1}`} placeholder="Clause title" maxLength={120} value={c.title} onChange={(e) => setCl(i, { title: e.target.value })} />
-                      <Button type="button" size="sm" variant="ghost" disabled={edit.clauses.length === 1} onClick={() => setEdit({ ...edit, clauses: edit.clauses.filter((_, j) => j !== i) })}>Remove</Button></div>
-                    <Textarea aria-label={`Clause text ${i + 1}`} rows={3} maxLength={2000} placeholder="Clause text" value={c.body} onChange={(e) => setCl(i, { body: e.target.value })} />
-                  </div>
-                ))}
-              </div>
-              <div className={field}><Label htmlFor="ca-rider">Rider</Label><Textarea id="ca-rider" rows={3} maxLength={2000} value={edit.rider} onChange={(e) => setEdit({ ...edit, rider: e.target.value })} /></div>
-              <label className="flex items-center gap-2 text-sm"><Switch checked={edit.is_active} onCheckedChange={(c) => setEdit({ ...edit, is_active: c })} />Live for artists (switch on only after legal review)</label>
-            </div>
-          )}
-          <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>Cancel</Button><Button disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save template"}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ContractPreviewDialog doc={preview} title={t("Contract preview")} onClose={() => setPreview(null)} />
+      <ContractTemplateEditor draft={preview ? null : edit} onChange={setEdit} onClose={() => setEdit(null)} saving={saving} onSave={() => void save()} onPreview={() => {
+        if (!edit || !edit.name.trim() || !edit.clauses.length || edit.clauses.some((c) => !c.title.trim() || !c.body.trim())) { toast.error(t("Give the template a name and fill in every clause title and text.")); return; }
+        setPreview({ number: "TEMPLATE", templateName: edit.name, stamp: { word: "TEMPLATE", sub: edit.role, tone: "template" }, clauses: edit.clauses, rider: edit.rider });
+      }} settings={edit && <div className="grid gap-3 sm:grid-cols-2">
+        <div className="contract-editor-field"><Label htmlFor="ca-price">{t("Price (AED, excl. VAT)")}</Label><Input id="ca-price" type="number" min={0} max={100000} step="0.01" value={edit.price_aed} onChange={(e) => setEdit({ ...edit, price_aed: e.target.value })} /></div>
+        <div className="contract-editor-field"><Label>{t("Plan tier")}</Label><Select value={edit.tier} onValueChange={(tier) => setEdit({ ...edit, tier })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.data?.map((tier) => <SelectItem key={tier.code} value={tier.code}>{tier.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="contract-editor-field sm:col-span-2"><Label htmlFor="ca-description">{t("Description")}</Label><Input id="ca-description" maxLength={200} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
+        <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={edit.is_active} onCheckedChange={(is_active) => setEdit({ ...edit, is_active })} />{t("Live for artists")}</label>
+      </div>} />
     </div>
   );
 }
