@@ -1311,6 +1311,8 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          client_commission_pct: number | null
+          client_confirmed_at: string | null
           client_email: string | null
           client_name: string
           client_phone: string | null
@@ -1364,6 +1366,8 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          client_commission_pct?: number | null
+          client_confirmed_at?: string | null
           client_email?: string | null
           client_name: string
           client_phone?: string | null
@@ -1417,6 +1421,8 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          client_commission_pct?: number | null
+          client_confirmed_at?: string | null
           client_email?: string | null
           client_name?: string
           client_phone?: string | null
@@ -1519,6 +1525,111 @@ export type Database = {
         }
         Relationships: []
       }
+      client_payout_accounts: {
+        Row: {
+          bank_name: string
+          country: string
+          created_at: string
+          holder_name: string
+          iban: string
+          swift: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          bank_name: string
+          country?: string
+          created_at?: string
+          holder_name: string
+          iban: string
+          swift?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          bank_name?: string
+          country?: string
+          created_at?: string
+          holder_name?: string
+          iban?: string
+          swift?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      client_payout_requests: {
+        Row: {
+          account_snapshot: Json
+          admin_note: string | null
+          amount: number
+          created_at: string
+          decided_at: string | null
+          id: string
+          paid_at: string | null
+          reference: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          account_snapshot?: Json
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          paid_at?: string | null
+          reference?: string
+          status?: string
+          user_id?: string
+        }
+        Update: {
+          account_snapshot?: Json
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          paid_at?: string | null
+          reference?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_program_settings: {
+        Row: {
+          commission_pct: number
+          enabled: boolean
+          id: boolean
+          min_withdrawal: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          commission_pct?: number
+          enabled?: boolean
+          id?: boolean
+          min_withdrawal?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          commission_pct?: number
+          enabled?: boolean
+          id?: boolean
+          min_withdrawal?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       client_ratings: {
         Row: {
           artist_id: string
@@ -1566,6 +1677,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_settings: {
+        Row: {
+          booking_alerts: boolean
+          commission_alerts: boolean
+          notifications_read_at: string | null
+          updated_at: string
+          user_id: string
+          whatsapp_reminders: boolean
+        }
+        Insert: {
+          booking_alerts?: boolean
+          commission_alerts?: boolean
+          notifications_read_at?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp_reminders?: boolean
+        }
+        Update: {
+          booking_alerts?: boolean
+          commission_alerts?: boolean
+          notifications_read_at?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp_reminders?: boolean
+        }
+        Relationships: []
       }
       contract_template_purchases: {
         Row: {
@@ -1684,6 +1822,7 @@ export type Database = {
           ai_replies: number
           artist_id: string
           client_name: string | null
+          client_user_id: string | null
           created_at: string
           deleted_at: string | null
           deleted_reason: string | null
@@ -1698,6 +1837,7 @@ export type Database = {
           ai_replies?: number
           artist_id: string
           client_name?: string | null
+          client_user_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
@@ -1712,6 +1852,7 @@ export type Database = {
           ai_replies?: number
           artist_id?: string
           client_name?: string | null
+          client_user_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
@@ -2671,19 +2812,31 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string | null
+          company_name: string | null
+          country: string | null
           created_at: string
           display_name: string | null
           id: string
+          phone: string | null
         }
         Insert: {
+          account_type?: string | null
+          company_name?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          phone?: string | null
         }
         Update: {
+          account_type?: string | null
+          company_name?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          phone?: string | null
         }
         Relationships: []
       }
@@ -3149,6 +3302,59 @@ export type Database = {
           },
         ]
       }
+      support_requests: {
+        Row: {
+          admin_reply: string | null
+          booking_id: string | null
+          created_at: string
+          id: string
+          message: string
+          reference: string
+          replied_at: string | null
+          replied_by: string | null
+          status: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          reference?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string
+          topic: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          admin_reply?: string | null
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          reference?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_roles: {
         Row: {
           artist_id: string
@@ -3599,6 +3805,29 @@ export type Database = {
           id: string
         }[]
       }
+      admin_client_accounts: {
+        Args: never
+        Returns: {
+          account_type: string
+          booking_count: number
+          commission_available: number
+          commission_pending: number
+          company_name: string
+          country: string
+          display_name: string
+          email: string
+          joined_at: string
+          paid_total: number
+          payout_bank: string
+          payout_iban_last4: string
+          payout_updated_at: string
+          payout_verified_at: string
+          phone: string
+          processing: number
+          user_id: string
+          withdrawn: number
+        }[]
+      }
       admin_contract_template_content: {
         Args: never
         Returns: {
@@ -3812,6 +4041,7 @@ export type Database = {
         Args: { _artist: string; _hash: string; _id: string }
         Returns: Json
       }
+      claim_client_records: { Args: never; Returns: Json }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       claim_invoice_archive_jobs: {
         Args: { _limit?: number }
@@ -3838,6 +4068,72 @@ export type Database = {
         }
       }
       claim_payment_followup: { Args: { _id: string }; Returns: boolean }
+      client_commission_rows: {
+        Args: { _user: string }
+        Returns: {
+          artist_name: string
+          booking_id: string
+          commission: number
+          credited_at: string
+          eligible_value: number
+          event_date: string
+          rate: number
+          reference: string
+          service: string
+          status: string
+        }[]
+      }
+      client_commissions: {
+        Args: { _user?: string }
+        Returns: {
+          artist_name: string
+          booking_id: string
+          commission: number
+          credited_at: string
+          eligible_value: number
+          event_date: string
+          rate: number
+          reference: string
+          service: string
+          status: string
+        }[]
+      }
+      client_program: {
+        Args: never
+        Returns: {
+          commission_pct: number
+          enabled: boolean
+          min_withdrawal: number
+        }[]
+      }
+      client_wallet: {
+        Args: { _user?: string }
+        Returns: {
+          available: number
+          commission_pct: number
+          enabled: boolean
+          lifetime: number
+          min_withdrawal: number
+          on_hold: number
+          pending: number
+          processing: number
+          withdrawn: number
+        }[]
+      }
+      client_wallet_rows: {
+        Args: { _user: string }
+        Returns: {
+          available: number
+          commission_pct: number
+          enabled: boolean
+          lifetime: number
+          min_withdrawal: number
+          on_hold: number
+          pending: number
+          processing: number
+          withdrawn: number
+        }[]
+      }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
       expire_unpaid_records: { Args: never; Returns: Json }
       finalize_verification_retention: {

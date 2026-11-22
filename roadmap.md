@@ -1,4 +1,15 @@
 # Roadmap
+## Client portal (/client/dashboard) — from dealmaker_client_dashboard.html
+- [ ] Database: client program settings (commission %, minimum withdrawal), booking commission snapshot + client confirmation time, conversation/profile client links, client settings, payout accounts (admin-verified), withdrawal requests (guarded), support requests, wallet/commission/claim/admin RPCs, rollback-only SQL tests.
+- [ ] Server: link signed-in quotes/chats to the client account, signed-in booking request, client conversation list, booking extras (disputes/reviews), client job confirmation (early escrow release), WhatsApp reminder preference honoured.
+- [ ] Portal shell matching the HTML (sidebar groups/counts, topbar breadcrumb, hero, KPI cards, modals, toast) at /client/dashboard with ?section deep links; /dashboard and header links route clients there.
+- [ ] Workspace pages: Dashboard, Browse artists, My bookings (search/filter/export/details), Job confirmations, My reviews, Messages (shared chat room).
+- [ ] Finance pages: Commission overview + chart, Commission history (search/filter/export), My wallet, Withdrawals, Payout accounts, Financial statements (print/PDF).
+- [ ] Account pages: My profile, Notifications (derived feed + mark read), Support center (real requests + replies), Settings (saved preferences).
+- [ ] Master admin: Client accounts + program settings, client withdrawals/payout-account verification, support inbox.
+- [ ] Artist dashboard sync: client-confirmed completion shown on bookings; portal chats/disputes/reviews use existing artist paths.
+- [ ] Tests for client rules (2% default, AED 500 minimum, withdrawal limits, statement totals), AGENTS.md + memory updates.
+
 - [x] Match artist AI Agent settings and Account settings/page modals to dashboard-3.html: model cards, tone/language pills, handoff checkboxes, saved/discard state, test chat, searchable prompt table, two bank sections and account/payout confirmation dialogs. Existing data, entitlements, credit charges and bank locks retained; actual verification status replaces placeholders. Automatic compiler passes; no screenshots or test suites. Signed-in interaction unverified: requesting-user session mint found no matching account.
 - [x] Verification backend: private hashed OTPs with atomic limits, transaction submission, details/files/audit, admin reasons/signed viewing, batched 30-day retention and monthly computed top badges; generated types and APIs documented. Artist layout and incoming profile changes untouched; rollback-only SQL and targeted tests pass. No publishing, screenshots, live OTP send or real file deletion.
 - [ ] Verification production flow: waiting on artist handler wiring to the provided server functions and a later deployment (explicit do-not-publish request); scheduled cleanup currently returns 404 on the published site. Real OTP delivery, admin file opening, and scheduled cleanup remain unverified.

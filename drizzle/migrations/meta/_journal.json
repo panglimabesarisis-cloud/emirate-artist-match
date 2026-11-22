@@ -435,6 +435,13 @@
       "when": 1795375363254,
       "tag": "0061_verification_explicit_private_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1795379791959,
+      "tag": "0062_client_portal",
+      "breakpoints": true
     }
   ]
 }
