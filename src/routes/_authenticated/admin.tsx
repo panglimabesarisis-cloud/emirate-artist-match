@@ -20,7 +20,7 @@ import { AdminRatecards } from "@/components/admin/AdminRatecards";
 import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
 import { ContractsTable } from "@/components/dashboard/ContractsTable";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
-import { AdminContractTemplates, AdminFormTemplates, AdminModelRates, AdminPrompts } from "@/components/admin/AdminMarketplace";
+import { AdminLibrary } from "@/components/admin/AdminLibrary";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage Dealmaker artists, bookings and the master AI conversation flow." }, { property: "og:title", content: "Admin | Dealmaker" }, { property: "og:description", content: "Dealmaker administration and master AI flow builder." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -41,10 +41,7 @@ const NAV = [
   { id: "payouts", label: "Artist payouts", group: "Business" },
   { id: "reviews", label: "Review moderation", group: "Business" },
   { id: "catalog", label: "Event types", group: "Business" },
-  { id: "prompts", label: "AI prompts", group: "AI library" },
-  { id: "formtemplates", label: "Form templates", group: "AI library" },
-  { id: "modelrates", label: "AI model rates", group: "AI library" },
-  { id: "contracttemplates", label: "Contract templates", group: "AI library" },
+  { id: "library", label: "Library", group: "AI library" },
   { id: "flow", label: "AI flow builder", group: "System" },
   { id: "settings", label: "Settings", group: "System" },
 ] as const;
@@ -52,7 +49,7 @@ type Section = (typeof NAV)[number]["id"];
 const NAV_ICONS: Record<Section, LucideIcon> = {
   overview: Gauge, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
-  prompts: Sparkles, formtemplates: ClipboardList, modelrates: Layers, contracttemplates: FileSignature, flow: Workflow, settings: SettingsIcon,
+  library: Layers, flow: Workflow, settings: SettingsIcon,
 };
 
 function Admin() {
@@ -124,10 +121,7 @@ function Admin() {
           {section === "payouts" && <PayoutQueue />}
           {section === "reviews" && <ReviewQueue />}
           {section === "catalog" && <EventTypeManager />}
-          {section === "prompts" && <AdminPrompts />}
-          {section === "formtemplates" && <AdminFormTemplates />}
-          {section === "modelrates" && <AdminModelRates />}
-          {section === "contracttemplates" && <AdminContractTemplates />}
+          {section === "library" && <AdminLibrary onOpenFlowBuilder={() => setSection("flow")} />}
           {section === "settings" && <AdminSettings />}
           {section === "flow" && <FlowBuilder artistId={null} />}
         </main>
