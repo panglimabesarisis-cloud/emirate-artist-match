@@ -1,6 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { MoreVertical, Search } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { StudioHeading, StudioSoon } from "./StudioPage";
 import { toast } from "sonner";
@@ -16,6 +19,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { bookingPayment } from "@/lib/booking-payment-rules";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const TABS: Array<[string, string]> = [["all", "All"], ["inquiry", "Needs approval"], ["quoted", "Offer sent"], ["confirmed", "Confirmed"], ["completed", "Completed"], ["cancelled", "Cancelled"]];
+const STATUS_STYLE: Record<string, string> = {
+  inquiry: "border-gold/50 bg-gold/15 text-gold", quoted: "border-border bg-foreground/[.06] text-foreground", confirmed: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300",
+  completed: "border-blue-400/40 bg-blue-400/10 text-blue-300", cancelled: "border-border text-muted-foreground",
+};
+const statusLabel = (s: string) => (s === "quoted" ? "offer sent" : s === "inquiry" ? "needs approval" : s);
+const payState = (b: { total: number | string; paid_amount: number | string }) => (Number(b.paid_amount) >= Number(b.total) && Number(b.total) > 0 ? "paid" : Number(b.paid_amount) > 0 ? "partial" : "unpaid");
+const bkHead = "whitespace-nowrap border-b border-border bg-card px-3.5 py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground";
+const bkCell = "border-b border-border px-3.5 py-3.5 align-middle";
 
 export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { artistId: string; trn: string | null; notifyPhone: string | null; teamMode?: boolean }) {
   const { t } = useI18n();
@@ -48,6 +61,24 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const [busy, setBusy] = useState(false);
   const p = priceBreakdown(Number(f.amount) || 0);
 
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [info, setInfo] = useState<NonNullable<typeof bookings>[number] | null>(null);
+  const counts = useMemo(() => {
+    const list = bookings ?? [];
+    const c: Record<string, number> = { all: list.length };
+    for (const [k] of TABS) if (k !== "all") c[k] = list.filter((b) => b.status === k).length;
+    return c as Record<string, number>;
+  }, [bookings]);
+  const outstanding = (bookings ?? []).filter((b) => b.status === "quoted" || b.status === "confirmed").reduce((n, b) => n + bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct).balance, 0);
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return (bookings ?? []).filter((b) => (filter === "all" || b.status === filter) && (!needle || `${b.client_name} ${b.package_title} ${b.invoice_no ?? ""}`.toLowerCase().includes(needle)));
+  }, [bookings, filter, search]);
+  const pages = Math.max(1, Math.ceil(filtered.length / size));
+  const cur = Math.min(page, pages - 1);
+  const pageRows = filtered.slice(cur * size, cur * size + size);
+
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
     try { await fn(); toast.success(t(ok)); qc.invalidateQueries({ queryKey: key }); }
@@ -57,45 +88,102 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
 
   return (
     <div className="dmr-wrap dmr-bpage">
-      <StudioHeading title="Book" accent="ings"><div className="dmr-q-stats">{["inquiry","confirmed","completed"].map(status=><div className="dmr-qs" key={status}><small>{t(status)}</small><b>{bookings?.filter(b=>b.status === status).length ?? 0}</b></div>)}</div></StudioHeading>
-      <section className="dmr-panel dmr-q-panel dmr-b-main"><div className="dmr-q-tools"><Input aria-label={t("Search bookings")} placeholder={t("Search client or booking")} value={search} onChange={e=>setSearch(e.target.value)} /><div className="dmr-q-tabs">{["all","inquiry","quoted","confirmed","completed"].map(status=><Button key={status} variant={filter === status ? "default" : "ghost"} aria-pressed={filter === status} onClick={()=>setFilter(status)}>{t(status === "all" ? "All" : status)}</Button>)}</div></div>
-      <div className="min-w-0 overflow-x-auto"><table className="studio-bookings-table" data-studio-table="true"><thead><tr className="border-b text-start"><th className="p-3 text-start">{t("Client / booking")}</th><th className="p-3 text-start">{t("Date & time")}</th><th className="p-3 text-start">{t("Total")}</th><th className="p-3 text-start">{t("Payment")}</th><th className="p-3 text-start">{t("Balance")}</th><th className="p-3 text-start">{t("Calendar")}</th></tr></thead><tbody>
-        {bookings?.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">{t("No bookings yet")}</td></tr>}
-        {bookings?.filter(b=>(filter === "all" || b.status === filter) && `${b.client_name} ${b.package_title}`.toLowerCase().includes(search.toLowerCase())).map((b) => (
-          <tr key={b.id} className="border-b align-top"><td className="min-w-[250px] p-3" data-label={t("Client / booking")}>
-            <div className="flex justify-between gap-3">
-              <div>
-                <div className="font-semibold">{b.client_name} · {b.package_title}</div>
-                <div className="text-sm text-muted-foreground">{b.event_date} · {aed(Number(b.total))} {t("incl. VAT")} {b.invoice_no ? `· ${b.invoice_no}` : ""}</div>
-                {(() => { const r = rep(b.client_email); return r ? <div className="text-xs" title={r.notes.join(" · ")}>{t("Client reputation (private):")} <b>{r.avg.toFixed(1)}★</b> {t("from")} {r.n} {t("booking")}{r.n > 1 ? t("s") : ""}{r.notes.length ? ` · “${r.notes[0]}”` : ""}</div> : null; })()}
-                <div className="text-xs text-muted-foreground">{t("Escrow:")} {t(b.escrow_status)}{Number(b.refund_amount) > 0 ? ` · refunded ${aed(Number(b.refund_amount))}` : ""}</div>
-              </div>
-              <Badge variant={b.status === "confirmed" || b.status === "inquiry" ? "default" : "secondary"}>{b.status === "quoted" ? t("offer sent") : b.status === "inquiry" ? t("needs your approval") : t(b.status)}</Badge>
+      <StudioHeading title="Book" accent="ings"><div className="dmr-q-stats">
+        <div className="dmr-qs"><small>{t("Needs approval")}</small><b>{counts["inquiry"] ?? 0}</b></div>
+        <div className="dmr-qs"><small>{t("Offers sent")}</small><b>{counts["quoted"] ?? 0}</b></div>
+        <div className="dmr-qs"><small>{t("Outstanding")}</small><b dir="ltr">{aed(outstanding)}</b></div>
+      </div></StudioHeading>
+      <section className="dmr-panel dmr-q-panel dmr-b-main" aria-label={t("Bookings table")}>
+        <div className="dmr-q-tools">
+          <label className="relative flex max-w-md flex-1 basis-64 items-center">
+            <Search className="pointer-events-none absolute start-3.5 h-4 w-4 text-muted-foreground" aria-hidden />
+            <span className="sr-only">{t("Search bookings")}</span>
+            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} placeholder={t("Search client or booking")} className="h-10 w-full rounded-full border border-border bg-foreground/[.04] pe-4 ps-10 text-sm outline-none focus-visible:border-gold" />
+          </label>
+          <div className="flex flex-wrap gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("Filter by status")}>
+            {TABS.map(([k, label]) => (
+              <button key={k} type="button" aria-pressed={filter === k} onClick={() => { setFilter(k); setPage(0); }} className={`rounded-[10px] px-3 py-1.5 text-[13px] font-semibold transition-colors ${filter === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(label)} <span className="opacity-60">{counts[k]}</span></button>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0 overflow-x-auto">
+          <table className="w-full min-w-[860px] border-separate border-spacing-0 text-[13.5px]">
+            <thead>
+              <tr>{["Client / booking", "Status", "Date & time", "Total", "Payment", "Balance", ""].map((h) => <th key={h} scope="col" className={`${bkHead} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {pageRows.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">{bookings ? t("No bookings yet") : t("Loading…")}</td></tr>}
+              {pageRows.map((b) => {
+                const pay = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct);
+                const ps = payState(b);
+                const done = b.status === "confirmed";
+                const rated = (ratings ?? []).some((x) => x.booking_id === b.id);
+                const canAct = b.status === "quoted" || b.status === "confirmed";
+                return (
+                  <tr key={b.id} className="transition-colors hover:bg-foreground/[.03]">
+                    <td className={`${bkCell} min-w-[220px]`}>
+                      <b className="block">{b.client_name}<span className="font-normal text-muted-foreground"> · {b.package_title}</span></b>
+                      {b.invoice_no && <span className="text-xs text-muted-foreground">{b.invoice_no}</span>}
+                    </td>
+                    <td className={bkCell}><span className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${STATUS_STYLE[b.status] ?? STATUS_STYLE["cancelled"]}`}>{t(statusLabel(b.status))}</span></td>
+                    <td className={`${bkCell} whitespace-nowrap`}>{b.event_date ? new Date(`${b.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}<div className="text-xs text-muted-foreground">{b.start_time ? `${b.start_time.slice(0, 5)} – ${(b.end_time ?? "").slice(0, 5)}` : t("Time not set")}</div></td>
+                    <td className={`${bkCell} whitespace-nowrap text-end font-semibold`} dir="ltr">{aed(Number(b.total))}</td>
+                    <td className={bkCell}><span className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${ps === "paid" ? "border-gold/50 bg-gold/15 text-gold" : ps === "partial" ? "border-gold/40 bg-gold/10 text-gold" : "border-border text-muted-foreground"}`}>{t(ps === "paid" ? "Paid" : ps === "partial" ? "Partially paid" : "Unpaid")}</span></td>
+                    <td className={`${bkCell} whitespace-nowrap text-end`} dir="ltr">{aed(pay.balance)}</td>
+                    <td className={`${bkCell} text-end`}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`${t("Actions")} ${b.client_name}`}><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {b.status === "inquiry" && <DropdownMenuItem asChild><Link to="/approve/$id" params={{ id: b.id }} search={{ k: b.artist_key }}>{t("Review & approve")}</Link></DropdownMenuItem>}
+                          {done && <DropdownMenuItem disabled={busy || Number(b.paid_amount) < Number(b.total) || !canComplete(b.status, b.event_date)} onSelect={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>{t("Mark completed")}</DropdownMenuItem>}
+                          {canAct && canDispute(b.status, b.escrow_status) && <DropdownMenuItem disabled={busy} onSelect={() => { const r = prompt(t("Describe the problem for the Dealmaker team")); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>{t("Report problem")}</DropdownMenuItem>}
+                          {b.status === "completed" && b.client_email && !rated && <DropdownMenuItem onSelect={() => setRate({ id: b.id, rating: 5, note: "" })}>{t("Rate client")}</DropdownMenuItem>}
+                          <DropdownMenuItem onSelect={() => setInfo(b)}>{t("Booking information")}</DropdownMenuItem>
+                          {canAct && <><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" disabled={busy} onSelect={() => { if (confirm(t("Cancel? The client gets a full refund."))) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>{t("Cancel booking")}</DropdownMenuItem></>}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="dmr-q-foot flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">{t("Rows per page")}
+            <select value={size} onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} className="h-8 rounded-md border border-border bg-transparent px-2 text-xs">{[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+          </label>
+          <span className="text-xs text-muted-foreground">{filtered.length === 0 ? "0" : `${cur * size + 1}–${Math.min(filtered.length, cur * size + size)}`} {t("of")} {filtered.length}</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>{t("Prev")}</Button>
+            <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button>
+          </div>
+        </div>
+        <p className="px-5 pb-4 text-xs text-muted-foreground">{t("All totals in AED, incl. 5% VAT")}</p>
+      </section>
+      <Dialog open={!!info} onOpenChange={(o) => { if (!o) setInfo(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{info?.client_name} · {info?.package_title}</DialogTitle><DialogDescription>{t("Booking information")}</DialogDescription></DialogHeader>
+          {info && (
+            <table className="w-full text-sm"><tbody>
+              {[["Job detail", info.job_detail ?? info.notes ?? "—"], ["Email", info.client_email ?? "—"], ["Invoice", info.invoice_no ?? "—"], ["Escrow", `${t(info.escrow_status)}${Number(info.refund_amount) > 0 ? ` · ${t("refunded")} ${aed(Number(info.refund_amount))}` : ""}`], ["Calendar", t(info.calendar_sync_status)], ["H-7 reminder", info.reminder_sent_at ? "Sent" : "Pending"], ["Calendar error", info.calendar_sync_error ?? "—"]].map(([k, v]) => <tr key={k} className="border-b border-border"><th className="py-2 pe-3 text-start font-medium">{t(k ?? "")}</th><td className="whitespace-pre-wrap break-words py-2">{v}</td></tr>)}
+            </tbody></table>
+          )}
+          {info && (() => { const r = rep(info.client_email); return r ? <p className="text-xs" title={r.notes.join(" · ")}>{t("Client reputation (private):")} <b>{r.avg.toFixed(1)}★</b> {t("from")} {r.n} {t("booking")}{r.n > 1 ? t("s") : ""}</p> : null; })()}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!rate} onOpenChange={(o) => { if (!o) setRate(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{t("Rate this client privately (only artists see this)")}</DialogTitle><DialogDescription className="sr-only">{t("Rate client")}</DialogDescription></DialogHeader>
+          {rate && (
+            <div className="space-y-3">
+              <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => <Button variant="ghost" size="icon" key={n} type="button" aria-label={`${n} stars`} className={n <= rate.rating ? "text-gold" : "text-muted-foreground"} onClick={() => setRate({ ...rate, rating: n })}>★</Button>)}</div>
+              <Input placeholder={t("Private note (optional)")} maxLength={500} value={rate.note} onChange={(e) => setRate({ ...rate, note: e.target.value })} />
+              <div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setRate(null)}>{t("Cancel")}</Button><Button onClick={() => { const b = bookings?.find((x) => x.id === rate.id); if (b) void saveRating(b); }}>{t("Save rating")}</Button></div>
             </div>
-            {b.status === "completed" && b.client_email && !(ratings ?? []).some((x) => x.booking_id === b.id) && (
-              rate?.id === b.id ? (
-                <div className="mt-3 space-y-2 rounded-lg border p-3">
-                  <div className="text-xs font-semibold">{t("Rate this client privately (only artists see this)")}</div>
-                  <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => <Button variant="ghost" size="icon" key={n} type="button" aria-label={`${n} stars`} className={n <= rate.rating ? "text-gold" : "text-muted-foreground"} onClick={() => setRate({ ...rate, rating: n })}>★</Button>)}</div>
-                  <Input placeholder={t("Private note (optional)")} maxLength={500} value={rate.note} onChange={(e) => setRate({ ...rate, note: e.target.value })} />
-                  <div className="flex gap-2"><Button size="sm" onClick={() => saveRating(b)}>{t("Save rating")}</Button><Button size="sm" variant="ghost" onClick={() => setRate(null)}>{t("Cancel")}</Button></div>
-                </div>
-              ) : <Button size="sm" variant="outline" className="mt-3" onClick={() => setRate({ id: b.id, rating: 5, note: "" })}>{t("Rate client")}</Button>
-            )}
-            {b.status === "inquiry" && (
-              <Button asChild size="sm" className="mt-3 bg-gradient-gold text-gold-foreground"><Link to="/approve/$id" params={{ id: b.id }} search={{ k: b.artist_key }}>{t("Review & approve")}</Link></Button>
-            )}
-            {(b.status === "quoted" || b.status === "confirmed") && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {b.status === "confirmed" && <Button size="sm" disabled={busy || Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)} title={canComplete(b.status, b.event_date) ? "" : t("Available from the event date")} onClick={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>{t("Mark completed")}</Button>}
-                {canDispute(b.status, b.escrow_status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = prompt(t("Describe the problem for the Dealmaker team")); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>{t("Report problem")}</Button>}
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm(t("Cancel? The client gets a full refund."))) run(() => cancel$({ data: { id: b.id } }), "Booking cancelled"); }}>{t("Cancel")}</Button>
-              </div>
-            )}
-            <details className="mt-3"><summary className="cursor-pointer text-primary">{t("Booking information")}</summary><table className="mt-2 w-full text-xs"><tbody>{[["Job detail",b.job_detail??b.notes??"—"],["Email",b.client_email??"—"],["Invoice",b.invoice_no??"—"],["H-7 reminder",b.reminder_sent_at?"Sent":"Pending"],["Calendar error",b.calendar_sync_error??"—"]].map(([k,v])=><tr key={k} className="border-b"><th className="py-2 pe-2 text-start">{t(k ?? "")}</th><td className="py-2 whitespace-pre-wrap break-words">{v}</td></tr>)}</tbody></table></details>
-          </td><td className="p-3 whitespace-nowrap" data-label={t("Date & time")}>{b.event_date}<div className="text-xs text-muted-foreground">{b.start_time?.slice(0,5)??"—"} – {b.end_time?.slice(0,5)??"—"}</div></td><td className="p-3 whitespace-nowrap" data-label={t("Total")}>{aed(Number(b.total))}</td><td className="p-3 whitespace-nowrap" data-label={t("Payment")}><Badge variant={Number(b.paid_amount)>0?"default":"secondary"}>{Number(b.paid_amount)>0?`${t("Paid")} ${bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).percent}%`:t("Unpaid")}</Badge></td><td className="p-3 whitespace-nowrap" data-label={t("Balance")}>{aed(bookingPayment(Number(b.total),Number(b.paid_amount),b.deposit_pct).balance)}</td><td className="p-3" data-label={t("Calendar")}>{t(b.calendar_sync_status)}</td></tr>
-        ))}
-      </tbody></table></div><div className="dmr-q-foot"><span>{bookings?.length ?? 0} {t("bookings")}</span><span>{t("All totals in AED, incl. 5% VAT")}</span></div></section>
+          )}
+        </DialogContent>
+      </Dialog>
       <aside className="dmr-b-side">
         <div className="dmr-panel dmr-b-card space-y-3">
           <h3 className="font-semibold">{t("Send booking offer")}</h3>
@@ -111,7 +199,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
             </Select></div>}
           <div><Label>{t("Title")}</Label><Input value={f.title} maxLength={120} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label>{t("Price excl. VAT")}</Label><Input type="number" min={1} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
+            <div><Label>{t("Price excl. VAT")} (AED)</Label><Input type="number" min={1} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
             <div><Label>{t("Event date")}</Label><Input type="date" value={f.eventDate} onChange={(e) => setF({ ...f, eventDate: e.target.value })} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3"><StudioSoon label="Start time" /><StudioSoon label="End time" /></div>
