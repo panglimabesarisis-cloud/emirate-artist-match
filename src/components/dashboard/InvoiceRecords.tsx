@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Eye } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { invoiceMoney, type Invoice } from "@/lib/invoice";
 import { bookingPayment } from "@/lib/booking-payment-rules";
@@ -12,29 +12,114 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InvoiceCard } from "@/components/site/InvoiceCard";
 
-export function InvoiceRecords({ artistId }: { artistId?: string }) {
-  const { t } = useI18n();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [preview, setPreview] = useState<Invoice | null>(null);
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  const { data = [], isPending, error } = useQuery({
+type RawInvoice = NonNullable<ReturnType<typeof useInvoiceQuery>["data"]>[number];
+export function toInvoiceRows(data: RawInvoice[]) {
+  return data.map((row) => {
+    const paid = row.bookings ? Math.min(Number(row.total), Number(row.bookings.paid_amount)) : row.status === "paid" ? Number(row.total) : 0;
+    const percent = bookingPayment(Number(row.total), paid, 100).percent;
+    return { ...row, paid, percent, client: row.bookings?.client_name ?? row.conversations?.quote_requests?.name ?? `Direct chat · ${row.conversation_id.slice(0, 8)}` };
+  });
+}
+export function useInvoiceQuery(artistId?: string) {
+  return useQuery({
     queryKey: ["invoice-records", artistId], refetchInterval: 5000,
     queryFn: async () => {
-      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, conversation_id, artists(stage_name), bookings(client_name, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
+      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, artists(stage_name), bookings(client_name, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
       if (artistId) query = query.eq("artist_id", artistId);
       const result = await query;
       if (result.error) throw result.error;
       return result.data ?? [];
     },
   });
-  const rows = data.map(row => {
-    const paid = row.bookings ? Math.min(Number(row.total), Number(row.bookings.paid_amount)) : row.status === "paid" ? Number(row.total) : 0;
-    const percent = bookingPayment(Number(row.total), paid, 100).percent;
-    return { ...row, paid, percent, client: row.bookings?.client_name ?? row.conversations?.quote_requests?.name ?? `Direct chat · ${row.conversation_id.slice(0, 8)}` };
-  });
+}
+export type InvoiceRow = ReturnType<typeof toInvoiceRows>[number];
+const fmtD = (d: string | null | undefined) => (d ? new Date(d.length === 10 ? `${d}T00:00:00` : d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
+const payOf = (r: InvoiceRow) => (r.status === "paid" ? "paid" : r.paid > 0 ? "partial" : "unpaid");
+const CHIP_STYLE: Record<string, string> = {
+  unpaid: "border-red-400/30 bg-red-500/10 text-red-300", partial: "border-transparent bg-gold/40 text-white", paid: "border-transparent bg-gradient-gold text-gold-foreground",
+};
+const ih = "whitespace-nowrap border-b border-border bg-card px-3.5 py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground";
+const ic = "whitespace-nowrap border-b border-border px-3.5 py-3.5 align-middle";
+
+/** Artist view of the sent invoices, laid out as in the design reference. */
+function ArtistInvoiceTable({ rows, isPending, error, onView }: { rows: InvoiceRow[]; isPending: boolean; error: unknown; onView: (r: InvoiceRow) => void }) {
+  const { t } = useI18n();
+  const [q, setQ] = useState("");
+  const [tab, setTab] = useState<"all" | "unpaid" | "partial" | "paid">("all");
+  const [size, setSize] = useState(10);
+  const [page, setPage] = useState(0);
+  const counts = { all: rows.length, unpaid: rows.filter((r) => payOf(r) === "unpaid").length, partial: rows.filter((r) => payOf(r) === "partial").length, paid: rows.filter((r) => payOf(r) === "paid").length };
+  const needle = q.trim().toLowerCase();
+  const list = rows.filter((r) => (tab === "all" || payOf(r) === tab) && (!needle || `${r.number} ${r.client}`.toLowerCase().includes(needle)));
+  const pages = Math.max(1, Math.ceil(list.length / size));
+  const cur = Math.min(page, pages - 1);
+  const shown = list.slice(cur * size, cur * size + size);
+  return (
+    <>
+      <div className="dmr-q-tools">
+        <div className="me-auto"><h2 className="font-display text-[28px] leading-none">{t("Sent invoices")}</h2><small className="text-xs text-muted-foreground">{t("Newest first")}</small></div>
+        <label className="relative flex max-w-md flex-1 basis-64 items-center">
+          <Search className="pointer-events-none absolute start-3.5 h-4 w-4 text-muted-foreground" aria-hidden />
+          <span className="sr-only">{t("Search invoices")}</span>
+          <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder={t("Search invoice number or client")} className="h-10 w-full rounded-full border border-border bg-foreground/[.04] pe-4 ps-10 text-sm outline-none focus-visible:border-gold" />
+        </label>
+        <div className="flex gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("Filter by payment")}>
+          {([["all", "All"], ["unpaid", "Unpaid"], ["partial", "Partially paid"], ["paid", "Paid"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setPage(0); }} className={`rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{t(l)} <span className="opacity-60">{counts[k]}</span></button>)}
+        </div>
+      </div>
+      {error ? <p role="alert" className="p-5 text-destructive">{t("Could not load invoices.")}</p> : (
+        <div className="min-w-0 overflow-x-auto">
+          <table className="w-full min-w-[960px] border-separate border-spacing-0 text-[13.5px]">
+            <thead><tr>{["Invoice", "Client", "Issued", "Due", "Total", "Payment", "Balance", "Paid at"].map((h) => <th key={h} scope="col" className={`${ih} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr></thead>
+            <tbody>
+              {shown.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{isPending ? t("Loading…") : t("No invoices found")}</b>{!isPending && t("Try another number or payment status.")}</td></tr>}
+              {shown.map((r) => {
+                const ps = payOf(r);
+                const due = (r.document as { due?: string | null } | null)?.due ?? null;
+                return (
+                  <tr key={r.id} className="transition-colors hover:bg-foreground/[.03]">
+                    <td className={ic}><button type="button" className="font-bold text-gold underline-offset-2 hover:underline" onClick={() => onView(r)}>{r.number}</button></td>
+                    <td className={ic}><b>{r.client}</b></td>
+                    <td className={ic}>{fmtD(r.created_at)}</td>
+                    <td className={ic}>{fmtD(due)}</td>
+                    <td className={`${ic} text-end`} dir="ltr"><b>{invoiceMoney(Number(r.total))}</b></td>
+                    <td className={ic}><span className={`inline-flex h-[22px] min-w-[72px] items-center justify-center rounded-full border px-2.5 text-[10.5px] font-extrabold ${CHIP_STYLE[ps]}`}>{ps === "paid" ? t("Paid") : ps === "partial" ? `${t("Paid")} ${r.percent}%` : t("Unpaid")}</span></td>
+                    <td className={`${ic} text-end`} dir="ltr">{invoiceMoney(Math.max(0, Number(r.total) - r.paid))}</td>
+                    <td className={ic}>{r.paid_at ? fmtD(r.paid_at) : <span className="text-muted-foreground/60">{t("Not paid")}</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="dmr-q-foot flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">{t("Rows per page")}
+          <select value={size} onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} className="h-8 rounded-md border border-border bg-transparent px-2 text-xs">{[5, 10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+        </label>
+        <span className="text-xs text-muted-foreground">{list.length === 0 ? "0" : `${cur * size + 1}–${Math.min(list.length, cur * size + size)}`} {t("of")} {list.length}</span>
+        <div className="flex gap-2"><Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>{t("Prev")}</Button><Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>{t("Next")}</Button></div>
+      </div>
+    </>
+  );
+}
+
+export function InvoiceRecords({ artistId }: { artistId?: string }) {
+  const { t } = useI18n();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [preview, setPreview] = useState<Invoice | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const { data = [], isPending, error } = useInvoiceQuery(artistId);
+  const rows = toInvoiceRows(data);
   const previewStatus = data.find(row => row.id === previewId)?.status;
   const filtered = rows.filter(row => `${row.number} ${row.client} ${row.artists?.stage_name}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || (status === "paid" ? row.status === "paid" : status === "partial" ? row.paid > 0 && row.status !== "paid" : row.paid === 0)));
+  if (artistId) {
+    return <section className="studio-invoice-records">
+      <ArtistInvoiceTable rows={rows} isPending={isPending} error={error} onView={(row) => { setPreview(row.document as unknown as Invoice); setPreviewId(row.id); }} />
+      <Dialog open={!!preview} onOpenChange={open=>{if(!open)setPreview(null);}}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t("Invoice preview")}</DialogTitle></DialogHeader>{preview && <InvoiceCard inv={preview} status={previewStatus}/>}</DialogContent></Dialog>
+    </section>;
+  }
   return <section className="space-y-4 studio-invoice-records">
     {!artistId && <div className="grid gap-4 border-b pb-5 sm:grid-cols-3">{[["Total invoiced", rows.reduce((s,r)=>s+Number(r.total),0)], ["Total paid", rows.reduce((s,r)=>s+r.paid,0)], ["Outstanding balance", rows.reduce((s,r)=>s+Math.max(0,Number(r.total)-r.paid),0)]].map(([label,value])=><div key={label}><p className="text-sm text-muted-foreground">{t(String(label))}</p><p className="mt-1 text-xl font-semibold">{invoiceMoney(Number(value))}</p></div>)}</div>}
     <div className="dmr-q-tools"><Input aria-label={t("Search invoices")} placeholder={t("Search invoices")} className="max-w-xs" value={search} onChange={e=>setSearch(e.target.value)}/><Select value={status} onValueChange={setStatus}><SelectTrigger className="w-44" aria-label={t("Payment status")}><SelectValue/></SelectTrigger><SelectContent>{[["all","All payments"],["unpaid","Unpaid"],["partial","Partially paid"],["paid","Paid 100%"]].map(([value,label])=><SelectItem key={value} value={value ?? "all"}>{t(label ?? "")}</SelectItem>)}</SelectContent></Select></div>
