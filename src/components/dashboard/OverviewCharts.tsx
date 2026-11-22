@@ -90,13 +90,14 @@ export function ChatsPerformChart({ artistId }: { artistId: string }) {
     incoming: (money.data?.chats ?? []).filter((c) => inMonth(c.created_at, m)).length,
     ai: (money.data?.messages ?? []).filter((x) => x.sender === "ai" && inMonth(x.created_at, m)).length,
     client: (money.data?.messages ?? []).filter((x) => x.sender === "client" && inMonth(x.created_at, m)).length,
+    yours: (money.data?.messages ?? []).filter((x) => x.sender === "artist" && inMonth(x.created_at, m)).length,
     sent: (inv.data ?? []).filter((r) => inMonth(r.created_at, m)).length,
   })), [money.data, inv.data]);
   return (
     <AreaCard id="chats" title={t("Chats")} accent={t("perform")} subtitle={t("Last 6 months")} data={data}
       series={[{ key: "incoming", label: t("Incoming chat"), color: "#e8b04a", value: String(total(data, "incoming")) }, { key: "ai", label: t("AI reply"), color: "#6aa9ff", value: String(total(data, "ai")) },
-        { key: "client", label: t("Client reply"), color: "#b7a6ff", value: String(total(data, "client")) }, { key: "sent", label: t("Invoice send"), color: "#7bd88f", value: String(total(data, "sent")) }]}
-      empty={data.every((m) => m.incoming + m.ai + m.client + m.sent === 0)} emptyText={t("No chats yet.")} />
+        { key: "client", label: t("Client reply"), color: "#b7a6ff", value: String(total(data, "client")) }, { key: "yours", label: t("Your reply"), color: "#ff9bd2", value: String(total(data, "yours")) }, { key: "sent", label: t("Invoice send"), color: "#7bd88f", value: String(total(data, "sent")) }]}
+      empty={data.every((m) => m.incoming + m.ai + m.client + m.yours + m.sent === 0)} emptyText={t("No chats yet.")} note={t("Your reply counts messages you or your team send after taking over a chat.")} />
   );
 }
 
