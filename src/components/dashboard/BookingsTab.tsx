@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { MoreVertical, Search } from "lucide-react";
+import { ArrowUpDown, MoreVertical, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
@@ -22,9 +22,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const TABS: Array<[string, string]> = [["all", "All"], ["inquiry", "Needs approval"], ["quoted", "Offer sent"], ["confirmed", "Confirmed"], ["completed", "Completed"], ["cancelled", "Cancelled"]];
 const STATUS_STYLE: Record<string, string> = {
-  inquiry: "border-gold/50 bg-gold/15 text-gold", quoted: "border-border bg-foreground/[.06] text-foreground", confirmed: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300",
-  completed: "border-blue-400/40 bg-blue-400/10 text-blue-300", cancelled: "border-border text-muted-foreground",
+  quoted: "border-transparent bg-[#3a3f4b] text-white", inquiry: "border-transparent bg-gradient-gold text-gold-foreground",
+  confirmed: "border-emerald-400/35 bg-emerald-400/15 text-emerald-300", completed: "border-blue-400/40 bg-blue-400/10 text-blue-300",
+  cancelled: "border-border bg-transparent text-muted-foreground line-through",
 };
+const PAY_STYLE: Record<string, string> = {
+  unpaid: "border-red-400/30 bg-red-500/10 text-red-300", partial: "border-transparent bg-gold/40 text-white", paid: "border-transparent bg-gradient-gold text-gold-foreground",
+};
+const BADGE = "inline-flex h-[22px] min-w-[112px] items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-[10.5px] font-extrabold tracking-[.03em]";
+const CHIP = "inline-flex h-[22px] min-w-[72px] items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-[10.5px] font-extrabold";
+type SortKey = "client_name" | "status" | "event_date" | "total" | "balance";
+const COLS: Array<[SortKey | "payment" | "calendar", string, boolean, boolean]> = [
+  ["client_name", "Client / booking", true, false], ["status", "Status", true, false], ["event_date", "Date & time", true, false], ["total", "Total", true, true],
+  ["payment", "Payment", false, false], ["balance", "Balance", true, true], ["calendar", "Calendar", false, false],
+];
 const statusLabel = (s: string) => (s === "quoted" ? "offer sent" : s === "inquiry" ? "needs approval" : s);
 const payState = (b: { total: number | string; paid_amount: number | string }) => (Number(b.paid_amount) >= Number(b.total) && Number(b.total) > 0 ? "paid" : Number(b.paid_amount) > 0 ? "partial" : "unpaid");
 const bkHead = "whitespace-nowrap border-b border-border bg-card px-3.5 py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground";
@@ -62,6 +73,7 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const p = priceBreakdown(Number(f.amount) || 0);
 
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ k: SortKey | "payment" | "calendar"; dir: 1 | -1 }>({ k: "event_date", dir: -1 });
   const [size, setSize] = useState(10);
   const [info, setInfo] = useState<NonNullable<typeof bookings>[number] | null>(null);
   const counts = useMemo(() => {
@@ -73,8 +85,10 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const outstanding = (bookings ?? []).filter((b) => b.status === "quoted" || b.status === "confirmed").reduce((n, b) => n + bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct).balance, 0);
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return (bookings ?? []).filter((b) => (filter === "all" || b.status === filter) && (!needle || `${b.client_name} ${b.package_title} ${b.invoice_no ?? ""}`.toLowerCase().includes(needle)));
-  }, [bookings, filter, search]);
+    const list = (bookings ?? []).filter((b) => (filter === "all" || b.status === filter) && (!needle || `${b.client_name} ${b.package_title} ${b.invoice_no ?? ""}`.toLowerCase().includes(needle)));
+    const val = (b: (typeof list)[number]): string | number => sort.k === "total" ? Number(b.total) : sort.k === "balance" ? bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct).balance : sort.k === "status" ? b.status : sort.k === "event_date" ? (b.event_date ?? "") : b.client_name;
+    return [...list].sort((a, c) => { const A = val(a), C = val(c); return (typeof A === "number" && typeof C === "number" ? A - C : String(A).localeCompare(String(C))) * sort.dir; });
+  }, [bookings, filter, search, sort]);
   const pages = Math.max(1, Math.ceil(filtered.length / size));
   const cur = Math.min(page, pages - 1);
   const pageRows = filtered.slice(cur * size, cur * size + size);
@@ -107,29 +121,42 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
           </div>
         </div>
         <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[860px] border-separate border-spacing-0 text-[13.5px]">
+          <table className="w-full min-w-[980px] border-separate border-spacing-0 text-[13.5px]">
             <thead>
-              <tr>{["Client / booking", "Status", "Date & time", "Total", "Payment", "Balance", ""].map((h) => <th key={h} scope="col" className={`${bkHead} ${h === "Total" || h === "Balance" ? "text-end" : "text-start"}`}>{t(h)}</th>)}</tr>
+              <tr>
+                {COLS.map(([k, label, sortable, num]) => (
+                  <th key={label} scope="col" aria-sort={sortable && sort.k === k ? (sort.dir === 1 ? "ascending" : "descending") : undefined} className={`${bkHead} ${num ? "text-end" : "text-start"}`}>
+                    {sortable ? (
+                      <button type="button" onClick={() => setSort({ k, dir: sort.k === k ? (sort.dir === 1 ? -1 : 1) : 1 })} className={`inline-flex items-center gap-1.5 uppercase transition-colors hover:text-foreground ${sort.k === k ? "text-gold" : ""}`}>{t(label)}<ArrowUpDown className={`h-3 w-3 ${sort.k === k ? "opacity-100" : "opacity-40"}`} aria-hidden /></button>
+                    ) : t(label)}
+                  </th>
+                ))}
+                <th scope="col" className={bkHead}><span className="sr-only">{t("Actions")}</span></th>
+              </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">{bookings ? t("No bookings yet") : t("Loading…")}</td></tr>}
+              {pageRows.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">{bookings ? t("No bookings yet") : t("Loading…")}</td></tr>}
               {pageRows.map((b) => {
                 const pay = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct);
                 const ps = payState(b);
                 const done = b.status === "confirmed";
                 const rated = (ratings ?? []).some((x) => x.booking_id === b.id);
                 const canAct = b.status === "quoted" || b.status === "confirmed";
+                const cancelled = b.status === "cancelled";
                 return (
                   <tr key={b.id} className="transition-colors hover:bg-foreground/[.03]">
-                    <td className={`${bkCell} min-w-[220px]`}>
-                      <b className="block">{b.client_name}<span className="font-normal text-muted-foreground"> · {b.package_title}</span></b>
-                      {b.invoice_no && <span className="text-xs text-muted-foreground">{b.invoice_no}</span>}
+                    <td className={`${bkCell} min-w-[230px] ${cancelled ? "opacity-45" : ""}`}>
+                      <div className="flex flex-col gap-1">
+                        <b className="font-bold">{b.client_name} <em className="font-medium not-italic text-muted-foreground">· {b.package_title}</em></b>
+                        <small className="text-xs text-muted-foreground/70">{t("Escrow:")} {t(b.escrow_status)}</small>
+                      </div>
                     </td>
-                    <td className={bkCell}><span className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${STATUS_STYLE[b.status] ?? STATUS_STYLE["cancelled"]}`}>{t(statusLabel(b.status))}</span></td>
-                    <td className={`${bkCell} whitespace-nowrap`}>{b.event_date ? new Date(`${b.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}<div className="text-xs text-muted-foreground">{b.start_time ? `${b.start_time.slice(0, 5)} – ${(b.end_time ?? "").slice(0, 5)}` : t("Time not set")}</div></td>
-                    <td className={`${bkCell} whitespace-nowrap text-end font-semibold`} dir="ltr">{aed(Number(b.total))}</td>
-                    <td className={bkCell}><span className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${ps === "paid" ? "border-gold/50 bg-gold/15 text-gold" : ps === "partial" ? "border-gold/40 bg-gold/10 text-gold" : "border-border text-muted-foreground"}`}>{t(ps === "paid" ? "Paid" : ps === "partial" ? "Partially paid" : "Unpaid")}</span></td>
-                    <td className={`${bkCell} whitespace-nowrap text-end`} dir="ltr">{aed(pay.balance)}</td>
+                    <td className={bkCell}><span className={`${BADGE} ${STATUS_STYLE[b.status] ?? STATUS_STYLE["cancelled"]}`}>{t(statusLabel(b.status))}</span></td>
+                    <td className={`${bkCell} whitespace-nowrap ${cancelled ? "opacity-45" : ""}`}><b className="block">{b.event_date ? new Date(`${b.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</b><small className="text-xs text-muted-foreground">{b.start_time ? `${b.start_time.slice(0, 5)} – ${(b.end_time ?? "").slice(0, 5)}` : t("Time not set")}</small></td>
+                    <td className={`${bkCell} whitespace-nowrap text-end ${cancelled ? "opacity-45" : ""}`} dir="ltr"><b>{aed(Number(b.total))}</b></td>
+                    <td className={bkCell}><span className={`${CHIP} ${PAY_STYLE[ps]}`}>{t(ps === "paid" ? "Paid" : ps === "partial" ? "Partially paid" : "Unpaid")}</span></td>
+                    <td className={`${bkCell} whitespace-nowrap text-end ${cancelled ? "opacity-45" : ""}`} dir="ltr">{aed(pay.balance)}</td>
+                    <td className={`${bkCell} ${cancelled ? "opacity-45" : ""}`}><span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><i className={`h-[7px] w-[7px] rounded-full ${b.calendar_sync_status === "synced" ? "bg-emerald-400" : b.calendar_sync_status === "error" || b.calendar_sync_status === "failed" ? "bg-red-500" : "bg-muted-foreground/50"}`} aria-hidden />{t(b.calendar_sync_status)}</span></td>
                     <td className={`${bkCell} text-end`}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`${t("Actions")} ${b.client_name}`}><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -162,14 +189,48 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
         <p className="px-5 pb-4 text-xs text-muted-foreground">{t("All totals in AED, incl. 5% VAT")}</p>
       </section>
       <Dialog open={!!info} onOpenChange={(o) => { if (!o) setInfo(null); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{info?.client_name} · {info?.package_title}</DialogTitle><DialogDescription>{t("Booking information")}</DialogDescription></DialogHeader>
-          {info && (
-            <table className="w-full text-sm"><tbody>
-              {[["Job detail", info.job_detail ?? info.notes ?? "—"], ["Email", info.client_email ?? "—"], ["Invoice", info.invoice_no ?? "—"], ["Escrow", `${t(info.escrow_status)}${Number(info.refund_amount) > 0 ? ` · ${t("refunded")} ${aed(Number(info.refund_amount))}` : ""}`], ["Calendar", t(info.calendar_sync_status)], ["H-7 reminder", info.reminder_sent_at ? "Sent" : "Pending"], ["Calendar error", info.calendar_sync_error ?? "—"]].map(([k, v]) => <tr key={k} className="border-b border-border"><th className="py-2 pe-3 text-start font-medium">{t(k ?? "")}</th><td className="whitespace-pre-wrap break-words py-2">{v}</td></tr>)}
-            </tbody></table>
-          )}
-          {info && (() => { const r = rep(info.client_email); return r ? <p className="text-xs" title={r.notes.join(" · ")}>{t("Client reputation (private):")} <b>{r.avg.toFixed(1)}★</b> {t("from")} {r.n} {t("booking")}{r.n > 1 ? t("s") : ""}</p> : null; })()}
+        <DialogContent className="w-[min(600px,100%)] max-w-none rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120] p-[26px]">
+          {info && (() => {
+            const pay = bookingPayment(Number(info.total), Number(info.paid_amount), info.deposit_pct);
+            const rows: Array<[string, string | null]> = [
+              ["Job detail", info.job_detail ?? info.notes ?? null], ["Email", info.client_email], ["Invoice", info.invoice_no],
+              ["H-7 reminder", info.reminder_sent_at ? "Sent" : "Pending"], ["Calendar", info.calendar_sync_status], ["Calendar error", info.calendar_sync_error],
+              ["Escrow", `${info.escrow_status}${Number(info.refund_amount) > 0 ? ` · ${t("refunded")} ${aed(Number(info.refund_amount))}` : ""}`],
+              ["Payment", payState(info) === "paid" ? "Paid" : payState(info) === "partial" ? "Partially paid" : "Unpaid"],
+            ];
+            const r = rep(info.client_email);
+            return (
+              <>
+                <DialogHeader className="items-start text-start">
+                  <span className={`${BADGE} ${STATUS_STYLE[info.status] ?? STATUS_STYLE["cancelled"]}`}>{t(statusLabel(info.status))}</span>
+                  <DialogTitle className="mt-2.5 font-display text-[30px] font-normal leading-tight">{info.client_name} · {info.package_title}</DialogTitle>
+                  <DialogDescription>{info.event_date ? new Date(`${info.event_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"} · {info.start_time ? `${info.start_time.slice(0, 5)} – ${(info.end_time ?? "").slice(0, 5)}` : t("Time not set")} · {aed(Number(info.total))} {t("incl. VAT")}</DialogDescription>
+                </DialogHeader>
+                <div className="mb-4 mt-1.5 grid grid-cols-1 overflow-hidden rounded-2xl border border-border sm:grid-cols-3">
+                  {([["Total", aed(Number(info.total))], ["Paid", aed(Number(info.paid_amount))], ["Balance", aed(pay.balance)]] as const).map(([l, v], i) => (
+                    <div key={l} className={`px-3.5 py-3 ${i < 2 ? "border-b border-border sm:border-b-0 sm:border-e" : ""}`}>
+                      <span className="block text-[10.5px] font-extrabold uppercase tracking-[.1em] text-muted-foreground">{t(l)}</span>
+                      <b className="font-display text-2xl font-normal" dir="ltr">{v}</b>
+                    </div>
+                  ))}
+                </div>
+                <dl className="grid grid-cols-[150px_1fr] border-t border-border max-sm:grid-cols-1">
+                  {rows.map(([k, v]) => (
+                    <div key={k} className="contents">
+                      <dt className="border-b border-border pb-3 pt-3.5 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground max-sm:border-b-0 max-sm:pb-0">{t(k)}</dt>
+                      <dd className={`whitespace-pre-wrap break-words border-b border-border py-3 text-sm ${v ? "" : "text-muted-foreground/60"}`}>{v ? t(v) : t("Not set")}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {r && <p className="text-xs text-muted-foreground" title={r.notes.join(" · ")}>{t("Client reputation (private):")} <b>{r.avg.toFixed(1)}★</b> {t("from")} {r.n} {t("booking")}{r.n > 1 ? t("s") : ""}</p>}
+                <div className="mt-1.5 flex flex-wrap justify-end gap-2.5">
+                  {info.status === "inquiry" && <Button asChild className="rounded-full bg-gradient-gold font-bold text-gold-foreground"><Link to="/approve/$id" params={{ id: info.id }} search={{ k: info.artist_key }}>{t("Review & approve")} →</Link></Button>}
+                  {(info.status === "quoted" || info.status === "confirmed") && <Button variant="outline" className="rounded-full border-red-400/40 text-red-300" disabled={busy} onClick={() => { if (confirm(t("Cancel? The client gets a full refund."))) { setInfo(null); void run(() => cancel$({ data: { id: info.id } }), "Booking cancelled"); } }}>{t("Cancel booking")}</Button>}
+                  <Button variant="outline" className="rounded-full" onClick={() => setInfo(null)}>{t("Close")}</Button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
       <Dialog open={!!rate} onOpenChange={(o) => { if (!o) setRate(null); }}>
