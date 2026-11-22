@@ -158,7 +158,7 @@ function Report({ report }: { report: AgentReport }) {
 const KIND_UI: Record<string, { icon: typeof CalendarCheck; confirm: string; done: string; running: string; open: string; section: string; refresh: string[] }> = {
   calendar_event: { icon: CalendarCheck, confirm: "Confirm event & invitations", done: "Event created", running: "Creating event…", open: "Open Calendar", section: "calendar", refresh: ["calendar-events"] },
   schedule_item: { icon: CalendarPlus, confirm: "Add to my schedule", done: "Added to your schedule", running: "Adding…", open: "Open Calendar", section: "calendar", refresh: ["schedule-items"] },
-  rate_card: { icon: Tag, confirm: "Create this rate card", done: "Rate card created", running: "Creating…", open: "Open Ratecard", section: "packages", refresh: ["rate-cards", "ratecards"] },
+  rate_card: { icon: Tag, confirm: "Create this rate card", done: "Rate card created", running: "Creating…", open: "Open Ratecard", section: "packages", refresh: ["rates"] },
   media_photo: { icon: ImageIcon, confirm: "Add this photo", done: "Photo added", running: "Adding…", open: "Open Photos & videos", section: "media", refresh: ["artist-media", "media"] },
   media_youtube: { icon: Youtube, confirm: "Add this video", done: "Video added", running: "Adding…", open: "Open Photos & videos", section: "media", refresh: ["artist-media", "media"] },
   send_invoice: { icon: Send, confirm: "Send this invoice to the client", done: "Invoice sent", running: "Sending…", open: "Open Invoice", section: "invoices", refresh: ["invoices", "invoice-records", "inbox-msgs"] },

@@ -2,7 +2,7 @@ import { BulkBar, RowCheckbox, useSelection } from "./BulkSelect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, Copy, RefreshCw, Trash2, Users } from "lucide-react";
+import { Ban, CalendarDays, Check, Copy, Plus, RefreshCw, Search, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "./StudioPage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function CalendarSync({ artistId }: { artistId: string }) {
   const { t } = useI18n();
@@ -49,6 +50,12 @@ export function CalendarSync({ artistId }: { artistId: string }) {
 
 /** Menus a team member can be given. Wallet, export, verification, account and team are never available (database check). */
 export const TEAM_MENUS = ["inbox", "quotes", "bookings", "calendar", "media"] as const;
+const ago = (iso: string | null) => {
+  if (!iso) return "Never signed in";
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  return m < 2 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+};
+const initials = (email: string) => email.split("@")[0]!.split(/[._-]/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 const MENU_LABEL: Record<string, string> = { inbox: "Inbox", quotes: "Quote requests", bookings: "Bookings", calendar: "Calendar", media: "Photos & videos" };
 
 export function TeamTab({ artistId }: { artistId: string }) {
@@ -78,6 +85,9 @@ export function TeamTab({ artistId }: { artistId: string }) {
   };
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [search, setSearch] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const [draft, setDraft] = useState<{ name: string; description: string; menus: string[] }>({ name: "", description: "", menus: ["inbox"] });
   const used = members?.length ?? 0;
   const max = limit?.max ?? 0;
@@ -90,7 +100,7 @@ export function TeamTab({ artistId }: { artistId: string }) {
     const chosen = roleId || roles?.find((r) => r.is_system)?.id || null;
     const { error } = await supabase.from("artist_members").insert({ artist_id: artistId, email: e, role: "assistant", ...(chosen ? { role_id: chosen } : {}) });
     if (error) { toast.error(error.code === "23505" ? t("Already invited") : error.message); return; }
-    setEmail(""); toast.success(t("Invitation saved — they get access when they sign in with this email"));
+    setEmail(""); setAddOpen(false); toast.success(t("Invitation saved — they get access when they sign in with this email"));
     qc.invalidateQueries({ queryKey: key });
   };
   const setStatus = async (id: string, status: "active" | "suspended") => {
@@ -114,7 +124,7 @@ export function TeamTab({ artistId }: { artistId: string }) {
     if (!name) { toast.error(t("Name the role")); return; }
     const { error } = await supabase.from("team_roles").insert({ artist_id: artistId, name: name.slice(0, 60), description: draft.description.trim() || null, menus: Array.from(new Set(["inbox", ...draft.menus])) });
     if (error) { toast.error(error.code === "23505" ? t("A role with this name exists") : error.message); return; }
-    setDraft({ name: "", description: "", menus: ["inbox"] });
+    setDraft({ name: "", description: "", menus: ["inbox"] }); setRoleOpen(false);
     qc.invalidateQueries({ queryKey: rolesKey });
   };
   const deleteRole = async (id: string) => {
@@ -127,89 +137,136 @@ export function TeamTab({ artistId }: { artistId: string }) {
   };
   const toggleMenu = (m: string) => setDraft((d) => ({ ...d, menus: d.menus.includes(m) ? d.menus.filter((x) => x !== m) : [...d.menus, m] }));
 
+  const needle = search.trim().toLowerCase();
+  const shown = (members ?? []).filter((m) => !needle || `${m.email} ${roleName(m.role_id) ?? m.role}`.toLowerCase().includes(needle));
+  const active = (members ?? []).filter((m) => m.status === "active").length;
+  const chips = (menus: string[]) => {
+    const labels = menus.map((k) => MENU_LABEL[k]).filter(Boolean) as string[];
+    return <div className="flex flex-wrap gap-1.5">{labels.slice(0, 3).map((l) => <span key={l} className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${l === "Inbox" ? "border-gold/40 bg-gold/10 text-gold" : "border-border text-muted-foreground"}`}>{t(l)}</span>)}{labels.length > 3 && <span className="rounded-full border border-border px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground" title={labels.slice(3).join(", ")}>+{labels.length - 3}</span>}</div>;
+  };
+  const addButton = <Button className="rounded-full bg-gradient-gold px-5 font-bold text-gold-foreground" onClick={() => setAddOpen(true)}><Plus className="me-1.5 h-4 w-4" />{t("Add team member")}</Button>;
+  const th = "whitespace-nowrap border-b border-border bg-[#0d1222] px-3 py-3 text-start text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground";
+  const td = "border-b border-border px-3 py-3.5 align-middle";
+
   return (
     <div className="dmr-wrap dmr-tmpage">
       <StudioHeading title="Invite" accent="team">
-        <div className="dmr-q-stats"><div className="dmr-qs"><small>{t("Members")}</small><b>{used}{max >= 0 ? ` / ${max}` : ""}</b></div></div>
-      </StudioHeading>
-      <section className="dmr-panel dmr-q-panel studio-team-table">
-        <div className="dmr-q-tools"><h2>{t("Team")} <span className="it">{t("members")}</span></h2></div>
-        <BulkBar count={selection.sel.length} onClear={selection.clear} onDelete={() => void removeMany()} />
-        <div className="dmr-tbl-wrap">
-          <table data-studio-table="true">
-            <thead><tr><th scope="col" className="w-10"><RowCheckbox label={t("Select all")} checked={(members?.length ?? 0) > 0 && (members ?? []).every((m) => selection.has(m.id))} onChange={(on) => selection.toggleAll((members ?? []).map((m) => m.id), on)} /></th>{["Member", "Role", "Status", "Last active", "Actions"].map((h) => <th key={h}>{t(h)}</th>)}</tr></thead>
-            <tbody>
-              {members?.map((m) => (
-                <tr key={m.id}>
-                  <td><RowCheckbox label={`${t("Select")} ${m.email}`} checked={selection.has(m.id)} onChange={(on) => selection.toggle(m.id, on)} /></td>
-                  <td data-label={t("Member")}>{m.email}</td>
-                  <td data-label={t("Role")}>
-                    {roles && roles.length > 0 ? (
-                      <Select value={m.role_id ?? ""} onValueChange={(v) => void changeRole(m.id, v)}>
-                        <SelectTrigger className="h-8 w-44" aria-label={`${t("Role")} ${m.email}`}><SelectValue placeholder={roleName(m.role_id) ?? t(m.role)} /></SelectTrigger>
-                        <SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                    ) : t(m.role)}
-                  </td>
-                  <td data-label={t("Status")}><Badge variant={m.status === "suspended" ? "destructive" : "default"}>{t(m.status)}</Badge></td>
-                  <td data-label={t("Last active")}>{m.last_active_at ? new Date(m.last_active_at).toLocaleDateString("en-GB") : "—"}</td>
-                  <td data-label={t("Actions")}>
-                    {m.status === "suspended"
-                      ? <Button variant="outline" size="sm" onClick={() => void setStatus(m.id, "active")}>{t("Reactivate")}</Button>
-                      : m.status === "active" && <Button variant="outline" size="sm" onClick={() => void setStatus(m.id, "suspended")}>{t("Suspend")}</Button>}
-                    <Button variant="ghost" size="icon" aria-label={`${t("Remove")} ${m.email}`} onClick={() => void remove(m.id)}><Trash2 className="size-4" /></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="dmr-q-stats">
+            <div className="dmr-qs"><small>{t("Members")}</small><b className="text-gold">{used}{max >= 0 ? ` / ${max}` : ""}</b></div>
+            <div className="dmr-qs"><small>{t("Active")}</small><b>{active}</b></div>
+            <div className="dmr-qs"><small>{t("Roles")}</small><b>{roles?.length ?? 0}</b></div>
+          </div>
+          {addButton}
         </div>
-        {members?.length === 0 && <StudioEmpty title={t("No team members yet.")} />}
+      </StudioHeading>
+      <p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("Give a teammate their own login to answer inbox chats for you. They see only the menus you allow in their role, and nothing else.")}</p>
+
+      <section className="dmr-panel dmr-q-panel dmr-c-12 !p-0" aria-label={t("Team members")}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-4">
+          <div className="me-auto"><h2 className="font-display text-[28px] leading-none">{t("Team")} <span className="it">{t("members")}</span></h2><small className="text-xs text-muted-foreground">{t("People who can sign in to your workspace")}</small></div>
+          <label className="relative flex h-[42px] max-w-sm flex-1 basis-60 items-center">
+            <Search className="pointer-events-none absolute start-3.5 h-4 w-4 text-gold" aria-hidden />
+            <span className="sr-only">{t("Search team")}</span>
+            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("Search name, email or role")} autoComplete="off" className="h-full w-full rounded-[14px] border border-border bg-foreground/[.03] pe-3 ps-10 text-sm outline-none focus-visible:border-gold" />
+          </label>
+        </div>
+        <BulkBar count={selection.sel.length} onClear={selection.clear} onDelete={() => void removeMany()} />
+        {shown.length > 0 && (
+          <div className="min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[13.5px]">
+              <thead><tr>
+                <th scope="col" className={`${th} w-10`}><RowCheckbox label={t("Select all")} checked={shown.length > 0 && shown.every((m) => selection.has(m.id))} onChange={(on) => selection.toggleAll(shown.map((m) => m.id), on)} /></th>
+                {["Member", "Role", "Can open", "Status", "Last active"].map((h) => <th key={h} scope="col" className={th}>{t(h)}</th>)}<th scope="col" className={th}><span className="sr-only">{t("Actions")}</span></th>
+              </tr></thead>
+              <tbody>
+                {shown.map((m) => {
+                  const role = roles?.find((r) => r.id === m.role_id);
+                  return (
+                    <tr key={m.id} className="transition-colors hover:bg-foreground/[.03]">
+                      <td className={td}><RowCheckbox label={`${t("Select")} ${m.email}`} checked={selection.has(m.id)} onChange={(on) => selection.toggle(m.id, on)} /></td>
+                      <td className={td}><div className="flex items-center gap-3"><span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-gradient-to-br from-[#2b3460] to-[#151a30] font-display text-sm ${m.status === "suspended" ? "opacity-50" : ""}`}>{initials(m.email)}</span><div className="min-w-0"><b className="block truncate font-bold">{m.email}</b></div></div></td>
+                      <td className={td}>
+                        {roles && roles.length > 0 ? (
+                          <Select value={m.role_id ?? ""} onValueChange={(v) => void changeRole(m.id, v)}>
+                            <SelectTrigger className="h-8 w-44" aria-label={`${t("Role")} ${m.email}`}><SelectValue placeholder={roleName(m.role_id) ?? t(m.role)} /></SelectTrigger>
+                            <SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                        ) : t(m.role)}
+                      </td>
+                      <td className={td}>{chips(role?.menus ?? ["inbox"])}</td>
+                      <td className={td}><span className={`inline-flex h-6 items-center gap-1.5 rounded-full border px-[11px] text-[10.5px] font-extrabold tracking-[.03em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-current before:content-[''] ${m.status === "active" ? "border-emerald-300/35 bg-emerald-300/[.08] text-emerald-300" : "border-border text-muted-foreground"}`}>{t(m.status === "active" ? "Active" : m.status === "suspended" ? "Suspended" : m.status)}</span></td>
+                      <td className={`${td} text-muted-foreground`}>{t(ago(m.last_active_at))}</td>
+                      <td className={`${td} text-end`}>
+                        <div className="inline-flex gap-1.5">
+                          {(m.status === "active" || m.status === "suspended") && <Button type="button" variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[10px]" title={t(m.status === "active" ? "Suspend" : "Reactivate")} aria-label={`${t(m.status === "active" ? "Suspend" : "Reactivate")} ${m.email}`} onClick={() => void setStatus(m.id, m.status === "active" ? "suspended" : "active")}>{m.status === "active" ? <Ban className="h-[15px] w-[15px]" /> : <Check className="h-[15px] w-[15px]" />}</Button>}
+                          <Button type="button" variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[10px] hover:border-red-400 hover:text-red-300" title={t("Remove")} aria-label={`${t("Remove")} ${m.email}`} onClick={() => void remove(m.id)}><Trash2 className="h-[15px] w-[15px]" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {shown.length === 0 && (
+          <div className="flex flex-col items-center gap-2 px-5 py-12 text-center">
+            <span className="grid h-[60px] w-[60px] place-items-center rounded-full border border-gold/25 bg-[radial-gradient(circle,rgba(232,176,74,.22),rgba(232,176,74,.04)_70%)] text-gold"><Users className="h-[22px] w-[22px]" /></span>
+            <b className="font-display text-2xl font-normal">{t(needle ? "No matches" : "No team members")}</b>
+            <p className="text-[13px] text-muted-foreground">{t(needle ? "Try another name, email or role." : "Add someone to share the inbox workload.")}</p>
+            {!needle && <div className="mt-2">{addButton}</div>}
+          </div>
+        )}
       </section>
 
-      <StudioSection title="Roles" accent="and access" className="dmr-c-12">
-        <div className="studio-team-role-grid">
-          {roles?.map((r) => (
-            <div key={r.id} className="studio-team-role">
-              <span className="studio-team-role-icon"><Users className="size-5" aria-hidden="true" /></span>
-              <h3>{r.name}{r.is_system ? ` · ${t("built in")}` : ""}</h3>
-              <p className="mt-3 text-sm text-muted-foreground">{r.description ?? t("Can open only the menus listed below. They never see your wallet, export, verification, account or team.")}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">{r.menus.map((m) => <span key={m} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">{t(MENU_LABEL[m] ?? m)}</span>)}</div>
-              {!r.is_system && <Button variant="ghost" size="sm" className="mt-3" onClick={() => void deleteRole(r.id)}><Trash2 className="me-1 size-4" />{t("Delete role")}</Button>}
-            </div>
-          ))}
+      <section className="dmr-panel dmr-c-12" aria-labelledby="r-h">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div><h2 id="r-h" className="font-display text-[28px] leading-none">{t("Roles")} <span className="it">{t("and access")}</span></h2><p className="mt-1.5 text-[13px] text-muted-foreground">{t("A role decides which menus a member can open. Every role can answer the Inbox. You choose the rest.")}</p></div>
+          <Button type="button" variant="outline" className="rounded-full" onClick={() => setRoleOpen(true)}><Plus className="me-1.5 h-4 w-4" />{t("New role")}</Button>
         </div>
-        <div className="mt-6 space-y-3 border-t border-border pt-5">
-          <h3 className="font-semibold">{t("Create a custom role")}</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div><label htmlFor="role-name" className="text-sm">{t("Role name")}</label><Input id="role-name" maxLength={60} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
-            <div><label htmlFor="role-desc" className="text-sm">{t("Description")}</label><Input id="role-desc" maxLength={160} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
-          </div>
-          <fieldset className="flex flex-wrap gap-4"><legend className="mb-1 text-sm">{t("Menus this role can open")}</legend>
-            {TEAM_MENUS.map((m) => (
-              <label key={m} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="accent-gold" checked={draft.menus.includes(m)} disabled={m === "inbox"} onChange={() => toggleMenu(m)} />{t(MENU_LABEL[m] ?? m)}
-              </label>
-            ))}
-          </fieldset>
-          <Button variant="outline" onClick={() => void saveRole()}>{t("Save role")}</Button>
+        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+          {roles?.map((r) => {
+            const n = (members ?? []).filter((m) => m.role_id === r.id).length;
+            return (
+              <article key={r.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-foreground/[.02] p-[18px]">
+                <h3 className="text-base font-bold">{r.name}{r.is_system ? ` · ${t("built in")}` : ""}</h3>
+                <p className="text-[13px] text-muted-foreground">{r.description ?? t("No description")}</p>
+                {chips(r.menus)}
+                <div className="mt-auto flex items-center justify-between pt-1 text-xs text-muted-foreground"><span>{n} {t(n === 1 ? "member" : "members")}</span>{!r.is_system && <Button type="button" variant="ghost" size="sm" aria-label={`${t("Delete role")} ${r.name}`} onClick={() => void deleteRole(r.id)}><Trash2 className="me-1 size-4" />{t("Delete role")}</Button>}</div>
+              </article>
+            );
+          })}
         </div>
-      </StudioSection>
+        <p className="mt-5 flex items-start gap-2.5 text-xs text-muted-foreground"><span aria-hidden>🔒</span><span>{t("Only you can open Wallet, Export data, Verification, Account settings and Team. These cannot be given to a role.")}</span></p>
+      </section>
 
-      <StudioSection title="Invite a" accent="teammate" className="studio-team-invite">
-        <div className="space-y-3">
-          <label htmlFor="studio-team-email">{t("Email")}</label>
-          <Input id="studio-team-email" type="email" placeholder={t("name@example.com")} value={email} onChange={(e) => setEmail(e.target.value)} />
-          <label htmlFor="studio-team-role">{t("Role")}</label>
-          <Select value={roleId} onValueChange={setRoleId}>
-            <SelectTrigger id="studio-team-role"><SelectValue placeholder={t("Inbox responder")} /></SelectTrigger>
-            <SelectContent>{roles?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
-          </Select>
-          {full && <p className="text-xs text-gold">{max === 0 ? t("Your plan has no team seats. Upgrade to invite teammates.") : `${t("Seat limit reached for your plan")} (${used}/${max}).`}</p>}
-          <Button onClick={() => void invite()} disabled={full}>{t("Send invite")}</Button>
-          <p className="text-xs text-muted-foreground">{t("Invitations go by email. Nobody gets a password from us; they sign in with their own account.")}</p>
-        </div>
-      </StudioSection>
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+          <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{t("Add team")} <span className="it">{t("member")}</span></DialogTitle><DialogDescription>{t("Invitations go by email. Nobody gets a password from us; they sign in with their own account.")}</DialogDescription></DialogHeader>
+          <form className="grid gap-3.5" onSubmit={(e) => { e.preventDefault(); void invite(); }}>
+            <div className="space-y-2"><label htmlFor="studio-team-email" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Email")}</label><Input id="studio-team-email" type="email" placeholder={t("name@example.com")} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
+            <div className="space-y-2"><label htmlFor="studio-team-role" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Role")}</label>
+              <Select value={roleId} onValueChange={setRoleId}><SelectTrigger id="studio-team-role"><SelectValue placeholder={t("Inbox responder")} /></SelectTrigger><SelectContent>{roles?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent></Select></div>
+            {full && <p className="text-xs text-gold">{max === 0 ? t("Your plan has no team seats. Upgrade to invite teammates.") : `${t("Seat limit reached for your plan")} (${used}/${max}).`}</p>}
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setAddOpen(false)}>{t("Cancel")}</Button><Button type="submit" disabled={full} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t("Send invite")}</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
+        <DialogContent className="max-w-lg rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+          <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{t("New")} <span className="it">{t("role")}</span></DialogTitle><DialogDescription>{t("Every role can answer the Inbox. Choose the other menus this role can open.")}</DialogDescription></DialogHeader>
+          <form className="grid gap-3.5" onSubmit={(e) => { e.preventDefault(); void saveRole(); }}>
+            <div className="space-y-2"><label htmlFor="role-name" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Role name")}</label><Input id="role-name" maxLength={60} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} autoFocus /></div>
+            <div className="space-y-2"><label htmlFor="role-desc" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Description")}</label><Input id="role-desc" maxLength={160} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
+            <fieldset className="flex flex-wrap gap-4"><legend className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Menus this role can open")}</legend>
+              {TEAM_MENUS.map((m) => <label key={m} className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-gold" checked={draft.menus.includes(m)} disabled={m === "inbox"} onChange={() => toggleMenu(m)} />{t(MENU_LABEL[m] ?? m)}</label>)}
+            </fieldset>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setRoleOpen(false)}>{t("Cancel")}</Button><Button type="submit" className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t("Save role")}</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

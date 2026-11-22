@@ -284,8 +284,8 @@ function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Parti
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   return <div className="studio-profile-fields">
-    <StudioSection title="About" accent="you"><div className="studio-profile-about"><div>{photo ?? <><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")}</Button></>}</div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} /></div></StudioSection>
-    <StudioSection title="What you" accent="do"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Category")}</Label>
+    <StudioSection title="About" accent="you" subtitle="Your photo, name and a short line that sells you."><div className="studio-profile-about"><div>{photo ?? <><span className="studio-profile-avatar">{initials(v.stage_name ?? t("Artist"))}</span><Button variant="outline" disabled>{t("Upload photo")}</Button></>}</div><div><div className="dmr-qe-f"><Label>{t("Stage name")}</Label><Input value={v.stage_name ?? ""} onChange={(e) => set({ stage_name: e.target.value })} maxLength={80} /></div><div className="dmr-qe-f"><Label>{t("Tagline")}</Label><Input value={v.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} /></div></div></div><div className="dmr-qe-f"><Label>{t("Bio")}</Label><Textarea rows={5} value={v.bio ?? ""} onChange={(e) => set({ bio: e.target.value })} maxLength={2000} placeholder={t("Who you are, what you perform, and what a client can expect on the day.")} /><div className="mt-1.5 h-1 overflow-hidden rounded-full bg-foreground/10" aria-hidden><i className={`block h-full ${(v.bio ?? "").trim().length >= 150 ? "bg-emerald-400" : "bg-gold"}`} style={{ width: `${Math.min(100, ((v.bio ?? "").trim().length / 150) * 100)}%` }} /></div><span className="text-xs text-muted-foreground">{(v.bio ?? "").trim().length} / 2000 · {t("At least 150 characters.")}</span></div></StudioSection>
+    <StudioSection title="What you" accent="do" subtitle="Add your category and speciality, then the skills clients search for."><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Category")}</Label>
         <Select value={v.category_id ?? ""} onValueChange={(x) => set({ category_id: x, subcategory_id: null })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -294,8 +294,8 @@ function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Parti
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.subcategories.filter((s) => s.category_id === v.category_id).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
         </Select></div></div><SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} /></StudioSection>
-    <StudioSection title="Physical" accent="details"><PhysicalFields body={v.body && typeof v.body === "object" && !Array.isArray(v.body) ? (v.body as Record<string, unknown>) : {}} onChange={(x) => set({ body: x as Json })} /></StudioSection>
-    <StudioSection title="Where and" accent="how much"><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
+    <StudioSection title="Physical" accent="details" subtitle="Casting details clients ask for on model bookings. Optional unless you list Models as a category."><PhysicalFields body={v.body && typeof v.body === "object" && !Array.isArray(v.body) ? (v.body as Record<string, unknown>) : {}} onChange={(x) => set({ body: x as Json })} /></StudioSection>
+    <StudioSection title="Where and" accent="how much" subtitle="Used to match you with bookings and to quote."><div className="grid gap-4 sm:grid-cols-2"><div className="dmr-qe-f"><Label>{t("Emirate")}</Label>
         <Select value={v.emirate_id ?? ""} onValueChange={(x) => set({ emirate_id: x, area_id: null })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.emirates.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -303,7 +303,7 @@ function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Parti
         <Select value={v.area_id ?? ""} onValueChange={(x) => set({ area_id: x })}>
           <SelectTrigger><SelectValue placeholder={t("Choose")} /></SelectTrigger>
           <SelectContent>{cat?.areas.filter((a) => a.emirate_id === v.emirate_id).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-        </Select></div><div className="dmr-qe-f"><Label>{t("Starting price (AED)")}</Label><Input type="number" min={0} value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value) })} /></div><div className="dmr-qe-f"><Label>{t("Travel radius (km)")}</Label><Input type="number" min={0} value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Number(e.target.value) })} /></div></div><div className="dmr-qe-f"><Label>{t("Languages (comma separated)")}</Label><Input value={(v.languages ?? []).join(", ")} onChange={(e) => set({ languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div></StudioSection>
+        </Select></div><div className="dmr-qe-f"><Label>{t("Starting price (AED)")}</Label><Input type="number" min={0} value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value) })} /><span className="text-xs text-muted-foreground">{t("Excluding VAT.")}</span></div><div className="dmr-qe-f"><Label>{t("Travel radius (km)")}</Label><Input type="number" min={0} max={500} value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Number(e.target.value) })} /><span className="text-xs text-muted-foreground">{t("0 to 500.")}</span></div></div><div className="dmr-qe-f"><Label>{t("Languages (comma separated)")}</Label><Input placeholder={t("e.g. English, Arabic")} value={(v.languages ?? []).join(", ")} onChange={(e) => set({ languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div></StudioSection>
   </div>;
 }
 
@@ -330,6 +330,48 @@ function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) 
   );
 }
 
+/** Change password on its own, apart from the profile. Google sign-in accounts have no password here. */
+function ChangePassword() {
+  const { t } = useI18n();
+  const [email, setEmail] = useState<string | null>(null);
+  const [hasPassword, setHasPassword] = useState(true);
+  const [f, setF] = useState({ cur: "", next: "", again: "" });
+  const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null);
+      setHasPassword(!data.user?.app_metadata?.["provider"] || data.user.app_metadata["provider"] === "email");
+    });
+  }, []);
+  const strong = f.next.length >= 10 && /[a-z]/.test(f.next) && /[A-Z]/.test(f.next) && /\d/.test(f.next);
+  const error = f.next && !strong ? t("At least 10 characters with upper case, lower case and a number.") : f.again && f.again !== f.next ? t("The two passwords do not match.") : "";
+  const save = async () => {
+    if (!email || !f.cur || !strong || f.again !== f.next) { toast.error(error || t("Fill in every field.")); return; }
+    setBusy(true);
+    const check = await supabase.auth.signInWithPassword({ email, password: f.cur });
+    if (check.error) { setBusy(false); toast.error(t("Your current password is not correct.")); return; }
+    const { error: err } = await supabase.auth.updateUser({ password: f.next });
+    setBusy(false);
+    if (err) { toast.error(err.message); return; }
+    setF({ cur: "", next: "", again: "" });
+    toast.success(t("Password changed"));
+  };
+  return (
+    <StudioSection title="Change" accent="password" subtitle="Saved on its own, apart from your profile.">
+      {!hasPassword ? <p className="text-sm text-muted-foreground">{t("You sign in with Google, so there is no password to change here.")}</p> : (
+        <form className="grid gap-3.5" noValidate autoComplete="off" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+          {([["cur", "Current password", "current-password"], ["next", "New password", "new-password"], ["again", "Repeat new password", "new-password"]] as const).map(([k, l, ac]) => (
+            <div key={k} className="dmr-qe-f"><Label htmlFor={`pf-pw-${k}`}>{t(l)}</Label><Input id={`pf-pw-${k}`} type={show ? "text" : "password"} autoComplete={ac} maxLength={64} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>
+          ))}
+          <p className={`text-xs ${error ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{error || t("At least 10 characters with upper case, lower case and a number.")}</p>
+          <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{busy ? t("Saving…") : t("Change password")}</Button><button type="button" aria-pressed={show} onClick={() => setShow(!show)} className="text-xs font-bold text-muted-foreground underline underline-offset-4">{t(show ? "Hide passwords" : "Show passwords")}</button></div>
+        </form>
+      )}
+    </StudioSection>
+  );
+}
+
 function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => void }) {
   const { t } = useI18n();
   const [v, setV] = useState<Partial<ArtistRow>>(artist);
@@ -345,7 +387,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     toast.success(t("Profile saved"));
     onSaved();
   };
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><StudioSection title="Change" accent="password"><Button asChild variant="outline"><Link to="/account">{t("Account settings")}</Link></Button></StudioSection><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><aside className="dmr-w-side"><StudioSection title="How clients" accent="see you"><div className="studio-profile-preview"><span className="studio-profile-avatar mx-auto">{initials(v.stage_name ?? artist.stage_name)}</span><h3>{v.stage_name}</h3><p>{v.tagline}</p><b>{aed(Number(v.base_price ?? 0))}</b><p>{(v.languages ?? []).join(" · ")}</p></div></StudioSection><StudioSection title="Your" accent="details"><dl className="space-y-3 text-xs">{[["Stage name",v.stage_name],["Starting price (AED)",aed(Number(v.base_price ?? 0))],["Travel radius (km)",String(v.travel_radius_km ?? "—")],["Languages",(v.languages ?? []).join(", ")]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b pb-3"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="text-end break-words">{value}</dd></div>)}</dl></StudioSection><StudioSection title="Job" accent="progress"><StudioSoon label="Profile pipeline" /></StudioSection><StudioSection title="Cash" accent="flow"><StudioSoon label="Profile cash flow" /></StudioSection></aside></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile" /><p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("This is what clients see before they book you. A complete profile with a real bio, photo and past work gets more quote requests.")}</p><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="studio-save-bar"><p className={`text-xs ${bioLen < 150 ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">{t("Bio")}: {bioLen} / 150 {t("minimum characters")}</p><Button onClick={save}>{t("Save changes")}</Button></div></div><aside className="dmr-w-side"><StudioSection title="How clients" accent="see you"><div className="studio-profile-preview"><span className="studio-profile-avatar mx-auto">{initials(v.stage_name ?? artist.stage_name)}</span><h3>{v.stage_name}</h3><p>{v.tagline}</p><b>{aed(Number(v.base_price ?? 0))}</b><p>{(v.languages ?? []).join(" · ")}</p></div></StudioSection><StudioSection title="Your" accent="details"><dl className="space-y-3 text-xs">{[["Stage name",v.stage_name],["Starting price (AED)",aed(Number(v.base_price ?? 0))],["Travel radius (km)",String(v.travel_radius_km ?? "—")],["Languages",(v.languages ?? []).join(", ")]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b pb-3"><dt className="text-muted-foreground">{t(label ?? "")}</dt><dd className="text-end break-words">{value}</dd></div>)}</dl></StudioSection><StudioSection title="Job" accent="progress"><StudioSoon label="Profile pipeline" /></StudioSection><StudioSection title="Cash" accent="flow"><StudioSoon label="Profile cash flow" /></StudioSection></aside></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {

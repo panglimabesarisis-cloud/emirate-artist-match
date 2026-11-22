@@ -39,11 +39,23 @@ export function ProfilePhoto({ artistId, name, photoPath, onSaved }: { artistId:
     toast.success(t("Photo updated"));
     onSaved();
   };
+  const removePhoto = async () => {
+    if (!photoPath || !confirm(t("Remove your profile photo?"))) return;
+    setBusy(true);
+    const res = await supabase.from("artists").update({ photo_path: null }).eq("id", artistId);
+    setBusy(false);
+    if (res.error) { toast.error(res.error.message); return; }
+    await supabase.storage.from(BUCKET).remove([photoPath]);
+    toast.success(t("Photo removed"));
+    onSaved();
+  };
   return (
     <div className="space-y-2">
       <span className="studio-profile-avatar overflow-hidden">{url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials(name)}</span>
       <input ref={input} type="file" accept="image/*" className="sr-only" aria-label={t("Upload photo")} onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
       <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}><Camera className="me-1.5 h-4 w-4" />{busy ? t("Uploading…") : t("Upload photo")}</Button>
+      {photoPath && <button type="button" disabled={busy} onClick={() => void removePhoto()} className="block text-xs font-bold text-muted-foreground underline underline-offset-4 hover:text-destructive">{t("Remove photo")}</button>}
+      <small className="block text-xs text-muted-foreground">{t("JPG, PNG or WebP, up to 5 MB. Cropped to a square.")}</small>
     </div>
   );
 }
@@ -70,9 +82,10 @@ export function SkillsField({ skills, onChange }: { skills: string[]; onChange: 
         ))}
       </div>
       <div className="flex gap-2">
-        <Input id="skill-draft" value={draft} maxLength={40} placeholder={t("Type a skill and press Enter")} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+        <Input id="skill-draft" value={draft} maxLength={40} placeholder={t("e.g. Crowd work, Arabic and English, Corporate events")} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
         <Button type="button" variant="outline" onClick={add}>{t("Add")}</Button>
       </div>
+      <p className="mt-1 text-xs text-muted-foreground">{skills.length} / 20. {t("Type, press Enter to add another.")}</p>
     </div>
   );
 }
@@ -81,20 +94,25 @@ const BODY_FIELDS: Array<[string, string, "number" | "text"]> = [
   ["height_cm", "Height (cm)", "number"], ["weight_kg", "Weight (kg)", "number"], ["hair", "Hair color", "text"],
   ["eyes", "Eye color", "text"], ["clothing", "Clothing size", "text"], ["shoe_eu", "Shoe size (EU)", "number"],
 ];
+const BODY_HINT: Record<string, string> = { height_cm: "120 to 230.", weight_kg: "30 to 200.", shoe_eu: "30 to 55." };
 
 /** Physical details stored in artists.body (keys limited by a database check). */
 export function PhysicalFields({ body, onChange }: { body: Record<string, unknown>; onChange: (b: Record<string, unknown>) => void }) {
   const { t } = useI18n();
   return (
+    <>
     <div className="grid grid-cols-2 gap-4">
       {BODY_FIELDS.map(([k, label, type]) => (
         <div key={k} className="dmr-qe-f">
           <Label htmlFor={`body-${k}`}>{t(label)}</Label>
           <Input id={`body-${k}`} type={type} min={type === "number" ? 0 : undefined} maxLength={20} value={String(body[k] ?? "")}
             onChange={(e) => { const next = { ...body }; const v = e.target.value; if (v === "") delete next[k]; else next[k] = type === "number" ? Number(v) : v; onChange(next); }} />
+          {BODY_HINT[k] && <span className="text-xs text-muted-foreground">{t(BODY_HINT[k]!)}</span>}
         </div>
       ))}
     </div>
+    <p className="mt-3 text-xs text-muted-foreground">{t("Shown to clients only on your model bookings and in casting requests.")}</p>
+    </>
   );
 }
 
@@ -124,7 +142,7 @@ export function PortfolioSection({ artistId }: { artistId: string }) {
     qc.invalidateQueries({ queryKey: key });
   };
   return (
-    <StudioSection title="Portfolio of" accent="work">
+    <StudioSection title="Portfolio of" accent="work" subtitle="Shows of yours that prove it. A photo makes each one far more convincing.">
       {data.length === 0 && <StudioEmpty title="No portfolio items yet" />}
       <ul className="divide-y divide-border">
         {data.map((p) => (
@@ -171,7 +189,7 @@ export function ClientsSection({ artistId }: { artistId: string }) {
     qc.invalidateQueries({ queryKey: key });
   };
   return (
-    <StudioSection title="Clients you have" accent="worked with">
+    <StudioSection title="Clients you have" accent="worked with" subtitle="Companies and hosts you have performed for. Untick Public to keep one private.">
       {data.length === 0 && <StudioEmpty title="No clients yet" />}
       <ul className="divide-y divide-border">
         {data.map((c) => (

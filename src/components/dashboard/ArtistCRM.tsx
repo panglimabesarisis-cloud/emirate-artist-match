@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 import { DashboardArtwork } from "./DashboardArtwork";
+import { WalletPage } from "./WalletPage";
 import { ChatsPerformChart, InvoiceProgressChart, JobProgressChart, RevenueChart, escrowNow, useOverviewMoney } from "./OverviewCharts";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty, StudioDonut } from "./StudioPage";
 
@@ -156,6 +157,11 @@ export function TeamPhones({ artistId }: { artistId: string }) {
 }
 
 export function WalletTab({ artistId }: { artistId: string }) {
+  return <WalletPage artistId={artistId} />;
+}
+
+/** The earlier wallet layout, kept until the new page is confirmed. */
+export function LegacyWalletTab({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["wallet-pay", artistId],

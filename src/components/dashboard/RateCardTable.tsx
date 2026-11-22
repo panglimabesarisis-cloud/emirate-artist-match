@@ -5,6 +5,7 @@ import { Eye, MoreHorizontal, Pencil, SlidersHorizontal, Trash2, X } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { StudioHeading, StudioSection } from "./StudioPage";
+import { RatecardPage } from "./RatecardPage";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,12 @@ type Rate = { id: string; title: string; price: number; duration_minutes: number
 type Sort = "az" | "za" | "price_asc" | "price_desc";
 const empty = { title: "", price: "", duration: "60", description: "" };
 
+/** Artists get the full reference layout; the admin overview keeps the compact table. */
 export function RateCardTable({ artistId, adminMode = false }: { artistId?: string | undefined; adminMode?: boolean }) {
+  return artistId && !adminMode ? <RatecardPage artistId={artistId} /> : <RateCardAdminTable adminMode={adminMode} artistId={artistId} />;
+}
+
+function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string | undefined; adminMode?: boolean }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const key = ["rates", artistId];
