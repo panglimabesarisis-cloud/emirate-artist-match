@@ -2768,6 +2768,7 @@ export type Database = {
           event_date: string
           id: string
           notes: string | null
+          source: string
           start_time: string
           title: string
         }
@@ -2779,6 +2780,7 @@ export type Database = {
           event_date: string
           id?: string
           notes?: string | null
+          source?: string
           start_time: string
           title: string
         }
@@ -2790,6 +2792,7 @@ export type Database = {
           event_date?: string
           id?: string
           notes?: string | null
+          source?: string
           start_time?: string
           title?: string
         }
