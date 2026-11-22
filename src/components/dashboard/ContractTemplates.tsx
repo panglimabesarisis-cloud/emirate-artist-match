@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, DollarSign, FileSignature, Lock, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Lock, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { invalidateLibraries, libraryRefresh } from "@/lib/library-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ContractTemplateCard } from "./ContractTemplateCard";
 import { ContractTemplateEditor } from "./ContractTemplateEditor";
 import { StudioEmpty } from "./StudioPage";
 import { useArtistPlan } from "./PromptLibrary";
@@ -160,13 +161,13 @@ export function ContractTemplateLibrary({ artistId, bookingTemplates = [] }: { a
       </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2" role="group" aria-label={t("Filter templates by category")}>
-          {cats.map((c) => <button key={c} type="button" aria-pressed={cat === c} onClick={() => { setCat(c); setPage(0); }} className={`rounded-full border px-3 py-1 text-[13px] font-semibold transition-colors ${cat === c ? "border-transparent bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"}`}>{c === "All" ? t("All") : c} <b className="opacity-60">{catCount(c)}</b></button>)}
+          {cats.map((c) => <Button variant="outline" size="sm" key={c} type="button" aria-pressed={cat === c} onClick={() => { setCat(c); setPage(0); }} className={`rounded-full border px-3 py-1 text-[13px] font-semibold transition-colors ${cat === c ? "border-transparent bg-gold text-gold-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}>{c === "All" ? t("All") : c} <b className="opacity-60">{catCount(c)}</b></Button>)}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative flex items-center"><Search className="pointer-events-none absolute start-3 h-4 w-4 text-muted-foreground" aria-hidden /><span className="sr-only">{t("Search templates")}</span>
             <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder={`${t("Search")} ${visible.length} ${t("templates")}`} className="h-9 w-56 rounded-full border border-border bg-foreground/[.04] pe-3 ps-9 text-sm outline-none focus-visible:border-gold" /></label>
           <Select value={tier} onValueChange={(v) => { setTier(v); setPage(0); }}>
-            <SelectTrigger className="h-9 w-36" aria-label={t("Filter by plan")}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-36 rounded-full" aria-label={t("Filter by plan")}><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">{t("All plans")}</SelectItem>{(plan.data?.tiers ?? []).map((x) => <SelectItem key={x.code} value={x.code}>{x.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
@@ -177,34 +178,13 @@ export function ContractTemplateLibrary({ artistId, bookingTemplates = [] }: { a
             const locked = x.unlocked !== true;
             const tierLocked = (rank.get(x.tier) ?? 99) > myRank;
             return (
-              <li key={x.id} className="contract-template-card">
-                <div className="flex items-start gap-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gold/10 text-gold"><FileSignature className="h-4 w-4" aria-hidden /></span>
-                  <div className="min-w-0">
-                    <h3>{x.name}</h3>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {x.category && <Badge variant="outline">{x.category}</Badge>}
-                      {x.artist_id === null ? <Badge variant="secondary">Dealmaker</Badge> : <Badge className="bg-gold/20 text-gold">{t("Yours")}</Badge>}
-                      {x.tier !== "free" && <Badge variant="outline">{tierName(x.tier)}+</Badge>}
-                      {!locked && <Badge variant="outline">{x.clauses.length} {t("clauses")}</Badge>}
-                      {x.version && <Badge variant="outline">v{x.version}</Badge>}
-                      {Number(x.price_aed) > 0 && <Badge variant="outline">AED {Number(x.price_aed).toFixed(2)} + {t("VAT 5%")}</Badge>}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">{bookingTemplates.filter((id) => id === x.id).length} {t("in use")}{x.updated_at ? ` · ${t("Updated")} ${new Date(x.updated_at).toLocaleDateString("en-GB")}` : ""}</p>
-                {x.description && <p className="text-xs text-muted-foreground">{x.description}</p>}
-                <div className="contract-card-actions">
-                  {locked && <span className="me-auto inline-flex items-center gap-1 text-xs text-gold"><Lock className="h-3 w-3" aria-hidden />{tierLocked ? `${t("Needs")} ${tierName(x.tier)}` : t("Purchase required")}</span>}
-                  {locked
-                    ? <Button size="icon" variant="ghost" title={t("Locked: not part of your plan")} aria-label={`${t("Locked template")} ${x.name}`} onClick={() => setView(x)}><span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-gold text-gold-foreground"><DollarSign className="h-4 w-4" strokeWidth={3} /></span></Button>
-                    : <Button size="sm" variant="outline" className="rounded-full" onClick={() => setView(x)}>{t("Preview")}</Button>}
-                  {x.unlocked === true && <UseTemplateButton artistId={artistId} template={x} />}
-                  {x.artist_id !== null && <>
-                    <Button size="icon" variant="ghost" aria-label={`${t("Edit")} ${x.name}`} onClick={() => setEdit({ id: x.id, name: x.name, category: x.category ?? "", role: x.role ?? "", description: x.description ?? "", clauses: x.clauses.length ? x.clauses : [{ title: "", body: "" }], rider: x.rider ?? "" })}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" aria-label={`${t("Delete")} ${x.name}`} onClick={() => void remove(x)}><Trash2 className="h-4 w-4" /></Button>
-                  </>}
-                </div>
+              <li key={x.id} className="min-w-0 flex">
+                <ContractTemplateCard name={x.name} category={x.category} tier={x.tier} tierName={tierName(x.tier)}
+                  {...(!locked ? { articles: x.clauses.length } : {})} {...(x.updated_at ? { updatedAt: x.updated_at } : {})}
+                  usage={bookingTemplates.filter((id) => id === x.id).length} onPreview={() => setView(x)}
+                  details={<div className="flex flex-wrap gap-1.5">{x.artist_id !== null && <Badge variant="outline">{t("Yours")}</Badge>}{x.version && <Badge variant="outline">v{x.version}</Badge>}{Number(x.price_aed) > 0 && <Badge variant="outline">AED {Number(x.price_aed).toFixed(2)} + {t("VAT 5%")}</Badge>}</div>}
+                  actions={x.artist_id !== null && <><Button size="sm" variant="ghost" aria-label={`${t("Edit")} ${x.name}`} onClick={() => setEdit({ id: x.id, name: x.name, category: x.category ?? "", role: x.role ?? "", description: x.description ?? "", clauses: x.clauses.length ? x.clauses : [{ title: "", body: "" }], rider: x.rider ?? "" })}><Pencil />{t("Edit")}</Button><Button size="icon" variant="ghost" title={t("Delete template")} aria-label={`${t("Delete")} ${x.name}`} onClick={() => void remove(x)}><Trash2 /></Button></>}
+                  primary={locked ? <Button variant="outline" className="w-full rounded-full" onClick={() => setView(x)}><Lock />{tierLocked ? `${t("Upgrade to")} ${tierName(x.tier)}` : t("Purchase required")}</Button> : <UseTemplateButton artistId={artistId} template={x} />} />
               </li>
             );
           })}

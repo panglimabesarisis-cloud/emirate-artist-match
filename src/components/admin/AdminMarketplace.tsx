@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { importReferenceContracts } from "@/lib/reference-contracts.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { ContractTemplateCard } from "@/components/dashboard/ContractTemplateCard";
 import { ContractTemplateEditor } from "@/components/dashboard/ContractTemplateEditor";
 import { FormQuestionEditor } from "./FormQuestionEditor";
 import { ContractPreviewDialog, type ContractDoc } from "@/components/dashboard/ContractPreview";
@@ -313,11 +314,16 @@ export function AdminModelRates() {
 /* -------------------------------------------------------- Contract templates */
 
 type CtDraft = { id?: string; name: string; category: string; role: string; description: string; tier: string; price_aed: string; is_active: boolean; clauses: Array<{ title: string; body: string }>; rider: string };
-type CtRow = { id: string; name: string; category: string | null; role: string | null; description: string | null; tier: string; price_aed: number; version: number; is_active: boolean; clauses: unknown; rider: string | null };
+type CtRow = { updated_at?: string; id: string; name: string; category: string | null; role: string | null; description: string | null; tier: string; price_aed: number; version: number; is_active: boolean; clauses: unknown; rider: string | null };
 const asCl = (v: unknown): Array<{ title: string; body: string }> => (Array.isArray(v) ? (v as Array<Record<string, unknown>>).filter((c) => c && typeof c["title"] === "string" && typeof c["body"] === "string").map((c) => ({ title: String(c["title"]), body: String(c["body"]) })) : []);
 
-export function AdminContractTemplates() {
+export function AdminContractTemplates({ cards = false, bookingTemplates = [] }: { cards?: boolean; bookingTemplates?: (string | null)[] }) {
   const importTemplates = useServerFn(importReferenceContracts);
+  const [category, setCategory] = useState("all");
+  const [search, setSearch] = useState("");
+  const [tierFilter, setTierFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(20);
   const { t } = useI18n();
   const [preview, setPreview] = useState<ContractDoc | null>(null);
   const qc = useQueryClient();
@@ -365,6 +371,13 @@ export function AdminContractTemplates() {
     finally { setImporting(false); }
   };
 
+  const items = (list.data ?? []).filter((row) => (category === "all" || (row.category ?? "Other") === category) && (tierFilter === "all" || row.tier === tierFilter) && `${row.name} ${row.role ?? ""}`.toLowerCase().includes(search.toLowerCase()));
+  const pages = Math.max(1, Math.ceil(items.length / perPage));
+  const current = Math.min(page, pages - 1);
+  const shown = items.slice(current * perPage, (current + 1) * perPage);
+  const categories = [...new Set((list.data ?? []).map((row) => row.category ?? "Other"))].sort();
+  const editRow = (row: CtRow) => setEdit({ id: row.id, name: row.name, category: row.category ?? "", role: row.role ?? "", description: row.description ?? "", tier: row.tier, price_aed: String(row.price_aed), is_active: row.is_active, clauses: asCl(row.clauses).length ? asCl(row.clauses) : [{ title: "", body: "" }], rider: row.rider ?? "" });
+  const previewRow = (row: CtRow) => setPreview({ number: "TEMPLATE", templateName: row.name, stamp: { word: "TEMPLATE", sub: row.role ?? "", tone: "template" }, clauses: asCl(row.clauses), rider: row.rider });
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -374,7 +387,12 @@ export function AdminContractTemplates() {
       </div>
       {list.error && <p role="alert" className="text-destructive">{t("Could not load templates.")}</p>}
       {list.isPending && <p>{t("Loading…")}</p>}
-      <div className={`${card} overflow-x-auto`}>
+      {cards ? <>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-2" role="group" aria-label={t("Filter templates by category")}>{["all", ...categories].map((value) => <Button variant="outline" size="sm" className={`rounded-full ${category === value ? "bg-gold text-gold-foreground" : ""}`} key={value} aria-pressed={category === value} onClick={() => { setCategory(value); setPage(0); }}>{value === "all" ? t("All") : value} <span>{value === "all" ? list.data?.length ?? 0 : list.data?.filter((row) => (row.category ?? "Other") === value).length ?? 0}</span></Button>)}</div><div className="flex flex-wrap gap-2"><Input type="search" className="w-60 max-w-full rounded-full" aria-label={t("Search templates")} placeholder={t("Search templates")} value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} /><Select value={tierFilter} onValueChange={(value) => { setTierFilter(value); setPage(0); }}><SelectTrigger className="w-36 rounded-full" aria-label={t("Filter by plan")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("All plans")}</SelectItem>{tiers.data?.map((tier) => <SelectItem key={tier.code} value={tier.code}>{tier.name}</SelectItem>)}</SelectContent></Select></div></div>
+        <div className="contract-template-grid">{shown.map((row) => <ContractTemplateCard key={row.id} name={row.name} category={row.category} tier={row.tier} tierName={tiers.data?.find((tier) => tier.code === row.tier)?.name ?? row.tier} articles={asCl(row.clauses).length} {...(row.updated_at ? { updatedAt: row.updated_at } : {})} usage={bookingTemplates.filter((id) => id === row.id).length} onPreview={() => previewRow(row)} details={<div className="flex flex-wrap gap-2"><Badge variant="outline">v{row.version}</Badge><Badge variant="outline">AED {Number(row.price_aed).toFixed(2)}</Badge><Badge variant="secondary">{t(row.is_active ? "Live" : "Draft")}</Badge></div>} actions={<><Button variant="ghost" size="sm" aria-label={`${t("Edit")} ${row.name}`} onClick={() => editRow(row)}><Pencil />{t("Edit")}</Button><Button variant="ghost" size="icon" title={t("Delete template")} aria-label={`${t("Delete")} ${row.name}`} onClick={() => void remove(row)}><Trash2 /></Button></>} primary={<label className="flex items-center justify-between gap-3 text-sm"><span>{t("Live for artists")}</span><Switch checked={row.is_active} aria-label={`${t("Live")}: ${row.name}`} onCheckedChange={() => void toggle(row)} /></label>} />)}</div>
+        {!shown.length && !list.isPending && !list.error && <p className="py-8 text-center text-muted-foreground">{t("No template matches your search.")}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4"><label className="flex items-center gap-2 text-xs text-muted-foreground">{t("Templates per page")}<select className="rounded-md border border-border bg-card p-2 text-foreground" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(0); }}>{[10, 20, 50].map((n) => <option key={n}>{n}</option>)}</select></label><span className="text-xs text-muted-foreground">{items.length ? `${current * perPage + 1}–${Math.min(items.length, (current + 1) * perPage)}` : "0"} {t("of")} {items.length}</span><div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={current === 0} onClick={() => setPage(current - 1)}>{t("Prev")}</Button><span className="text-xs">{current + 1} / {pages}</span><Button size="sm" variant="outline" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>{t("Next")}</Button></div></div>
+      </> : (      <div className={`${card} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Category", "Clauses", "Tier", "Price (AED)", "Version", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
           <tbody>
@@ -395,7 +413,8 @@ export function AdminContractTemplates() {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>)}
+
       <ContractPreviewDialog doc={preview} title={t("Contract preview")} onClose={() => setPreview(null)} />
       <ContractTemplateEditor draft={preview ? null : edit} onChange={setEdit} onClose={() => setEdit(null)} saving={saving} onSave={() => void save()} onPreview={() => {
         if (!edit || !edit.name.trim() || !edit.clauses.length || edit.clauses.some((c) => !c.title.trim() || !c.body.trim())) { toast.error(t("Give the template a name and fill in every clause title and text.")); return; }
