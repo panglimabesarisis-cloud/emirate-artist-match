@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureChildFolder, uploadPdf } from "./drive.server";
+import { BudgetExceeded, ensureChildFolder, uploadPdf } from "./drive.server";
 
 type Call = { url: string; method: string; headers: Record<string, string>; body: unknown };
 let calls: Call[] = [];
@@ -21,10 +21,15 @@ describe("Drive client", () => {
     expect(calls[0]!.headers["X-Connection-Api-Key"]).toBe("dk");
     expect(new URL(calls[0]!.url).searchParams.get("q")).toContain("'ROOT' in parents and name = '2026'");
   });
-  it("creates the folder once when it is missing, then settles on the oldest match", async () => {
-    vi.stubGlobal("fetch", respond([{ files: [] }, { id: "NEW", name: "Dede FK" }, { files: [{ id: "OLDEST" }, { id: "NEW" }] }]));
-    expect(await ensureChildFolder("ROOT", "Dede FK")).toBe("OLDEST");
-    expect(calls.map((c) => c.method)).toEqual(["GET", "POST", "GET"]);
+  it("creates the folder when it is missing, with one lookup and one create", async () => {
+    vi.stubGlobal("fetch", respond([{ files: [] }, { id: "NEW", name: "Dede FK" }]));
+    expect(await ensureChildFolder("ROOT", "Dede FK")).toBe("NEW");
+    expect(calls.map((c) => c.method)).toEqual(["GET", "POST"]);
+  });
+  it("stops before a request once the run is out of time", async () => {
+    vi.stubGlobal("fetch", respond([]));
+    await expect(ensureChildFolder("ROOT", "x", () => { throw new BudgetExceeded(); })).rejects.toBeInstanceOf(BudgetExceeded);
+    expect(calls).toHaveLength(0);
   });
   it("escapes quotes in names", async () => {
     vi.stubGlobal("fetch", respond([{ files: [{ id: "X" }] }]));

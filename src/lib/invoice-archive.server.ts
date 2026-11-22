@@ -7,7 +7,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { archiveFileName, archiveFolders, dubaiDate } from "./invoice-archive-names";
 import { buildInvoicePdf, type ArchiveInvoice } from "./invoice-pdf";
-import { DriveError, ensureChildFolder, uploadPdf } from "./drive.server";
+import { BudgetExceeded, DriveError, ensureChildFolder, uploadPdf, type Guard } from "./drive.server";
 import type { Invoice } from "./invoice";
 
 const MAX_ATTEMPTS = 8;
@@ -20,21 +20,21 @@ async function rootFolderId(): Promise<string> {
 }
 
 /** One level of the artist/year/month tree: remembered in drive_folders so it is created only once. */
-async function folderFor(key: string, parentId: string, name: string, fresh: boolean): Promise<string> {
+async function folderFor(key: string, parentId: string, name: string, fresh: boolean, guard: Guard): Promise<string> {
   if (!fresh) {
     const { data } = await supabaseAdmin.from("drive_folders").select("drive_id").eq("key", key).maybeSingle();
     if (data?.drive_id) return data.drive_id;
   }
-  const id = await ensureChildFolder(parentId, name);
+  const id = await ensureChildFolder(parentId, name, guard);
   await supabaseAdmin.from("drive_folders").upsert({ key, drive_id: id }, { onConflict: "key" });
   return id;
 }
 
-async function folderChain(artistId: string, names: [string, string, string], root: string, fresh: boolean) {
+async function folderChain(artistId: string, names: [string, string, string], root: string, fresh: boolean, guard: Guard) {
   const [a, y, m] = names;
-  const artist = await folderFor(`artist:${artistId}`, root, a, fresh);
-  const year = await folderFor(`artist:${artistId}:${y}`, artist, y, fresh);
-  return folderFor(`artist:${artistId}:${y}-${m.slice(0, 2)}`, year, m, fresh);
+  const artist = await folderFor(`artist:${artistId}`, root, a, fresh, guard);
+  const year = await folderFor(`artist:${artistId}:${y}`, artist, y, fresh, guard);
+  return folderFor(`artist:${artistId}:${y}-${m.slice(0, 2)}`, year, m, fresh, guard);
 }
 
 async function loadInvoice(job: Job): Promise<{ data: ArchiveInvoice; artistId: string }> {
@@ -57,7 +57,7 @@ async function loadInvoice(job: Job): Promise<{ data: ArchiveInvoice; artistId: 
   };
 }
 
-async function archiveOne(job: Job) {
+async function archiveOne(job: Job, guard: Guard) {
   const { data, artistId } = await loadInvoice(job);
   const bytes = buildInvoicePdf(data);
   const name = archiveFileName({ artistName: data.artistName, number: data.number, client: data.client, issued: data.issued, total: data.total, paid: job.kind === "paid" });
@@ -65,11 +65,11 @@ async function archiveOne(job: Job) {
   const root = await rootFolderId();
   let file;
   try {
-    file = await uploadPdf(await folderChain(artistId, names, root, false), name, bytes);
+    file = await uploadPdf(await folderChain(artistId, names, root, false, guard), name, bytes, guard);
   } catch (e) {
     // A remembered folder may have been deleted in Drive: look the folders up again once and retry.
     if (!(e instanceof DriveError) || ![403, 404].includes(e.status)) throw e;
-    file = await uploadPdf(await folderChain(artistId, names, root, true), name, bytes);
+    file = await uploadPdf(await folderChain(artistId, names, root, true, guard), name, bytes, guard);
   }
   await supabaseAdmin.from("invoice_archive_jobs").update({ status: "done", last_error: null, drive_file_id: file.id, drive_file_name: file.name, drive_folder_path: names.join(" / ") }).eq("id", job.id);
 }
@@ -91,19 +91,33 @@ async function reconcile() {
   if (missing.length) await supabaseAdmin.from("invoice_archive_jobs").upsert(missing, { onConflict: "invoice_id,kind", ignoreDuplicates: true });
 }
 
-/** Processes due archive jobs one after another (folders are created in order, never in parallel). */
-export async function runInvoiceArchive(limit = 10): Promise<{ done: number; retried: number; failed: number }> {
+/**
+ * Processes due archive jobs, one at a time, inside a small time budget: the scheduler gives up on a request after 5 seconds,
+ * and every Drive call takes a second or two. Progress is saved after each step (folders are remembered, finished files are
+ * recorded), so a job that runs out of time goes back to the queue without using up an attempt and continues on the next run.
+ */
+export async function runInvoiceArchive(budgetMs = 2500): Promise<{ done: number; retried: number; failed: number; paused: number }> {
+  const started = Date.now();
+  const guard: Guard = () => { if (Date.now() - started > budgetMs) throw new BudgetExceeded(); };
+  const out = { done: 0, retried: 0, failed: 0, paused: 0 };
   await reconcile();
-  const { data: jobs, error } = await supabaseAdmin.rpc("claim_invoice_archive_jobs", { _limit: limit });
-  if (error) throw error;
-  const out = { done: 0, retried: 0, failed: 0 };
-  for (const job of jobs ?? []) {
+  while (Date.now() - started < budgetMs) {
+    const { data: jobs, error } = await supabaseAdmin.rpc("claim_invoice_archive_jobs", { _limit: 1 });
+    if (error) throw error;
+    const job = jobs?.[0];
+    if (!job) break;
     try {
-      await archiveOne(job);
+      await archiveOne(job, guard);
       out.done++;
     } catch (e) {
+      if (e instanceof BudgetExceeded) {
+        // Not a failure: put it back as it was and carry on next run.
+        await supabaseAdmin.from("invoice_archive_jobs").update({ status: "pending", attempts: Math.max(0, job.attempts - 1), locked_at: null, run_after: new Date().toISOString() }).eq("id", job.id);
+        out.paused++;
+        break;
+      }
       const final = job.attempts >= MAX_ATTEMPTS;
-      await supabaseAdmin.from("invoice_archive_jobs").update({ status: final ? "failed" : "pending", run_after: new Date(Date.now() + delayMs(job.attempts)).toISOString(), last_error: (e instanceof Error ? e.message : "Unknown error").slice(0, 500) }).eq("id", job.id);
+      await supabaseAdmin.from("invoice_archive_jobs").update({ status: final ? "failed" : "pending", locked_at: null, run_after: new Date(Date.now() + delayMs(job.attempts)).toISOString(), last_error: (e instanceof Error ? e.message : "Unknown error").slice(0, 500) }).eq("id", job.id);
       if (final) out.failed++; else out.retried++;
     }
   }
