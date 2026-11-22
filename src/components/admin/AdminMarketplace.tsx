@@ -296,3 +296,106 @@ export function AdminModelRates() {
     </div>
   );
 }
+
+
+/* -------------------------------------------------------- Contract templates */
+
+type CtDraft = { id?: string; name: string; category: string; role: string; description: string; tier: string; is_active: boolean; clauses: Array<{ title: string; body: string }>; rider: string };
+type CtRow = { id: string; name: string; category: string | null; role: string | null; description: string | null; tier: string; is_active: boolean; clauses: unknown; rider: string | null };
+const asCl = (v: unknown): Array<{ title: string; body: string }> => (Array.isArray(v) ? (v as Array<Record<string, unknown>>).filter((c) => c && typeof c["title"] === "string" && typeof c["body"] === "string").map((c) => ({ title: String(c["title"]), body: String(c["body"]) })) : []);
+
+export function AdminContractTemplates() {
+  const qc = useQueryClient();
+  const tiers = useTiers();
+  const [edit, setEdit] = useState<CtDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const list = useQuery({
+    queryKey: ["admin-contract-templates"],
+    queryFn: async () => ((await supabase.from("contract_templates").select("id, name, category, role, description, tier, is_active, clauses, rider").is("artist_id", null).order("name")).data ?? []) as CtRow[],
+  });
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["admin-contract-templates"] });
+  const toggle = async (r: CtRow) => {
+    const { error } = await supabase.from("contract_templates").update({ is_active: !r.is_active }).eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(r.is_active ? "Template hidden from artists" : "Template is now live for artists"); refresh();
+  };
+  const save = async () => {
+    if (!edit) return;
+    const clauses = edit.clauses.map((c) => ({ title: c.title.trim(), body: c.body.trim() })).filter((c) => c.title || c.body);
+    if (!edit.name.trim()) { toast.error("Name is required"); return; }
+    if (clauses.length === 0 || clauses.some((c) => !c.title || !c.body)) { toast.error("Every clause needs a title and text"); return; }
+    const row = { name: edit.name.trim(), category: edit.category.trim() || null, role: edit.role.trim() || null, description: edit.description.trim() || null, tier: edit.tier, is_active: edit.is_active, clauses: clauses as unknown as Json, rider: edit.rider.trim() || null };
+    setSaving(true);
+    const { error } = edit.id ? await supabase.from("contract_templates").update(row).eq("id", edit.id) : await supabase.from("contract_templates").insert({ ...row, artist_id: null });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Template saved"); setEdit(null); refresh();
+  };
+  const remove = async (r: CtRow) => {
+    if (!confirm(`Delete "${r.name}"? Bookings that already accepted it keep their frozen terms.`)) return;
+    const { error } = await supabase.from("contract_templates").delete().eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    refresh();
+  };
+  const setCl = (i: number, patch: Partial<{ title: string; body: string }>) => edit && setEdit({ ...edit, clauses: edit.clauses.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">Dealmaker library of contract templates. Drafts stay hidden from artists until you switch them on. Have a qualified lawyer in the UAE review each template first.</p>
+        <Button onClick={() => setEdit({ name: "", category: "", role: "", description: "", tier: "free", is_active: false, clauses: [{ title: "", body: "" }], rider: "" })}><Plus className="me-1 h-4 w-4" />New template</Button>
+      </div>
+      <div className={`${card} overflow-x-auto`}>
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["Name", "Category", "Clauses", "Tier", "Live", ""].map((h) => <th key={h} className="p-3 text-start">{h}</th>)}</tr></thead>
+          <tbody>
+            {list.data?.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No library templates yet.</td></tr>}
+            {list.data?.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-3"><b>{r.name}</b><div className="text-xs text-muted-foreground">{r.role ?? ""}</div></td>
+                <td className="p-3">{r.category ?? "—"}</td>
+                <td className="p-3">{asCl(r.clauses).length}</td>
+                <td className="p-3 capitalize">{r.tier}</td>
+                <td className="p-3"><Switch checked={r.is_active} onCheckedChange={() => void toggle(r)} aria-label={`Live: ${r.name}`} /></td>
+                <td className="p-3 text-end whitespace-nowrap">
+                  <Button size="icon" variant="ghost" aria-label={`Edit ${r.name}`} onClick={() => setEdit({ id: r.id, name: r.name, category: r.category ?? "", role: r.role ?? "", description: r.description ?? "", tier: r.tier, is_active: r.is_active, clauses: asCl(r.clauses).length ? asCl(r.clauses) : [{ title: "", body: "" }], rider: r.rider ?? "" })}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" aria-label={`Delete ${r.name}`} onClick={() => void remove(r)}><Trash2 className="h-4 w-4" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Dialog open={!!edit} onOpenChange={(o) => { if (!o && !saving) setEdit(null); }}>
+        <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto">
+          <DialogHeader><DialogTitle>{edit?.id ? "Edit contract template" : "New contract template"}</DialogTitle><DialogDescription>Placeholders: {"{artist} {client} {service} {date} {time} {venue} {total} {vat}"}</DialogDescription></DialogHeader>
+          {edit && (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className={field}><Label htmlFor="ca-name">Name</Label><Input id="ca-name" maxLength={100} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
+                <div className={field}><Label htmlFor="ca-cat">Category</Label><Input id="ca-cat" maxLength={40} value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })} /></div>
+                <div className={field}><Label htmlFor="ca-role">Role</Label><Input id="ca-role" maxLength={40} value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value })} /></div>
+                <div className={field}><Label>Plan tier</Label>
+                  <Select value={edit.tier} onValueChange={(v) => setEdit({ ...edit, tier: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.data?.map((t) => <SelectItem key={t.code} value={t.code}>{t.name}</SelectItem>)}</SelectContent></Select></div>
+              </div>
+              <div className={field}><Label htmlFor="ca-desc">Description</Label><Input id="ca-desc" maxLength={200} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between"><Label>Clauses</Label><Button type="button" size="sm" variant="outline" onClick={() => setEdit({ ...edit, clauses: [...edit.clauses, { title: "", body: "" }] })}><Plus className="me-1 h-3.5 w-3.5" />Add clause</Button></div>
+                {edit.clauses.map((c, i) => (
+                  <div key={i} className="space-y-2 rounded-lg border p-3">
+                    <div className="flex gap-2"><Input aria-label={`Clause title ${i + 1}`} placeholder="Clause title" maxLength={120} value={c.title} onChange={(e) => setCl(i, { title: e.target.value })} />
+                      <Button type="button" size="sm" variant="ghost" disabled={edit.clauses.length === 1} onClick={() => setEdit({ ...edit, clauses: edit.clauses.filter((_, j) => j !== i) })}>Remove</Button></div>
+                    <Textarea aria-label={`Clause text ${i + 1}`} rows={3} maxLength={2000} placeholder="Clause text" value={c.body} onChange={(e) => setCl(i, { body: e.target.value })} />
+                  </div>
+                ))}
+              </div>
+              <div className={field}><Label htmlFor="ca-rider">Rider</Label><Textarea id="ca-rider" rows={3} maxLength={2000} value={edit.rider} onChange={(e) => setEdit({ ...edit, rider: e.target.value })} /></div>
+              <label className="flex items-center gap-2 text-sm"><Switch checked={edit.is_active} onCheckedChange={(c) => setEdit({ ...edit, is_active: c })} />Live for artists (switch on only after legal review)</label>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>Cancel</Button><Button disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save template"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
