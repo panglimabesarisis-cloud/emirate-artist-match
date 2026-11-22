@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
 import { DashboardArtwork } from "./DashboardArtwork";
+import { ChatsInvoicesChart, YourBalanceChart, escrowNow, useOverviewMoney } from "./OverviewCharts";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty, StudioDonut } from "./StudioPage";
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -43,6 +44,8 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
       return { bookings: b.data ?? [], newQuotes: q.count ?? 0, wallet: w.data?.[0], credits: c.data?.balance ?? 0 };
     },
   });
+  const money = useOverviewMoney(artistId);
+  const escrow = escrowNow(money.data?.bookings ?? []);
   const chart = useMemo(() => {
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1); return { key: d.toISOString().slice(0, 7), label: d.toLocaleString("en-GB", { month: "short" }), earned: 0 }; });
@@ -69,10 +72,12 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
         </div>
       </section>
+      <ChatsInvoicesChart artistId={artistId} />
+      <YourBalanceChart artistId={artistId} wallet={data?.wallet} />
       <article className="studio-kpi studio-span-3">
-        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("Available balance")}</span>
-        <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{Number(data?.wallet?.available ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-        <div className="studio-kpi-action"><span>{t("Ready to withdraw")}</span><Button variant="outline" size="sm" className="studio-button" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button></div>
+        <span className="studio-kpi-label"><span className="studio-kpi-icon"><Wallet aria-hidden="true" /></span>{t("In escrow")}</span>
+        <div className="studio-kpi-value" dir="ltr"><small>{t("AED")}</small>{escrow.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div className="studio-kpi-action"><span>{t("Held until the job is completed")}</span><Button variant="outline" size="sm" className="studio-button" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button></div>
       </article>
       <article className="studio-kpi studio-span-3">
         <span className="studio-kpi-label"><span className="studio-kpi-icon"><FileSignature aria-hidden="true" /></span>{t("Jobs completed")}</span>
