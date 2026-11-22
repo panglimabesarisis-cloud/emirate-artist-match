@@ -2685,6 +2685,50 @@ export type Database = {
           },
         ]
       }
+      schedule_items: {
+        Row: {
+          artist_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string
+          event_date: string
+          id: string
+          notes: string | null
+          start_time: string
+          title: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          event_date: string
+          id?: string
+          notes?: string | null
+          start_time: string
+          title: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          event_date?: string
+          id?: string
+          notes?: string | null
+          start_time?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_items_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_invoices: {
         Row: {
           artist_id: string
