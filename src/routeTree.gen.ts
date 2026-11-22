@@ -37,6 +37,7 @@ import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as AuthenticatedClientDashboardRouteImport } from './routes/_authenticated/client.dashboard'
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
@@ -187,6 +188,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedClientDashboardRoute =
+  AuthenticatedClientDashboardRouteImport.update({
+    id: '/client/dashboard',
+    path: '/client/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiOauthGoogle_calendarReturnRoute =
   ApiOauthGoogle_calendarReturnRouteImport.update({
     id: '/api/oauth/google_calendar/return',
@@ -267,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -305,6 +313,7 @@ export interface FileRoutesByTo {
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -345,6 +354,7 @@ export interface FileRoutesById {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/_authenticated/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/client/dashboard'
     | '/$category/$emirate/'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -423,6 +434,7 @@ export interface FileRouteTypes {
     | '/$category'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/client/dashboard'
     | '/$category/$emirate'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -462,6 +474,7 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/_authenticated/client/dashboard'
     | '/$category/$emirate/'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -709,6 +722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/client/dashboard': {
+      id: '/_authenticated/client/dashboard'
+      path: '/client/dashboard'
+      fullPath: '/client/dashboard'
+      preLoaderRoute: typeof AuthenticatedClientDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/oauth/google_calendar/return': {
       id: '/api/oauth/google_calendar/return'
       path: '/api/oauth/google_calendar/return'
@@ -779,12 +799,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedClientDashboardRoute: typeof AuthenticatedClientDashboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedClientDashboardRoute: AuthenticatedClientDashboardRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

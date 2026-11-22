@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,9 +78,9 @@ function MemberOrClient({ userId }: { userId: string }) {
   const [pick, setPick] = useState(0);
   const { t: tr } = useI18n();
   if (isLoading) return null;
-  if (teams.length === 0) return <ClientDash userId={userId} />;
+  if (teams.length === 0) return <Navigate to="/client/dashboard" replace />;
   const t = teams[Math.min(pick, teams.length - 1)];
-  const a = t?.artists;if(!t||!a)return <ClientDash userId={userId}/>;
+  const a = t?.artists;if(!t||!a)return <Navigate to="/client/dashboard" replace />;
   const allowed = t.team_roles?.menus ?? null;
   const can = (menu: string) => !allowed || allowed.includes(menu);
   return (
@@ -103,29 +103,19 @@ function MemberOrClient({ userId }: { userId: string }) {
         {can("quotes") && <TabsContent value="quotes"><QuoteRequests artistId={a.id} /></TabsContent>}
         {can("calendar") && <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>}
         {can("media") && <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>}
-        <TabsContent value="mine"><ClientDash userId={userId} /></TabsContent>
+        <TabsContent value="mine"><ClientDash /></TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function ClientDash({ userId }: { userId: string }) {
-  const { data } = useQuery({
-    queryKey: ["my-quotes", userId],
-    queryFn: async () => (await supabase.from("quote_requests").select("id, created_at, status, event_date, artists(stage_name, slug)").eq("client_user_id", userId).order("created_at", { ascending: false })).data ?? [],
-  });
+function ClientDash() {
+  const { t } = useI18n();
   return (
-    <div>
-      <h1 className="text-3xl font-semibold">My quote requests</h1>
-      <div className="mt-6 space-y-3">
-        {data?.length === 0 && <p className="text-muted-foreground">No requests yet. <Link to="/" className="text-gold underline">Find talent</Link>.</p>}
-        {data?.map((q) => (
-          <div key={q.id} className="rounded-xl bg-card p-4 shadow-card flex justify-between">
-            <div><div className="font-semibold">{q.artists?.stage_name}</div><div className="text-xs text-muted-foreground">Event {q.event_date ?? "date TBC"}</div></div>
-            <Badge variant="secondary">{q.status}</Badge>
-          </div>
-        ))}
-      </div>
+    <div className="rounded-xl bg-card p-6 shadow-card">
+      <h2 className="text-2xl font-semibold">{t("My bookings and requests")}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{t("Your own booking requests, payments, job confirmations and commission live in the client portal.")}</p>
+      <Button asChild className="mt-4 bg-gradient-gold text-gold-foreground"><Link to="/client/dashboard">{t("Open client portal")}</Link></Button>
     </div>
   );
 }

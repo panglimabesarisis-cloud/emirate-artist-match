@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import "@/components/dashboard/studio.css";
-import { BadgeCheck, Banknote, CalendarRange, ClipboardList, FileSignature, FolderTree, Gauge, Layers, Menu as MenuIcon, Package, Receipt, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, CalendarRange, ClipboardList, FileSignature, FolderTree, Gauge, Layers, Menu as MenuIcon, Package, Receipt, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,7 @@ import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
 import { ContractsTable } from "@/components/dashboard/ContractsTable";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { AdminLibrary } from "@/components/admin/AdminLibrary";
+import { ClientAccounts, ClientWithdrawals, SupportInbox } from "@/components/admin/AdminClients";
 import { useServerFn } from "@tanstack/react-start";
 import { decideVerification, openVerificationFile } from "@/lib/verification.functions";
 import { VERIFICATION_REASONS } from "@/lib/verification-rules";
@@ -44,6 +45,9 @@ const NAV = [
   { id: "payouts", label: "Artist payouts", group: "Business" },
   { id: "reviews", label: "Review moderation", group: "Business" },
   { id: "catalog", label: "Event types", group: "Business" },
+  { id: "clients", label: "Client accounts", group: "Clients" },
+  { id: "client-payouts", label: "Client commission", group: "Clients" },
+  { id: "support", label: "Support inbox", group: "Clients" },
   { id: "library", label: "Master Library", group: "Libraries" },
   { id: "flow", label: "AI flow builder", group: "System" },
   { id: "settings", label: "Settings", group: "System" },
@@ -52,8 +56,9 @@ type Section = (typeof NAV)[number]["id"];
 const NAV_ICONS: Record<Section, LucideIcon> = {
   overview: Gauge, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
-  library: Layers, flow: Workflow, settings: SettingsIcon,
-};
+  library: Layers, flow: Workflow, settings: SettingsIcon, clients: UsersIcon, "client-payouts": Banknote, support: LifeBuoy,
+};
+
 
 function Admin() {
   const { isAdmin, loading, user } = useAuth();
@@ -125,6 +130,9 @@ function Admin() {
           {section === "reviews" && <ReviewQueue />}
           {section === "catalog" && <EventTypeManager />}
           {section === "library" && <AdminLibrary />}
+          {section === "clients" && <ClientAccounts />}
+          {section === "client-payouts" && <ClientWithdrawals />}
+          {section === "support" && <SupportInbox />}
           {section === "settings" && <AdminSettings />}
           {section === "flow" && <FlowBuilder artistId={null} />}
         </main>
