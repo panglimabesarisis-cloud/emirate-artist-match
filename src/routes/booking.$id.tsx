@@ -112,7 +112,12 @@ function BookingPage() {
         {/* Contract */}
         <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
           <h2 className="font-semibold">Booking contract</h2>
-          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>
+          {b.contract && b.contract.clauses.length > 0 ? (
+            <div className="mt-3 space-y-3 text-sm text-muted-foreground">
+              <ol className="list-decimal space-y-3 pl-5">{b.contract.clauses.map((c, i) => <li key={i}><b className="text-foreground">{c.title}</b><p className="whitespace-pre-wrap break-words">{c.body}</p></li>)}</ol>
+              {b.contract.rider && <div className="border-t pt-3"><h3 className="text-sm font-semibold text-foreground">Rider</h3><p className="whitespace-pre-wrap break-words">{b.contract.rider}</p></div>}
+            </div>
+          ) : <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>}
           {b.contract_accepted_at && <p className="mt-3 text-xs text-muted-foreground">Accepted {new Date(b.contract_accepted_at).toLocaleString("en-GB")}</p>}
           {b.status === "inquiry" && <p className="mt-4 text-sm text-muted-foreground">The artist is reviewing these details. You can pay once they approve.</p>}
           {["quoted","confirmed"].includes(b.status) && (

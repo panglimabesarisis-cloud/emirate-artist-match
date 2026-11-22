@@ -1,3 +1,4 @@
+import { parseStoredTerms, resolveTerms, venueFromNotes, type ContractTerms } from "./contract-terms";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
@@ -13,7 +14,7 @@ const uuid = (v: unknown) => {
 };
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
-const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body), conversations(quote_requests(start_time,end_time,perform_minutes,areas(name)))";
+const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, contract_template_id, contract_terms, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body), conversations(quote_requests(start_time,end_time,perform_minutes,areas(name)))";
 
 async function bookingByKey(id: string, key: string) {
   const db = await admin();
@@ -70,9 +71,27 @@ export const getConversationBookings = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+/** Terms the client sees: the frozen snapshot once accepted, otherwise the chosen template with placeholders filled in. Null means the standard terms. */
+async function contractFor(b: Awaited<ReturnType<typeof bookingByKey>>): Promise<ContractTerms | null> {
+  const frozen = parseStoredTerms(b.contract_terms);
+  if (frozen) return frozen;
+  if (!b.contract_template_id) return null;
+  const db = await admin();
+  const { data: t } = await db.from("contract_templates").select("clauses, rider").eq("id", b.contract_template_id).maybeSingle();
+  if (!t) return null;
+  const fmt = (n: number) => `AED ${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return resolveTerms(t, {
+    artist: b.artists?.stage_name ?? "", client: b.client_name ?? "", service: b.package_title ?? b.job_detail ?? "", date: b.event_date ?? "",
+    time: b.start_time ? `${b.start_time.slice(0, 5)} - ${(b.end_time ?? "").slice(0, 5)}` : "", venue: venueFromNotes(b.notes), total: fmt(Number(b.total)), vat: fmt(Number(b.vat_amount)),
+  });
+}
+
 export const getBooking = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string; key: string }) => ({ id: uuid(i.id), key: uuid(i.key) }))
-  .handler(async ({ data }) => bookingByKey(data.id, data.key));
+  .handler(async ({ data }) => {
+    const b = await bookingByKey(data.id, data.key);
+    return { ...b, contract: await contractFor(b) };
+  });
 
 /** Accepting an approved offer issues its invoice, without starting a payment. */
 export const acceptBookingOffer = createServerFn({ method: "POST" })
