@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { FlowChatPreview } from "./FlowChatPreview";
 import { ItemCheckoutDialog } from "@/components/dashboard/ItemCheckoutDialog";
 
-type Row = Database["public"]["Tables"]["ai_flow_templates"]["Row"] & { unlocked?: boolean; block_types?: string[] };
+type Row = Pick<Database["public"]["Tables"]["ai_flow_templates"]["Row"], "id" | "name" | "description" | "price_aed" | "published" | "nodes" | "edges" | "updated_at"> & { unlocked?: boolean; block_types?: string[] };
 const flowOf = (row: Row): TemplateFlow => ({ nodes: row.nodes as TemplateFlow["nodes"], edges: row.edges as TemplateFlow["edges"] });
 type Editor = { id?: string; name: string; description: string; published: boolean; price: string; flow: TemplateFlow };
 
