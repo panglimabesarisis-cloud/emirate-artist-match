@@ -214,11 +214,11 @@ async function createDraft(conversationId: string, artistId: string, d: BookingD
   if ((count ?? 0) > 0) return;
   if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
   const amount = invoiceAction ? 0 : Number.isFinite(floor) ? Math.max(d.amount, Math.round(floor)) : d.amount;
-  const { data: convo } = await supabaseAdmin.from("conversations").select("quote_requests(name, email, phone, event_type_id, guests)").eq("id", conversationId).single();
+  const { data: convo } = await supabaseAdmin.from("conversations").select("client_user_id, quote_requests(name, email, phone, event_type_id, guests, client_user_id)").eq("id", conversationId).single();
   const q = convo?.quote_requests;
   const p = priceBreakdown(amount);
   const { data: b, error: bookingError } = await supabaseAdmin.from("bookings").insert({
-    artist_id: artistId, conversation_id: conversationId, client_name: q?.name ?? maskContacts(d.clientName || "Client"), client_email: q?.email ?? null, client_phone: q?.phone ?? null,
+    artist_id: artistId, conversation_id: conversationId, client_user_id: convo?.client_user_id ?? q?.client_user_id ?? null, client_name: q?.name ?? maskContacts(d.clientName || "Client"), client_email: q?.email ?? null, client_phone: q?.phone ?? null,
     event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title,
     notes: maskContacts([d.notes, d.organizing ? `Client entity type: ${d.organizing}` : null, d.clientOccupation ? `Organization: ${d.clientOccupation}` : null, d.venueName ? `Venue: ${d.venueName}` : null, d.venueAddress ? `Venue address: ${d.venueAddress}` : null, d.performDuration ? `Performance duration: ${d.performDuration}` : null].filter(Boolean).join("\n")) || null,
     start_time: calendar.window.startTime, end_time: calendar.window.endTime, job_detail: maskContacts(d.jobDetail || d.notes), artist_invoice_required: !!invoiceAction, deposit_pct: invoiceAction ? 20 : 100,

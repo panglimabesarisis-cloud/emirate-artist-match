@@ -5,7 +5,7 @@ import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
 import { bookingPayment, canCheckoutBooking } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
-import { priceBreakdown, refundAmount, canComplete, canDispute } from "./booking-rules";
+import { priceBreakdown, refundAmount, canComplete, canDispute, canClientConfirm } from "./booking-rules";
 import {refundEscrowStatus} from './processor-rules';
 
 const uuid = (v: unknown) => {
@@ -40,7 +40,7 @@ export const createBookingOffer = createServerFn({ method: "POST" })
     return { conversationId: uuid(i.conversationId), title: String(i.title ?? "").trim().slice(0, 120) || "Performance", amount, eventDate: i.eventDate, notes: maskContacts(String(i.notes ?? "").slice(0, 1000)) || null };
   })
   .handler(async ({ data, context }) => {
-    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, quote_requests(name, email, phone, guests, start_time, end_time, perform_minutes, message, areas(name), event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
+    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, client_user_id, quote_requests(name, email, phone, guests, start_time, end_time, perform_minutes, message, areas(name), event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
     if (!conv) throw new Error("Conversation not found");
     await assertArtistOwns(context.supabase, context.userId, conv.artist_id);
     const q = conv.quote_requests;
@@ -48,7 +48,7 @@ export const createBookingOffer = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: b, error } = await db.from("bookings").insert({
       artist_id: conv.artist_id, conversation_id: conv.id, client_name: q?.name ?? "Client", client_email: q?.email ?? null,
-      client_user_id: q?.client_user_id ?? null, event_type_id: q?.event_type_id ?? null, event_date: data.eventDate,
+      client_user_id: conv.client_user_id ?? q?.client_user_id ?? null, event_type_id: q?.event_type_id ?? null, event_date: data.eventDate,
       package_title: data.title, notes: maskContacts([data.notes, q?.areas?.name ? `Venue / emirate: ${q.areas.name}` : null, q?.perform_minutes ? `Performance duration: ${q.perform_minutes} minutes` : null].filter(Boolean).join("\n")) || null,
       start_time: q?.start_time ?? null, end_time: q?.end_time ?? null, guests: q?.guests ?? null, client_phone: q?.phone ?? null, job_detail: maskContacts(q?.message ?? "") || null,
       invoice_items: [{title:data.title,qty:1,price:p.subtotal}], amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "quoted",
@@ -182,6 +182,24 @@ export const completeBooking = createServerFn({ method: "POST" })
     if (Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)) throw new Error("Only paid bookings on or after the event date can be completed");
     const db = await admin();
     await db.from("bookings").update({ status: "completed", completed_at: new Date().toISOString(), escrow_status: "release_pending" }).eq("id", data.id);
+    return { ok: true };
+  });
+
+/** Client (secret link): confirm the completed job, waiving the rest of the escrow hold so payment is released now. */
+export const confirmBookingCompletion = createServerFn({ method: "POST" })
+  .inputValidator((i: { id: string; key: string }) => ({ id: uuid(i.id), key: uuid(i.key) }))
+  .handler(async ({ data }) => {
+    const b = await bookingByKey(data.id, data.key);
+    if (!canClientConfirm(b.status, b.escrow_status)) throw new Error("This job is not waiting for your confirmation");
+    if (b.disputes?.some((d) => d.status === "open")) throw new Error("A dispute is open on this booking");
+    const db = await admin();
+    const { data: changed, error } = await db.from("bookings").update({ escrow_status: "released", client_confirmed_at: new Date().toISOString() })
+      .eq("id", b.id).eq("status", "completed").eq("escrow_status", "release_pending").select("id").maybeSingle();
+    if (error || !changed) throw new Error("This job was already confirmed");
+    if (b.conversation_id) {
+      await db.from("messages").insert({ conversation_id: b.conversation_id, sender: "system", body: `The client confirmed ${b.package_title ?? "the booking"} is complete. Payment was released to the artist.` });
+      await db.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", b.conversation_id);
+    }
     return { ok: true };
   });
 

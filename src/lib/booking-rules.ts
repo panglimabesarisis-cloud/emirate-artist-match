@@ -42,6 +42,16 @@ export const CONTRACT_TERMS = [
 /** Escrow is held this long after completion so the client can still raise a dispute. */
 export const ESCROW_HOLD_HOURS = 48;
 
+/** Client may confirm a job the artist marked completed while the escrow hold is still running. */
+export function canClientConfirm(status: string, escrowStatus: string) {
+  return status === "completed" && escrowStatus === "release_pending";
+}
+
+/** When the escrow hold ends and payment is released automatically. */
+export function escrowReleaseAt(completedAt: string) {
+  return new Date(new Date(completedAt).getTime() + ESCROW_HOLD_HOURS * 3_600_000);
+}
+
 export function canDispute(status: string, escrowStatus: string) {
   return status === "confirmed" || (status === "completed" && escrowStatus === "release_pending");
 }

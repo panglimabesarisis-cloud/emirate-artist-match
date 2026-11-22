@@ -8,9 +8,18 @@ export async function runBookingJobs(origin:string) {
  const {data:pending}=await db.from('bookings').select('id').eq('status','confirmed').in('calendar_sync_status',['pending','failed']).limit(10);
  for(const b of pending??[])await syncBookingCalendar(b.id);
  const eventDate=new Date(Date.now()+4*3600000+7*86400000).toISOString().slice(0,10);
- const {data:rows,error}=await db.from('bookings').select('id,event_date,status,total,paid_amount,client_phone,client_email,access_key,package_title,reminder_claimed_at').eq('status','confirmed').eq('event_date',eventDate).is('reminder_sent_at',null).gt('paid_amount',0).limit(200);
+ const {data:rows,error}=await db.from('bookings').select('id,event_date,status,total,paid_amount,client_phone,client_email,access_key,package_title,reminder_claimed_at,client_user_id').eq('status','confirmed').eq('event_date',eventDate).is('reminder_sent_at',null).gt('paid_amount',0).limit(200);
  if(error)throw error;
+ // Clients who switched off WhatsApp reminders in their portal settings are skipped (marked handled, logged as opted out).
+ const clientIds=[...new Set((rows??[]).map(r=>r.client_user_id).filter((x):x is string=>!!x))];
+ const {data:prefs}=clientIds.length?await db.from('client_settings').select('user_id,whatsapp_reminders').in('user_id',clientIds):{data:[]};
+ const optedOut=new Set((prefs??[]).filter(p=>!p.whatsapp_reminders).map(p=>p.user_id));
  for(const b of rows??[]){
+  if(b.client_user_id&&optedOut.has(b.client_user_id)&&!b.reminder_claimed_at){
+   const {data:skipped}=await db.from('bookings').update({reminder_claimed_at:new Date().toISOString(),reminder_sent_at:new Date().toISOString()}).eq('id',b.id).is('reminder_claimed_at',null).select('id').maybeSingle();
+   if(skipped&&b.client_phone)await db.from('notifications').insert({booking_id:b.id,channel:'whatsapp',audience:'client',kind:'balance_h7',recipient:b.client_phone,status:'opted_out'});
+   continue;
+  }
   if(!reminderDue(b.event_date,b.status,Number(b.total),Number(b.paid_amount))||b.reminder_claimed_at)continue;
   const {data:claimed}=await db.from('bookings').update({reminder_claimed_at:new Date().toISOString()}).eq('id',b.id).is('reminder_claimed_at',null).select('id').maybeSingle();
   if(!claimed)continue;

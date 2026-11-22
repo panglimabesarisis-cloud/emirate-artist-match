@@ -20,47 +20,78 @@ export type QuoteInput = {
   startTime?: string | null; endTime?: string | null; performMinutes?: number | null; packageIds?: string[];
 };
 
-/** Public: stores a quote request, opens a conversation and gets the first AI reply. */
+function validateQuote(i: QuoteInput): QuoteInput {
+  const email = str(i.email, 255, true)!;
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Invalid email");
+  return {
+    artistId: uuid(i.artistId), clientUserId: null, name: str(i.name, 120, true)!, email, phone: str(i.phone, 30),
+    eventTypeId: i.eventTypeId ? uuid(i.eventTypeId) : null, eventDate: i.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(i.eventDate) ? i.eventDate : null,
+    areaId: i.areaId ? uuid(i.areaId) : null, guests: i.guests ? Math.min(Math.max(1, Math.round(Number(i.guests))), 100000) : null,
+    budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
+    startTime: typeof i.startTime === "string" && /^\d{2}:\d{2}$/.test(i.startTime) ? i.startTime : null,
+    endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
+    packageIds: Array.isArray(i.packageIds) ? i.packageIds.slice(0, 10).map(uuid) : [],
+    performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
+  };
+}
+
+/** Stores a quote request, opens its conversation (linked to the verified client account when known) and gets the first AI reply. */
+async function createQuote(data: QuoteInput, clientUserId: string | null) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { addMessage, runAgent } = await import("./agent.server");
+  const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
+  if (!artist || artist.status !== "approved") throw new Error("Artist not available");
+  const { data: q, error } = await supabaseAdmin.from("quote_requests").insert({
+    artist_id: data.artistId, name: data.name, email: data.email, phone: data.phone, event_type_id: data.eventTypeId,
+    event_date: data.eventDate, area_id: data.areaId, guests: data.guests, budget: data.budget, message: data.message,
+    start_time: data.startTime ?? null, end_time: data.endTime ?? null, perform_minutes: data.performMinutes ?? null,
+    client_user_id: clientUserId,
+  }).select("id").single();
+  if (error || !q) throw new Error("Could not save request");
+  const { data: c } = await supabaseAdmin.from("conversations").insert({ quote_request_id: q.id, artist_id: data.artistId, client_user_id: clientUserId }).select("id, access_key").single();
+  if (!c) throw new Error("Could not open conversation");
+  const { data: pk } = data.packageIds?.length
+    ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
+    : { data: [] };
+  const { data: area } = data.areaId ? await supabaseAdmin.from("areas").select("name").eq("id", data.areaId).maybeSingle() : { data: null };
+  const summary = formatBookingMessage({
+    venue: area?.name ?? null, name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
+    performMinutes: data.performMinutes ?? null, guests: data.guests, budget: data.budget,
+    packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
+  });
+  await addMessage(c.id, "client", maskContacts(summary));
+  await runAgent(c.id);
+  return { conversationId: c.id, key: c.access_key };
+}
+
+/** Public: stores a quote request; a signed-in visitor's request is linked to their account. */
 export const submitQuote = createServerFn({ method: "POST" })
-  .inputValidator((i: QuoteInput): QuoteInput => {
-    const email = str(i.email, 255, true)!;
-    if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Invalid email");
-    return {
-      artistId: uuid(i.artistId), clientUserId: null, name: str(i.name, 120, true)!, email, phone: str(i.phone, 30),
-      eventTypeId: i.eventTypeId ? uuid(i.eventTypeId) : null, eventDate: i.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(i.eventDate) ? i.eventDate : null,
-      areaId: i.areaId ? uuid(i.areaId) : null, guests: i.guests ? Math.min(Math.max(1, Math.round(Number(i.guests))), 100000) : null,
-      budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
-      startTime: typeof i.startTime === "string" && /^\d{2}:\d{2}$/.test(i.startTime) ? i.startTime : null,
-      endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
-      packageIds: Array.isArray(i.packageIds) ? i.packageIds.slice(0, 10).map(uuid) : [],
-      performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
-    };
-  })
+  .inputValidator(validateQuote)
   .handler(async ({ data }) => {
+    const { optionalUserId } = await import("./request-user.server");
+    return createQuote(data, await optionalUserId());
+  });
+
+export type ClientRequestInput = Omit<QuoteInput, "clientUserId" | "name" | "email"> & { eventTitle?: string | null };
+
+/** Signed-in client portal: booking request with the account's verified name, email and phone. */
+export const submitClientQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: ClientRequestInput) => {
+    const title = str(i.eventTitle, 120);
+    const note = str(i.message, 1800);
+    return validateQuote({ ...i, clientUserId: null, name: "Client", email: "client@example.com", message: [title ? `Event: ${title}` : null, note].filter(Boolean).join("\n") || null });
+  })
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { addMessage, runAgent } = await import("./agent.server");
-    const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
-    if (!artist || artist.status !== "approved") throw new Error("Artist not available");
-    const { data: q, error } = await supabaseAdmin.from("quote_requests").insert({
-      artist_id: data.artistId, name: data.name, email: data.email, phone: data.phone, event_type_id: data.eventTypeId,
-      event_date: data.eventDate, area_id: data.areaId, guests: data.guests, budget: data.budget, message: data.message,
-      start_time: data.startTime ?? null, end_time: data.endTime ?? null, perform_minutes: data.performMinutes ?? null,
-    }).select("id").single();
-    if (error || !q) throw new Error("Could not save request");
-    const { data: c } = await supabaseAdmin.from("conversations").insert({ quote_request_id: q.id, artist_id: data.artistId }).select("id, access_key").single();
-    if (!c) throw new Error("Could not open conversation");
-    const { data: pk } = data.packageIds?.length
-      ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
-      : { data: [] };
-    const { data: area } = data.areaId ? await supabaseAdmin.from("areas").select("name").eq("id", data.areaId).maybeSingle() : { data: null };
-    const summary = formatBookingMessage({
-      venue: area?.name ?? null, name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
-      performMinutes: data.performMinutes ?? null, guests: data.guests, budget: data.budget,
-      packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
-    });
-    await addMessage(c.id, "client", maskContacts(summary));
-    await runAgent(c.id);
-    return { conversationId: c.id, key: c.access_key };
+    const [{ data: user }, { data: profile }] = await Promise.all([
+      supabaseAdmin.auth.admin.getUserById(context.userId),
+      supabaseAdmin.from("profiles").select("display_name, phone").eq("id", context.userId).maybeSingle(),
+    ]);
+    const email = user.user?.email;
+    if (!email) throw new Error("Add an email address to your account first");
+    const name = (profile?.display_name ?? "").trim() || email.split("@")[0] || "Client";
+    return createQuote({ ...data, name: name.slice(0, 120), email, phone: data.phone ?? profile?.phone ?? null }, context.userId);
   });
 
 async function verifyKey(conversationId: string, key: string) {
@@ -173,7 +204,8 @@ export const startChat = createServerFn({ method: "POST" })
     const { addMessage, runAgent } = await import("./agent.server");
     const { data: artist } = await supabaseAdmin.from("artists").select("id, status").eq("id", data.artistId).single();
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
-    const { data: c } = await supabaseAdmin.from("conversations").insert({ artist_id: data.artistId }).select("id, access_key").single();
+    const { optionalUserId } = await import("./request-user.server");
+    const { data: c } = await supabaseAdmin.from("conversations").insert({ artist_id: data.artistId, client_user_id: await optionalUserId() }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
     await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
     await runAgent(c.id);
