@@ -1,3 +1,4 @@
+import { bookingStage, STAGE_COLOR } from "@/lib/booking-stage";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -122,15 +123,19 @@ export function InvoiceProgressChart({ artistId }: { artistId: string }) {
 export function JobProgressChart({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const money = useOverviewMoney(artistId);
-  const data = useMemo(() => monthBuckets().map((m) => ({
-    label: m.label,
-    booking: (money.data?.bookings ?? []).filter((b) => b.status !== "cancelled" && Number(b.paid_amount) > 0 && inMonth(b.paid_at ?? b.created_at, m)).length,
-    completed: (money.data?.bookings ?? []).filter((b) => b.status === "completed" && inMonth(b.completed_at, m)).length,
-  })), [money.data]);
+  const data = useMemo(() => monthBuckets().map((m) => {
+    const all = (money.data?.bookings ?? []).filter((b) => b.status !== "cancelled");
+    return {
+      label: m.label,
+      soft: all.filter((b) => bookingStage(b) === "soft" && inMonth(b.created_at, m)).length,
+      job: all.filter((b) => bookingStage(b) !== "soft" && inMonth(b.paid_at ?? b.created_at, m)).length,
+      complete: all.filter((b) => bookingStage(b) === "complete" && inMonth(b.completed_at, m)).length,
+    };
+  }), [money.data]);
   return (
     <AreaCard id="jobs" title={t("Progress")} accent={t("job")} subtitle={t("Last 6 months")} data={data}
-      series={[{ key: "booking", label: t("Job booking"), color: "#e8b04a", value: String(total(data, "booking")) }, { key: "completed", label: t("Job completed"), color: "#7bd88f", value: String(total(data, "completed")) }]}
-      empty={data.every((m) => m.booking + m.completed === 0)} emptyText={t("No bookings yet.")} note={t("A job booking is counted once the client has paid (deposit or in full); jobs when they are marked completed.")} />
+      series={[{ key: "soft", label: t("Soft Booking"), color: STAGE_COLOR.soft, value: String(total(data, "soft")) }, { key: "job", label: t("Job Booking"), color: STAGE_COLOR.job, value: String(total(data, "job")) }, { key: "complete", label: t("Job Complete"), color: STAGE_COLOR.complete, value: String(total(data, "complete")) }]}
+      empty={data.every((m) => m.soft + m.job + m.complete === 0)} emptyText={t("No bookings yet.")} note={t("Soft Booking: from a form or the AI agent, not paid yet. Job Booking: a down payment or full payment is in. Job Complete: the job is done and the money is in your wallet.")} />
   );
 }
 

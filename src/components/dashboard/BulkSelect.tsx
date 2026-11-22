@@ -44,9 +44,10 @@ export function useHideRows(rpc: SoftDeleteRpc, invalidate: QueryKey[], after?: 
   const { t } = useI18n();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
-  const run = async (ids: string[], what: string) => {
-    if (ids.length === 0) return;
-    if (!confirm(`${t("Delete")} ${ids.length} ${t(what)}? ${t("They are hidden from your lists. Paid or completed records are never deleted.")}`)) return;
+  /** Resolves true when at least one record was hidden. */
+  const run = async (ids: string[], what: string): Promise<boolean> => {
+    if (ids.length === 0) return false;
+    if (!confirm(`${t("Delete")} ${ids.length} ${t(what)}? ${t("They are hidden from your lists. Paid or completed records are never deleted.")}`)) return false;
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc(rpc, { _ids: ids });
@@ -57,8 +58,10 @@ export function useHideRows(rpc: SoftDeleteRpc, invalidate: QueryKey[], after?: 
       else toast.error(t("Nothing was deleted: these records are paid, in escrow or completed."));
       for (const key of invalidate) void qc.invalidateQueries({ queryKey: key });
       after?.();
+      return hidden > 0;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("Delete failed"));
+      return false;
     } finally { setBusy(false); }
   };
   return { run, busy };

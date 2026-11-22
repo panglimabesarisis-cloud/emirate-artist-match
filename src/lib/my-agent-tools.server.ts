@@ -1,3 +1,4 @@
+import { bookingStage, STAGE_LABEL } from "./booking-stage";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
@@ -210,7 +211,7 @@ export async function executeAgentTool(
       if (request.source === "bookings") {
         const result = await ctx.db
           .from("bookings")
-          .select("id,client_name,event_date,status,total,paid_amount")
+          .select("id,client_name,event_date,status,total,paid_amount,escrow_status")
           .eq("artist_id", ctx.artistId)
           .is("deleted_at", null)
           .order("id")
@@ -221,7 +222,7 @@ export async function executeAgentTool(
           ...page.map((b) => ({
             client: b.client_name,
             date: b.event_date,
-            status: b.status,
+            status: STAGE_LABEL[bookingStage(b)],
             total: Number(b.total),
             paid: Number(b.paid_amount),
           })),

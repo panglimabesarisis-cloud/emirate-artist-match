@@ -3,11 +3,12 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { CalendarDays, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { completeCalendarConnect, disconnectCalendar, getCalendarEvents, startCalendarConnect } from "@/lib/calendar.functions";
 import { completeBooking } from "@/lib/bookings.functions";
 import { canComplete } from "@/lib/booking-rules";
+import { bookingPay, bookingStage, STAGE_LABEL, stageClasses } from "@/lib/booking-stage";
 import { aed } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,8 @@ type Job = {
   total: number; paid_amount: number; notes: string | null; job_detail: string | null; escrow_status: string;
 };
 const done = (b: Job) => b.status === "completed";
-const payState = (b: Job) => (Number(b.paid_amount) >= Number(b.total) && Number(b.total) > 0 ? "paid" : Number(b.paid_amount) > 0 ? "partial" : "unpaid");
+const payState = (b: Job) => bookingPay(b);
+const STAMP: Record<string, string> = { unpaid: "text-red-400", partial: "text-gold", paid: "text-emerald-400" };
 const PAY_STYLE: Record<string, string> = {
   unpaid: "border-red-400/30 bg-red-500/10 text-red-300", partial: "border-transparent bg-gold/40 text-white", paid: "border-transparent bg-gradient-gold text-gold-foreground",
 };
@@ -222,10 +224,11 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                 {isBlocked && <span className="self-start rounded-md border border-red-400/30 bg-red-500/15 px-1.5 py-0.5 text-[10.5px] font-extrabold text-red-300">{t("Unavailable")}</span>}
                 {list.map((b) => (
                   <button key={b.id} type="button" title={`${b.client_name} · ${b.package_title}`} onClick={(e) => { e.stopPropagation(); setOpen(b); }}
-                    className={`overflow-hidden text-ellipsis rounded-[7px] border-s-[3px] px-2 py-0.5 text-start text-[11.5px] font-bold transition-[background,translate] hover:translate-x-0.5 ${done(b) ? "border-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20" : "border-gold bg-gold/15 hover:bg-gold/30"} ${view === "month" ? "whitespace-nowrap" : "whitespace-normal py-1.5 text-xs"}`}>
+                    className={`overflow-hidden text-ellipsis rounded-[7px] border-s-[3px] px-2 py-0.5 text-start text-[11.5px] font-bold transition-[background,translate] hover:translate-x-0.5 ${stageClasses(b).entry} ${view === "month" ? "whitespace-nowrap" : "whitespace-normal py-1.5 text-xs"}`}>
                     {view === "month" && b.start_time && <small className="me-1 font-semibold text-muted-foreground">{hhmm(b.start_time)}</small>}
                     {b.client_name}
                     {view !== "month" && <small className="block font-semibold text-muted-foreground">{b.start_time ? `${hhmm(b.start_time)} – ${hhmm(b.end_time)} · ` : ""}{b.package_title}</small>}
+                    {view !== "month" && <small className="block text-[10px] font-extrabold uppercase tracking-wider opacity-80">{t(STAGE_LABEL[bookingStage(b)])}</small>}
                   </button>
                 ))}
                 {ev.slice(0, view === "month" ? 2 : 8).map((e) => <div key={e.id + k} className="truncate rounded-[7px] border-s-[3px] border-blue-400 bg-blue-400/10 px-2 py-0.5 text-[11px]">{e.allDay ? "" : `${hm(e.start)} `}{e.title}</div>)}
@@ -235,7 +238,10 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           })}
         </div>
         <div className="flex flex-wrap gap-4 px-5 py-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/50" />{t("Dealmaker booking")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-zinc-400/60" />{t("Soft Booking")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/40" />{t("Job Booking (down payment)")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-gold/80" />{t("Job Booking (paid in full)")}</span>
+          <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-400/70" />{t("Job Complete")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-red-500/35" />{t("Blocked (clients can't book)")}</span>
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-gradient-gold" />{t("Today")}</span>
         </div>
@@ -255,10 +261,10 @@ export function CalendarTab({ artistId }: { artistId: string }) {
         </div>
         <BulkBar count={selection.sel.length} busy={hide.busy} onClear={selection.clear} onDelete={() => void hide.run(selection.sel, "bookings")} />
         <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[1220px] border-separate border-spacing-0 text-[13.5px]">
-            <thead><tr><th scope="col" className={`${th} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((b) => selection.has(b.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((b) => b.id), on)} /></th>{["Client name", "Event name", "Location", "Date event", "Start event", "End event", "Duration perform", "Payment", "Job detail", "Progress"].map((h) => <th key={h} scope="col" className={th}>{t(h)}</th>)}</tr></thead>
+          <table className="w-full min-w-[1320px] border-separate border-spacing-0 text-[13.5px]">
+            <thead><tr><th scope="col" className={`${th} w-10`}><RowCheckbox label={t("Select all")} checked={deletableOnPage.length > 0 && deletableOnPage.every((b) => selection.has(b.id))} disabled={deletableOnPage.length === 0} onChange={(on) => selection.toggleAll(deletableOnPage.map((b) => b.id), on)} /></th>{["Client name", "Event name", "Status", "Location", "Date event", "Start event", "End event", "Duration perform", "Payment", "Job detail", "Progress"].map((h) => <th key={h} scope="col" className={th}>{t(h)}</th>)}</tr></thead>
             <tbody>
-              {pageRows.length === 0 && <tr><td colSpan={11} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{jobsQ.isPending ? t("Loading…") : t("Nothing scheduled")}</b>{!jobsQ.isPending && t("Confirmed bookings and sent offers appear here by date.")}</td></tr>}
+              {pageRows.length === 0 && <tr><td colSpan={12} className="p-10 text-center text-muted-foreground"><b className="block font-display text-2xl">{jobsQ.isPending ? t("Loading…") : t("Nothing scheduled")}</b>{!jobsQ.isPending && t("Confirmed bookings and sent offers appear here by date.")}</td></tr>}
               {pageRows.map((b) => {
                 const ps = payState(b);
                 const loc = locationOf(b.notes);
@@ -269,6 +275,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                     <td className={td}><RowCheckbox label={`${t("Select")} ${b.client_name}`} checked={selection.has(b.id)} disabled={!bookingDeletable(b)} title={bookingDeletable(b) ? undefined : t(NOT_DELETABLE)} onChange={(on) => selection.toggle(b.id, on)} /></td>
                     <td className={td}><b>{b.client_name}</b></td>
                     <td className={td}>{b.package_title}</td>
+                    <td className={td}><span className={`${CHIP} min-w-[104px] ${stageClasses(b).chip}`}>{t(STAGE_LABEL[bookingStage(b)])}</span></td>
                     <td className={td}>{loc || muted}</td>
                     <td className={td}><b>{fmtDate(b.event_date)}</b></td>
                     <td className={td}>{hhmm(b.start_time) || muted}</td>
@@ -302,12 +309,19 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           {open && (
             <>
               <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{open.client_name} · {open.package_title}</DialogTitle><DialogDescription>{fmtDate(open.event_date)}{open.start_time ? ` · ${hhmm(open.start_time)} – ${hhmm(open.end_time)}` : ""}</DialogDescription></DialogHeader>
+              <div className="flex items-center justify-between gap-3">
+                <span className={`${CHIP} min-w-[104px] ${stageClasses(open).chip}`}>{t(STAGE_LABEL[bookingStage(open)])}</span>
+                <span aria-label={`${t("Payment")}: ${payState(open)}`} className={`inline-flex -rotate-3 flex-col items-center rounded-[10px] border-[3px] border-double border-current px-3.5 py-1 ${STAMP[payState(open)]}`}><b className="text-[15px] font-black leading-none tracking-[.14em]">{payState(open) === "paid" ? "PAID" : payState(open) === "partial" ? "PARTIAL" : "UNPAID"}</b><i className="text-[9px] font-bold not-italic tracking-[.12em]">{payState(open) === "unpaid" ? `AED ${Number(open.total).toLocaleString("en-US")}` : `AED ${Number(open.paid_amount).toLocaleString("en-US")} / ${Number(open.total).toLocaleString("en-US")}`}</i></span>
+              </div>
               <dl className="grid grid-cols-[130px_1fr] text-sm">
                 {([["Location", locationOf(open.notes) || null], ["Duration perform", durationMin(open.start_time, open.end_time, open.notes) == null ? null : fmtDur(durationMin(open.start_time, open.end_time, open.notes))], ["Total", aed(Number(open.total))], ["Paid", aed(Number(open.paid_amount))], ["Job detail", open.job_detail]] as const).map(([k, v]) => (
                   <div key={k} className="contents"><dt className="border-b border-border py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground">{t(k)}</dt><dd className={`whitespace-pre-wrap break-words border-b border-border py-3 ${v ? "" : "text-muted-foreground/60"}`}>{v ?? t("Not set")}</dd></div>
                 ))}
               </dl>
-              <div className="flex justify-end"><Button variant="outline" className="rounded-full" onClick={() => setOpen(null)}>{t("Close")}</Button></div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button variant="outline" className="rounded-full border-red-400/40 text-red-300 hover:bg-red-500/10" disabled={!bookingDeletable(open) || hide.busy} title={bookingDeletable(open) ? undefined : t(NOT_DELETABLE)} onClick={() => { void hide.run([open.id], "bookings").then((ok) => { if (ok) setOpen(null); }); }}><Trash2 className="me-1.5 h-4 w-4" />{t("Delete")}</Button>
+                <Button variant="outline" className="rounded-full" onClick={() => setOpen(null)}>{t("Close")}</Button>
+              </div>
             </>
           )}
         </DialogContent>
