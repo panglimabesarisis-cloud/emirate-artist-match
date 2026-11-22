@@ -1,0 +1,59 @@
+html.dm-dash .studio-reference .studio-agent-settings{grid-column:span 7;align-self:start}
+html.dm-dash .studio-reference .studio-agent-test{grid-column:span 5;padding:0;min-height:0;align-self:start}
+html.dm-dash .agent-section{margin-top:24px}
+html.dm-dash .agent-section:first-child{margin-top:0}
+html.dm-dash .agent-section>legend,html.dm-dash .agent-section-title{display:flex;justify-content:space-between;gap:12px;width:100%;font-size:11px;font-weight:800;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+html.dm-dash .agent-models{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+html.dm-dash .agent-model{display:flex;flex-direction:column;align-items:start;justify-content:start;gap:8px;white-space:normal;text-align:start;padding:16px;height:auto;min-height:130px;border-radius:16px;border:1px solid var(--studio-line-2);background:var(--studio-wash)}
+html.dm-dash .agent-model b{font-family:var(--font-display);font-size:25px;font-weight:400}
+html.dm-dash .agent-model span{font-size:12px;color:var(--muted-foreground)}
+html.dm-dash .agent-model[aria-checked=true]{border-color:var(--gold);background:var(--studio-gold-wash)}
+html.dm-dash .agent-pills{display:flex;gap:8px;flex-wrap:wrap}
+html.dm-dash .agent-pills button{border-radius:999px;font-size:13px;height:36px}
+html.dm-dash .agent-pills button[aria-checked=true],html.dm-dash .agent-pills button[aria-pressed=true]{background:var(--gradient-gold);color:var(--gold-foreground);border-color:transparent}
+html.dm-dash .agent-handoff{display:grid;gap:12px}
+html.dm-dash .agent-handoff label{display:flex;align-items:center;gap:10px;font-size:13px}
+html.dm-dash .agent-save{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid var(--studio-line)}
+html.dm-dash .agent-save>span{font-size:12px;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .studio-agent-header{padding:18px}
+html.dm-dash .studio-reference .studio-agent-header h2{font-size:24px}
+html.dm-dash .studio-reference .studio-agent-header .studio-empty-icon{width:40px;height:40px;background:var(--gradient-gold);color:var(--gold-foreground);border:0}
+html.dm-dash .studio-reference .studio-agent-chat{height:360px;flex:none;min-height:0;padding:18px;display:flex;flex-direction:column}
+html.dm-dash .agent-chat-empty{margin:auto;text-align:center;color:var(--muted-foreground);font-size:13px;display:grid;justify-items:center;gap:12px}
+html.dm-dash .agent-test-suggestions{padding:0 18px 12px;display:flex;gap:6px;flex-wrap:wrap}
+html.dm-dash .agent-test-suggestions button{border-radius:999px;font-size:12px}
+html.dm-dash .agent-test-input{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--studio-line)}
+html.dm-dash .agent-test-input input{min-width:0;flex:1}
+html.dm-dash .agent-test-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 18px 14px;font-size:11px;color:var(--muted-foreground)}
+html.dm-dash .agent-test-footer button{font-size:11px}
+html.dm-dash .agent-prompt-panel{padding:0!important}
+html.dm-dash .agent-prompt-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:20px;border-bottom:1px solid var(--studio-line)}
+html.dm-dash .agent-prompt-tools h2{font-size:28px}
+html.dm-dash .agent-prompt-tools input{max-width:240px}
+html.dm-dash .agent-prompt-table{overflow-x:auto}
+html.dm-dash .agent-prompt-table table{min-width:680px;width:100%;font-size:13px}
+html.dm-dash .agent-prompt-table td small{display:block;color:var(--muted-foreground);margin-top:6px;max-width:340px;white-space:normal}
+html.dm-dash .agent-prompt-table td:last-child{text-align:end}
+html.dm-dash .agent-knowledge-preview{padding:20px;border-radius:16px;border:1px solid var(--studio-line);background:var(--studio-wash);min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+html.dm-dash .studio-account-main{align-items:start}
+html.dm-dash .studio-reference .studio-account-main{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
+html.dm-dash .account-section-head{display:flex;justify-content:space-between;align-items:start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+html.dm-dash .account-section-head h2{font-family:var(--font-display);font-size:32px;font-weight:400;line-height:1.1}
+html.dm-dash .account-section-head p{font-size:13px;color:var(--muted-foreground);margin-top:8px;max-width:460px}
+html.dm-dash .account-status{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--studio-gold-line);color:var(--gold);padding:5px 10px;border-radius:999px;font-size:12px}
+html.dm-dash .account-record{display:grid;gap:0;font-size:13px}
+html.dm-dash .account-record>div{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px dashed var(--studio-line)}
+html.dm-dash .account-record>div:last-child{border:0}
+html.dm-dash .account-record dt{color:var(--muted-foreground)}
+html.dm-dash .account-record dd{text-align:end;overflow-wrap:anywhere;min-width:0}
+html.dm-dash .account-steps{display:grid;gap:18px;counter-reset:account-step;margin:20px 0}
+html.dm-dash .account-steps li{position:relative;padding-inline-start:36px;color:var(--muted-foreground);font-size:13px;counter-increment:account-step}
+html.dm-dash .account-steps li::before{content:counter(account-step);position:absolute;inset-inline-start:0;top:0;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--studio-gold-wash);color:var(--gold);font-weight:700}
+html.dm-dash .account-steps b{display:block;color:var(--foreground);margin-bottom:4px}
+html.dm-dash .account-modal{border:1px solid var(--studio-gold-line-soft);background:var(--studio-panel-gradient);color:var(--foreground);border-radius:22px;padding:28px;max-height:85dvh;overflow-y:auto}
+html.dm-dash .account-modal h2{font-family:var(--font-display);font-size:32px;font-weight:400}
+html.dm-dash .account-modal label{display:block;font-size:12px;color:var(--muted-foreground);margin-bottom:8px}
+html.dm-dash .account-modal input{background:var(--studio-wash);border-color:var(--studio-line-2);border-radius:12px;height:44px}
+html.dm-dash .account-modal-footer{border-top:1px solid var(--studio-line);padding-top:18px;margin-top:22px}
+@media(max-width:1100px){html.dm-dash .studio-reference .studio-agent-settings,html.dm-dash .studio-reference .studio-agent-test{grid-column:span 12}html.dm-dash .studio-reference .studio-account-main{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){html.dm-dash .agent-models{grid-template-columns:minmax(0,1fr)}html.dm-dash .agent-model{min-height:90px}html.dm-dash .account-modal{padding:22px}html.dm-dash .account-record>div{flex-wrap:wrap}html.dm-dash .account-record dd{text-align:start}html.dm-dash .studio-reference .studio-agent-chat{height:320px}}

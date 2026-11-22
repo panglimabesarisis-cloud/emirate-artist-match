@@ -7,8 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { StudioEmpty, StudioSection } from "./StudioPage";
+import { StudioEmpty } from "./StudioPage";
 import { ItemCheckoutDialog } from "./ItemCheckoutDialog";
 
 type Prompt = { id: string; kind: string; title: string; category: string | null; description: string | null; tier: string; price_aed: number };
@@ -34,6 +35,8 @@ export function PromptLibrary({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const plan = useArtistPlan(artistId);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("on");
   const [buying, setBuying] = useState<Prompt | null>(null);
   const [filter, setFilter] = useState<"all" | "on" | "free" | "paid">("all");
   const prompts = useQuery({
@@ -48,7 +51,7 @@ export function PromptLibrary({ artistId }: { artistId: string }) {
   const max = plan.data?.mine?.max_active_prompts ?? 0;
   const on = enabled.data ?? new Set<string>();
   const have = owned.data ?? new Set<string>();
-  const shown = (prompts.data ?? []).filter((p) => filter === "all" || (filter === "on" && on.has(p.id)) || (filter === "free" && Number(p.price_aed) === 0) || (filter === "paid" && Number(p.price_aed) > 0));
+  const shown = (prompts.data ?? []).filter(p => `${p.title} ${p.description ?? ""}`.toLowerCase().includes(search.toLowerCase())).filter((p) => filter === "all" || (filter === "on" && on.has(p.id)) || (filter === "free" && Number(p.price_aed) === 0) || (filter === "paid" && Number(p.price_aed) > 0)).sort((a, b) => sort === "price" ? Number(a.price_aed) - Number(b.price_aed) : sort === "on" ? Number(on.has(b.id)) - Number(on.has(a.id)) || a.title.localeCompare(b.title) : a.title.localeCompare(b.title));
 
   const refresh = () => { void qc.invalidateQueries({ queryKey: ["agent-prompts-enabled", artistId] }); void qc.invalidateQueries({ queryKey: ["agent-prompts-owned", artistId] }); };
   const toggle = async (p: Prompt, next: boolean) => {
@@ -60,50 +63,13 @@ export function PromptLibrary({ artistId }: { artistId: string }) {
   };
 
   return (
-    <StudioSection title="Agent" accent="prompts" className="dmr-c-12">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{t("Turn on ready-made instructions and knowledge for your agent. Prompt text stays hidden; your agent follows it below its pricing and safety rules.")}</p>
-        <div className="flex items-center gap-3">
-          <span className="rounded-full border border-border px-3 py-1 text-xs font-bold">{on.size} / {max < 0 ? "∞" : max} {t("active")}</span>
-          <div className="flex gap-0.5 rounded-xl bg-foreground/[.04] p-[3px]" role="group" aria-label={t("Filter prompts")}>
-            {(["all", "on", "free", "paid"] as const).map((k) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)} className={`rounded-[10px] px-3 py-1 text-xs font-semibold ${filter === k ? "bg-foreground text-background" : "text-muted-foreground"}`}>{t({ all: "All", on: "On", free: "Free", paid: "Paid" }[k])}</button>)}
-          </div>
-        </div>
-      </div>
-      {prompts.error ? <p role="alert" className="text-destructive">{prompts.error.message}</p> : prompts.isPending ? <p className="text-sm text-muted-foreground">{t("Loading…")}</p> : shown.length === 0 ? <StudioEmpty title={t("No prompts yet")} /> : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {shown.map((p) => {
-            const price = Number(p.price_aed);
-            const tierLocked = (rank.get(p.tier) ?? 99) > myRank;
-            const needsBuy = price > 0 && !have.has(p.id);
-            const isOn = on.has(p.id);
-            const tierName = plan.data?.tiers.find((x) => x.code === p.tier)?.name ?? p.tier;
-            return (
-              <li key={p.id} className="flex flex-col gap-2 rounded-2xl border border-border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <b className="block truncate">{p.title}</b>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      <Badge variant="secondary">{p.kind === "know" ? t("Knowledge") : t("Instruction")}</Badge>
-                      {p.category && <Badge variant="outline">{p.category}</Badge>}
-                      {p.tier !== "free" && <Badge variant="outline">{tierName}+</Badge>}
-                      {price > 0 && <Badge className="bg-gold/20 text-gold">AED {price.toFixed(0)}</Badge>}
-                    </div>
-                  </div>
-                  {!tierLocked && !needsBuy && <Switch checked={isOn} onCheckedChange={(c) => void toggle(p, c)} aria-label={`${t("Turn on")} ${p.title}`} />}
-                </div>
-                {p.description && <p className="text-xs text-muted-foreground">{p.description}</p>}
-                <div className="mt-auto flex items-center gap-2 pt-1 text-xs text-muted-foreground">
-                  <Lock className="h-3 w-3" aria-hidden />{t("Prompt text hidden")}
-                  {tierLocked && <span className="ms-auto text-gold">{t("Needs")} {tierName}</span>}
-                  {!tierLocked && needsBuy && <Button size="sm" className="ms-auto bg-gradient-gold text-gold-foreground" onClick={() => setBuying(p)}>{t("Buy")} · AED {(price * 1.05).toFixed(2)}</Button>}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+    <section className="dmr-panel dmr-c-12 agent-prompt-panel" aria-label={t("Agent prompts")}>
+      <div className="agent-prompt-tools"><div><h2>{t("Agent")} <span className="it">{t("prompts")}</span></h2><span className="text-xs text-muted-foreground">{on.size} / {max < 0 ? "∞" : max} {t("active")}</span></div><div className="flex flex-wrap gap-2"><Input type="search" aria-label={t("Search prompts")} placeholder={t("Search prompts")} value={search} onChange={event => setSearch(event.target.value)} /><div className="agent-pills" role="group" aria-label={t("Filter prompts")}>{(["all", "on", "free", "paid"] as const).map(key => <Button key={key} size="sm" variant="outline" aria-pressed={filter === key} onClick={() => setFilter(key)}>{t({ all: "All", on: "On", free: "Free", paid: "Paid" }[key])}</Button>)}</div><select aria-label={t("Sort prompts")} value={sort} onChange={event => setSort(event.target.value)} className="rounded-xl border border-border bg-card px-3 text-sm"><option value="on">{t("Following first")}</option><option value="az">{t("A to Z")}</option><option value="price">{t("Price low to high")}</option></select></div></div>
+      {prompts.error ? <p role="alert" className="p-5 text-destructive">{prompts.error.message}</p> : prompts.isPending ? <p className="p-5 text-sm text-muted-foreground">{t("Loading…")}</p> : shown.length === 0 ? <StudioEmpty title={t("No prompts yet")} /> : <div className="agent-prompt-table"><table><thead><tr>{["Prompt", "Type", "Subscribe", "Price", "Status", "Action"].map(label => <th key={label} scope="col">{t(label)}</th>)}</tr></thead><tbody>{shown.map(p => {
+        const price = Number(p.price_aed); const tierLocked = (rank.get(p.tier) ?? 99) > myRank; const needsBuy = price > 0 && !have.has(p.id); const isOn = on.has(p.id); const tierName = plan.data?.tiers.find(x => x.code === p.tier)?.name ?? p.tier;
+        return <tr key={p.id}><td><b>{p.title}</b>{p.description && <small>{p.description}</small>}</td><td><Badge variant="outline">{t(p.kind === "know" ? "Knowledge" : "Instruction")}</Badge></td><td><Badge variant="outline">{tierName}</Badge></td><td className="whitespace-nowrap">{price ? `AED ${price.toFixed(2)}` : t("Free")}</td><td><Badge variant={isOn ? "secondary" : "outline"}>{t(isOn ? "Following" : "Off")}</Badge></td><td>{tierLocked ? <span className="inline-flex items-center gap-1 text-xs text-gold"><Lock className="size-3" />{t("Needs")} {tierName}</span> : needsBuy ? <Button size="sm" onClick={() => setBuying(p)}>{t("Buy")} · AED {(price * 1.05).toFixed(2)}</Button> : <Switch checked={isOn} onCheckedChange={checked => void toggle(p, checked)} aria-label={`${t("Turn on")} ${p.title}`} />}</td></tr>;
+      })}</tbody></table></div>}
       {buying && <ItemCheckoutDialog kind="agent_prompt" itemId={buying.id} title={buying.title} priceAed={Number(buying.price_aed)} open onClose={() => setBuying(null)} onPaid={refresh} />}
-    </StudioSection>
+    </section>
   );
 }

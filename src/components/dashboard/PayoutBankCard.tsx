@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { StudioSoon } from "./StudioPage";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BANK_HOLD_HOURS, maskIban, useBankDetails } from "./useBankDetails";
 
 const IBAN_AE = /^AE\d{21}$/;
@@ -28,6 +28,7 @@ export function PayoutBankCard({ userId }: { userId: string }) {
   const bank = useBankDetails(artistId);
   const [f, setF] = useState({ account_type: "personal", holder_name: "", bank_name: "", branch: "", iban: "", swift: "" });
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   if (!artistId) return null;
   const d = bank.data;
 
@@ -47,13 +48,15 @@ export function PayoutBankCard({ userId }: { userId: string }) {
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    setConfirming(false);
     toast.success(t("Bank details saved. Withdrawals open in 48 hours."));
     qc.invalidateQueries({ queryKey: ["bank-details", artistId] });
   };
 
   return (
+    <>
     <section className="studio-account-section space-y-3">
-      <h2 className="flex items-center gap-2 text-xl font-semibold">{d && <Lock className="h-4 w-4" />}{t("Payout bank account")}</h2>
+      <div className="account-section-head"><h2>{t("Bank")} <span className="it">{t("details")}</span></h2><span className="account-status"><Lock className="size-3" />{t(d ? "Locked" : "Not set yet")}</span></div>
       <p className="text-sm text-muted-foreground">
         {d ? t("UAE bank transfer. These details are locked; contact support to change them.") : `${t("UAE bank transfer. Add your account once; it locks after saving.")} ${t("Withdrawals open")} ${BANK_HOLD_HOURS} ${t("hours after saving.")}`}
       </p>
@@ -78,7 +81,9 @@ export function PayoutBankCard({ userId }: { userId: string }) {
           <Input id="bank-branch" disabled={!!d} maxLength={80} value={d ? (d.branch ?? "") : f.branch} onChange={(e) => setF({ ...f, branch: e.target.value })} />
         </div>
       </div>
-      <h2 className="border-t pt-6">{t("UAE transfer")} <span className="it">{t("details")}</span></h2>
+    </section>
+    <section className="studio-account-section space-y-3">
+      <div className="account-section-head"><div><h2>{t("UAE transfer")} <span className="it">{t("details")}</span></h2><p>{t("UAE bank transfer. Add your account once; it locks after saving.")}</p></div>{d && <span className="account-status"><Lock className="size-3" />{t("Locked")}</span>}</div>
       <Label htmlFor="bank-iban">IBAN</Label>
       <Input id="bank-iban" dir="ltr" disabled={!!d} maxLength={34} value={d ? maskIban(d.iban) : f.iban} onChange={(e) => setF({ ...f, iban: e.target.value })} placeholder="AE00 0000 0000 0000 0000 000" />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -86,11 +91,14 @@ export function PayoutBankCard({ userId }: { userId: string }) {
           <Label htmlFor="bank-swift">SWIFT / BIC</Label>
           <Input id="bank-swift" dir="ltr" disabled={!!d} maxLength={11} value={d ? (d.swift ?? "") : f.swift} onChange={(e) => setF({ ...f, swift: e.target.value })} />
         </div>
-        <StudioSoon label="Emirates ID" />
+
         <div><Label>{t("Country")}</Label><Input disabled value="United Arab Emirates" /></div>
         <div><Label>{t("Currency")}</Label><Input disabled value="AED" /></div>
       </div>
-      {!d && <Button className="bg-gradient-gold text-gold-foreground" disabled={busy} onClick={save}>{busy ? t("Saving…") : t("Save bank details")}</Button>}
+      {!d && <Button className="bg-gradient-gold text-gold-foreground" disabled={busy || bank.isPending} onClick={() => setConfirming(true)}>{busy ? t("Saving…") : t("Save bank details")}</Button>}
+      {bank.error && <p role="alert" className="text-destructive">{bank.error.message}</p>}
     </section>
+    <Dialog open={confirming} onOpenChange={open => { if (!busy) setConfirming(open); }}><DialogContent className="account-modal"><DialogHeader><span className="studio-empty-icon"><Lock className="size-6" /></span><DialogTitle>{t("Save payout details")}</DialogTitle><DialogDescription>{t("UAE bank transfer. Add your account once; it locks after saving.")} {t("Withdrawals open")} {BANK_HOLD_HOURS} {t("hours after saving.")}</DialogDescription></DialogHeader><dl className="account-record"><div><dt>{t("Account holder")}</dt><dd>{f.holder_name}</dd></div><div><dt>{t("Bank name")}</dt><dd>{f.bank_name}</dd></div><div><dt>IBAN</dt><dd dir="ltr">{maskIban(f.iban.replace(/\s+/g, ""))}</dd></div></dl><DialogFooter className="account-modal-footer"><Button variant="outline" disabled={busy} onClick={() => setConfirming(false)}>{t("Cancel")}</Button><Button disabled={busy} onClick={() => void save()}>{t(busy ? "Saving…" : "Save payout details")}</Button></DialogFooter></DialogContent></Dialog>
+    </>
   );
 }
