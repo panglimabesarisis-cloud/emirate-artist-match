@@ -124,13 +124,13 @@ export function JobProgressChart({ artistId }: { artistId: string }) {
   const money = useOverviewMoney(artistId);
   const data = useMemo(() => monthBuckets().map((m) => ({
     label: m.label,
-    booking: (money.data?.bookings ?? []).filter((b) => b.status !== "cancelled" && inMonth(b.created_at, m)).length,
+    booking: (money.data?.bookings ?? []).filter((b) => b.status !== "cancelled" && Number(b.paid_amount) > 0 && inMonth(b.paid_at ?? b.created_at, m)).length,
     completed: (money.data?.bookings ?? []).filter((b) => b.status === "completed" && inMonth(b.completed_at, m)).length,
   })), [money.data]);
   return (
     <AreaCard id="jobs" title={t("Progress")} accent={t("job")} subtitle={t("Last 6 months")} data={data}
       series={[{ key: "booking", label: t("Job booking"), color: "#e8b04a", value: String(total(data, "booking")) }, { key: "completed", label: t("Job completed"), color: "#7bd88f", value: String(total(data, "completed")) }]}
-      empty={data.every((m) => m.booking + m.completed === 0)} emptyText={t("No bookings yet.")} note={t("Bookings are counted when they are created; jobs when they are marked completed.")} />
+      empty={data.every((m) => m.booking + m.completed === 0)} emptyText={t("No bookings yet.")} note={t("A job booking is counted once the client has paid (deposit or in full); jobs when they are marked completed.")} />
   );
 }
 
