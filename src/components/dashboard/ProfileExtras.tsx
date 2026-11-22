@@ -50,7 +50,7 @@ export function ProfilePhoto({ artistId, name, photoPath, onSaved }: { artistId:
     onSaved();
   };
   return (
-    <div className="space-y-2">
+    <div id="pf-photo" className="space-y-2">
       <span className="studio-profile-avatar overflow-hidden">{url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials(name)}</span>
       <input ref={input} type="file" accept="image/*" className="sr-only" aria-label={t("Upload photo")} onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
       <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}><Camera className="me-1.5 h-4 w-4" />{busy ? t("Uploading…") : t("Upload photo")}</Button>
@@ -142,7 +142,7 @@ export function PortfolioSection({ artistId }: { artistId: string }) {
     qc.invalidateQueries({ queryKey: key });
   };
   return (
-    <StudioSection title="Portfolio of" accent="work" subtitle="Shows of yours that prove it. A photo makes each one far more convincing.">
+    <StudioSection id="pf-po-s" title="Portfolio of" accent="work" subtitle="Shows of yours that prove it. A photo makes each one far more convincing.">
       {data.length === 0 && <StudioEmpty title="No portfolio items yet" />}
       <ul className="divide-y divide-border">
         {data.map((p) => (
@@ -189,7 +189,7 @@ export function ClientsSection({ artistId }: { artistId: string }) {
     qc.invalidateQueries({ queryKey: key });
   };
   return (
-    <StudioSection title="Clients you have" accent="worked with" subtitle="Companies and hosts you have performed for. Untick Public to keep one private.">
+    <StudioSection id="pf-cl-s" title="Clients you have" accent="worked with" subtitle="Companies and hosts you have performed for. Untick Public to keep one private.">
       {data.length === 0 && <StudioEmpty title="No clients yet" />}
       <ul className="divide-y divide-border">
         {data.map((c) => (
