@@ -24,16 +24,31 @@ export function useFeaturedChoreography(ref: RefObject<HTMLDivElement | null>, c
         root.dataset["animated"] = "true";
         root.dataset["landed"] = "false";
         scene.inert = true;
+        let released = false;
+        const release = () => {
+          if (released) return;
+          released = true;
+          const before = scene.getBoundingClientRect().top;
+          timeline.scrollTrigger?.kill(true, true);
+          timeline.pause();
+          gsap.set(cards, { x: 0, y: 0, scale: 1, rotation: 360, opacity: 1 });
+          gsap.set(word, { opacity: 0 });
+          root.dataset["landed"] = "true";
+          scene.inert = false;
+          window.scrollBy(0, scene.getBoundingClientRect().top - before);
+        };
         const timeline = gsap.timeline({
           defaults: { ease: "power3.inOut" },
-          onUpdate: () => {
-            const landed = timeline.progress() >= .97;
-            root.dataset["landed"] = landed ? "true" : "false";
-            scene.inert = !landed;
-          },
           scrollTrigger: {
             trigger: scene, start: `top top+=${header}`, end: () => `+=${window.innerHeight * 4.6}`,
             pin: true, scrub: .65, anticipatePin: 1, invalidateOnRefresh: true,
+            onUpdate: self => {
+              if (released) return;
+              const landed = self.progress >= .97;
+              root.dataset["landed"] = landed ? "true" : "false";
+              scene.inert = !landed;
+            },
+            onLeave: () => { gsap.delayedCall(.8, release); },
           },
         });
         timeline.set(cards, { x: (_, el: HTMLElement) => offset(el).x, y: (_, el: HTMLElement) => offset(el).y, scale: .62, opacity: 0, rotation: 0 }, 0);
