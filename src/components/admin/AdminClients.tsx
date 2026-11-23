@@ -166,7 +166,7 @@ export function ClientWithdrawals() {
   );
 }
 
-const TOPIC: Record<string, string> = { booking: "Booking assistance", payment: "Payment issue", commission: "Commission / withdrawal", account: "Account support" };
+const TOPIC: Record<string, string> = { booking: "Booking assistance", payment: "Payment issue", commission: "Commission / withdrawal", account: "Account support", verification: "Verification", payout: "Payout / wallet", calendar: "Calendar", technical: "Technical issue" };
 
 /** Support requests sent from the client portal; replies show in the client's Support Center and Notifications. */
 export function SupportInbox() {
@@ -176,7 +176,7 @@ export function SupportInbox() {
   const { data, error } = useQuery({
     queryKey: ["admin-support", filter],
     queryFn: async () => {
-      let q = supabase.from("support_requests").select("id, reference, user_id, topic, booking_id, message, status, admin_reply, replied_at, created_at").order("created_at", { ascending: false }).limit(200);
+      let q = supabase.from("support_requests").select("id, reference, user_id, artist_id, artists(stage_name), topic, booking_id, message, status, admin_reply, replied_at, created_at").order("created_at", { ascending: false }).limit(200);
       if (filter === "open") q = q.eq("status", "open");
       const r = await q;
       if (r.error) throw new Error("Unable to load support requests");
@@ -191,17 +191,17 @@ export function SupportInbox() {
     await qc.invalidateQueries({ queryKey: ["admin-support"] });
   };
   return (
-    <StudioSection title="Support" accent="inbox" subtitle="Requests from the client portal." aside={<div className="flex gap-2"><Button size="sm" variant={filter === "open" ? "default" : "outline"} onClick={() => setFilter("open")}>Open</Button><Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>All</Button></div>}>
+    <StudioSection title="Support" accent="inbox" subtitle="Requests from clients and artists." aside={<div className="flex gap-2"><Button size="sm" variant={filter === "open" ? "default" : "outline"} onClick={() => setFilter("open")}>Open</Button><Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>All</Button></div>}>
       {error ? <p className="p-4 text-sm text-destructive">Unable to load support requests.</p> : (data ?? []).length === 0 ? <StudioEmpty title={filter === "open" ? "No open requests" : "No requests yet"} icon={LifeBuoy} /> : (
         <div className="divide-y rounded-xl border">
           {(data ?? []).map((r) => {
             const draft = drafts[r.id] ?? r.admin_reply ?? "";
             return (
               <div key={r.id} className="space-y-2 p-4 text-sm">
-                <div className="flex flex-wrap items-center gap-2"><b>{r.reference}</b><span className="text-muted-foreground">· {TOPIC[r.topic] ?? r.topic} · {when(r.created_at)}</span><Badge variant={r.status === "open" ? "secondary" : r.status === "answered" ? "default" : "outline"} className="ms-auto">{r.status}</Badge></div>
+                <div className="flex flex-wrap items-center gap-2"><b>{r.reference}</b><Badge variant="outline">{r.artist_id ? `Artist · ${r.artists?.stage_name ?? "—"}` : "Client"}</Badge><span className="text-muted-foreground">· {TOPIC[r.topic] ?? r.topic} · {when(r.created_at)}</span><Badge variant={r.status === "open" ? "secondary" : r.status === "answered" ? "default" : "outline"} className="ms-auto">{r.status}</Badge></div>
                 <p className="whitespace-pre-wrap" dir="auto">{r.message}</p>
                 {r.booking_id && <p className="text-xs text-muted-foreground">Booking {r.booking_id.slice(0, 8).toUpperCase()}</p>}
-                <Textarea value={draft} maxLength={2000} placeholder="Write a reply the client sees in their portal…" onChange={(e) => setDrafts({ ...drafts, [r.id]: e.target.value })} aria-label={`Reply to ${r.reference}`} />
+                <Textarea value={draft} maxLength={2000} placeholder="Write a reply the sender sees in their dashboard…" onChange={(e) => setDrafts({ ...drafts, [r.id]: e.target.value })} aria-label={`Reply to ${r.reference}`} />
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" disabled={!draft.trim() || draft === (r.admin_reply ?? "")} onClick={() => save(r.id, { admin_reply: draft.trim() })}>{r.admin_reply ? "Update reply" : "Send reply"}</Button>
                   {r.status !== "closed" ? <Button size="sm" variant="outline" onClick={() => save(r.id, { status: "closed" })}>Close</Button> : <Button size="sm" variant="outline" onClick={() => save(r.id, { status: "open" })}>Reopen</Button>}

@@ -3305,6 +3305,7 @@ export type Database = {
       support_requests: {
         Row: {
           admin_reply: string | null
+          artist_id: string | null
           booking_id: string | null
           created_at: string
           id: string
@@ -3319,6 +3320,7 @@ export type Database = {
         }
         Insert: {
           admin_reply?: string | null
+          artist_id?: string | null
           booking_id?: string | null
           created_at?: string
           id?: string
@@ -3333,6 +3335,7 @@ export type Database = {
         }
         Update: {
           admin_reply?: string | null
+          artist_id?: string | null
           booking_id?: string | null
           created_at?: string
           id?: string
@@ -3346,6 +3349,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_requests_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_requests_booking_id_fkey"
             columns: ["booking_id"]

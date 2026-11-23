@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
+import { ArtistSupport } from "@/components/dashboard/ArtistSupport";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
-import { BadgeCheck, Bell, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -140,12 +141,13 @@ const ARTIST_NAV = [
   { id: "agent", label: "AI agent", group: "AI" },
   { id: "flow", label: "AI flow", group: "AI" },
   { id: "team", label: "Team", group: "Settings" },
+  { id: "support", label: "Support center", group: "Settings" },
 ] as const;
 type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
 const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
   overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
   wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
-  agent: Bot, flow: Workflow, team: Users,
+  agent: Bot, flow: Workflow, team: Users, support: LifeBuoy,
 };
 
 function ArtistDash({ userId, email }: { userId: string; email: string }) {
@@ -264,6 +266,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "verify" && <VerificationPage artistId={artist.id} userId={userId} />}
           {section === "agent" && <AgentSettings artistId={artist.id} />}
           {section === "flow" && <FlowBuilder artistId={artist.id} />}
+          {section === "support" && <ArtistSupport artistId={artist.id} />}
           {section === "team" && <><TeamTab artistId={artist.id}/><TeamPhones artistId={artist.id}/></>}
         </main>
       </div>
