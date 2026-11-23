@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DemoBanner } from "@/components/site/DemoBanner";
 import { useI18n, localName } from "@/lib/i18n";
 import type { HomeCatalog } from "./types";
+import "./send-job-navigation.css";
 
 export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const { user, isAdmin } = useAuth();
@@ -66,6 +67,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
             <Button variant="ghost" size="icon" className="hide-m sign-out" onClick={signOut} aria-label={t("Sign out")} title={t("Sign out")}><LogOut className="h-4 w-4" /></Button>
           </> : <Link className="hide-m" to="/auth">{t("Sign in")}</Link>}
           <Button asChild className="btn btn-gold hide-m"><Link to="/join">{t("Join as talent")}</Link></Button>
+          <Button asChild variant="outline" className="btn btn-line hide-m"><Link to="/send-job">{t("Send Job")}</Link></Button>
           <Button variant="ghost" size="icon" className="burger" aria-expanded={menu} aria-controls="home-mobile-menu" aria-label={t(menu ? "Close menu" : "Menu")} onClick={() => setMenu(!menu)}>{menu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>
         </div>
       </div>
@@ -75,6 +77,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
         <Link to="/for-clients" activeProps={{ "aria-current": "page" }} onClick={close}>{t("For clients")}</Link><Link to="/how-it-works" onClick={close}>{t("How it works")}</Link>
         <Link to="/features" onClick={close}>{t("Features")}</Link><Link to="/support" onClick={close}>{t("Support")}</Link><Link to="/terms" onClick={close}>{t("Terms of Service")}</Link>
         <Link to="/join" onClick={close}>{t("Join as talent")}</Link>
+        <Link to="/send-job" onClick={close}>{t("Send Job")}</Link>
         {user ? <><Link to="/dashboard" onClick={close}>{t("Dashboard")}</Link>{isAdmin && <Link to="/admin" onClick={close}>{t("Admin")}</Link>}<Button variant="ghost" onClick={signOut}>{t("Sign out")}</Button></> : <Link to="/auth" onClick={close}>{t("Sign in")}</Link>}
       </nav>}
     </div>

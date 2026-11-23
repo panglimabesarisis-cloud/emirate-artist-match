@@ -484,6 +484,13 @@
       "when": 1795427472312,
       "tag": "0068_preserve_applicant_inquiry_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1795428904788,
+      "tag": "0069_preserve_inquiry_owner_insert_returning",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,14 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Send Job": "أرسل طلب عمل", "Date & venue": "التاريخ والمكان", "Brief & documents": "التفاصيل والمستندات", "Budget & review": "الميزانية والمراجعة", "Inquiry steps": "خطوات الطلب",
+  "Job title": "عنوان العمل", "Specific preferences": "تفضيلات خاصة", "Optional": "اختياري", "Choose a category": "اختر فئة", "Male MC for a gala dinner": "مقدم حفل لعشاء رسمي", "Languages, dress code, performance style": "اللغات والملابس وأسلوب الأداء",
+  "Event date": "تاريخ الفعالية", "Start time": "وقت البداية", "End time": "وقت النهاية", "Venue / location": "المكان / الموقع", "Venue name, area and emirate": "اسم المكان والمنطقة والإمارة", "Not specified": "غير محدد",
+  "Event times are in UAE time. An earlier end time means the event ends the following day.": "الأوقات بتوقيت الإمارات. وقت النهاية المبكر يعني انتهاء الفعالية في اليوم التالي.",
+  "Describe the event, performance duration, rundown and what you need from the artist.": "صف الفعالية ومدة الأداء والبرنامج وما تحتاجه من الفنان.", "Remove document": "إزالة المستند",
+  "PDF, JPG or PNG, up to 5 MB. Shared only with artists you approve.": "PDF أو JPG أو PNG حتى 5 ميغابايت. تتم مشاركتها فقط مع الفنانين الذين توافق عليهم.",
+  "Your budget is an estimate, not a booking or payment commitment.": "ميزانيتك تقديرية وليست حجزاً أو التزاماً بالدفع.", "Review your inquiry": "راجع طلبك", "Back": "رجوع", "Continue": "متابعة", "Submit & post job": "إرسال ونشر الطلب",
+  "Create your client account": "أنشئ حساب العميل", "Your inquiry is saved on this device. It will be posted after you sign in with a verified account.": "تم حفظ طلبك على هذا الجهاز. سينشر بعد تسجيل الدخول بحساب موثق.", "Sign up & post job": "إنشاء حساب ونشر الطلب", "Already have an account? Sign in": "لديك حساب؟ سجل الدخول",
   "Add cost per distance": "إضافة تكلفة حسب المسافة", "Distance interval": "فاصل المسافة", "Additional cost (AED)": "تكلفة إضافية (درهم)", "Per 5 km": "لكل 5 كم", "Per 10 km": "لكل 10 كم",
   "Open inquiries": "الطلبات المفتوحة", "Post inquiry": "نشر طلب", "Apply Job": "التقدم للعمل", "Approve & chat": "الموافقة والمحادثة", "Open AI chat": "فتح محادثة الذكاء الاصطناعي", "Applications": "طلبات التقديم", "Event brief": "تفاصيل الفعالية", "Talent needed": "الموهبة المطلوبة", "Preferences": "التفضيلات", "Venue / address": "المكان / العنوان", "Event documents": "مستندات الفعالية", "Search inquiries": "البحث في الطلبات", "No open inquiries yet": "لا توجد طلبات مفتوحة بعد", "Close inquiry": "إغلاق الطلب", "Reopen inquiry": "إعادة فتح الطلب", "Withdraw application": "سحب طلب التقديم", "Message to client": "رسالة للعميل", "Proposed price (AED, optional)": "السعر المقترح (درهم، اختياري)", "Open inbox": "فتح صندوق الوارد",
   "Custom conversation flow": "مسار المحادثة المخصص", "Custom flow active": "المسار المخصص نشط", "Standard flow active": "المسار القياسي نشط",

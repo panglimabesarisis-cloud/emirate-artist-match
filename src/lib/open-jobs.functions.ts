@@ -6,10 +6,19 @@ import { CHAT_BUCKET } from "./chat-attachments";
 import { maskContacts } from "./masking";
 
 export const postOpenJob = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v: unknown) => openJobSchema.parse(v)).handler(async ({ data, context }) => {
+  if (data.submissionId) {
+    const { data: existing } = await context.supabase.from("open_jobs").select("id").eq("id", data.submissionId).eq("client_user_id", context.userId).maybeSingle();
+    if (existing) return existing;
+  }
   const { data: job, error } = await context.supabase.from("open_jobs").insert({
+    ...(data.submissionId ? { id: data.submissionId } : {}),
     client_user_id: context.userId, title: maskContacts(data.title), brief: maskContacts(data.brief), preferences: maskContacts(data.preferences), category_id: data.categoryId,
     event_date: data.eventDate, start_time: data.startTime, end_time: data.endTime, venue: maskContacts(data.venue), budget_aed: data.budgetAED,
   }).select("id").single();
+  if (error?.code === "23505" && data.submissionId) {
+    const { data: existing } = await context.supabase.from("open_jobs").select("id").eq("id", data.submissionId).eq("client_user_id", context.userId).maybeSingle();
+    if (existing) return existing;
+  }
   if (error || !job) throw new Error("Could not post inquiry. Check that the event date is not in the past.");
   return job;
 });
@@ -49,17 +58,22 @@ export const withdrawJobApplication = createServerFn({ method: "POST" }).middlew
   return { ok: true };
 });
 
-export const uploadJobDocument = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v: unknown) => z.object({ jobId: z.string().uuid(), name: z.string().min(1).max(120), mime: z.enum(JOB_DOC_TYPES), base64: z.string().max(Math.ceil(JOB_DOC_MAX_BYTES / 3) * 4).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).parse(v)).handler(async ({ data, context }) => {
+export const uploadJobDocument = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v: unknown) => z.object({ documentId: z.string().uuid().optional(), jobId: z.string().uuid(), name: z.string().min(1).max(120), mime: z.enum(JOB_DOC_TYPES), base64: z.string().max(Math.ceil(JOB_DOC_MAX_BYTES / 3) * 4).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).parse(v)).handler(async ({ data, context }) => {
   const { data: job } = await context.supabase.from("open_jobs").select("id").eq("id", data.jobId).eq("client_user_id", context.userId).maybeSingle();
   if (!job) throw new Error("Only the inquiry owner can upload documents");
+  if (data.documentId) {
+    const { data: existing } = await context.supabase.from("job_documents").select("id").eq("id", data.documentId).eq("job_id", job.id).maybeSingle();
+    if (existing) return { ok: true };
+  }
   const bytes = Uint8Array.from(atob(data.base64), c => c.charCodeAt(0));
   validateJobDocument(bytes, data.mime);
   const ext = data.mime === "application/pdf" ? "pdf" : data.mime === "image/png" ? "png" : "jpg";
-  const path = `inquiries/${job.id}/${crypto.randomUUID()}.${ext}`;
+  const documentId = data.documentId ?? crypto.randomUUID();
+  const path = `inquiries/${job.id}/${documentId}.${ext}`;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error: uploadError } = await supabaseAdmin.storage.from(CHAT_BUCKET).upload(path, bytes, { contentType: data.mime, upsert: false });
+  const { error: uploadError } = await supabaseAdmin.storage.from(CHAT_BUCKET).upload(path, bytes, { contentType: data.mime, upsert: true });
   if (uploadError) throw new Error("Document upload failed");
-  const { error } = await supabaseAdmin.from("job_documents").insert({ job_id: job.id, path, name: maskContacts(data.name), mime_type: data.mime, size_bytes: bytes.length });
+  const { error } = await supabaseAdmin.from("job_documents").upsert({ id: documentId, job_id: job.id, path, name: maskContacts(data.name), mime_type: data.mime, size_bytes: bytes.length }, { onConflict: "id", ignoreDuplicates: true });
   if (error) throw new Error("The upload could not be linked to your inquiry");
   return { ok: true };
 });

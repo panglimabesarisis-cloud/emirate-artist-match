@@ -9,6 +9,9 @@
 - Estimates remain separate from package prices and are passed to artist review; no automatic payable surcharge or settlement is introduced.
 
 ## Broadcast inquiries
+- Shared navigation > Send Job opens `/send-job`: Talent, Date & venue, Brief & documents, Budget & review.
+- Guest submission saves the draft and attachment bytes on the current device before client signup/sign-in; a verified authenticated session resumes posting and redirects to `/client/dashboard?section=inquiries`.
+- Stable inquiry/document IDs make retries reuse the same records. Posting always uses the caller's identity, existing row-level ownership checks and contact masking; event type is retained in the brief.
 - Client portal > Open inquiries > Post inquiry: title, brief, category, preferences, event date/hours, venue, AED budget.
 - Every approved artist owner can see an open, future inquiry; preferences are information, not an inferred eligibility filter.
 - PDF/JPG/PNG documents up to 5 MB can be attached after posting. They are private to the client and approved applicants; AI document extraction was not added.
@@ -20,6 +23,7 @@
 - Closing an inquiry stops new applications; existing applicants retain its details.
 
 ## Verification
+- Send Job: signed-out signup gate/client-only account choice, authenticated resume, AED 3,000 readback, repeat-resume deduplication and desktop/mobile overflow checked without screenshots. The temporary inquiry was closed; new-account email/OAuth completion and real attachment transfer remain unverified.
 - 71 targeted unit/regression tests passed.
 - Rollback-only tests in a fresh local database passed: owner-only travel settings, valid intervals, client-owned inquiries, approved-artist broadcast reads, duplicate application/approval safety, document gating, anonymous denial, and unchanged booking/invoice counts.
 - Signed-in client portal and populated inquiry form checked without screenshots or console errors.

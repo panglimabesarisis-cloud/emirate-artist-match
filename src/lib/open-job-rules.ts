@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const openJobSchema = z.object({
+  submissionId: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(120),
   brief: z.string().trim().min(1).max(4000),
   preferences: z.string().trim().max(500).default(""),

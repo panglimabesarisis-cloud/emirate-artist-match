@@ -20,6 +20,7 @@ import { Route as HowYouGetBookedRouteImport } from './routes/how-you-get-booked
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SendJobRouteImport } from './routes/send-job'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WhyArtistsJoinRouteImport } from './routes/why-artists-join'
@@ -100,6 +101,11 @@ const McpRoute = McpRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SendJobRoute = SendJobRouteImport.update({
+  id: '/send-job',
+  path: '/send-job',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -258,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/send-job': typeof SendJobRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/why-artists-join': typeof WhyArtistsJoinRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/send-job': typeof SendJobRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/why-artists-join': typeof WhyArtistsJoinRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/send-job': typeof SendJobRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/why-artists-join': typeof WhyArtistsJoinRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/mcp'
     | '/reset-password'
+    | '/send-job'
     | '/support'
     | '/terms'
     | '/why-artists-join'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/mcp'
     | '/reset-password'
+    | '/send-job'
     | '/support'
     | '/terms'
     | '/why-artists-join'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/mcp'
     | '/reset-password'
+    | '/send-job'
     | '/support'
     | '/terms'
     | '/why-artists-join'
@@ -499,6 +511,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SendJobRoute: typeof SendJobRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   WhyArtistsJoinRoute: typeof WhyArtistsJoinRoute
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/send-job': {
+      id: '/send-job'
+      path: '/send-job'
+      fullPath: '/send-job'
+      preLoaderRoute: typeof SendJobRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -824,6 +844,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SendJobRoute: SendJobRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   WhyArtistsJoinRoute: WhyArtistsJoinRoute,

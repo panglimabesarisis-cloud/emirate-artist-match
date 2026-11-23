@@ -1,0 +1,1 @@
+ALTER POLICY open_jobs_read ON public.open_jobs USING (client_user_id = auth.uid() OR public.can_read_open_job(id));

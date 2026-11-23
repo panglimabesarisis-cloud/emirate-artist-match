@@ -26,6 +26,7 @@ CREATE FUNCTION has_role(u uuid,r text) RETURNS boolean LANGUAGE sql STABLE AS $
 \ir ../../drizzle/migrations/0066_broadcast_inquiries_and_artist_applications.sql
 \ir ../../drizzle/migrations/0067_optional_inquiry_application_price.sql
 \ir ../../drizzle/migrations/0068_preserve_applicant_inquiry_visibility.sql
+\ir ../../drizzle/migrations/0069_preserve_inquiry_owner_insert_returning.sql
 CREATE FUNCTION test_assert(ok boolean,rule text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: %',rule; END IF; END $$;
 CREATE FUNCTION test_error(statement text) RETURNS void LANGUAGE plpgsql AS $$ DECLARE failed boolean:=false; BEGIN BEGIN EXECUTE statement; EXCEPTION WHEN OTHERS THEN failed:=true; END; IF NOT failed THEN RAISE EXCEPTION 'Expected denial: %',statement; END IF; END $$;
 INSERT INTO artists(id,user_id,status) VALUES
@@ -43,7 +44,10 @@ SELECT test_error($q$UPDATE artists SET travel_fee_per_step=0 WHERE id='10000000
 SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);
 SELECT test_error($q$UPDATE artists SET travel_fee_per_step=100 WHERE id='10000000-0000-0000-0000-000000000001'$q$);
 SELECT set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
-INSERT INTO open_jobs(id,client_user_id,title,brief,event_date,start_time,end_time,venue,budget_aed) VALUES('30000000-0000-0000-0000-000000000001',auth.uid(),'Male MC','Gala dinner','2099-01-01','23:00','01:00','Abu Dhabi',3000);
+WITH posted AS (
+ INSERT INTO open_jobs(id,client_user_id,title,brief,event_date,start_time,end_time,venue,budget_aed) VALUES('30000000-0000-0000-0000-000000000001',auth.uid(),'Male MC','Gala dinner','2099-01-01','23:00','01:00','Abu Dhabi',3000)
+ RETURNING id
+) SELECT test_assert((SELECT count(*)=1 FROM posted),'client publication returns its new inquiry immediately');
 SELECT test_assert((SELECT budget_aed=3000 AND start_time='23:00' AND end_time='01:00' FROM open_jobs),'client publishes AED 3000 overnight inquiry');
 SELECT test_error($q$UPDATE open_jobs SET client_user_id='20000000-0000-0000-0000-000000000005'$q$);
 SELECT test_error($q$SELECT apply_open_job(auth.uid(),'30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Interested')$q$);
