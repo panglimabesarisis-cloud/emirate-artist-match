@@ -4,6 +4,8 @@ export type Lang = "en" | "ar";
 
 /** English text is the key; missing Arabic falls back to English. */
 const AR: Record<string, string> = {
+  "Add cost per distance": "إضافة تكلفة حسب المسافة", "Distance interval": "فاصل المسافة", "Additional cost (AED)": "تكلفة إضافية (درهم)", "Per 5 km": "لكل 5 كم", "Per 10 km": "لكل 10 كم",
+  "Open inquiries": "الطلبات المفتوحة", "Post inquiry": "نشر طلب", "Apply Job": "التقدم للعمل", "Approve & chat": "الموافقة والمحادثة", "Open AI chat": "فتح محادثة الذكاء الاصطناعي", "Applications": "طلبات التقديم", "Event brief": "تفاصيل الفعالية", "Talent needed": "الموهبة المطلوبة", "Preferences": "التفضيلات", "Venue / address": "المكان / العنوان", "Event documents": "مستندات الفعالية", "Search inquiries": "البحث في الطلبات", "No open inquiries yet": "لا توجد طلبات مفتوحة بعد", "Close inquiry": "إغلاق الطلب", "Reopen inquiry": "إعادة فتح الطلب", "Withdraw application": "سحب طلب التقديم", "Message to client": "رسالة للعميل", "Proposed price (AED, optional)": "السعر المقترح (درهم، اختياري)", "Open inbox": "فتح صندوق الوارد",
   "Custom conversation flow": "مسار المحادثة المخصص", "Custom flow active": "المسار المخصص نشط", "Standard flow active": "المسار القياسي نشط",
   "Yes · Artist approves": "نعم · يوافق الفنان", "No · Artist declines": "لا · يرفض الفنان", "Continue Yes branch": "متابعة فرع نعم", "Continue No branch": "متابعة فرع لا",
   "Yes · Approve": "نعم · موافقة", "No · Decline": "لا · رفض", "Your response is sent to the client chat.": "يُرسل ردك إلى محادثة العميل.",

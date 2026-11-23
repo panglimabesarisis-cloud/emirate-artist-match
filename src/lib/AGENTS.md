@@ -1,4 +1,6 @@
 # Booking workflow rules
+- Travel fees use the tested fils calculator and owner-owned settings; client-stated distances remain estimates, never model-inferred payable amounts.
+- Broadcast applications create conversations atomically only after verified client approval; private inquiry files require caller-RLS checks before signed URLs, and approving an applicant is not booking or price consent.
 - Resolve displayed button selections against saved edges before WhatsApp hand-off; artist review never implies client price consent, and existing Calendar, invoice and payment checks still apply.
 - Fonnte replies require a shared secret and private deduplicated inbox; atomic decisions match logged approval recipients/references, preserve invoice-item approval, and durably claim follow-up work without blindly retrying ambiguous sends.
 

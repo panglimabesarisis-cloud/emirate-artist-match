@@ -456,6 +456,34 @@
       "when": 1795424765121,
       "tag": "0064_artist_support_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1795426928315,
+      "tag": "0065_optional_artist_travel_surcharge",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1795427082179,
+      "tag": "0066_broadcast_inquiries_and_artist_applications",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795427255175,
+      "tag": "0067_optional_inquiry_application_price",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795427472312,
+      "tag": "0068_preserve_applicant_inquiry_visibility",
+      "breakpoints": true
     }
   ]
 }

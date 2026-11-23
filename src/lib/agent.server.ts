@@ -5,6 +5,7 @@ import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
 import { agentRates } from "./agent-pricing";
+import { clientTravelDistance, travelPrompt } from "./travel-rules";
 import { approvalPriceRule, selectedWhatsAppStep } from "./agent-approval";
 import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
 import { checkGoogleAvailability } from "./calendar-availability.server";
@@ -36,7 +37,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
 
   const [{ data: artist }, { data: settings }, { data: wallet }, { data: rates }, { data: quote }, { data: history }] =
     await Promise.all([
-      supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
+      supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, travel_surcharge_enabled, travel_step_km, travel_fee_per_step, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("credit_wallets").select("balance").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", convo.artist_id).order("sort"),
@@ -105,7 +106,7 @@ PRICING RULES (strict):
 ${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}
 - Only quote the stored prices above, in AED. Prices exclude 5% VAT.
 ${approvalPriceRule(!!action, !!invoiceAction, pricing.startingOnly, pricing.minimum, maxDiscount, floor)}
-- Travel radius ${artist.travel_radius_km ?? 30} km from base; beyond that say travel fees will be confirmed by the artist.
+${travelPrompt(artist, clientTravelDistance((history ?? []).filter(m => m.sender === "client").map(m => decodeChatMessage(m.body).text)))}
 AVAILABILITY (strict): use check_calendar to check the artist's live Google Calendar for the client's current requested date and hours (Asia/Dubai). Manual blocked dates and old calendar instructions are not availability evidence. Call the tool before claiming available/busy, following a calendar branch, or emitting BOOKING_READY. Recheck whenever the client changes date or hours. If hours are missing, ask for them before booking. A date-only check is preliminary. If status is unknown or Calendar is not connected, keep chatting and collecting details following the configured flow. Never assume available or busy. Explain the artist must confirm the schedule. You may emit BOOKING_READY only as a pending artist approval request after the client consents to proceed subject to artist confirmation; never issue invoices, payment links or reserve dates before artist approval. Do not emit HANDOVER solely because Calendar is missing. Only verified available means the Available branch, verified busy means Busy. Do not reveal private event titles or attendees. Never confirm a booking yourself; the artist must approve.
 Never share or ask for phone numbers, emails or social handles — all communication stays on the platform.
 BOOKING HAND-OFF: ${action ? "when the client selects the saved choice leading to Send to WhatsApp (for example Book Now), immediately request artist review, without asking for price agreement. Use all previously supplied event/venue details; do not ask again for an area when a venue/address already identifies it" : invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are requesting ${artist.stage_name}'s approval (do not claim WhatsApp delivery), and end your reply with exactly:

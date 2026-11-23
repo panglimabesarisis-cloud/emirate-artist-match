@@ -1056,7 +1056,10 @@ export type Database = {
           status: string
           subcategory_id: string | null
           tagline: string | null
+          travel_fee_per_step: number
           travel_radius_km: number | null
+          travel_step_km: number
+          travel_surcharge_enabled: boolean
           trn: string | null
           user_id: string | null
         }
@@ -1092,7 +1095,10 @@ export type Database = {
           status?: string
           subcategory_id?: string | null
           tagline?: string | null
+          travel_fee_per_step?: number
           travel_radius_km?: number | null
+          travel_step_km?: number
+          travel_surcharge_enabled?: boolean
           trn?: string | null
           user_id?: string | null
         }
@@ -1128,7 +1134,10 @@ export type Database = {
           status?: string
           subcategory_id?: string | null
           tagline?: string | null
+          travel_fee_per_step?: number
           travel_radius_km?: number | null
+          travel_step_km?: number
+          travel_surcharge_enabled?: boolean
           trn?: string | null
           user_id?: string | null
         }
@@ -2278,6 +2287,99 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          artist_id: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          job_id: string
+          message: string
+          proposed_aed: number | null
+          status: string
+        }
+        Insert: {
+          artist_id: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          message?: string
+          proposed_aed?: number | null
+          status?: string
+        }
+        Update: {
+          artist_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          message?: string
+          proposed_aed?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_documents: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          mime_type: string
+          name: string
+          path: string
+          size_bytes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          mime_type: string
+          name: string
+          path: string
+          size_bytes: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          mime_type?: string
+          name?: string
+          path?: string
+          size_bytes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_documents_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       library_audit: {
         Row: {
           action: string
@@ -2398,6 +2500,62 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_jobs: {
+        Row: {
+          brief: string
+          budget_aed: number
+          category_id: string | null
+          client_user_id: string
+          created_at: string
+          end_time: string
+          event_date: string
+          id: string
+          preferences: string
+          start_time: string
+          status: string
+          title: string
+          venue: string
+        }
+        Insert: {
+          brief: string
+          budget_aed: number
+          category_id?: string | null
+          client_user_id: string
+          created_at?: string
+          end_time: string
+          event_date: string
+          id?: string
+          preferences?: string
+          start_time: string
+          status?: string
+          title: string
+          venue: string
+        }
+        Update: {
+          brief?: string
+          budget_aed?: number
+          category_id?: string | null
+          client_user_id?: string
+          created_at?: string
+          end_time?: string
+          event_date?: string
+          id?: string
+          preferences?: string
+          start_time?: string
+          status?: string
+          title?: string
+          venue?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_jobs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -3924,6 +4082,16 @@ export type Database = {
         Args: { _changes: Json; _event: string }
         Returns: Json
       }
+      apply_open_job: {
+        Args: {
+          _actor: string
+          _artist: string
+          _job: string
+          _message: string
+          _proposed?: number
+        }
+        Returns: string
+      }
       apply_test_subscription: { Args: { _state: Json }; Returns: undefined }
       apply_whatsapp_status: {
         Args: { _at: string; _error: string; _message: string; _status: string }
@@ -4030,6 +4198,7 @@ export type Database = {
         }
       }
       booking_contract_terms: { Args: { _booking: string }; Returns: Json }
+      can_read_open_job: { Args: { _job: string }; Returns: boolean }
       can_use_library_item: {
         Args: { _artist: string; _id: string; _kind: string }
         Returns: boolean
@@ -4143,6 +4312,17 @@ export type Database = {
           processing: number
           withdrawn: number
         }[]
+      }
+      decide_job_application: {
+        Args: {
+          _actor: string
+          _application: string
+          _decision: string
+          _email: string
+          _name: string
+          _summary: string
+        }
+        Returns: Json
       }
       effective_artist_plan: { Args: { _artist: string }; Returns: string }
       expire_unpaid_records: { Args: never; Returns: Json }
@@ -4295,6 +4475,10 @@ export type Database = {
       verification_file_owned_path: {
         Args: { _application: string; _path: string }
         Returns: boolean
+      }
+      withdraw_job_application: {
+        Args: { _actor: string; _application: string }
+        Returns: undefined
       }
     }
     Enums: {

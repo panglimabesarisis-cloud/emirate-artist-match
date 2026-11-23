@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
 import { Bell, BookOpen, CheckCircle2, FileBarChart, Gem, Home, Landmark, LifeBuoy, Mail, Menu, MessageSquare, Settings as SettingsIcon, Sparkles, Star, TrendingUp, User, Users, Wallet as WalletIcon, ArrowUpFromLine, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -11,12 +13,14 @@ import { Overview, Browse, Bookings, Jobs, Reviews, Messages } from "./sections/
 import { CommissionOverview, CommissionHistory, Wallet, Withdrawals, PayoutAccounts, Statements } from "./sections/Finance";
 import { Profile, Notifications, Support, Settings } from "./sections/Account";
 import { PortalModals } from "./Modals";
+import { ClientOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import "./client-portal.css";
 
 type NavItem = { id: ClientSection; label: string; icon: LucideIcon };
 const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Workspace", items: [
     { id: "dashboard", label: "Dashboard", icon: Home }, { id: "browse", label: "Browse Artists", icon: Sparkles }, { id: "bookings", label: "My Bookings", icon: BookOpen },
+    { id: "inquiries", label: "Open inquiries", icon: Sparkles },
     { id: "jobs", label: "Job Confirmations", icon: CheckCircle2 }, { id: "reviews", label: "My Reviews", icon: Star }, { id: "messages", label: "Messages", icon: MessageSquare },
   ] },
   { group: "Earnings & Finance", items: [
@@ -62,6 +66,11 @@ export function ClientPortal({ uid, email, section, thread, onNavigate }: { uid:
   const support = useSupport(uid);
   const commissions = useCommissions(uid);
   const { rows } = usePortalRows(uid);
+  const inquiryAlerts = useQuery({ queryKey: ["inquiry-alerts", uid], refetchInterval: 30000, queryFn: async () => {
+    const { count, error } = await supabase.from("job_applications").select("id,open_jobs!inner(client_user_id)", { count: "exact", head: true }).eq("open_jobs.client_user_id", uid).eq("status", "pending");
+    if (error) throw error;
+    return count ?? 0;
+  } });
   const name = profile.data?.display_name || email.split("@")[0] || "Client";
   const counts = useMemo(() => {
     const s = settings.data;
@@ -73,7 +82,7 @@ export function ClientPortal({ uid, email, section, thread, onNavigate }: { uid:
       notifications: feed.filter((e) => !s?.notifications_read_at || e.at > s.notifications_read_at).length,
     };
   }, [rows, threads.data, settings.data, payouts.data, support.data, commissions.data]);
-  const COUNT: Partial<Record<ClientSection, number>> = { bookings: counts.bookings, jobs: counts.jobs, messages: counts.messages, notifications: counts.notifications };
+  const COUNT: Partial<Record<ClientSection, number>> = { inquiries: inquiryAlerts.data ?? 0, bookings: counts.bookings, jobs: counts.jobs, messages: counts.messages, notifications: counts.notifications };
   const ctx = useMemo(() => ({ uid, email, go: (s: ClientSection, th?: string) => onNavigate(s, th), openModal: (m: PortalModal) => setModal(m) }), [uid, email, onNavigate]);
   const accountLine = account.data?.verified_at ? "Client account · Verified payout" : "Client account";
 
@@ -112,6 +121,7 @@ export function ClientPortal({ uid, email, section, thread, onNavigate }: { uid:
           <main id="cp-main" ref={main} tabIndex={-1} className="cp-content">
             {section === "dashboard" && <Overview />}
             {section === "browse" && <Browse />}
+            {section === "inquiries" && <ClientOpenInquiries uid={uid} />}
             {section === "bookings" && <Bookings />}
             {section === "jobs" && <Jobs />}
             {section === "reviews" && <Reviews />}

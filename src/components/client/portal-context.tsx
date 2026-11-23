@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export const CLIENT_SECTIONS = ["dashboard", "browse", "bookings", "jobs", "reviews", "messages", "commission", "history", "wallet", "withdrawals", "payout", "statements", "profile", "notifications", "support", "settings"] as const;
+export const CLIENT_SECTIONS = ["dashboard", "browse", "inquiries", "bookings", "jobs", "reviews", "messages", "commission", "history", "wallet", "withdrawals", "payout", "statements", "profile", "notifications", "support", "settings"] as const;
 export type ClientSection = (typeof CLIENT_SECTIONS)[number];
 export const isClientSection = (v: unknown): v is ClientSection => typeof v === "string" && (CLIENT_SECTIONS as readonly string[]).includes(v);
 

@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Phase 1: optional owner-configured travel fees per 5/10 km, validated server calculator and transparent AI estimate from explicit client distance statements; automatic routing/maps are not added.
+- [x] Phase 2: client broadcast inquiries, private attachments, artist applications, dashboard counts and atomic client-approved AI conversations. 71 tests and isolated rollback-only DB assertions pass; signed-in client form checked without screenshots. Live multi-account approval/chat and real upload/download await approved-artist access and publication; no production test inquiry/files created.
 - [x] Artist AI Flow: dropdown block filter, left-aligned feature buttons, and gold Choose template button above the template cards at the top right; saved flow and template rules unchanged. No screenshots or browser tests requested.
 ## Client portal (/client/dashboard) — from dealmaker_client_dashboard.html
 - [ ] Database: client program settings (commission %, minimum withdrawal), booking commission snapshot + client confirmation time, conversation/profile client links, client settings, payout accounts (admin-verified), withdrawal requests (guarded), support requests, wallet/commission/claim/admin RPCs, rollback-only SQL tests.

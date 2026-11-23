@@ -37,6 +37,8 @@ import { ClientsSection, LanguagesField, PhysicalFields, PortfolioSection, Profi
 import type { Json } from "@/integrations/supabase/types";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
 import { ProfileSide } from "@/components/dashboard/ProfileSide";
+import { TravelSettings } from "@/components/dashboard/TravelSettings";
+import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -126,6 +128,7 @@ const ARTIST_NAV = [
   { id: "youragent", label: "Your AI agent" },
   { id: "inbox", label: "Inbox", group: "Sales" },
   { id: "quotes", label: "Quote requests", group: "Sales" },
+  { id: "inquiries", label: "Open inquiries", group: "Sales" },
   { id: "bookings", label: "Bookings", group: "Sales" },
   { id: "calendar", label: "Calendar", group: "Sales" },
   { id: "invoices", label: "Invoice", group: "Sales" },
@@ -145,7 +148,7 @@ const ARTIST_NAV = [
 ] as const;
 type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
 const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
-  overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
+  overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, inquiries: ClipboardList, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
   wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
   agent: Bot, flow: Workflow, team: Users, support: LifeBuoy,
 };
@@ -169,12 +172,13 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
     queryFn: async () => {
       const id = artist!.id;
       const head = { count: "exact" as const, head: true };
-      const [inbox, quotes, bookings, invoices, wallet] = await Promise.all([
+      const [inbox, quotes, bookings, invoices, wallet, inquiries] = await Promise.all([
         supabase.from("conversations").select("id", head).eq("artist_id", id),
         supabase.from("quote_requests").select("id", head).eq("artist_id", id).eq("status", "new"),
         supabase.from("bookings").select("id", head).eq("artist_id", id),
         supabase.from("service_invoices").select("id", head).eq("artist_id", id),
         supabase.from("credit_wallets").select("balance").eq("artist_id", id).maybeSingle(),
+        supabase.from("open_jobs").select("id", head).eq("status", "open").gte("event_date", new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dubai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())),
       ]);
       return {
         inbox: inbox.count ?? 0,
@@ -182,10 +186,11 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         bookings: bookings.count ?? 0,
         invoices: invoices.count ?? 0,
         credits: Number(wallet.data?.balance ?? 0),
+        inquiries: inquiries.count ?? 0,
       } as Record<string, number>;
     },
   });
-  const NAV_COUNT: Partial<Record<string, string>> = { inbox: "inbox", quotes: "quotes", bookings: "bookings", invoices: "invoices", credits: "credits" };
+  const NAV_COUNT: Partial<Record<string, string>> = { inbox: "inbox", quotes: "quotes", inquiries: "inquiries", bookings: "bookings", invoices: "invoices", credits: "credits" };
   if (isLoading) return null;
   if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;
   const current = ARTIST_NAV.find((n) => n.id === section) ?? ARTIST_NAV[0];
@@ -242,7 +247,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           </nav>
           <h1 className="studio-mobile-title">{tr(current.label)}</h1>
           <div className="studio-top-end">
-            <Button variant="outline" size="icon" className="studio-icon-button" aria-label={tr("Inbox")} title={tr("Inbox")} onClick={() => setSection("inbox")}><Bell aria-hidden="true" /></Button>
+            <Button variant="outline" size="icon" className="studio-icon-button relative" aria-label={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} title={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} onClick={() => setSection(navCounts?.["inquiries"] ? "inquiries" : "inbox")}><Bell aria-hidden="true" />{!!navCounts?.["inquiries"] && <span className="absolute -top-1 -end-1 rounded-full bg-gold px-1 text-[10px] text-gold-foreground">{navCounts["inquiries"]}</span>}</Button>
             {artist.status === "approved" && <Button asChild variant="outline" size="sm" className="studio-button studio-public-link"><Link to="/artist/$slug" params={{ slug: artist.slug }} aria-label={tr("View public profile")}><Eye aria-hidden="true" /><span>{tr("View public profile")}</span></Link></Button>}
             <span className="studio-mail" title={email} dir="ltr">{email}</span>
           </div>
@@ -252,6 +257,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
+          {section === "inquiries" && <ArtistOpenInquiries artistId={artist.id} onInbox={() => setSection("inbox")} />}
           {section === "bookings" && <BookingsTab artistId={artist.id} trn={artist.trn} notifyPhone={artist.notify_phone} />}
           {section === "calendar" && <CalendarTab artistId={artist.id} />}
           {section === "contracts" && <ContractsTable artistId={artist.id} />}
@@ -274,7 +280,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
   );
 }
 
-type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
+type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
 
 function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode }) {
   const { t } = useI18n();
@@ -322,6 +328,7 @@ function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Parti
         <div className="dmr-qe-f"><label htmlFor="pf-price">{t("Starting price (AED)")}</label><input id="pf-price" inputMode="numeric" maxLength={7} autoComplete="off" value={v.base_price ?? ""} onChange={(e) => set({ base_price: Number(e.target.value.replace(/\D/g, "")) })} /><span className="dmr-f-hint">{t("Excluding VAT.")}</span></div>
         <div className="dmr-qe-f"><label htmlFor="pf-radius">{t("Travel radius (km)")}</label><input id="pf-radius" inputMode="numeric" maxLength={3} autoComplete="off" value={v.travel_radius_km ?? ""} onChange={(e) => set({ travel_radius_km: Math.min(500, Number(e.target.value.replace(/\D/g, ""))) })} /><span className="dmr-f-hint">{t("0 to 500.")}</span></div>
         <LanguagesField languages={v.languages ?? []} onChange={(x) => set({ languages: x })} />
+        <TravelSettings value={v} onChange={({ travel_fee_per_step, ...p }) => set({ ...p, ...(travel_fee_per_step !== undefined ? { travel_fee_per_step: Number(travel_fee_per_step) } : {}) })} />
       </div>
     </StudioSection>
   </div>;
@@ -414,12 +421,14 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
       : (v.tagline ?? "").trim().length < 5 ? t("Add a short tagline of at least 5 characters.")
       : bioLen < 150 ? t("Your bio needs at least 150 characters")
       : v.travel_radius_km != null && (v.travel_radius_km < 0 || v.travel_radius_km > 500) ? t("Use a whole number from 0 to 500.")
+      : v.travel_surcharge_enabled && !(Number(v.travel_fee_per_step) > 0) ? t("Enter a positive travel cost.")
       : "";
     if (problem) { toast.error(problem); return; }
     const { id: _id, ...rest } = v as ArtistRow;
     const { error } = await supabase.from("artists").update({
       stage_name: rest.stage_name, tagline: rest.tagline, bio: rest.bio, base_price: rest.base_price, languages: rest.languages,
       skills: rest.skills ?? [], body: rest.body ?? {}, travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, subcategory_id: rest.subcategory_id, emirate_id: rest.emirate_id, area_id: rest.area_id,
+      travel_surcharge_enabled: rest.travel_surcharge_enabled ?? false, travel_step_km: rest.travel_step_km ?? 10, travel_fee_per_step: rest.travel_fee_per_step ?? 0,
     }).eq("id", artist.id);
     if (error) { toast.error(error.message); return; }
     setBase(v);
