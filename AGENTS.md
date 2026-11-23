@@ -66,7 +66,7 @@ use the editor.
 
 - Artist dashboard presentation styles are scoped to html.dm-dash and studio-* classes; decorative DashboardArtwork owns no data access so public styling and existing dashboard queries stay independent.
 - Dashboard reference headings, empty states and unsupported fields use StudioPage presentation helpers; adapters target existing control classes and ARIA roles, not absent data-slot attributes, so shared controls and data contracts remain unchanged.
-- Mount SiteHeader once inside the root language provider and reuse HomeHeader with the shared catalog query; page layouts omit duplicate headers, and sticky workspaces use its measured height to avoid overlap.
+- Mount SiteHeader once in the root language provider; hide it on dashboard/client/admin paths with a zero-height SSR marker, preserving workspace navigation and sticky offsets.
 - How it works and For clients reuse the public reference theme and scene with page-scoped CSS and static journey data; For clients has its own route linked from desktop/mobile navigation so audience content and booking behavior stay independent.
 - Artist process and benefits guides use separate content routes with ArtistGuidePage and existing public journey styles; shared desktop/mobile artist navigation targets those routes to keep audience content distinct without altering booking logic.
 - Booking offer acceptance issues an invoice before checkout; shared bookingPayment supplies VAT breakdown and integer fils so displayed and charged amounts agree. Booking links reuse verified hosted sessions, not fixed-price links. Optional event details persist in existing notes to avoid a competing booking schema.
