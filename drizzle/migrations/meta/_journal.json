@@ -442,6 +442,13 @@
       "when": 1795379791959,
       "tag": "0062_client_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1795409577030,
+      "tag": "0063_client_program_settings_admin_read",
+      "breakpoints": true
     }
   ]
 }

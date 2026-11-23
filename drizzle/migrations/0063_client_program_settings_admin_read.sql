@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "signed-in read client program" ON public.client_program_settings;
+CREATE POLICY "admin read client program" ON public.client_program_settings FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
