@@ -1,0 +1,24 @@
+.send-job-page {position:relative;isolation:isolate;padding:48px 20px 64px}
+.send-job-page > .dm-scene {z-index:-1;opacity:.28}
+.send-job-wrap {width:100%;max-width:820px;margin-inline:auto}
+.send-job-card {position:relative;min-width:0;padding:36px;border:1px solid var(--dm-tone-35);border-radius:14px;background:var(--dm-surface-17);box-shadow:var(--dm-shadow-7);backdrop-filter:blur(14px)}
+.send-job-card::before {content:"";position:absolute;inset:10px;border:1px solid var(--dm-tone-20);border-radius:6px;pointer-events:none}
+.send-job-card > * {position:relative}
+.send-job-steps {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:32px;padding:0;list-style:none}
+.send-job-steps li {display:flex;align-items:center;gap:10px;min-width:0;min-height:56px;padding-block:10px;border-bottom:2px solid var(--dm-line);font-size:13px;line-height:1.5;color:var(--dm-mute)}
+.send-job-steps li.is-active {border-color:var(--dm-gold);color:var(--dm-cream)}
+.send-job-steps li.is-complete {border-color:var(--dm-tone-35);color:var(--dm-cream)}
+.send-job-step-number {display:flex;align-items:center;justify-content:center;flex-shrink:0;width:30px;height:30px;border:1px solid var(--dm-line);border-radius:6px;color:var(--dm-mute)}
+.is-active .send-job-step-number {border-color:var(--dm-gold);color:var(--dm-gold)}
+.is-complete .send-job-step-number {background:var(--dm-grad);border-color:var(--dm-gold);color:var(--dm-ink)}
+.send-job-card input,.send-job-card textarea,.send-job-card [role="combobox"] {background:var(--dm-tone-3);border-color:var(--dm-line);color:var(--dm-cream)}
+.send-job-card input:focus-visible,.send-job-card textarea:focus-visible,.send-job-card [role="combobox"]:focus-visible {border-color:var(--dm-gold)}
+.send-job-documents {padding:24px;border:1px dashed var(--dm-tone-35);border-radius:6px}
+.send-job-card button {transition:transform .2s var(--dm-ease),background .2s var(--dm-ease)}
+.send-job-card button:hover:not(:disabled) {translate:0 -1px}
+.send-job-card button:active:not(:disabled) {translate:0 0}
+.send-job-actions {flex-wrap:wrap}
+.send-job-actions button {white-space:normal;min-height:44px;height:auto;padding-block:10px}
+@media(min-width:640px){.send-job-page{padding:64px 32px 80px}}
+@media(max-width:639px){.send-job-card{padding:26px 22px}.send-job-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-bottom:26px}.send-job-documents{padding:18px 14px}}
+@media(prefers-reduced-motion:reduce){.send-job-card button{transition:none}.send-job-card button:hover:not(:disabled){translate:none}}

@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import "@/components/shared/send-job.css";
 
 const catalogQuery = queryOptions({ queryKey: ["send-job-catalog"], queryFn: () => getCatalog(), staleTime: 60_000 });
 const steps = ["Talent", "Date & venue", "Brief & documents", "Budget & review"];
@@ -118,14 +120,17 @@ function SendJobPage() {
   const category = catalog.categories.find(c => c.id === f.categoryId);
   const step = draft?.step ?? 0;
   return <ReferenceTheme><PublicLayout>
-    <section className="mx-auto w-full max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
+    <section className="send-job-page">
+      <SceneBackground arch={false} />
+      <div className="send-job-wrap">
       <header className="mb-9 text-center">
         <p className="mb-3 text-sm text-gold">{t("For clients")} · Dealmaker</p>
         <h1 className="font-display text-5xl sm:text-6xl">{t("Send Job")}</h1>
       </header>
-      <ol className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label={t("Inquiry steps")}>
-        {steps.map((label, i) => <li key={label} aria-current={i === step ? "step" : undefined} className={`flex min-h-12 items-center gap-3 border-b-2 pb-3 text-sm ${i <= step ? "border-gold text-foreground" : "border-border text-muted-foreground"}`}>
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-current">{i < step ? <Check size={14} /> : i + 1}</span><span>{t(label)}</span>
+      <div className="send-job-card">
+      <ol className="send-job-steps" aria-label={t("Inquiry steps")}>
+        {steps.map((label, i) => <li key={label} aria-current={i === step ? "step" : undefined} className={i === step ? "is-active" : i < step ? "is-complete" : ""}>
+          <span className="send-job-step-number">{i < step ? <Check size={14} /> : i + 1}</span><span>{t(label)}</span>
         </li>)}
       </ol>
       {!draft || loading ? <div className="flex justify-center py-16"><LoaderCircle className="animate-spin" aria-label={t("Loading…")} /></div> : <form onSubmit={submit} className="space-y-7" aria-busy={busy}>
@@ -145,7 +150,7 @@ function SendJobPage() {
           </>}
           {step === 2 && <>
             <div className="space-y-2"><Label htmlFor="job-brief">{t("Event brief")} *</Label><Textarea id="job-brief" required maxLength={f.eventType ? 4000 - f.eventType.length - 14 : 4000} className="min-h-44" value={f.brief} onChange={e => field("brief", e.target.value)} placeholder={t("Describe the event, performance duration, rundown and what you need from the artist.")} /></div>
-            <div className="space-y-3 border-y border-border py-5"><Label htmlFor="job-files" className="flex items-center gap-2"><Upload size={16} />{t("Event documents")} ({t("Optional")})</Label><Input id="job-files" type="file" accept={JOB_DOC_TYPES.join(",")} multiple onChange={e => { void addFiles(e.target.files); e.target.value = ""; }} /><p className="text-sm text-muted-foreground">{t("PDF, JPG or PNG, up to 5 MB. Shared only with artists you approve.")}</p>
+            <div className="send-job-documents space-y-3"><Label htmlFor="job-files" className="flex items-center gap-2"><Upload size={16} />{t("Event documents")} ({t("Optional")})</Label><Input id="job-files" type="file" accept={JOB_DOC_TYPES.join(",")} multiple onChange={e => { void addFiles(e.target.files); e.target.value = ""; }} /><p className="text-sm text-muted-foreground">{t("PDF, JPG or PNG, up to 5 MB. Shared only with artists you approve.")}</p>
               {draft.documents.map(file => <div key={file.id} className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2 text-sm"><FileText size={16} className="shrink-0" /><span className="break-all">{file.name}</span></span><Button type="button" size="icon" variant="ghost" aria-label={`${t("Remove document")}: ${file.name}`} onClick={async () => { const next = { ...draft, documents: draft.documents.filter(d => d.id !== file.id) }; try { await saveJobDraft(next); setDraft(next); } catch { setError(t("Could not save draft")); } }}><Trash2 size={16} /></Button></div>)}
             </div>
           </>}
@@ -155,12 +160,14 @@ function SendJobPage() {
           </>}
         </fieldset>
         {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-6">
+        <div className="send-job-actions flex items-center justify-between gap-3 border-t border-border pt-6">
           <Button type="button" variant="outline" disabled={busy || step === 0} onClick={() => void move(step - 1)}><ArrowLeft size={16} />{t("Back")}</Button>
           <Button type="submit" disabled={busy} className="min-h-11 bg-gradient-gold text-gold-foreground">{busy ? <LoaderCircle size={16} className="animate-spin" /> : step === 3 ? <Send size={16} /> : null}{t(busy ? "Please wait…" : step === 3 ? "Submit & post job" : "Continue")}{step < 3 && <ArrowRight size={16} />}</Button>
         </div>
       </form>}
+      </div>
       <Dialog open={authOpen} onOpenChange={setAuthOpen}><DialogContent><DialogTitle>{t("Create your client account")}</DialogTitle><DialogDescription>{t("Your inquiry is saved on this device. It will be posted after you sign in with a verified account.")}</DialogDescription><Button asChild className="bg-gradient-gold text-gold-foreground"><Link to="/auth" search={{ mode: "signup", redirect: "/send-job" }}>{t("Sign up & post job")}</Link></Button><Button asChild variant="outline"><Link to="/auth" search={{ redirect: "/send-job" }}>{t("Already have an account? Sign in")}</Link></Button></DialogContent></Dialog>
+      </div>
     </section>
   </PublicLayout></ReferenceTheme>;
 }
