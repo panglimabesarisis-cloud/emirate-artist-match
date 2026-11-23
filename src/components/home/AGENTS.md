@@ -1,0 +1,4 @@
+# Homepage animation boundaries
+- Featured artist choreography uses a page-scoped GSAP/ScrollTrigger timeline with reversible transform-only stages; this keeps the letter entrance, circular orbit and grid landing on one scroll driver without altering catalog data.
+- The artist grid retains its full natural height after pin release, and reduced-motion exposes the existing profile links directly; this keeps phone rows accessible rather than shrinking text to fit a single viewport.
+- Artist reveal turns are separate from scroll transforms, with the scroll scene inert until landing; this prevents keyboard or pointer actions from exposing moving cards prematurely.

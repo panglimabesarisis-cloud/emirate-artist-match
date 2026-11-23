@@ -1,5 +1,13 @@
 # How it works: design brief
 
+## Featured artist scroll extension
+Brief: after the existing centered homepage heading, start blank, assemble DEALMAKER from opposing sides, compress using glyph transforms (tracking stays zero), form one black gold-framed card, zoom the word, fan out the real artist cards into a circle, turn clockwise, then land in the existing grid. Reveal each artist only on click with a full 360-degree turn. No invented artist rows.
+Concept territories: talent deck (5/5/5/2), orbital casting (4/5/4/3), opening curtain (3/4/5/4), scored originality/fit/feasibility/portability. Choose talent deck because the requested black-card reveal directly represents discovering actual performers.
+Concept card: Deal the Dealmaker roster. Metaphor: a casting deck. Signature: scroll-controlled word-to-orbit-to-grid. Emotion: anticipation. Motion verb: glide and settle. Screenshot: gold-framed cards orbiting the Dealmaker word.
+System: existing ink/cream/gold tokens, Bebas Neue and Manrope, zero tracking, 8px card corners, four desktop columns and two phone columns. Header and final browse action remain outside the pinned scene. One page-scoped GSAP/ScrollTrigger timeline with 0.65-second scrub smoothing owns new motion; transforms/opacity only, no scroll hijacking. Pause at rest deliberately: the story advances only with user scroll. Reduced-motion shows the real artist grid without pinning or reveal obstruction.
+Composition: centered existing title / blank stage / word convergence / centered deck / circular orbit / full-height grid / centered existing browse action. The grid may exceed one phone viewport and becomes normally scrollable after release; never shrink artist text to fit all rows into a single screen.
+Genericness: preserve the requested letter entrance and clickable black deck, not a generic fade-up grid. All data and booking links remain the original catalog results. Bundled skill reference directory is unavailable; supplied design guidance is the available reference. Verification uses compiler diagnostics and DOM interaction without screenshots or production-build commands; no visual jury score or guaranteed frame rate is claimed.
+
 ## Brief
 Refresh only /how-it-works, using /features as the visual authority. Explain the actual client and artist workflows, without implying live payments or guaranteed external delivery. Existing English-first public content is retained. No fictional credentials, statistics, prices, or testimonials are needed.
 
