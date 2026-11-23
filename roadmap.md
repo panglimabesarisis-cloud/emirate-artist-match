@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Artist AI Flow: dropdown block filter, left-aligned feature buttons, and gold Choose template button above the template cards at the top right; saved flow and template rules unchanged. No screenshots or browser tests requested.
 ## Client portal (/client/dashboard) — from dealmaker_client_dashboard.html
 - [ ] Database: client program settings (commission %, minimum withdrawal), booking commission snapshot + client confirmation time, conversation/profile client links, client settings, payout accounts (admin-verified), withdrawal requests (guarded), support requests, wallet/commission/claim/admin RPCs, rollback-only SQL tests.
 - [ ] Server: link signed-in quotes/chats to the client account, signed-in booking request, client conversation list, booking extras (disputes/reviews), client job confirmation (early escrow release), WhatsApp reminder preference honoured.

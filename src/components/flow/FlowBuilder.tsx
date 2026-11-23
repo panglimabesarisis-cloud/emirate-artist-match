@@ -198,15 +198,16 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
         {!readOnly && (
           <div className="studio-flow-palette space-y-3">
             <Input placeholder={t("Search…")} value={q} onChange={(e) => setQ(e.target.value)} className="h-8 text-sm" />
-            <div className="flex flex-wrap gap-1">
-              {["All", ...FLOW_GROUPS].map((g) => <Button variant="ghost" key={g} onClick={() => setTab(g)} className={`rounded-full border px-2 py-0.5 text-[11px] ${tab === g ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"}`}>{g === "All" ? t("All") : t(GROUP_LABEL[g] ?? g)}</Button>)}
-            </div>
+            <Select value={tab} onValueChange={setTab}>
+              <SelectTrigger aria-label={t("Filter blocks")}><SelectValue /></SelectTrigger>
+              <SelectContent>{["All", ...FLOW_GROUPS].map((g) => <SelectItem key={g} value={g}>{g === "All" ? t("All") : t(GROUP_LABEL[g] ?? g)}</SelectItem>)}</SelectContent>
+            </Select>
             <div className="studio-flow-blocks lg:space-y-0.5">
               {(tab === "All" || tab === "Ask") && "date picker".includes(q.toLowerCase()) && <Button variant="ghost" className="h-auto shrink-0 justify-start px-2 py-1.5 text-sm lg:w-full" onClick={() => add("form", undefined, true)}><CalendarDays className="size-5 text-primary" />{t("Date picker")}</Button>}
               {blocks.map((k) => (
                 <Button variant="ghost" key={k.kind} draggable onDragStart={(e) => e.dataTransfer.setData("application/flow", k.kind)} onClick={() => add(k.kind)} title={t(k.hint)}
-                  className="studio-flow-block">
-                  <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: `var(${k.color})` }}>{k.label[0]}</span>{t(k.label)}
+                  className="studio-flow-block justify-start text-start">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: `var(${k.color})` }}>{k.label[0]}</span><span className="min-w-0 whitespace-normal">{t(k.label)}</span>
                 </Button>
               ))}
             </div>
@@ -388,7 +389,7 @@ export function FlowBuilder({ artistId, canEdit = true, libraryOnly = false }: {
   return (
     <ReactFlowProvider>
       <div className="studio-flow-page">
-        <StudioHeading title="AI" accent="flow"><Button variant="outline" asChild><a href="#studio-workflow-templates">{t("Choose template")}</a></Button></StudioHeading>
+        <StudioHeading title="AI" accent="flow" />
 
         {draft && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{t("Template loaded · not saved")}</span><Button variant="ghost" size="sm" onClick={() => { setDraft(null); setDraftSource(null); }}>{t("Discard template")}</Button></div>}
         {artistId ? (
