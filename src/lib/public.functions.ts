@@ -98,7 +98,7 @@ export const getFeatured = createServerFn({ method: "GET" }).handler(async () =>
   const cards = await loadCards();
   return cards
     .sort((x, y) => Number(y.featured) - Number(x.featured) || (y.stats.rating ?? 0) - (x.stats.rating ?? 0))
-    .slice(0, 11);
+    .slice(0, 12);
 });
 
 export type SearchInput = {

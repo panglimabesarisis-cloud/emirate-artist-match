@@ -26,6 +26,7 @@ const AR: Record<string, string> = {
   Talent: "الموهبة", City: "المدينة", Event: "المناسبة", Categories: "الفئات",
   "AI booking agent": "وكيل الحجز الذكي", "Transparent pricing": "أسعار واضحة",
   "See all talent": "عرض جميع المواهب", "Discover performers with reviews from completed bookings.": "اكتشف فنانين بتقييمات من حجوزات مكتملة.",
+  "THE BEST PERFORMER": "أفضل مؤدٍّ", "READY FOR BOOKING": "جاهز للحجز", "WANT EXPLORE ALL PERFORMER ?": "هل تريد استكشاف جميع المؤدين؟",
   "No featured artists in this category yet.": "لا يوجد فنانون مميزون في هذه الفئة بعد.", "Browse this category": "تصفح هذه الفئة",
   "Why Dealmaker": "لماذا ديلميكر", "Booking talent, finally made simple.": "حجز المواهب أصبح بسيطًا.",
   "From first enquiry to final invoice — everything in one place.": "من أول استفسار إلى الفاتورة النهائية — كل شيء في مكان واحد.",

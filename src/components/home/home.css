@@ -113,6 +113,10 @@ header.nav.solid{background:var(--dm-tone-1);backdrop-filter:blur(14px);-webkit-
 .cream .eyebrow{color:var(--dm-gold-2)}
 .cream .sh p,.cream .idx{color:var(--dm-mute-d)}
 .see-all{display:flex;justify-content:flex-end;margin-top:40px}
+.sh-c{grid-template-columns:1fr;justify-items:center;text-align:center}
+.see-all-c{flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.explore-ask{font-family:var(--dm-serif);font-weight:400;font-size:clamp(26px,3.6vw,52px);line-height:1.05;letter-spacing:0;color:var(--dm-ink);text-align:center}
+.dm-home .sh-c .gld{background:var(--dm-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .tag{font-size:10px;letter-spacing:0;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid currentColor;display:inline-flex;align-items:center;gap:5px}
 .tag.top{background:var(--dm-grad);border-color:transparent;color:var(--dm-ink)}
 .mono{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--dm-serif);font-size:120px;color:var(--dm-tone-4);letter-spacing:0}
