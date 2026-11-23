@@ -1,4 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
+import { conciergeInput } from "./concierge-rules";
+
+export const askPublicConcierge = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => conciergeInput.parse(input))
+  .handler(async ({ data }) => {
+    try {
+      const { answerPublicConcierge } = await import("./public-concierge.server");
+      return { ok: true as const, reply: await answerPublicConcierge(data) };
+    } catch (error) {
+      const { GatewayError } = await import("@lovable.dev/ai-gateway");
+      const creditIssue = error instanceof GatewayError && error.code === "payment_required";
+      return { ok: false as const, error: creditIssue
+        ? "The AI agent is temporarily paused. Please use the artist profiles or contact support."
+        : "The AI agent is unavailable right now. Please try again later." };
+    }
+  });
 
 export type ArtistCard = {
   id: string;

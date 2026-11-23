@@ -18,6 +18,27 @@
 .dm-reference .booking-chat-prompts button:hover {translate:3px 0;border-color:var(--dm-gold)}
 .dm-reference .booking-chat-prompts button:active {translate:1px 0}
 .dm-reference .client-booking-guide {margin-top:70px;border-top:1px solid var(--dm-line)}
+.dm-reference .concierge-conversation {height:430px;min-height:280px}
+.dm-reference .booking-chat-thread {gap:22px}
+.dm-reference .concierge-sender {display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dm-gold)}
+.dm-reference .concierge-question {background:var(--dm-tone-20);border:1px solid var(--dm-tone-35);color:var(--dm-cream);padding:14px 18px;border-radius:8px}
+.dm-reference .concierge-answer {color:var(--dm-cream);max-width:100%}
+.dm-reference .concierge-text {white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.7;margin:0}
+.dm-reference .concierge-artists {list-style:none;padding:0;margin:8px 0;display:grid;gap:8px;width:100%}
+.dm-reference .concierge-artists a {position:relative;display:grid;gap:5px;padding:14px 38px 14px 14px;border:1px solid var(--dm-line);border-radius:6px;color:var(--dm-cream);transition:translate .25s var(--dm-ease),border-color .25s}
+.dm-reference .concierge-artists span {font-size:12px;color:var(--dm-mute);overflow-wrap:anywhere}
+.dm-reference .concierge-artists a>svg {position:absolute;inset-inline-end:14px;top:18px;color:var(--dm-gold)}
+.dm-reference .concierge-artists a:hover {translate:3px 0;border-color:var(--dm-gold)}
+.dm-reference .concierge-links {display:flex;flex-wrap:wrap;gap:12px}
+.dm-reference .concierge-links a {display:inline-flex;align-items:center;gap:8px;color:var(--dm-gold);text-decoration:underline;text-underline-offset:4px}
+.dm-reference .concierge-composer {padding:18px 24px;border-top:1px solid var(--dm-line)}
+.dm-reference .concierge-composer [data-slot="input-group"] {background:var(--dm-ink-2);border-color:var(--dm-tone-35);color:var(--dm-cream)}
+.dm-reference .concierge-composer textarea {color:var(--dm-cream);min-height:60px}
+.dm-reference .concierge-composer button {background:var(--dm-tone-20);color:var(--dm-gold)}
+.dm-reference .concierge-error {color:var(--dm-gold);font-size:13px;margin-bottom:12px}
+.dm-reference .concierge-artists a:focus-visible,.dm-reference .concierge-links a:focus-visible {outline:2px solid var(--dm-gold);outline-offset:4px}
+@media(max-width:640px){.dm-reference .concierge-conversation {height:380px}.dm-reference .concierge-composer {padding:18px}}
+@media(prefers-reduced-motion:reduce){.dm-reference .concierge-artists a {transition:none}.dm-reference .concierge-artists a:hover {translate:none}}
 @keyframes booking-answer-in {from {opacity:0;translate:0 8px}to {opacity:1;translate:0 0}}
 @media(max-width:640px){.dm-reference .booking-chat-thread,.dm-reference .booking-chat-prompts,.dm-reference .booking-chat-header {padding:18px}.dm-reference .booking-chat-question {max-width:94%}.dm-reference .booking-chat-thread {min-height:0}.dm-reference .client-booking-guide {margin-top:48px}}
 @media(prefers-reduced-motion:reduce){.dm-reference .booking-chat-exchange {animation:none}.dm-reference .booking-chat-prompts button:hover {translate:none}}
