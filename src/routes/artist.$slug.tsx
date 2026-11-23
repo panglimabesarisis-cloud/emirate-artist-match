@@ -12,6 +12,9 @@ import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, Chevro
 import { youtubeId } from "@/lib/media";
 import { getArtist, getCatalog } from "@/lib/public.functions";
 import { PublicLayout } from "@/components/site/PublicLayout";
+import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
+import { SceneBackground } from "@/components/shared/SceneBackground";
+import "@/components/site/artist-profile.css";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
 import { aed, BADGE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -68,10 +71,11 @@ function ArtistPage() {
   ].filter(Boolean) as { k: string; v: string }[];
 
   return (
-    <PublicLayout>
-      <section className="bg-night text-night-foreground">
-        <div className="mx-auto max-w-7xl px-4 py-12 grid gap-8 md:grid-cols-[220px_1fr] items-center">
-          <ArtistAvatar name={a.stage_name} hue={a.hue} className="h-52 w-52 rounded-3xl text-6xl" />
+    <ReferenceTheme className="artist-profile"><PublicLayout>
+      <section className="reference-scene-header artist-profile-hero">
+        <SceneBackground arch={false} />
+        <div className="reference-wrap reference-scene-content artist-profile-intro">
+          <ArtistAvatar name={a.stage_name} hue={a.hue} className="artist-profile-avatar h-52 w-52 text-6xl" />
           <div>
             <div className="text-gold text-xs uppercase tracking-[0.25em]">{a.category?.name} · {a.subcategory?.name}</div>
             <h1 className="mt-2 text-4xl md:text-5xl font-semibold">{a.stage_name}</h1>
@@ -92,9 +96,9 @@ function ArtistPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-10 grid gap-10 lg:grid-cols-[1fr_380px]">
+      <div className="reference-wrap artist-profile-content">
         <div className="space-y-12">
-          <section>
+          <section className="artist-profile-about">
             <h2 className="text-2xl font-semibold">{t("About")}</h2>
             <p className="mt-3 text-muted-foreground leading-relaxed">{a.bio}</p>
           </section>
@@ -104,7 +108,7 @@ function ArtistPage() {
             <div className="mt-4 space-y-4">
               {a.reviews.length === 0 && <p className="text-muted-foreground">{t("No reviews yet.")}</p>}
               {a.reviews.map((r) => (
-                <div key={r.id} className="rounded-2xl bg-card p-5 shadow-card">
+                <div key={r.id} className="artist-profile-review p-5">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold">{r.client_name}</div>
                     <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < r.rating ? "fill-gold text-gold" : "text-border"}`} />)}</div>
@@ -126,7 +130,7 @@ function ArtistPage() {
         </div>
         <div className="space-y-6">
           {(bars.length > 0 || facts.length > 0) && (
-            <section className="rounded-2xl bg-card shadow-card p-6">
+            <section className="artist-profile-panel">
               <h2 className="font-semibold">{t("Track record")}</h2>
               <div className="mt-4 space-y-3">
                 {bars.map((x) => (
@@ -145,7 +149,7 @@ function ArtistPage() {
           <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} />
         </div>
       </div>
-    </PublicLayout>
+    </PublicLayout></ReferenceTheme>
   );
 }
 
@@ -210,7 +214,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
   };
 
   return (
-    <aside className="rounded-2xl bg-card shadow-card p-6">
+    <aside className="artist-profile-panel artist-profile-booking">
       <div className="text-sm text-muted-foreground">{t("Starting from")}</div>
       <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
       {sent ? (
@@ -324,26 +328,26 @@ function MediaShowcase({ media, name }: { media: Media[]; name: string }) {
   const go = (d: number) => setOpen((o) => (o ? { ...o, i: (o.i + d + list.length) % list.length } : o));
   const cur = open ? list[open.i] : null;
   return (
-    <section className="space-y-3">
+    <section className="artist-profile-media space-y-3">
       <h2 className="text-2xl font-semibold">{t("Photos & videos")}</h2>
       {photos.length > 0 && (
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
           {photos.map((p, n) => (
-            <button key={p.id} type="button" onClick={() => setOpen({ type: "photo", i: n })} className="overflow-hidden rounded-lg bg-muted aspect-square hover:opacity-90">
+            <Button variant="ghost" key={p.id} type="button" onClick={() => setOpen({ type: "photo", i: n })} className="overflow-hidden rounded-lg bg-muted aspect-square hover:opacity-90">
               <img src={p.src} alt={p.caption ?? name} className="h-full w-full object-cover" loading="lazy" />
-            </button>
+            </Button>
           ))}
         </div>
       )}
       {videos.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {videos.map((v, n) => (
-            <button key={v.id} type="button" onClick={() => setOpen({ type: "video", i: n })} aria-label={`Video ${n + 1}`} className="relative overflow-hidden rounded-lg bg-muted aspect-video hover:opacity-90">
+            <Button variant="ghost" key={v.id} type="button" onClick={() => setOpen({ type: "video", i: n })} aria-label={`Video ${n + 1}`} className="relative overflow-hidden rounded-lg bg-muted aspect-video hover:opacity-90">
               {v.kind === "youtube"
                 ? <img src={`https://i.ytimg.com/vi/${youtubeId(v.src)}/mqdefault.jpg`} alt={v.caption ?? `${name} video`} className="h-full w-full object-cover" loading="lazy" />
                 : <video className="h-full w-full object-cover" src={v.src} preload="metadata" muted />}
               <span className="absolute inset-0 grid place-items-center"><span className="grid h-8 w-8 place-items-center rounded-full bg-card/85 shadow-card"><Play className="h-4 w-4" /></span></span>
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -361,8 +365,8 @@ function MediaShowcase({ media, name }: { media: Media[]; name: string }) {
                   </div>}
               {list.length > 1 && (
                 <>
-                  <button type="button" aria-label="Previous" onClick={() => go(-1)} className="absolute left-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronLeft className="h-5 w-5" /></button>
-                  <button type="button" aria-label="Next" onClick={() => go(1)} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronRight className="h-5 w-5" /></button>
+                  <Button variant="ghost" type="button" aria-label="Previous" onClick={() => go(-1)} className="absolute left-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronLeft className="h-5 w-5" /></Button>
+                  <Button variant="ghost" type="button" aria-label="Next" onClick={() => go(1)} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-card/85 shadow-card"><ChevronRight className="h-5 w-5" /></Button>
                 </>
               )}
             </div>

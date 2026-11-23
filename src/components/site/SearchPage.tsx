@@ -14,7 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n, localName } from "@/lib/i18n";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ClientBookingGuide } from "./ClientBookingGuide";
+import "./artist-profile.css";
 
 export type Filters = {
   sub?: string | undefined; event?: string | undefined; lang?: string | undefined;
@@ -65,7 +66,7 @@ export function SearchPage(props: {
     <ReferenceTheme><PublicLayout>
       <div className="reference-scene-header">
         <SceneBackground arch={false} />
-        <div className="reference-wrap reference-scene-content">
+        <div className="reference-wrap reference-scene-content listing-header-centered">
           <nav className="text-xs opacity-70 flex gap-1 flex-wrap">
             <Link to="/">{t("Home")}</Link>
             {props.breadcrumbs.map((b) => (
@@ -84,7 +85,7 @@ export function SearchPage(props: {
           <ListingSearch catalog={catalog} categorySlug={categorySlug} emirateSlug={emirateSlug} filters={filters} />
           <div className="reference-category-chips">{catalog.categories.map(c => <Link key={c.slug} to="/$category" params={{ category: c.slug }} search={filters} className={c.slug === categorySlug ? "is-active" : ""}>{localName(lang, c)}</Link>)}</div>
           {subs.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="listing-subcategories mt-6 flex flex-wrap gap-2">
               <Button variant="ghost" onClick={() => set({ sub: undefined })}
                 className={`rounded-full px-3 py-1 text-sm border border-sidebar-border ${!filters.sub ? "bg-gradient-gold text-gold-foreground" : ""}`}>{t("All")}</Button>
               {subs.map((s) => (
@@ -192,17 +193,7 @@ export function SearchPage(props: {
             </div>
           )}
 
-          <section className="mt-16">
-            <h2 className="text-2xl font-semibold">{t("Frequently asked questions")}</h2>
-            <Accordion type="single" collapsible className="mt-4">
-              <AccordionItem value="1"><AccordionTrigger>{lang === "ar" ? `${t("How much does it cost to book in Dubai?")} (${localName(lang, cat)})` : `How much does it cost to book ${cat?.name.toLowerCase()} in Dubai?`}</AccordionTrigger>
-                <AccordionContent>{t("Prices start from each artist's package rate in AED. Request a free quick quote and the artist's AI agent replies with an exact price for your date and venue.")}</AccordionContent></AccordionItem>
-              <AccordionItem value="2"><AccordionTrigger>{t("Are the reviews real?")}</AccordionTrigger>
-                <AccordionContent>{t("Yes. Only clients with a completed booking on the platform can leave a review.")}</AccordionContent></AccordionItem>
-              <AccordionItem value="3"><AccordionTrigger>{t("Do I need an event permit?")}</AccordionTrigger>
-                <AccordionContent>{t("Public events in Dubai may require a DET permit. The organiser is responsible for permits; artists can advise on requirements.")}</AccordionContent></AccordionItem>
-            </Accordion>
-          </section>
+          <ClientBookingGuide />
         </div>
       </div>
     </PublicLayout></ReferenceTheme>
