@@ -25,6 +25,8 @@ import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { recoverPublicRead } from "@/lib/public-read-recovery";
 import { ErrorComponent } from "./__root";
+import { rateScope, type StoredRate } from "@/lib/ratecard";
+import { RatecardDetails } from "@/components/shared/RatecardDetails";
 
 export const Route = createFileRoute("/artist/$slug")({
   loader: async ({ params }) => {
@@ -158,7 +160,7 @@ type Sent = { name: string; conversationId: string; key: string };
 
 function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, similar, packages }: {
   artistId: string; artistName: string; basePrice: number; blocked: string[]; busy: BusySlot[]; similar: Similar[];
-  packages: { id: string; title: string; description: string | null; price: number; duration_minutes: number | null }[];
+  packages: (StoredRate & { id: string })[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "", start: "", end: "", duration: "" });
@@ -299,7 +301,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
                     <input type="checkbox" className="mt-1 accent-gold" checked={on} onChange={(e) => setPicked(e.target.checked ? [...picked, p.id] : picked.filter((x) => x !== p.id))} />
                     <span className="flex-1">
                       <span className="flex justify-between gap-2 text-sm font-semibold"><span>{p.title}</span><span dir="ltr">{aed(Number(p.price))}</span></span>
-                      <span className="block text-xs text-muted-foreground"><Clock className="me-1 inline h-3 w-3" />{p.duration_minutes} {t("min")}{p.description ? ` · ${p.description}` : ""}</span>
+                      <span className="block text-xs text-muted-foreground">{rateScope(p)}{p.description ? ` · ${p.description}` : ""}</span>
+                      <details className="mt-2 text-xs" onClick={e => e.stopPropagation()}><summary className="cursor-pointer text-gold">{t("Items & work rules")}</summary><div className="mt-3"><RatecardDetails rate={p} /></div></details>
                     </span>
                   </label>
                 );

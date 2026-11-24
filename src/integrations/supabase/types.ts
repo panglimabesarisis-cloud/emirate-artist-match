@@ -3205,27 +3205,36 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           id: string
+          items: Json
           price: number
+          rules_of_work: string | null
           sort: number | null
           title: string
+          unit_label: string
         }
         Insert: {
           artist_id: string
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          items?: Json
           price: number
+          rules_of_work?: string | null
           sort?: number | null
           title: string
+          unit_label?: string
         }
         Update: {
           artist_id?: string
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          items?: Json
           price?: number
+          rules_of_work?: string | null
           sort?: number | null
           title?: string
+          unit_label?: string
         }
         Relationships: [
           {

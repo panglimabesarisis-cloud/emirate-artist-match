@@ -15,10 +15,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { emptyRate, rateDraft, ratePayload, rateScope, type RateDraft, type StoredRate } from "@/lib/ratecard";
+import { RatecardFields } from "@/components/shared/RatecardFields";
+import { RatecardDetails } from "@/components/shared/RatecardDetails";
 
-type Rate = { id: string; title: string; price: number; duration_minutes: number | null; description: string | null; sort: number | null; artists?: { stage_name: string } | null };
+type Rate = StoredRate & { id: string; price: number; sort: number | null; artists?: { stage_name: string } | null };
 type Sort = "az" | "za" | "price_asc" | "price_desc";
-const empty = { title: "", price: "", duration: "60", description: "" };
+const empty = emptyRate();
 
 /** Artists get the full reference layout; the admin overview keeps the compact table. */
 export function RateCardTable({ artistId, adminMode = false }: { artistId?: string | undefined; adminMode?: boolean }) {
@@ -42,7 +45,7 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
   const [maxMin, setMaxMin] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [view, setView] = useState<Rate | null>(null);
-  const [edit, setEdit] = useState<{ id: string | null; f: typeof empty } | null>(null);
+  const [edit, setEdit] = useState<{ id: string | null; f: RateDraft } | null>(null);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -65,8 +68,8 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
   const save = async () => {
     if (!edit || (!edit.id && !artistId)) return;
     const { f } = edit;
-    if (!f.title.trim() || !(Number(f.price) > 0)) { toast.error(t("Name and price required")); return; }
-    const row = { title: f.title.trim(), price: Number(f.price), duration_minutes: Number(f.duration) || null, description: f.description.trim() || null };
+    let row;
+    try { row = ratePayload(f); } catch (err) { toast.error(err instanceof Error ? err.message : t("Check ratecard details")); return; }
     const { error } = edit.id
       ? await supabase.from("rate_cards").update(row).eq("id", edit.id)
       : await supabase.from("rate_cards").insert({ ...row, artist_id: artistId ?? "", sort: data.length + 1 });
@@ -109,7 +112,7 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
           <thead className="bg-muted/50 text-start text-xs uppercase text-muted-foreground">
             <tr>
               <th className="w-10 p-3"><input type="checkbox" aria-label={t("Select all")} className="accent-gold" checked={allOn} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...shown.map((r) => r.id)])] : sel.filter((x) => !shown.some((r) => r.id === x)))} /></th>
-              {adminMode && <th className="p-3 text-start">{t("Artist")}</th>}<th className="p-3 text-start">{t("Job type")}</th><th className="p-3 text-start">{t("Price")}</th><th className="p-3 text-start">{t("Duration")}</th><th className="p-3 text-start">{t("Included")}</th><th className="p-3 text-end">{t("Actions")}</th>
+              {adminMode && <th className="p-3 text-start">{t("Artist")}</th>}<th className="p-3 text-start">{t("Job type")}</th><th className="p-3 text-start">{t("Price")}</th><th className="p-3 text-start">{t("Unit & scope")}</th><th className="p-3 text-start">{t("Included")}</th><th className="p-3 text-end">{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -119,14 +122,14 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
                 <td className="p-3"><input type="checkbox" aria-label={`Select ${r.title}`} className="accent-gold" checked={sel.includes(r.id)} onChange={(e) => setSel(e.target.checked ? [...sel, r.id] : sel.filter((x) => x !== r.id))} /></td>
                 {adminMode && <td className="p-3" data-label={t("Artist")}>{r.artists?.stage_name}</td>}<td className="p-3 font-medium" data-label={t("Job type")}>{r.title}</td>
                 <td className="p-3" dir="ltr" data-label={t("Price")}>{aed(Number(r.price))}</td>
-                <td className="p-3" data-label={t("Duration")}>{r.duration_minutes ? `${r.duration_minutes} min` : "—"}</td>
+                <td className="p-3" data-label={t("Unit & scope")}>{rateScope(r)}</td>
                 <td className="p-3 max-w-xs truncate text-muted-foreground" data-label={t("Included")}>{r.description || "—"}</td>
                 <td className="p-3 text-end whitespace-nowrap" data-label={t("Actions")}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={t("Actions")}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onSelect={() => setView(r)}><Eye className="me-2 h-4 w-4" />{t("View")}</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setEdit({ id: r.id, f: { title: r.title, price: String(r.price), duration: String(r.duration_minutes ?? ""), description: r.description ?? "" } })}><Pencil className="me-2 h-4 w-4" />{t("Edit")}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setEdit({ id: r.id, f: rateDraft(r) })}><Pencil className="me-2 h-4 w-4" />{t("Edit")}</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive" onSelect={() => remove([r.id])}><Trash2 className="me-2 h-4 w-4" />{t("Delete")}</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -148,7 +151,7 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
       <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{view?.title}</DialogTitle></DialogHeader>
-          {view && <div className="space-y-2 text-sm"><div><b>{t("Price:")}</b> {aed(Number(view.price))}</div><div><b>{t("Duration:")}</b> {view.duration_minutes ?? "—"} {t("min")}</div><div><b>{t("Included:")}</b> {view.description || "—"}</div></div>}
+          {view && <RatecardDetails rate={view} />}
         </DialogContent>
       </Dialog>
       </div>
@@ -156,14 +159,7 @@ function RateCardAdminTable({ artistId, adminMode = false }: { artistId?: string
       {edit && (
         <aside className="dmr-panel h-fit lg:sticky lg:top-24" aria-label={t(edit.id ? "Edit ratecard" : "Add ratecard")}>
           <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">{t(edit.id ? "Edit ratecard" : "Add ratecard")}</h3><Button size="icon" variant="ghost" aria-label={t("Cancel")} onClick={() => setEdit(null)}><X className="h-4 w-4" /></Button></div>
-          <div className="space-y-3">
-            <div><Label htmlFor="ratecard-job">{t("Job type")}</Label><Input id="ratecard-job" value={edit.f.title} maxLength={120} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, title: e.target.value } })} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label htmlFor="ratecard-price">{t("Price (AED)")}</Label><Input id="ratecard-price" type="number" min={1} value={edit.f.price} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, price: e.target.value } })} /></div>
-              <div><Label htmlFor="ratecard-min">{t("Minutes")}</Label><Input id="ratecard-min" type="number" min={1} value={edit.f.duration} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, duration: e.target.value } })} /></div>
-            </div>
-            <div><Label htmlFor="ratecard-desc">{t("What's included")}</Label><Textarea id="ratecard-desc" rows={4} value={edit.f.description} maxLength={500} onChange={(e) => setEdit({ ...edit, f: { ...edit.f, description: e.target.value } })} /></div>
-          </div>
+          <RatecardFields value={edit.f} onChange={f => setEdit({ ...edit, f })} units={data.map(r => r.unit_label || "Project")} />
           <div className="mt-4 flex gap-2"><Button variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t("Cancel")}</Button><Button className="flex-1 bg-gradient-gold text-gold-foreground" onClick={save}>{t("Save")}</Button></div>
         </aside>
       )}</div>

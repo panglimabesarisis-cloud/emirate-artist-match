@@ -106,6 +106,7 @@
 .join-centered .reference-stepper li > div:last-child {display:block;font-size:13px;line-height:1.5;text-align:center;min-height:40px;max-width:140px}
 .join-centered .reference-join-card {width:100%;max-width:760px;margin-inline:auto}
 .join-centered .reference-join-plans {max-width:1240px}
+.join-centered .reference-join-rates {max-width:1240px}
 .join-centered .reference-join-plans > div > p {max-width:680px;margin-inline:auto;text-align:center;line-height:1.6}
 .join-centered .reference-plans {grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
 .join-centered .reference-plan {min-width:0}

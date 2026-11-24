@@ -561,6 +561,20 @@
       "when": 1795512985801,
       "tag": "0079_admin_artist_performance_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795514323470,
+      "tag": "0080_dynamic_ratecard_items_and_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795514617874,
+      "tag": "0081_preserve_legacy_ratecard_writers",
+      "breakpoints": true
     }
   ]
 }

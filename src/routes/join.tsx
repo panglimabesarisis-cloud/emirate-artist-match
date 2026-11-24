@@ -18,12 +18,14 @@ import { X } from "lucide-react";
 import { SceneBackground } from "@/components/shared/SceneBackground";
 import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
 import { SampleTestimonials } from "@/components/site/SampleTestimonials";
+import { SignupRatecards } from "@/components/shared/SignupRatecards";
+import { rateDraft, ratePayload, restoreRateDraft, type RateDraft } from "@/lib/ratecard";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
     meta: [
       { title: "Talent register | Dealmaker" },
-      { name: "description", content: "Join Dealmaker as talent in 5 quick steps and get booked across the UAE." },
+      { name: "description", content: "Join Dealmaker with flexible service packages, pricing units and work rules, and get booked across the UAE." },
       { property: "og:title", content: "Talent register | Dealmaker" },
       { property: "og:description", content: "Register as talent: category, photos, rate card, stage identity and contract." },
       { property: "og:type", content: "website" },
@@ -34,7 +36,6 @@ export const Route = createFileRoute("/join")({
 });
 
 const STEPS = ["Plan", "Account", "Category & photos", "Rate card", "Stage identity", "Contract"];
-type Pkg = { title: string; description: string; duration: string; price: string };
 
 function GoogleG() {
   return (<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>);
@@ -86,7 +87,7 @@ function JoinPage() {
           ))}
         </ol>
         </header>
-        <div className={`reference-join-card${!plan && !hasProfile ? " reference-join-plans" : ""}`}>
+        <div className={`reference-join-card${!plan && !hasProfile ? " reference-join-plans" : ""}${plan && user && step === 2 ? " reference-join-rates" : ""}`}>
           {!checked ? <p className="text-muted-foreground">Loading…</p>
             : hasProfile ? <div><p>Your talent profile is already submitted.</p><Button asChild className="mt-4"><Link to="/dashboard">Go to dashboard</Link></Button></div>
             : !plan ? <PlanStep onPick={setPlan} />
@@ -184,16 +185,17 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   const [categoryId, setCategoryId] = useState(""); const [specs, setSpecs] = useState<string[]>([]); const [q, setQ] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [basePrice, setBasePrice] = useState("");
-  const [pkgs, setPkgs] = useState<Pkg[]>([{ title: "Essential", description: "", duration: "60", price: "" }]);
+  const [pkgs, setPkgs] = useState<RateDraft[]>([]);
+  const [ratePending, setRatePending] = useState(false);
   const [stage, setStage] = useState(""); const [tagline, setTagline] = useState(""); const [bio, setBio] = useState("");
   const [emirateId, setEmirateId] = useState(""); const [areaId, setAreaId] = useState("");
   const [languages, setLanguages] = useState("English"); const [radius, setRadius] = useState("30");
   const [trn, setTrn] = useState(""); const [agree, setAgree] = useState(false); const [busy, setBusy] = useState(false);
   const [restored,setRestored]=useState(false);const [savedPhotos,setSavedPhotos]=useState(0);
   useEffect(()=>{let alive=true;const restore=async()=>{
-   try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);setBasePrice(d.basePrice??'');setPkgs(Array.isArray(d.pkgs)&&d.pkgs.length?d.pkgs:[{title:'Essential',description:'',duration:'60',price:''}]);setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');setStep(Number.isInteger(d.step)?Math.min(4,Math.max(0,d.step)):0);}}
+   try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);setBasePrice(d.basePrice??'');setPkgs(Array.isArray(d.pkgs)?d.pkgs.map(restoreRateDraft):[]);setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');setStep(Number.isInteger(d.step)?Math.min(4,Math.max(0,d.step)):0);}}
    catch{localStorage.removeItem(`join_draft:${user.id}`);}
-   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');setSpecs(a.specialty_ids??[]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(r=>({title:r.title,description:r.description??'',duration:String(r.duration_minutes??60),price:String(r.price)})));setStep((count??0)<5?1:4);}}}
+   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');setSpecs(a.specialty_ids??[]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(rateDraft));setStep((count??0)<5?1:4);}}}
    if(alive)setRestored(true);
   };void restore();return()=>{alive=false;};},[user.id]);
   useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
@@ -204,7 +206,11 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     if (step === 1 && !categoryId) return "Choose your talent category.";
     if (step === 1 && specs.length > limit) return `Your plan allows up to ${limit} specialties.`;
     if (step === 1 && photos.length+savedPhotos !== 5) return "Upload exactly 5 photos in total; saved photos are retained.";
-    if (step === 2 && (!Number(basePrice) || pkgs.some((p) => !p.title.trim() || !Number(p.price)))) return "Enter a starting price and a title and price for each package.";
+    if (step === 2) {
+      if (ratePending) return "Save or clear the current ratecard before continuing.";
+      if (!Number.isFinite(Number(basePrice)) || Number(basePrice) <= 0 || !pkgs.length) return "Enter a starting price and save at least one ratecard.";
+      try { pkgs.forEach(ratePayload); } catch { return "Complete each ratecard's title, base items, quantity and price."; }
+    }
     if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage name and base emirate.";
     if (step === 4 && !agree) return "Please accept the partnership contract.";
     return null;
@@ -220,6 +226,8 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     const e = validate(); if (e) { toast.error(e); return; }
     setBusy(true);
     try {
+      const rateRows = pkgs.map(ratePayload);
+      if (!rateRows.length) throw new Error("Save at least one ratecard before submitting.");
       const {data:existing}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();
       const profile={
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
@@ -233,8 +241,11 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       const { data: a, error } = existing?await supabase.from('artists').update(profile).eq('id',existing.id).select('id').single():await supabase.from('artists').insert(profile).select('id').single();
       if (error || !a) throw new Error(error?.message ?? "Could not save profile");
       const userSave=await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", user.id);if(userSave.error)throw userSave.error;
-      const {data:rates}=await supabase.from('rate_cards').select('id,sort').eq('artist_id',a.id);
-      for(const [i,p] of pkgs.entries()){const row={artist_id:a.id,title:p.title.trim(),description:p.description||null,duration_minutes:Number(p.duration)||null,price:Number(p.price),sort:i+1};const prior=rates?.find(r=>r.sort===i+1);const save=prior?await supabase.from('rate_cards').update(row).eq('id',prior.id):await supabase.from('rate_cards').insert(row);if(save.error)throw save.error;}
+      const {data:rates,error:rateError}=await supabase.from('rate_cards').select('id,sort').eq('artist_id',a.id);
+      if(rateError)throw rateError;
+      for(const [i,p] of rateRows.entries()){const row={...p,artist_id:a.id,sort:i+1};const prior=rates?.find(r=>r.sort===i+1);const save=prior?await supabase.from('rate_cards').update(row).eq('id',prior.id).eq('artist_id',a.id):await supabase.from('rate_cards').insert(row);if(save.error)throw save.error;}
+      const retired=(rates??[]).filter(r=>(r.sort??0)>rateRows.length&& (r.sort??0)<=3).map(r=>r.id);
+      if(retired.length){const removed=await supabase.from('rate_cards').delete().eq('artist_id',a.id).in('id',retired);if(removed.error)throw removed.error;}
       const {count:countPhotos}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');let uploaded=countPhotos??0;
       for (const [i, f] of photos.entries()) {
         if(uploaded>=5)break;
@@ -248,6 +259,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       if(uploaded!==5)throw new Error('Profile details saved. Add the remaining portfolio photos to finish registration.');
       const done=await supabase.from('artists').update({onboarding_complete:true}).eq('id',a.id);if(done.error)throw done.error;
       localStorage.removeItem(`join_draft:${user.id}`);
+      localStorage.removeItem(`join_rate_editor:${user.id}`);
       toast.success("Profile saved — one last step: payment.");
       navigate({ to: "/join/payment" });
     } catch (err) {const {data:a}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();if(a){const {count}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');setSavedPhotos(count??0);setPhotos([]);}toast.error((err as Error).message+' — your progress is saved.');} finally { setBusy(false); }
@@ -307,16 +319,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       {step === 2 && <>
         <h2 className="text-xl font-semibold">Step 3 · Rate card</h2>
         <div><Label>Starting price (AED)</Label><Input type="number" min={0} value={basePrice} onChange={(e) => setBasePrice(e.target.value)} /></div>
-        {pkgs.map((p, i) => (
-          <div key={i} className="grid gap-2 rounded-xl border p-3 sm:grid-cols-4">
-            <div className="sm:col-span-2"><Label>Package name</Label><Input value={p.title} onChange={(e) => setPkgs(pkgs.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} /></div>
-            <div><Label>Minutes</Label><Input type="number" value={p.duration} onChange={(e) => setPkgs(pkgs.map((x, j) => j === i ? { ...x, duration: e.target.value } : x))} /></div>
-            <div><Label>Price (AED)</Label><Input type="number" value={p.price} onChange={(e) => setPkgs(pkgs.map((x, j) => j === i ? { ...x, price: e.target.value } : x))} /></div>
-            <div className="sm:col-span-4 flex gap-2"><Input placeholder="Short description (optional)" value={p.description} onChange={(e) => setPkgs(pkgs.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
-              {pkgs.length > 1 && <Button type="button" variant="ghost" size="icon" aria-label="Remove package" onClick={() => setPkgs(pkgs.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>}</div>
-          </div>
-        ))}
-        {pkgs.length < 3 && <Button type="button" variant="outline" onClick={() => setPkgs([...pkgs, { title: "", description: "", duration: "60", price: "" }])}><Plus className="h-4 w-4" /> Add package</Button>}
+        <SignupRatecards packages={pkgs} onChange={setPkgs} draftKey={`join_rate_editor:${user.id}`} onPending={setRatePending} />
       </>}
       {step === 3 && <>
         <h2 className="text-xl font-semibold">Step 4 · Stage identity</h2>

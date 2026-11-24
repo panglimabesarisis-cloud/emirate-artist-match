@@ -7,3 +7,4 @@
 - Conversation WhatsApp sends reserve notification rows before dispatch and reconcile delivery callbacks; ambiguous sends are never blindly retried.
 - SupportWorkspace shares ticket/message rows across artist and admin views; append-only sender-verified messages preserve the thread while legacy reply fields retain client compatibility.
 - ArtistOwnPrompts persists owner-only instructions separately from protected library content; limits are transaction-checked and prompts join the server instructions below safety rules.
+- Ratecard dashboard, signup and admin share item fields and price validation; item prices cover stated scope, base totals exclude add-ons, database triggers retain legacy writes, and public/private agents read the same saved rules.

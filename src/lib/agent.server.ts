@@ -42,7 +42,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
       supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, travel_surcharge_enabled, travel_step_km, travel_fee_per_step, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", convo.artist_id).maybeSingle(),
-      supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", convo.artist_id).order("sort"),
+      supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description, unit_label, rules_of_work, items").eq("artist_id", convo.artist_id).order("sort"),
       convo.quote_request_id
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),

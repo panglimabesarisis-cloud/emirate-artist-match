@@ -153,8 +153,8 @@ async function listInvoices(input: { status: string | null; search: string | nul
 }
 
 async function readRateCards(ctx: MoreToolContext) {
-  const rows = must(await ctx.db.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", ctx.artistId).order("sort"));
-  return { count: rows.length, rateCards: rows.map((r) => ({ jobType: r.title, priceAED: Number(r.price), minutes: r.duration_minutes, included: clip(r.description, 300) })) };
+  const rows = must(await ctx.db.from("rate_cards").select("title, price, duration_minutes, description, unit_label, rules_of_work, items").eq("artist_id", ctx.artistId).order("sort"));
+  return { count: rows.length, rateCards: rows.map((r) => ({ jobType: r.title, priceAED: Number(r.price), minutes: r.duration_minutes, unit: r.unit_label, items: r.items, rulesOfWork: r.rules_of_work, included: clip(r.description, 1000) })) };
 }
 
 async function readMedia(ctx: MoreToolContext) {
