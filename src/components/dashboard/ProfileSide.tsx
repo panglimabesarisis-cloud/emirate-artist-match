@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { useArtistPlan } from "./PromptLibrary";
 import { toInvoiceRows, useInvoiceQuery } from "./InvoiceRecords";
+import { useProfilePhoto } from "@/hooks/use-profile-photo";
 
 type Live = {
   stage_name?: string | null; tagline?: string | null; bio?: string | null; base_price?: number | null; travel_radius_km?: number | null;
@@ -17,9 +18,10 @@ const n0 = (n: number) => Math.round(n).toLocaleString("en-US");
 /** The panels beside the profile form: how clients see you, your details, profile strength, job progress and cash flow. Updates as you type. */
 export function ProfileSide({ artistId, v, photoPath, names }: { artistId: string; v: Live; photoPath: string | null; names: ProfileNames }) {
   const { t } = useI18n();
+  const { data: photoUrl } = useProfilePhoto(artistId, photoPath);
   const body = (v.body && typeof v.body === "object" && !Array.isArray(v.body) ? v.body : {}) as Record<string, unknown>;
-  const works = useQuery({ queryKey: ["portfolio", artistId], queryFn: async () => (await supabase.from("artist_portfolio").select("id").eq("artist_id", artistId)).data ?? [] });
-  const clients = useQuery({ queryKey: ["clients", artistId], queryFn: async () => (await supabase.from("artist_clients").select("id, is_public").eq("artist_id", artistId)).data ?? [] });
+  const works = useQuery({ queryKey: ["portfolio", artistId, "summary"], queryFn: async () => (await supabase.from("artist_portfolio").select("id").eq("artist_id", artistId)).data ?? [] });
+  const clients = useQuery({ queryKey: ["clients", artistId, "summary"], queryFn: async () => (await supabase.from("artist_clients").select("id, is_public").eq("artist_id", artistId)).data ?? [] });
   const stats = useQuery({
     queryKey: ["profile-stats", artistId],
     queryFn: async () => {
@@ -96,7 +98,7 @@ export function ProfileSide({ artistId, v, photoPath, names }: { artistId: strin
       <section className="dmr-panel" aria-labelledby="pf-pv-h">
         <h2 className="dmr-serif" id="pf-pv-h" style={h2}>{t("How clients")} <span className="it">{t("see you")}</span></h2>
         <div className="dmr-pf-pv">
-          <div className="dmr-pf-av">{initials(v.stage_name || "?")}</div>
+          <div className="dmr-pf-av">{photoUrl ? <img src={photoUrl} alt={v.stage_name || t("Profile photo")} /> : initials(v.stage_name || "?")}</div>
           <h3>{v.stage_name || t("Your name")}</h3>
           <p>{v.tagline || t("Your tagline")}</p>
           <div className="dmr-tg">{names.speciality || names.category ? <span>{names.speciality || names.category}</span> : <span style={{ color: "var(--studio-mute-2)" }}>{t("Category")}</span>}</div>

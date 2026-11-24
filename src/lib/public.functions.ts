@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { conciergeInput } from "./concierge-rules";
+import { artistOwnedMediaPath, publicPhysicalDetails } from "./public-profile";
 
 export const askPublicConcierge = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => conciergeInput.parse(input))
@@ -174,8 +175,8 @@ export const getArtist = createServerFn({ method: "GET" })
       .map((c) => ({ id: c.id, slug: c.slug, stage_name: c.stage_name, base_price: c.base_price, rating: c.stats.rating }));
     const { publicClient } = await import("./public-client.server");
     const sb = publicClient();
-    const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }] = await Promise.all([
-      sb.from("artists").select("bio, travel_radius_km").eq("id", card.id).single(),
+    const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }, { data: portfolioRows }, { data: clientRows }] = await Promise.all([
+      sb.from("artists").select("bio, travel_radius_km, photo_path, skills, body, category_ids, specialty_ids").eq("id", card.id).single(),
       sb.from("rate_cards").select("id, title, description, price, duration_minutes, unit_label, rules_of_work, items").eq("artist_id", card.id).order("sort"),
       sb
         .from("reviews")
@@ -185,23 +186,45 @@ export const getArtist = createServerFn({ method: "GET" })
         .limit(20),
       sb.from("availability").select("date").eq("artist_id", card.id).gte("date", new Date().toISOString().slice(0, 10)),
       sb.from("artist_media").select("id, kind, url, storage_path, caption, is_cover").eq("artist_id", card.id).order("sort").order("created_at"),
+      sb.from("artist_portfolio").select("id,title,year,kind,link,description,image_path").eq("artist_id", card.id).order("sort").order("created_at"),
+      sb.from("artist_clients").select("id,name,year").eq("artist_id", card.id).eq("is_public", true).order("year", { ascending: false }),
     ]);
-    const paths = (mediaRows ?? []).filter((m) => m.storage_path).map((m) => m.storage_path!);
+    const photoPath = artistOwnedMediaPath(card.id, full?.photo_path);
+    const paths = [...new Set([
+      photoPath,
+      ...(mediaRows ?? []).map(m => artistOwnedMediaPath(card.id, m.storage_path)),
+      ...(portfolioRows ?? []).map(m => artistOwnedMediaPath(card.id, m.image_path)),
+    ].filter((path): path is string => !!path))];
     // Bucket is private with no public read; sign server-side only for this approved artist's listed files.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const signed = paths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
+    const imageUrl = (path: string | null | undefined) => {
+      const owned = artistOwnedMediaPath(card.id, path);
+      return owned ? signed.find(image => image.path === owned)?.signedUrl ?? null : null;
+    };
+    const [{ data: categories }, { data: specialties }] = await Promise.all([
+      full?.category_ids?.length ? sb.from("categories").select("id,name,slug").in("id", full.category_ids) : Promise.resolve({ data: [] }),
+      full?.specialty_ids?.length ? sb.from("subcategories").select("id,name,slug").in("id", full.specialty_ids) : Promise.resolve({ data: [] }),
+    ]);
     // The cover photo goes first; everything else keeps the order the artist chose.
     // Anonymous busy slots for the public schedule: only dates and times, never client or event details.
     const { data: busyRows } = await supabaseAdmin.from("bookings").select("event_date, start_time, end_time").eq("artist_id", card.id).is("deleted_at", null).neq("status", "cancelled").gte("event_date", new Date().toISOString().slice(0, 10)).limit(1000);
     const busy = (busyRows ?? []).map((b) => ({ date: b.event_date as string, start: (b.start_time as string | null)?.slice(0, 5) ?? null, end: (b.end_time as string | null)?.slice(0, 5) ?? null }));
     const media = [...(mediaRows ?? [])].sort((a, b) => Number(b.is_cover) - Number(a.is_cover)).map((m) => ({
       id: m.id, kind: m.kind as "photo" | "video" | "youtube", caption: m.caption,
-      src: m.storage_path ? signed.find((x) => x.path === m.storage_path)?.signedUrl ?? "" : m.url,
+      src: m.storage_path ? imageUrl(m.storage_path) ?? "" : m.url,
     })).filter((m) => m.src);
     return {
       ...card,
       bio: full?.bio ?? null,
       travel_radius_km: full?.travel_radius_km ?? null,
+      profilePhotoUrl: imageUrl(photoPath),
+      skills: full?.skills ?? [],
+      physicalDetails: publicPhysicalDetails(full?.body),
+      categories: [...(card.category ? [card.category] : []), ...(categories ?? []).filter(category => category.slug !== card.category?.slug)],
+      specialties: [...(card.subcategory ? [card.subcategory] : []), ...(specialties ?? []).filter(specialty => specialty.slug !== card.subcategory?.slug)],
+      portfolio: (portfolioRows ?? []).map(work => ({ id: work.id, title: work.title, year: work.year, kind: work.kind, description: work.description, link: work.link?.startsWith("https://") ? work.link : null, imageUrl: imageUrl(work.image_path) })),
+      clients: clientRows ?? [],
       rateCards: rates ?? [],
       reviews: reviews ?? [],
       blockedDates: (blocked ?? []).map((b) => b.date),

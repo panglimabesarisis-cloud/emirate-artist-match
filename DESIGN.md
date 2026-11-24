@@ -1,5 +1,20 @@
 # How it works: design brief
 
+## Artist profile: saved identity and evidence
+Brief: restore the uploaded portrait in the owner preview and public artist page; present saved professional information in the left column, with the existing booking tool on the right. Preserve TanStack Start, existing theme and storage access. No new dependencies or fabricated data.
+Concept options (originality/fit/feasibility/portability): casting dossier 4/5/5/2; Dubai stage programme 4/4/4/3; verified work ledger 3/4/5/3. Choose casting dossier: the portrait, skills, measurements, work and client history belong to the same saved artist identity.
+Idea: one saved profile becomes a client's casting dossier. Signature: the same real portrait appears in the editor preview and public identity; work entries pair actual evidence with dates. Emotion: recognition and confidence. Motion verb: settle; reuse existing media hover/focus and scene animation. No added idle motion or loader in this data repair.
+Palette: existing ground #07090f, raised ground #0c1120, text #f6efe2, secondary #b0aca5, gold #f0c062 and border #303440, expressed only through existing theme tokens. Bebas Neue display, Manrope reading text, zero tracking. Stable portrait square; 8px repeated work items. Keep the existing hero and scene, not a new marketing layout.
+Composition:
+```text
+saved portrait + artist name/location/languages
+LEFT: biography, specialties/skills, professional detail table | RIGHT: booking
+LEFT: portfolio evidence and year                              | booking
+LEFT: public client history, photos/videos, track record, reviews
+```
+Genericness revision: omit invented skill levels, charts for unmeasured abilities, completeness scores and financial dashboard metrics; use a factual detail table and existing privacy-filtered track record. On phones stack naturally with wrapping labels and no hidden sections. All listed clients must have Public enabled; account email, phone, subscription, cash flow, verification files and AI credits never become public.
+QA: signed-in preview and public signed-image loading/readback, focused privacy/path rules and automatic compiler. No screenshots or award score, following the user's verification preference.
+
 ## Performance Analytics
 Brief: extend only master-admin reporting using the uploaded blue HTML palette, real conversation senders, issued invoice records and completed booking timestamps. Existing TanStack/React/Recharts stack; no dependencies or decorative AI symbols.
 Concept candidates (originality/fit/feasibility/portability): artist signal desk 4/5/5/2; booking scorecard 3/5/5/3; backstage timeline 4/4/5/3. Choose artist signal desk: communications and completed jobs remain attributable to the same artist.

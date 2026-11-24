@@ -27,6 +27,7 @@ import { recoverPublicRead } from "@/lib/public-read-recovery";
 import { ErrorComponent } from "./__root";
 import { rateScope, type StoredRate } from "@/lib/ratecard";
 import { RatecardDetails } from "@/components/shared/RatecardDetails";
+import { ArtistProfileDetails } from "@/components/site/ArtistProfileDetails";
 
 export const Route = createFileRoute("/artist/$slug")({
   loader: async ({ params }) => {
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/artist/$slug")({
   },
   head: ({ loaderData }) => {
     const a = loaderData?.artist;
-    if (!a) return { meta: [{ title: "Artist unavailable | Dealmaker" }, { name: "robots", content: "noindex" }] };
+    if (!a) return { meta: [{ title: "Artist unavailable | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "This Dealmaker artist profile is unavailable." }, { property: "og:title", content: "Artist unavailable | Dealmaker" }, { property: "og:description", content: "This Dealmaker artist profile is unavailable." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] };
     const t = `${a.stage_name} — ${a.subcategory?.name ?? "Talent"} in ${a.area?.name ?? "Dubai"}`;
     return {
       meta: [
@@ -49,6 +50,7 @@ export const Route = createFileRoute("/artist/$slug")({
         { property: "og:description", content: a.tagline ?? t },
         { property: "og:type", content: "profile" },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(a.profilePhotoUrl?.startsWith("https://") ? [{ property: "og:image", content: a.profilePhotoUrl }, { name: "twitter:image", content: a.profilePhotoUrl }] : []),
       ],
     };
   },
@@ -77,7 +79,7 @@ function ArtistPage() {
       <section className="reference-scene-header artist-profile-hero">
         <SceneBackground arch={false} />
         <div className="reference-wrap reference-scene-content artist-profile-intro">
-          <ArtistAvatar name={a.stage_name} hue={a.hue} className="artist-profile-avatar h-52 w-52 text-6xl" />
+          {a.profilePhotoUrl ? <img src={a.profilePhotoUrl} alt={a.stage_name} className="artist-profile-avatar h-52 w-52 object-cover" width={208} height={208} fetchPriority="high" /> : <ArtistAvatar name={a.stage_name} hue={a.hue} className="artist-profile-avatar h-52 w-52 text-6xl" />}
           <div>
             <div className="text-gold text-xs uppercase tracking-[0.25em]">{a.category?.name} · {a.subcategory?.name}</div>
             <h1 className="mt-2 text-4xl md:text-5xl font-semibold">{a.stage_name}</h1>
@@ -102,8 +104,9 @@ function ArtistPage() {
         <div className="space-y-12">
           <section className="artist-profile-about">
             <h2 className="text-2xl font-semibold">{t("About")}</h2>
-            <p className="mt-3 text-muted-foreground leading-relaxed">{a.bio}</p>
+            <p className="mt-3 text-muted-foreground leading-relaxed whitespace-pre-line" dir="auto">{a.bio}</p>
           </section>
+          <ArtistProfileDetails artist={a} />
           <MediaShowcase media={a.media} name={a.stage_name} />
           <section>
             <h2 className="text-2xl font-semibold">{t("Reviews")} <span className="text-muted-foreground text-lg">({s.review_count})</span></h2>
@@ -129,10 +132,8 @@ function ArtistPage() {
               ))}
             </div>
           </section>
-        </div>
-        <div className="space-y-6">
           {(bars.length > 0 || facts.length > 0) && (
-            <section className="artist-profile-panel">
+            <section className="artist-profile-section">
               <h2 className="font-semibold">{t("Track record")}</h2>
               <div className="mt-4 space-y-3">
                 {bars.map((x) => (
@@ -148,6 +149,8 @@ function ArtistPage() {
               <p className="mt-3 text-[11px] text-muted-foreground">{t("Calculated from bookings on the platform. The artist chooses which figures to show.")}</p>
             </section>
           )}
+        </div>
+        <div className="space-y-6">
           <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} />
         </div>
       </div>

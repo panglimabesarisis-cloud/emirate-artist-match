@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { StudioEmpty, StudioSection } from "./StudioPage";
 import { ChipInput } from "./ChipInput";
+import { useProfilePhoto } from "@/hooks/use-profile-photo";
 
 const BUCKET = "artist-media";
 
@@ -20,11 +21,7 @@ export function ProfilePhoto({ artistId, name, photoPath, onSaved }: { artistId:
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const { data: url } = useQuery({
-    queryKey: ["profile-photo", artistId, photoPath],
-    enabled: !!photoPath,
-    queryFn: async () => (photoPath ? (await supabase.storage.from(BUCKET).createSignedUrl(photoPath, 3600)).data?.signedUrl ?? null : null),
-  });
+  const { data: url } = useProfilePhoto(artistId, photoPath);
   const upload = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) { toast.error(t("Choose an image file")); return; }
