@@ -4173,6 +4173,11 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_control_snapshot: { Args: never; Returns: Json }
+      admin_finance_page: {
+        Args: { _page?: number; _search?: string; _status?: string }
+        Returns: Json
+      }
       admin_flow_template_content: {
         Args: never
         Returns: {

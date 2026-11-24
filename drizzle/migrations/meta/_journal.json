@@ -540,6 +540,20 @@
       "when": 1795508732782,
       "tag": "0076_support_initial_message_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1795511178888,
+      "tag": "0077_admin_control_center_read_models",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1795511261848,
+      "tag": "0078_admin_payment_transaction_visibility",
+      "breakpoints": true
     }
   ]
 }
