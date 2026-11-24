@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Your phone today: five illustrative chat stories with sequential messages, final outcomes, autoplay, manual selection, pause and reduced-motion support; retain right-hand notifications and all real booking/data flows.
 - [x] Repair private artist agent contract reads via the existing team RPC; recheck effective subscription at each read and require unlocked content plus permitted tier. No UI, payment or schema changes.
 - [ ] Public AI concierge: replace curated FAQ with live public-artist discovery/profile links and standard booking/registration guidance; read-only data allowlist, contact masking and no private account/action access.
 - [x] Public browse/profile refresh: centered category search, shared For clients booking journey and curated question-selection chat, artist Reference theme; preserve existing reads, quotes and calendar behavior. Real category/profile, question choice, booking fields and calendar dialog verified without screenshots or data writes; no runtime errors. Full quote submission/payment not exercised.

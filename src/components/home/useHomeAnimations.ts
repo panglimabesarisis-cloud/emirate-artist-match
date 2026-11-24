@@ -54,16 +54,11 @@ export function useHomeAnimations(ref: RefObject<HTMLDivElement | null>) {
 
       const duo = root.querySelector<HTMLElement>(".duo");
       if (duo) {
-        const chats = Array.from(duo.querySelectorAll<HTMLElement>(".chat li"));
         const notes = Array.from(duo.querySelectorAll<HTMLElement>(".notes li"));
-        const count = duo.querySelector<HTMLElement>(".chat-count");
         let running = false;
         const play = () => {
-          chats.forEach((c) => c.classList.remove("in", "dead", "gone")); notes.forEach((n) => n.classList.remove("in", "hot"));
-          if (count) count.textContent = t("0 chats · 0 jobs");
-          if (reduced) { chats.forEach((c) => c.classList.add("in")); notes.forEach((n) => n.classList.add("in")); return; }
-          chats.forEach((c, i) => later(() => { c.classList.add("in"); if (count) count.textContent = `${i + 1} ${t("chats")} · 0 ${t("jobs")}`; }, 300 + i * 520));
-          chats.forEach((c, i) => later(() => c.classList.add(c.classList.contains("me") ? "gone" : "dead"), 3600 + i * 120));
+          notes.forEach((n) => n.classList.remove("in", "hot"));
+          if (reduced) { notes.forEach((n) => n.classList.add("in")); return; }
           notes.forEach((n, i) => later(() => { n.classList.add("in", "hot"); later(() => n.classList.remove("hot"), 900); }, 1200 + i * 900));
           later(() => { if (running) play(); }, 10500);
         };
