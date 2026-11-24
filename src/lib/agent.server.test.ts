@@ -63,10 +63,11 @@ vi.mock('@/integrations/supabase/client.server', () => ({
 vi.mock('@lovable.dev/ai-gateway', () => ({ generateResponse: mocks.generate, GatewayError: class extends Error {} }));
 vi.mock('./calendar-availability.server', () => ({ checkGoogleAvailability: mocks.calendar }));
 vi.mock('./notify.server', () => ({ notifyBooking: mocks.notify, notifyConversation: vi.fn(), artistContact: mocks.contact, siteOrigin: () => 'http://localhost:8080' }));
-vi.mock('./agent-task-billing.server', () => ({ reserveAgentTask: vi.fn().mockResolvedValue({taskId:'task-fixture'}), settleAgentTask: vi.fn().mockResolvedValue(0.01) }));
+vi.mock('./agent-task-billing.server', () => ({ AgentPricingUnavailableError: class extends Error {}, reserveAgentTask: vi.fn().mockResolvedValue({taskId:'task-fixture'}), settleAgentTask: vi.fn().mockResolvedValue(0.01) }));
 vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('http://localhost:8080') }));
 
 import { runAgent } from './agent.server';
+import { AgentPricingUnavailableError, reserveAgentTask } from './agent-task-billing.server';
 
 beforeEach(() => {
   vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.deleted = false; mocks.sparseQuote = false; mocks.formScenario = false;
@@ -78,6 +79,15 @@ beforeEach(() => {
 });
 
 describe('Book Now → artist WhatsApp dispatch', () => {
+  it('keeps AI mode and performs no inference or booking when model pricing is missing', async () => {
+    vi.mocked(reserveAgentTask).mockRejectedValueOnce(new AgentPricingUnavailableError());
+    await runAgent('conversation-fixture');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.writes.filter(write => write.table === 'bookings')).toHaveLength(0);
+    expect(mocks.writes.filter(write => write.table === 'conversations').some(write => typeof write.value === 'object' && write.value !== null && 'mode' in write.value)).toBe(false);
+    expect(mocks.writes.filter(write => write.table === 'messages')).toHaveLength(1);
+    expect(mocks.writes.find(write => write.table === 'messages')?.value).toMatchObject({ sender: 'system' });
+  });
   it('renders all saved form fields when the model tries to ask only a start time', async () => {
     mocks.formScenario = true;
     mocks.generate.mockReset().mockResolvedValue({ output: [{ type: 'message', content: [{ type: 'output_text', text: 'What time does your event start?' }] }] });

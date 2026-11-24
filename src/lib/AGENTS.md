@@ -11,6 +11,7 @@
 # Library rules
 - Incoming chat/form sources select only their connected saved graph before all form, button and approval resolvers run; legacy flows keep their existing root.
 - AI task billing uses service-only reservations and fractional ledger deltas, with verified provider-rate snapshots and per-task settlement; missing rates/usage fail closed rather than inventing prices or replaying uncertain inference.
+- Missing model pricing is a configuration failure, not human takeover; save the client message and preserve AI mode without inference so later messages can resume after verified rates are configured.
 - Master Library reads protected content through existing admin/team RPCs; shared query refresh updates separate sessions, and copied form/workflow content stays independent with source-version tracking.
 - Uploaded contract reference content is imported only through an authenticated admin server function as inactive drafts; handler-local imports keep restricted clauses out of browser bundles and preserve existing templates.
 

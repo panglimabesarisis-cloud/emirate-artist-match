@@ -2,10 +2,18 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { agentTaskCredits } from "./agent-task-cost";
 import { type Usage } from "./agent-options";
 
+export class AgentPricingUnavailableError extends Error {
+  constructor() {
+    super("AI task pricing is not configured for this model. Contact the platform administrator.");
+    this.name = "AgentPricingUnavailableError";
+  }
+}
+
 /** No guessed prices: active admin-owned provider rates are required before inference. */
 export async function reserveAgentTask(artistId: string, ref: string, model: string, input: unknown, instructions: string, outputLimit: number) {
   const { data: rate, error } = await supabaseAdmin.from("ai_model_rates").select("*").eq("model", model).eq("is_active", true).maybeSingle();
-  if (error || !rate) throw new Error("AI task pricing is not configured for this model. Contact the platform administrator.");
+  if (error) throw new Error("AI task pricing could not be loaded.");
+  if (!rate) throw new AgentPricingUnavailableError();
   // Conservative byte/token ceiling over four rounds plus tool results; never use this estimate as the final charge.
   const bytes = new TextEncoder().encode(JSON.stringify(input) + instructions).length;
   const maxInput = (bytes + 24000 + outputLimit * 4) * 4;

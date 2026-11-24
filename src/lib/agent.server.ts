@@ -20,7 +20,7 @@ import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
 import { catalogModel } from "./chat-model-catalog";
-import { reserveAgentTask, settleAgentTask } from "./agent-task-billing.server";
+import { AgentPricingUnavailableError, reserveAgentTask, settleAgentTask } from "./agent-task-billing.server";
 
 export async function addMessage(conversationId: string, sender: string, body: string) {
   await supabaseAdmin.from("messages").insert({ conversation_id: conversationId, sender, body: body.slice(0, 4000) });
@@ -226,6 +226,12 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       catch { console.error("AI task reservation awaits review"); }
     }
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
+    if (e instanceof AgentPricingUnavailableError) {
+      // Configuration failure is not an artist takeover or consent to one.
+      // Preserve AI mode so a later message can proceed after rates are configured.
+      await addMessage(conversationId, "system", "The AI assistant is temporarily unavailable. Your message is saved. Please try again later.");
+      return;
+    }
     await handover(`${artist.stage_name} will reply to you personally shortly.`);
   }
 }
