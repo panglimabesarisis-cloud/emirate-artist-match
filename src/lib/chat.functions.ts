@@ -98,7 +98,7 @@ export const submitClientQuote = createServerFn({ method: "POST" })
 
 async function verifyKey(conversationId: string, key: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, artists(stage_name, slug, hue)").eq("id", conversationId).single();
+  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, artists(stage_name, slug, hue, photo_path)").eq("id", conversationId).single();
   if (!data || data.access_key !== key) throw new Error("Conversation not found");
   return { supabaseAdmin, convo: data };
 }
@@ -108,9 +108,12 @@ export const getChat = createServerFn({ method: "GET" })
   .inputValidator((i: { id: string; key: string }) => ({ id: uuid(i.id), key: uuid(i.key) }))
   .handler(async ({ data }) => {
     const { supabaseAdmin, convo } = await verifyKey(data.id, data.key);
+    const { artistOwnedMediaPath } = await import("./public-profile");
+    const photoPath = artistOwnedMediaPath(convo.artist_id, convo.artists?.photo_path);
+    const photoUrl = photoPath ? (await supabaseAdmin.storage.from("artist-media").createSignedUrl(photoPath, 3600)).data?.signedUrl ?? null : null;
     const { data: msgs } = await supabaseAdmin.from("messages").select("id, sender, body, created_at").eq("conversation_id", data.id).order("created_at");
     const { data: invoices } = await supabaseAdmin.from("service_invoices").select("id,status,paid_at").eq("conversation_id", data.id);
-    return { mode: convo.mode, artist: convo.artists, messages: await Promise.all((msgs ?? []).map(async message => {
+    return { mode: convo.mode, artist: convo.artists ? { stage_name: convo.artists.stage_name, slug: convo.artists.slug, hue: convo.artists.hue, profilePhotoUrl: photoUrl } : null, messages: await Promise.all((msgs ?? []).map(async message => {
       const parsed = decodeChatMessage(message.body);
       const attachments = await Promise.all(parsed.attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {
         const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 3600);

@@ -5,7 +5,8 @@ import { aed, initials } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
-export function ArtistAvatar({ name, hue, className = "" }: { name: string; hue: number; className?: string }) {
+export function ArtistAvatar({ name, hue, src, className = "" }: { name: string; hue: number; src?: string | null | undefined; className?: string }) {
+  if (src) return <div className={`overflow-hidden ${className}`}><img src={src} alt={name} className="h-full w-full object-cover" loading="lazy" /></div>;
   return (
     <div
       className={`grid place-items-center font-display font-semibold text-night-foreground ${className}`}
@@ -27,7 +28,7 @@ export function ArtistCardView({ a, compact = false }: { a: Card; compact?: bool
       className={`group rounded-2xl bg-card shadow-card overflow-hidden flex flex-col transition-transform hover:-translate-y-1 ${compact ? "home-artist-card" : ""}`}
     >
       <div className={compact ? "relative h-[150px] shrink-0" : "relative aspect-[4/3]"}>
-        <ArtistAvatar name={a.stage_name} hue={a.hue} className="absolute inset-0 text-5xl" />
+        <ArtistAvatar name={a.stage_name} hue={a.hue} src={a.profilePhotoUrl} className="absolute inset-0 text-5xl" />
         <div className="absolute top-3 start-3 flex gap-1.5">
           {top && (
             <span className="inline-flex items-center gap-1 rounded-full bg-gradient-gold text-gold-foreground text-[11px] font-bold px-2 py-0.5">

@@ -77,7 +77,7 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
     <div className={className}>
       <div className="border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          {a && <ArtistAvatar name={a.stage_name} hue={a.hue ?? 30} className="h-10 w-10 rounded-full text-sm" />}
+          {a && <ArtistAvatar name={a.stage_name} hue={a.hue ?? 30} src={a.profilePhotoUrl} className="h-10 w-10 rounded-full text-sm" />}
           <div className="min-w-0 flex-1">
             <div className="truncate font-semibold">{a?.stage_name ?? "…"}</div>
             <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">

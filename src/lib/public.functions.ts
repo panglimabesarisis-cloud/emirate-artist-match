@@ -28,6 +28,7 @@ export type ArtistCard = {
   featured: boolean;
   plan: string;
   hue: number;
+  profilePhotoUrl?: string | null;
   category: { slug: string; name: string } | null;
   subcategory: { slug: string; name: string } | null;
   specialty_slugs?:string[];
@@ -51,12 +52,18 @@ async function loadCards(filter?: { artistSlug?: string }) {
   let q = sb
     .from("artists")
     .select(
-      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, specialty_ids, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
+      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
     )
     .eq("status", "approved");
   if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
   const [{ data: artists, error }, { data: stats }] = await Promise.all([q, sb.rpc("artist_public_stats")]);
   if (error) throw new Error(error.message);
+  const photoPaths = (artists ?? []).flatMap(artist => {
+    const path = artistOwnedMediaPath(artist.id, artist.photo_path);
+    return path ? [path] : [];
+  });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const signedPhotos = photoPaths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(photoPaths, 6 * 3600)).data ?? [] : [];
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
   const {data:specialties}=await sb.from('subcategories').select('id,slug');
   const slugMap=new Map((specialties??[]).map(s=>[s.id,s.slug]));
@@ -73,6 +80,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
       featured: a.featured,
       plan: a.plan,
       hue: a.hue ?? 30,
+      profilePhotoUrl: signedPhotos.find(photo => photo.path === artistOwnedMediaPath(a.id, a.photo_path))?.signedUrl ?? null,
       category: a.category,
       subcategory: a.subcategory,
       specialty_slugs:(a.specialty_ids??[]).flatMap(id=>{const slug=slugMap.get(id);return slug?[slug]:[];}),
