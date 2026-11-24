@@ -1,6 +1,8 @@
 import { catalogModel, type CatalogModel } from "./chat-model-catalog";
 /** Model presets are available on every plan; task credit checks remain server-owned. */
 export const DEFAULT_AGENT_MODEL = "openai/gpt-5.6-luna" as const;
+/** Workspace-resolved default for text/tool tasks; manual artist presets are not used by execution. */
+export const AUTOMATIC_AGENT_MODEL = "openai/gpt-6-astra" as const;
 export const AGENT_MODELS = { fast: "openai/gpt-5.4-mini", balanced: "openai/gpt-5.6-luna", advanced: "openai/gpt-5.5" } as const;
 export type AgentModel = (typeof AGENT_MODELS)[keyof typeof AGENT_MODELS] | CatalogModel;
 export function agentModel(choice: string | null | undefined): AgentModel {

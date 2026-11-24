@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { incomingFlow, type FlowNode, type FlowEdge } from "./ai-flow";
-import { agentModel } from "./agent-options";
+import { agentModel, AUTOMATIC_AGENT_MODEL } from "./agent-options";
 const node = (id: string, type: FlowNode["type"]): FlowNode => ({ id, type, position: { x: 0, y: 0 }, data: { text: id } });
 const nodes = [node("chat", "incoming_message"), node("form", "incoming_form"), node("calendar", "calendar"), node("greet", "message"), node("unconnected", "whatsapp")];
 const edges: FlowEdge[] = [{ id: "1", source: "chat", target: "greet" }, { id: "2", source: "form", target: "calendar" }];
 describe("incoming flow sources", () => {
+  it("uses the workspace text/tool default for automatic artist tasks", () => {
+    expect(AUTOMATIC_AGENT_MODEL).toBe("openai/gpt-6-astra");
+  });
   it("routes submitted artist forms only to their connected calendar path", () => {
     expect(incomingFlow(nodes, edges, "incoming_form").nodes.map(n => n.id)).toEqual(["form", "calendar"]);
   });

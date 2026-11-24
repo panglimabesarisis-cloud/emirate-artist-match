@@ -18,7 +18,7 @@ import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
-import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
+import { AUTOMATIC_AGENT_MODEL, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
 import { catalogModel } from "./chat-model-catalog";
 import { AgentPricingUnavailableError, reserveAgentTask, settleAgentTask } from "./agent-task-billing.server";
 
@@ -107,7 +107,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(summary));
     return;
   }
-  const MODEL = agentModel(settings?.model);
+  const MODEL = AUTOMATIC_AGENT_MODEL;
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.

@@ -242,8 +242,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
       ) : !showForm ? (
         <div className="mt-5 space-y-3">
           <Button type="button" onClick={() => setShowForm(true)} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">{t("Book Artist")}</Button>
-          <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
-          <Button type="button" variant="outline" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
+          <Button type="button" variant="gold" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
+          <Button type="button" variant="gold" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </div>
       ) : (
@@ -313,12 +313,12 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
-          <Button type="button" variant="outline" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
+          <Button type="button" variant="gold" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
+          <Button type="button" variant="gold" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
-      <Dialog open={chatOpen} onOpenChange={setChatOpen}><DialogContent><DialogTitle>{t("Chat With Us")} · {artistName}</DialogTitle><form className="space-y-4" onSubmit={event => { event.preventDefault(); void openChat(); }}><Textarea aria-label={t("Your message")} value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><Button type="submit" disabled={chatBusy || !chatText.trim()}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form></DialogContent></Dialog>
+      {chatOpen && <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void openChat(); }}><Label htmlFor="artist-chat-message">{t("Your message")}</Label><Textarea id="artist-chat-message" autoFocus value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><Button variant="gold" type="submit" className="w-full" disabled={chatBusy || !chatText.trim()}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form>}
       <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
     </aside>
   );

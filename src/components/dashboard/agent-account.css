@@ -92,3 +92,5 @@ html.dm-dash .agent-own-saved p{white-space:pre-wrap;overflow-wrap:anywhere;font
 html.dm-dash .agent-own-saved small{color:var(--muted-foreground);font-size:11px}
 @media(min-width:1000px){html.dm-dash .studio-reference .dmr-agpage .studio-agent-settings{grid-column:span 7}html.dm-dash .studio-reference .dmr-agpage .studio-agent-test{grid-column:span 5}}
 @media(max-width:700px){html.dm-dash .agent-prompt-pagination{flex-wrap:wrap}html.dm-dash .agent-model{min-height:140px}}
+html.dm-dash .dmr-agpage .studio-agent-test{align-self:stretch;display:flex;flex-direction:column}
+html.dm-dash .dmr-agpage .studio-agent-chat{flex:1;min-height:280px}
