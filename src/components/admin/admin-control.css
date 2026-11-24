@@ -27,7 +27,7 @@ html.dm-admin .admin-control .admin-chart-section { border-top:1px solid var(--b
 html.dm-admin .admin-control .admin-chart-section h2 { font-size:24px; margin-bottom:18px; }
 html.dm-admin .admin-control .admin-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px; }
 html.dm-admin .admin-control .admin-toolbar input { max-width:280px; }
-html.dm-admin .admin-control .admin-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--card); }
+html.dm-admin .admin-control .admin-table-wrap { position:relative; overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--card); }
 html.dm-admin .admin-control table { width:100%; min-width:780px; font-size:12px; border-collapse:collapse; }
 html.dm-admin .admin-control th { color:var(--muted-foreground); background:var(--popover); font-size:11px; font-weight:600; text-align:start; }
 html.dm-admin .admin-control td,html.dm-admin .admin-control th { padding:14px 16px; border-bottom:1px solid var(--border); }
