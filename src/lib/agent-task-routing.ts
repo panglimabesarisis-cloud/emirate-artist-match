@@ -18,6 +18,7 @@ export function agentTaskTier(task: TaskContext): keyof typeof TASK_MODELS {
   if (task.privateAgent && (task.hasAttachments || task.hasPendingActions ||
     /\b(invoice|contract|report|analytic\w*|table|chart|draft|create|prepare|schedule|calendar|performance|earnings|revenue)\b|buat\w*|laporan|jadwal|kontrak|tabel|grafik|analisis|فاتورة|عقد|تقرير|جدول/.test(text))) return "advanced";
   if (/^(hi|hello|hey|thanks|thank you|halo|hai|terima kasih|مرحبا|شكرا)[\s!.?]*$/.test(text)) return "fast";
+  if (!task.bookingInProgress && /^(are you (an? )?ai|what is dealmaker|how does (this|dealmaker) work|apakah (kamu|anda) ai)[\s!.?]*$/.test(text)) return "fast";
   if (!task.privateAgent || task.bookingInProgress ||
     /\b(book\w*|price|rate\w*|package|availability|available|calendar|schedule|discount|budget)\b|harga|paket|jadwal|خصم|حجز|سعر/.test(text)) return "balanced";
   // Private account questions may require tools even without an explicit action verb.

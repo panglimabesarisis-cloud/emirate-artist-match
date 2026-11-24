@@ -21,7 +21,10 @@ export async function reserveAgentTask(artistId: string, ref: string, model: str
   const reserve = agentTaskCredits(maxCost);
   if (reserve === null || reserve <= 0) throw new AgentPricingUnavailableError("Invalid AI task pricing");
   const { data: taskId, error: taskError } = await supabaseAdmin.rpc("reserve_agent_task", { _artist: artistId, _ref: ref, _model: model, _reserve: reserve, _rate: rate });
-  if (taskError || !taskId) throw new Error("Insufficient credits, or another AI task is still running. Try again after it finishes.");
+  if (taskError || !taskId) {
+    console.error("AI task reservation failed", { code: taskError?.code, message: taskError?.message });
+    throw new Error("Insufficient credits, or another AI task is still running. Try again after it finishes.");
+  }
   return { taskId, rate };
 }
 

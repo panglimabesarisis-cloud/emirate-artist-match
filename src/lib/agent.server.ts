@@ -109,7 +109,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(summary));
     return;
   }
-  const MODEL = agentTaskModel({ text: decodeChatMessage((history ?? []).findLast(m => m.sender === "client")?.body ?? "").text, privateAgent: false, bookingInProgress: !!existingBooking || !!artistDecisionBookingId });
+  const MODEL = agentTaskModel({ text: decodeChatMessage((history ?? []).slice().reverse().find(m => m.sender === "client")?.body ?? "").text, privateAgent: false, bookingInProgress: !!existingBooking || !!artistDecisionBookingId });
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
