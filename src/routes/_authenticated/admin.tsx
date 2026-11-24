@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import "@/components/dashboard/studio.css";
 import "@/components/admin/admin-control.css";
-import { BadgeCheck, Banknote, Bell, CalendarRange, ClipboardList, FileSignature, FolderTree, Gauge, History, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
 import { AdminOverview } from "@/components/admin/AdminOverview";
+import { AdminPerformance } from "@/components/admin/AdminPerformance";
 import { ArtistDirectory, ArtistRequests, CategoryManager, EventTypeManager } from "@/components/admin/AdminArtists";
 import { AdminPlans } from "@/components/admin/AdminPlans";
 import { AdminSettings } from "@/components/admin/AdminSettings";
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 const NAV = [
   { id: "overview", label: "Overview", group: "Dashboard" },
+  { id: "performance", label: "Performance Analytics", group: "Dashboard" },
   { id: "artists", label: "Artist directory", group: "Artists" },
   { id: "requests", label: "Artist requests", group: "Artists" },
   { id: "categories", label: "Categories", group: "Artists" },
@@ -68,7 +70,7 @@ const NAV = [
 ] as const;
 type Section = (typeof NAV)[number]["id"];
 const NAV_ICONS: Record<Section, LucideIcon> = {
-  overview: Gauge, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
+  overview: Gauge, performance: ChartNoAxesCombined, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
   library: Layers, flow: Workflow, settings: SettingsIcon, clients: UsersIcon, "client-payouts": Banknote, support: LifeBuoy,
   bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
@@ -162,8 +164,9 @@ function Admin() {
           </div>
         </header>
         <main id="admin-content" className="studio-content studio-reference" tabIndex={-1}>
-          <div className="admin-title"><div><h1 className="font-display">{current.label}</h1><p>{section === "overview" ? "Talent, bookings and payment oversight across Dealmaker." : section === "allocations" ? "Artist entitlement, platform fees and client rewards, separately recorded for every booking." : `${current.group} / ${current.label}`}</p></div><Badge variant="outline">Master admin</Badge></div>
+          <div className="admin-title"><div><h1 className="font-display">{current.label}</h1><p>{section === "overview" ? "Talent, bookings and payment oversight across Dealmaker." : section === "performance" ? "Artist activity, client conversations and completed jobs across Dealmaker." : section === "allocations" ? "Artist entitlement, platform fees and client rewards, separately recorded for every booking." : `${current.group} / ${current.label}`}</p></div><Badge variant="outline">Master admin</Badge></div>
           {section === "overview" && <AdminOverview onOpen={openSection} />}
+          {section === "performance" && <AdminPerformance />}
           {section === "bookings" && <AdminFinance key="bookings" bookings />}
           {section === "allocations" && <AdminFinance key="allocations" />}
           {(section === "transactions" || section === "credits" || section === "notifications" || section === "roles" || section === "audit") && <AdminRecords key={section} kind={section} />}

@@ -125,3 +125,60 @@ html.dm-admin .admin-overview-error { padding:24px; color:var(--chart-4); }
 @media(max-width:1200px) { html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } html.dm-admin .admin-overview-intro h2 { font-size:34px; } }
 @media(max-width:700px) { html.dm-admin .admin-overview-intro { padding:22px 18px; display:block; } html.dm-admin .admin-overview-emblem { display:none; } html.dm-admin .admin-overview-intro h2 { font-size:32px; } html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } html.dm-admin .admin-overview-kpi { padding:14px 12px; } html.dm-admin .admin-overview-kpi strong { font-size:25px; } html.dm-admin .admin-overview-charts,html.dm-admin .admin-overview-distributions { grid-template-columns:1fr; } html.dm-admin .admin-overview-panel { padding:18px 14px; } }
 @media(prefers-reduced-motion:reduce) { html.dm-admin .admin-overview button { transition:none; translate:none!important; } }
+
+/* Performance uses the same reference-blue surfaces, with restrained data-first composition. */
+html.dm-admin .admin-performance { display:grid; gap:18px; min-width:0; }
+html.dm-admin .admin-performance-toolbar,html.dm-admin .admin-performance-filters { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+html.dm-admin .admin-performance-toolbar { justify-content:space-between; }
+html.dm-admin .admin-performance-toolbar button { font-size:12px; }
+html.dm-admin .admin-performance-artist { width:240px; background:var(--admin-overview-surface); }
+html.dm-admin .admin-performance-artist>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html.dm-admin .admin-performance-dateline { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--muted-foreground); font-size:11px; padding-bottom:4px; }
+html.dm-admin .admin-performance-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+html.dm-admin .admin-performance-kpis .admin-overview-kpi { border-top:2px solid var(--studio-gold-line-soft); min-height:124px; }
+html.dm-admin .admin-performance-kpis small { padding-inline-end:0; }
+html.dm-admin .admin-performance-kpis .admin-overview-kpi:first-child strong { color:var(--gold); }
+html.dm-admin .admin-performance-reports { display:grid; grid-template-columns:minmax(270px,0.8fr) minmax(0,1.2fr); gap:16px; align-items:start; }
+html.dm-admin .admin-performance .admin-overview-panel { background:var(--admin-overview-panel-gradient); padding:20px; }
+html.dm-admin .admin-performance-bars { display:grid; gap:20px; }
+html.dm-admin .admin-performance-bar-row>div { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:8px; font-size:12px; }
+html.dm-admin .admin-performance-bar-row>div>span { display:flex; gap:8px; }
+html.dm-admin .admin-performance-bar-row small { color:var(--muted-foreground); font-size:10px; font-variant-numeric:tabular-nums; }
+html.dm-admin .admin-performance-bar-row strong { color:var(--gold); font-size:13px; font-variant-numeric:tabular-nums; }
+html.dm-admin .admin-performance-bar-row p { color:var(--muted-foreground); font-size:10px; margin-top:6px; }
+html.dm-admin .admin-performance-bar-row meter { display:block; width:100%; height:7px; border:0; border-radius:2px; background:var(--admin-overview-surface-raised); --meter-fill:var(--gold); }
+html.dm-admin .admin-performance-bar-row meter::-webkit-meter-bar { border:0; background:var(--admin-overview-surface-raised); height:7px; }
+html.dm-admin .admin-performance-bar-row meter::-webkit-meter-optimum-value { background:var(--meter-fill); }
+html.dm-admin .admin-performance-bar-row meter::-moz-meter-bar { background:var(--meter-fill); }
+html.dm-admin .admin-performance-bar-row.metric-aiReply meter,html.dm-admin .admin-performance-bar-row.metric-clientReply meter { --meter-fill:var(--chart-2); }
+html.dm-admin .admin-performance-bar-row.metric-artistReply meter { --meter-fill:var(--chart-3); }
+html.dm-admin .admin-performance-bar-row.metric-unpaidInvoice meter { --meter-fill:var(--chart-4); }
+html.dm-admin .admin-performance-table { overflow-x:auto; width:100%; }
+html.dm-admin .admin-performance-table table { min-width:590px; font-size:11px; }
+html.dm-admin .admin-performance-table th,html.dm-admin .admin-performance-table td { padding:13px 10px; }
+html.dm-admin .admin-performance-table th { background:transparent; }
+html.dm-admin .admin-performance-table thead th { color:var(--gold); font-size:10px; text-transform:uppercase; }
+html.dm-admin .admin-performance-table tbody th { color:var(--foreground); font-weight:600; text-transform:none; }
+html.dm-admin .admin-performance-rank { color:var(--muted-foreground); font-variant-numeric:tabular-nums; }
+html.dm-admin .admin-performance-name { display:flex; align-items:center; gap:9px; }
+html.dm-admin .admin-performance-name small { display:block; font-size:10px; color:var(--muted-foreground); margin-top:4px; font-weight:400; }
+html.dm-admin .admin-performance-avatar { display:grid; place-items:center; width:30px; height:30px; flex:0 0 30px; border:1px solid var(--studio-gold-line-soft); background:var(--studio-gold-wash); color:var(--gold); border-radius:6px; font-family:var(--font-display); font-size:16px; }
+html.dm-admin .admin-performance-completed-total { display:grid; text-align:end; gap:4px; }
+html.dm-admin .admin-performance-completed-total strong { font:32px/1 var(--font-display); color:var(--gold); }
+html.dm-admin .admin-performance-completed-total span { font-size:10px; color:var(--muted-foreground); }
+html.dm-admin .admin-performance-legend { display:flex; flex-wrap:wrap; gap:12px 20px; font-size:11px; margin-bottom:16px; }
+html.dm-admin .admin-performance-legend>span { display:flex; align-items:center; gap:7px; --series-color:var(--gold); }
+html.dm-admin .admin-performance-legend i { width:16px; height:3px; background:var(--series-color); flex-shrink:0; }
+html.dm-admin .admin-performance-legend .series-1 { --series-color:var(--chart-2); }
+html.dm-admin .admin-performance-legend .series-2 { --series-color:var(--chart-3); }
+html.dm-admin .admin-performance-legend .series-3 { --series-color:var(--chart-4); }
+html.dm-admin .admin-performance-legend .series-4 { --series-color:var(--chart-5); }
+html.dm-admin .admin-performance-area { height:310px; min-width:0; }
+html.dm-admin .admin-performance-empty { color:var(--muted-foreground); font-size:12px; padding-block:8px; }
+html.dm-admin .admin-performance-daily { border-top:1px solid var(--border); margin-top:16px; padding-top:14px; }
+html.dm-admin .admin-performance-daily summary { width:fit-content; cursor:pointer; color:var(--muted-foreground); font-size:12px; padding:4px; }
+html.dm-admin .admin-performance-daily summary:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
+html.dm-admin .admin-performance-daily summary:hover { color:var(--gold); }
+html.dm-admin .admin-performance-daily .admin-performance-table { max-height:330px; margin-top:12px; }
+@media(max-width:1200px) { html.dm-admin .admin-performance-reports { grid-template-columns:1fr; } html.dm-admin .admin-performance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:620px) { html.dm-admin .admin-performance .admin-overview-panel { padding:18px 14px; } html.dm-admin .admin-performance-filters { width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); } html.dm-admin .admin-performance-filters>button { width:100%; min-width:0; } html.dm-admin .admin-performance-kpis { gap:10px; } html.dm-admin .admin-performance-area { height:270px; } }

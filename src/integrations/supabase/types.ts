@@ -4213,6 +4213,10 @@ export type Database = {
         }[]
       }
       admin_order_form_template_fields: { Args: { _id: string }; Returns: Json }
+      admin_performance_analytics: {
+        Args: { _artist_id?: string; _days?: number; _page?: number }
+        Returns: Json
+      }
       ai_usage: {
         Args: { _artist: string; _from: string; _to: string }
         Returns: {
