@@ -33,21 +33,30 @@ export async function agentPlan(db: AgentDb, artistId: string) {
     tiers: tiers.data ?? [],
   };
 }
+async function readableContracts(
+  db: AgentDb,
+  artistId: string,
+  plan: Awaited<ReturnType<typeof agentPlan>>,
+) {
+  const { data, error } = await db.rpc("list_contract_templates", { _artist: artistId });
+  if (error) throw error;
+  return (data ?? []).filter(
+    (t) =>
+      t.unlocked &&
+      (t.artist_id === artistId || (t.artist_id === null && t.is_active)) &&
+      templateAllowed(plan.tiers.find((p) => p.code === t.tier)?.sort ?? Infinity, plan.sort),
+  );
+}
 export async function eligibleContracts(
   db: AgentDb,
   artistId: string,
   plan: Awaited<ReturnType<typeof agentPlan>>,
 ) {
-  const { data, error } = await db
-    .from("contract_templates")
-    .select("id,artist_id,name,category,description,tier,is_active")
-    .or(`artist_id.eq.${artistId},artist_id.is.null`);
-  if (error) throw error;
-  return (data ?? []).filter(
-    (t) =>
-      (t.artist_id === artistId || t.is_active) &&
-      templateAllowed(plan.tiers.find((p) => p.code === t.tier)?.sort ?? Infinity, plan.sort),
-  );
+  const contracts = await readableContracts(db, artistId, plan);
+  // Only eligible metadata enters the model's account context, not contract bodies.
+  return contracts.map(({ id, artist_id, name, category, description, tier, is_active }) => ({
+    id, artist_id, name, category, description, tier, is_active,
+  }));
 }
 const idSchema = z.object({ id: z.string().uuid() }).strict();
 export const invoiceDocumentSchema = z.object({
@@ -188,17 +197,14 @@ export async function executeAgentTool(
   }
   if (name === "get_contract_template") {
     const { id } = idSchema.parse(input);
-    const eligible = await eligibleContracts(ctx.db, ctx.artistId, ctx.plan);
-    if (!eligible.some((t) => t.id === id))
+    // Recheck the effective subscription at read time; never trust a stale chat plan.
+    const plan = await agentPlan(ctx.db, ctx.artistId);
+    const eligible = await readableContracts(ctx.db, ctx.artistId, plan);
+    const data = eligible.find((t) => t.id === id);
+    if (!data)
       throw new Error("Contract template is not included in your current subscription.");
-    const { data, error } = await ctx.db
-      .from("contract_templates")
-      .select("id,name,clauses,rider")
-      .eq("id", id)
-      .maybeSingle();
-    if (error || !data) throw new Error("Contract template unavailable.");
     const clauses = z.array(z.object({ title: z.string(), body: z.string() })).parse(data.clauses);
-    ctx.contracts.push({ ...data, clauses });
+    ctx.contracts.push({ id: data.id, name: data.name, clauses, rider: data.rider });
     return {
       displayedPrivately: true,
       name: data.name,

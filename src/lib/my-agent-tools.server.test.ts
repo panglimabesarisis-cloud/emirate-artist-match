@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { executeAgentTool, type AgentDb, type AgentToolContext } from "./my-agent-tools.server";
+import { eligibleContracts, executeAgentTool, type AgentDb, type AgentToolContext } from "./my-agent-tools.server";
 const artistId = "10000000-0000-4000-8000-000000000001";
 const invoiceId = "20000000-0000-4000-8000-000000000001";
 function context(record: unknown, sort = 1) {
@@ -8,6 +8,7 @@ function context(record: unknown, sort = 1) {
     eq: vi.fn(),
     is: vi.fn(),
     or: vi.fn(),
+    order: vi.fn(),
     maybeSingle: vi.fn(async () => ({ data: record, error: null })),
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve({ data: record, error: null }).then(resolve),
@@ -16,8 +17,10 @@ function context(record: unknown, sort = 1) {
   query.eq.mockReturnValue(query);
   query.is.mockReturnValue(query);
   query.or.mockReturnValue(query);
+  query.order.mockReturnValue(query);
   const from = vi.fn(() => query);
-  const db = { from } as unknown as AgentDb;
+  const rpc = vi.fn();
+  const db = { from, rpc } as unknown as AgentDb;
   const ctx: AgentToolContext = {
     db,
     artistId,
@@ -63,7 +66,17 @@ function context(record: unknown, sort = 1) {
     proposals: [],
     attachedFiles: [],
   };
-  return { ctx, from, query };
+  rpc.mockImplementation(async (name: string) => ({
+    data: name === "effective_artist_plan" ? "free" : record,
+    error: null,
+  }));
+  from.mockImplementation((table?: string) => {
+    if (table === "plan_tiers") {
+      return { select: () => ({ order: async () => ({ data: ctx.plan.tiers, error: null }) }) } as typeof query;
+    }
+    return query;
+  });
+  return { ctx, from, query, rpc };
 }
 describe("Private artist agent tools", () => {
   it("shows the stored invoice privately without creating it or sending a client message", async () => {
@@ -95,12 +108,61 @@ describe("Private artist agent tools", () => {
   });
   it("rejects a contract above the artist tier before reading clauses", async () => {
     const { ctx, query } = context([
-      { id: invoiceId, artist_id: artistId, name: "Pro contract", tier: "pro", is_active: true },
+      { id: invoiceId, artist_id: artistId, name: "Pro contract", tier: "pro", is_active: true, unlocked: true },
     ]);
     await expect(executeAgentTool("get_contract_template", { id: invoiceId }, ctx)).rejects.toThrow(
       "not included",
     );
     expect(query.maybeSingle).not.toHaveBeenCalled();
+    expect(ctx.contracts).toEqual([]);
+  });
+  it("reads an unlocked Free contract through the artist-scoped RPC without direct table access", async () => {
+    const clauses = [{ title: "Performance", body: "Agreed performance terms." }];
+    const { ctx, from, rpc } = context([
+      { id: invoiceId, artist_id: null, name: "Free contract", tier: "free", is_active: true, unlocked: true, clauses, rider: null },
+    ]);
+    await expect(executeAgentTool("get_contract_template", { id: invoiceId }, ctx)).resolves.toMatchObject({ displayedPrivately: true });
+    expect(ctx.contracts).toEqual([{ id: invoiceId, name: "Free contract", clauses, rider: null }]);
+    expect(rpc).toHaveBeenCalledWith("list_contract_templates", { _artist: artistId });
+    expect(from.mock.calls).toEqual([["plan_tiers"]]);
+  });
+  it("blocks a locked paid contract even when its tier is Free", async () => {
+    const { ctx } = context([
+      { id: invoiceId, artist_id: null, name: "Paid contract", tier: "free", is_active: true, unlocked: false, clauses: null, rider: null },
+    ]);
+    await expect(executeAgentTool("get_contract_template", { id: invoiceId }, ctx)).rejects.toThrow("not included");
+    expect(ctx.contracts).toEqual([]);
+  });
+  it("rechecks the effective Free subscription after a cached Pro plan expires", async () => {
+    const { ctx, rpc } = context([
+      { id: invoiceId, artist_id: null, name: "Pro contract", tier: "pro", is_active: true, unlocked: true },
+    ], 4);
+    ctx.plan.code = "pro";
+    await expect(executeAgentTool("get_contract_template", { id: invoiceId }, ctx)).rejects.toThrow("not included");
+    expect(rpc).toHaveBeenCalledWith("effective_artist_plan", { _artist: artistId });
+    expect(ctx.contracts).toEqual([]);
+  });
+  it("allows Pro content when the effective subscription is Pro", async () => {
+    const { ctx, rpc } = context([
+      { id: invoiceId, artist_id: null, name: "Pro contract", tier: "pro", is_active: true, unlocked: true, clauses: [], rider: null },
+    ]);
+    rpc.mockImplementation(async (name: string) => ({ data: name === "effective_artist_plan" ? "pro" : [{ id: invoiceId, artist_id: null, name: "Pro contract", tier: "pro", is_active: true, unlocked: true, clauses: [], rider: null }], error: null }));
+    await executeAgentTool("get_contract_template", { id: invoiceId }, ctx);
+    expect(ctx.contracts).toHaveLength(1);
+  });
+  it("passes eligible metadata to the model without clauses or rider", async () => {
+    const { ctx } = context([
+      { id: invoiceId, artist_id: null, name: "Free contract", category: "Singer", description: "Terms", tier: "free", is_active: true, unlocked: true, clauses: [{ title: "Private", body: "Content" }], rider: "Rider" },
+    ]);
+    const result = await eligibleContracts(ctx.db, artistId, ctx.plan);
+    expect(result).toHaveLength(1);
+    expect(result[0]).not.toHaveProperty("clauses");
+    expect(result[0]).not.toHaveProperty("rider");
+  });
+  it("fails closed when the contract RPC denies access", async () => {
+    const { ctx, rpc } = context([]);
+    rpc.mockImplementation(async (name: string) => name === "effective_artist_plan" ? { data: "free", error: null } : { data: null, error: new Error("Forbidden") });
+    await expect(executeAgentTool("get_contract_template", { id: invoiceId }, ctx)).rejects.toThrow("Forbidden");
     expect(ctx.contracts).toEqual([]);
   });
   it("rejects event preparation when Calendar is not in the artist subscription", async () => {
