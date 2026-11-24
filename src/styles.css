@@ -108,6 +108,14 @@
 }
 
 @utility bg-gradient-gold { background-image: var(--gradient-gold); }
+
+/* Uploaded master-admin overview palette; no public or artist theme changes. */
+:root {
+  --admin-overview-surface: #0f1424;
+  --admin-overview-surface-raised: #141b30;
+  --admin-overview-panel-gradient: linear-gradient(180deg, #10162a 0%, #0b0f1d 100%);
+  --admin-overview-intro-gradient: radial-gradient(ellipse at 82% 0%, #1c2340 0%, #0e1326 50%, #0a0e1c 100%);
+}
 @utility bg-gradient-night { background-image: var(--gradient-night); }
 @utility shadow-card { box-shadow: var(--shadow-card); }
 

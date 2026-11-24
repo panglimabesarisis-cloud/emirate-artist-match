@@ -65,3 +65,63 @@ html.dm-admin .admin-control button svg { transition:translate .25s var(--studio
  html.dm-admin .admin-detail-grid { grid-template-columns:1fr; }
 }
 @media(prefers-reduced-motion:reduce) { html.dm-admin .admin-control button svg { transition:none; translate:none!important; } }
+
+/* Overview mirrors the reference's midnight-blue operational dashboard. */
+html.dm-admin .admin-overview { display:grid; gap:16px; min-width:0; }
+html.dm-admin .admin-overview-intro { position:relative; isolation:isolate; padding:28px; background:var(--admin-overview-intro-gradient); border-block:1px solid var(--studio-gold-line-soft); display:flex; align-items:center; justify-content:space-between; gap:24px; overflow:hidden; }
+html.dm-admin .admin-overview-intro::after { content:""; position:absolute; z-index:-1; inset-inline-end:-85px; top:-150px; width:360px; height:360px; rotate:45deg; border:1px solid var(--studio-gold-line-soft); background:var(--studio-wash); pointer-events:none; }
+html.dm-admin .admin-overview-intro h2 { font-size:40px; line-height:1.05; margin-block:10px; text-wrap:balance; max-width:650px; }
+html.dm-admin .admin-overview-intro h2 span { color:var(--gold); }
+html.dm-admin .admin-overview-intro p { color:var(--muted-foreground); font-size:13px; max-width:580px; }
+html.dm-admin .admin-overview-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:18px; }
+html.dm-admin .admin-overview-actions button { font-size:12px; min-height:36px; height:auto; padding:9px 12px; white-space:normal; text-align:start; background:var(--studio-wash); border-color:var(--studio-line-2); }
+html.dm-admin .admin-overview-actions .admin-overview-primary { background:var(--gradient-gold); color:var(--gold-foreground); border:0; }
+html.dm-admin .admin-overview-emblem { min-width:145px; text-align:end; display:grid; gap:8px; }
+html.dm-admin .admin-overview-emblem strong { color:var(--gold); font:64px/1 var(--font-display); }
+html.dm-admin .admin-overview-emblem span { font-size:12px; text-transform:uppercase; }
+html.dm-admin .admin-overview-emblem small { color:var(--success); font-size:11px; }
+html.dm-admin .admin-overview-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; flex-wrap:wrap; }
+html.dm-admin .admin-overview-toolbar button { font-size:12px; }
+html.dm-admin .admin-overview-muted { color:var(--muted-foreground); }
+html.dm-admin .admin-overview-period { width:170px; background:var(--admin-overview-surface); }
+html.dm-admin .admin-overview-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+html.dm-admin .admin-overview-kpi { position:relative; min-width:0; min-height:116px; border:1px solid var(--studio-line); border-radius:8px; padding:16px; background:var(--admin-overview-panel-gradient); display:flex; flex-direction:column; gap:9px; }
+html.dm-admin .admin-overview-kpi>svg { position:absolute; top:12px; inset-inline-end:12px; width:26px; height:26px; padding:6px; background:var(--studio-gold-wash); color:var(--gold); border-radius:6px; }
+html.dm-admin .admin-overview-kpi small { font-size:11px; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; padding-inline-end:28px; }
+html.dm-admin .admin-overview-kpi strong { font:28px/1.15 var(--font-display); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+html.dm-admin .admin-overview-kpi p { margin-top:auto; font-size:11px; color:var(--muted-foreground); }
+html.dm-admin .admin-overview-charts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+html.dm-admin .admin-overview-distributions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+html.dm-admin .admin-overview-panel { min-width:0; padding:20px; background:var(--admin-overview-panel-gradient); border-block:1px solid var(--studio-line); }
+html.dm-admin .admin-overview-panel>header { display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:18px; }
+html.dm-admin .admin-overview-panel h2 { font-size:24px; line-height:1.1; }
+html.dm-admin .admin-overview-panel header p { font-size:11px; color:var(--muted-foreground); margin-top:5px; }
+html.dm-admin .admin-overview-badge { border:1px solid var(--studio-line-2); background:var(--admin-overview-surface-raised); border-radius:5px; padding:4px 7px; font-size:10px; white-space:nowrap; }
+html.dm-admin .admin-overview-chart { height:230px; min-width:0; }
+html.dm-admin .admin-overview-distribution { display:grid; gap:14px; }
+html.dm-admin .admin-overview-distribution-row>div { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:12px; margin-bottom:6px; }
+html.dm-admin .admin-overview-distribution-row span { text-transform:capitalize; }
+html.dm-admin .admin-overview-distribution-row small { color:var(--muted-foreground); font-size:10px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+html.dm-admin .admin-overview-distribution-row meter { display:block; width:100%; height:6px; background:var(--admin-overview-surface-raised); border:0; border-radius:3px; --meter-fill:var(--gold); }
+html.dm-admin .admin-overview-distribution-row meter::-webkit-meter-bar { background:var(--admin-overview-surface-raised); border:0; height:6px; }
+html.dm-admin .admin-overview-distribution-row meter::-webkit-meter-optimum-value { background:var(--meter-fill); border-radius:3px; }
+html.dm-admin .admin-overview-distribution-row meter::-moz-meter-bar { background:var(--meter-fill); }
+html.dm-admin .admin-overview-distribution-row.status-completed meter { --meter-fill:var(--success); }
+html.dm-admin .admin-overview-distribution-row.status-cancelled meter { --meter-fill:var(--chart-4); }
+html.dm-admin .admin-overview-distribution-row.status-confirmed meter { --meter-fill:var(--chart-2); }
+html.dm-admin .admin-overview-queue { display:grid; }
+html.dm-admin .admin-overview-queue button { width:100%; min-height:54px; height:auto; white-space:normal; padding:10px 0; justify-content:start; border-bottom:1px solid var(--studio-line); border-radius:0; font-size:12px; text-align:start; gap:10px; }
+html.dm-admin .admin-overview-queue button:last-child { border-bottom:0; }
+html.dm-admin .admin-overview-queue button>span:nth-child(2) { flex:1; }
+html.dm-admin .admin-overview-queue b { color:var(--gold); }
+html.dm-admin .admin-overview-queue-icon { display:grid; place-items:center; color:var(--gold); background:var(--studio-gold-wash); width:30px; height:30px; border-radius:6px; flex-shrink:0; }
+html.dm-admin .admin-overview-funds { display:grid; gap:16px; }
+html.dm-admin .admin-overview-funds>div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px solid var(--studio-line); padding-bottom:12px; }
+html.dm-admin .admin-overview-funds dt { font-size:12px; color:var(--muted-foreground); }
+html.dm-admin .admin-overview-funds dd { font:23px/1.2 var(--font-display); font-variant-numeric:tabular-nums; }
+html.dm-admin .admin-overview-empty { color:var(--muted-foreground); font-size:12px; padding-block:22px; }
+html.dm-admin .admin-overview-error { padding:24px; color:var(--chart-4); }
+@media(hover:hover) { html.dm-admin .admin-overview-actions button:hover { translate:0 -1px; border-color:var(--gold); } html.dm-admin .admin-overview-queue button:hover { background:var(--studio-wash); } }
+@media(max-width:1200px) { html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } html.dm-admin .admin-overview-intro h2 { font-size:34px; } }
+@media(max-width:700px) { html.dm-admin .admin-overview-intro { padding:22px 18px; display:block; } html.dm-admin .admin-overview-emblem { display:none; } html.dm-admin .admin-overview-intro h2 { font-size:32px; } html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } html.dm-admin .admin-overview-kpi { padding:14px 12px; } html.dm-admin .admin-overview-kpi strong { font-size:25px; } html.dm-admin .admin-overview-charts,html.dm-admin .admin-overview-distributions { grid-template-columns:1fr; } html.dm-admin .admin-overview-panel { padding:18px 14px; } }
+@media(prefers-reduced-motion:reduce) { html.dm-admin .admin-overview button { transition:none; translate:none!important; } }
