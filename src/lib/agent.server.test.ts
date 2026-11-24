@@ -23,6 +23,7 @@ function result(table: string, inserting: boolean, visibleOnly = false) {
     conversations: { id: 'conversation-fixture', artist_id: 'artist-fixture', mode: 'ai', ai_replies: 2, quote_requests: mocks.sparseQuote ? { name: 'Maya' } : { name: 'Maya', email: 'maya@example.com', phone: '0501234567', guests: 1000 } },
     artists: { user_id: 'owner-fixture', stage_name: 'Dede', base_price: 5000 },
     agent_settings: { enabled: true }, credit_wallets: { balance: 100 }, rate_cards: [], ai_flows: [flow],
+    plan_tiers: { allowed_models: ['fast','balanced','advanced'] },
     messages: [
       { sender: 'client', body: 'Book Now' },
       { sender: 'ai', body: 'Proceed?\n[BUTTONS: Book Now | Book Later]' },
@@ -43,6 +44,7 @@ function result(table: string, inserting: boolean, visibleOnly = false) {
 
 vi.mock('@/integrations/supabase/client.server', () => ({
   supabaseAdmin: {
+    rpc: async () => ({ data: 'free', error: null }),
     from: (table: string) => {
       let inserting = false;
       let visibleOnly = false;
@@ -60,7 +62,8 @@ vi.mock('@/integrations/supabase/client.server', () => ({
 }));
 vi.mock('@lovable.dev/ai-gateway', () => ({ generateResponse: mocks.generate, GatewayError: class extends Error {} }));
 vi.mock('./calendar-availability.server', () => ({ checkGoogleAvailability: mocks.calendar }));
-vi.mock('./notify.server', () => ({ notifyBooking: mocks.notify, artistContact: mocks.contact, siteOrigin: () => 'http://localhost:8080' }));
+vi.mock('./notify.server', () => ({ notifyBooking: mocks.notify, notifyConversation: vi.fn(), artistContact: mocks.contact, siteOrigin: () => 'http://localhost:8080' }));
+vi.mock('./agent-task-billing.server', () => ({ reserveAgentTask: vi.fn().mockResolvedValue({taskId:'task-fixture'}), settleAgentTask: vi.fn().mockResolvedValue(0.01) }));
 vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('http://localhost:8080') }));
 
 import { runAgent } from './agent.server';

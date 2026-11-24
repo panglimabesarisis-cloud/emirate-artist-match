@@ -177,7 +177,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         supabase.from("quote_requests").select("id", head).eq("artist_id", id).eq("status", "new"),
         supabase.from("bookings").select("id", head).eq("artist_id", id),
         supabase.from("service_invoices").select("id", head).eq("artist_id", id),
-        supabase.from("credit_wallets").select("balance").eq("artist_id", id).maybeSingle(),
+        supabase.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", id).maybeSingle(),
         supabase.from("open_jobs").select("id", head).eq("status", "open").gte("event_date", new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dubai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())),
       ]);
       return {
@@ -185,7 +185,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         quotes: quotes.count ?? 0,
         bookings: bookings.count ?? 0,
         invoices: invoices.count ?? 0,
-        credits: Number(wallet.data?.balance ?? 0),
+        credits: Number(wallet.data?.balance ?? 0) + Number(wallet.data?.balance_fraction ?? 0),
         inquiries: inquiries.count ?? 0,
       } as Record<string, number>;
     },

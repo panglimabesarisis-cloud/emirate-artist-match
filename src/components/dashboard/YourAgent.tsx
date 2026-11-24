@@ -147,16 +147,11 @@ export function YourAgent({
   });
   const wallet = useQuery({
     queryKey: ["agent-credits", artistId],
-    queryFn: async () =>
-      Number(
-        (
-          await supabase
-            .from("credit_wallets")
-            .select("balance")
-            .eq("artist_id", artistId)
-            .maybeSingle()
-        ).data?.balance ?? 0,
-      ),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", artistId).maybeSingle();
+      if (error) throw error;
+      return Number(data?.balance ?? 0) + Number(data?.balance_fraction ?? 0);
+    },
   });
   const list = useMemo(() => msgs.data ?? [], [msgs.data]);
   useEffect(() => {
@@ -348,12 +343,12 @@ export function YourAgent({
             </h2>
             <small className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <i className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-              {t("Online. Each answer uses 1 credit.")}
+              {t("Online. Credits are charged per task.")}
             </small>
           </div>
           <span
             className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-bold text-gold"
-            title={t("Each reply uses 1 credit")}
+            title={t("Final task charge uses your AI credits")}
           >
             {credits} {t("credits")}
           </span>

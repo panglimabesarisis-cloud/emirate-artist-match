@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, ChevronDown, Hand, Inbox as InboxIcon, Search, Send, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { artistReply } from "@/lib/chat.functions";
+import { changeArtistChatMode } from "@/lib/artist-chat.functions";
 import { artistChatFiles } from "@/lib/chat-files.functions";
 import { decodeChatMessage } from "@/lib/chat-attachments";
 import { decodeInvoice } from "@/lib/invoice";
@@ -35,6 +36,7 @@ export function Inbox({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const reply$ = useServerFn(artistReply);
+  const mode$ = useServerFn(changeArtistChatMode);
   const files$ = useServerFn(artistChatFiles);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "ai" | "human">("all");
@@ -51,7 +53,7 @@ export function Inbox({ artistId }: { artistId: string }) {
   const { data: convos } = useQuery({
     queryKey: ["inbox", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("conversations").select("id, mode, ai_replies, last_message_at, label, client_name, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
+      const { data, error } = await supabase.from("conversations").select("id, mode, chat_operator_id, ai_replies, last_message_at, label, client_name, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -154,20 +156,20 @@ export function Inbox({ artistId }: { artistId: string }) {
   useEffect(() => { msgsEnd.current?.scrollIntoView({ block: "end" }); }, [open, msgs?.length]);
 
   const current = rows.find((c) => c.id === open);
-  const mine = current?.mode === "human";
-  const setMode = async (mode: string) => {
+  const mine = current?.mode === "human" && current.chat_operator_id === user?.id;
+  const setMode = async (mode: "ai" | "human") => {
     if (!open) return;
-    const { error } = await supabase.from("conversations").update({ mode }).eq("id", open);
-    if (error) { toast.error(t("Could not change chat mode")); return; }
+    try { await mode$({ data: { id: open, mode } }); }
+    catch (error) { toast.error(error instanceof Error ? error.message : t("Could not change chat mode")); return; }
+    setText("");
     toast.success(mode === "human" ? t("You are now handling this chat.") : t("Your AI agent is answering again."));
     void qc.invalidateQueries({ queryKey: ["inbox", artistId] });
   };
   const send = async () => {
-    if (!text.trim() || !open) return;
+    if (!mine || !text.trim() || !open) return;
     try {
       await reply$({ data: { id: open, text } });
       setText("");
-      if (current?.mode === "ai") await setMode("human");
       void qc.invalidateQueries({ queryKey: ["inbox-msgs", open] });
     } catch { toast.error(t("Reply failed")); }
   };
@@ -269,7 +271,7 @@ export function Inbox({ artistId }: { artistId: string }) {
             </div>
             <div className="c-act">
               <span className="mode"><span className="dot" /><span>{t(mine ? "You are handling this chat" : "AI is handling this chat")}</span></span>
-              <button type="button" className="btn btn-line" onClick={() => void setMode(mine ? "ai" : "human")}><Hand className="size-4" /><span>{t(mine ? "Hand back to AI" : "Take over")}</span></button>
+              {canDelete && <Button type="button" variant="outline" onClick={() => void setMode(mine ? "ai" : "human")}><Hand className="size-4" /><span>{t(mine ? "Hand back to AI" : "Take over")}</span></Button>}
               {canDelete && deletable.has(current.id) && <Button variant="ghost" type="button" className="icon-del" aria-label={t("Delete this chat")} onClick={() => setAsk([current.id])}><Trash2 className="size-[17px]" /></Button>}
             </div>
           </header>
@@ -289,12 +291,12 @@ export function Inbox({ artistId }: { artistId: string }) {
             <div ref={msgsEnd} />
           </div>
           <form className="composer" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-            <div className="cmp-note">{t("Replying here takes the chat over from your AI agent.")}</div>
+            <div className="cmp-note">{t(mine ? "You are handling this chat" : "AI is handling this chat")}</div>
             <div className="cmp-row">
               <label className="sr-only" htmlFor="ibx-reply">{t("Reply personally")}</label>
-              <textarea id="ibx-reply" rows={1} maxLength={2000} value={text} placeholder={`${t("Reply personally")}…`} onChange={(e) => setText(e.target.value)}
+              <textarea id="ibx-reply" disabled={!mine} rows={1} maxLength={2000} value={text} placeholder={`${t("Reply personally")}…`} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} />
-              <button type="submit" className="btn btn-gold" disabled={!text.trim()} aria-label={t("Send")}><Send className="size-[17px]" /><span>{t("Send")}</span></button>
+              <Button type="submit" disabled={!mine || !text.trim()} aria-label={t("Send")}><Send className="size-[17px]" /><span>{t("Send")}</span></Button>
             </div>
           </form>
         </> : (

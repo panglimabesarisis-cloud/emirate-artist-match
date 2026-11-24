@@ -39,6 +39,7 @@ import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$em
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedClientDashboardRouteImport } from './routes/_authenticated/client.dashboard'
+import { Route as AuthenticatedDashboardChatIdRouteImport } from './routes/_authenticated/dashboard_.chat.$id'
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicCalendarTokenRouteImport } from './routes/api/public/calendar/$token'
 import { Route as ApiPublicJobsBookingRemindersRouteImport } from './routes/api/public/jobs/booking-reminders'
@@ -200,6 +201,12 @@ const AuthenticatedClientDashboardRoute =
     path: '/client/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardChatIdRoute =
+  AuthenticatedDashboardChatIdRouteImport.update({
+    id: '/dashboard_/chat/$id',
+    path: '/dashboard/chat/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiOauthGoogle_calendarReturnRoute =
   ApiOauthGoogle_calendarReturnRouteImport.update({
     id: '/api/oauth/google_calendar/return',
@@ -283,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
@@ -323,6 +331,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
+  '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
@@ -365,6 +374,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/_authenticated/dashboard_/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
   '/api/public/jobs/booking-reminders': typeof ApiPublicJobsBookingRemindersRoute
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/client/dashboard'
     | '/$category/$emirate/'
+    | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
@@ -447,6 +458,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/client/dashboard'
     | '/$category/$emirate'
+    | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
@@ -488,6 +500,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/_authenticated/client/dashboard'
     | '/$category/$emirate/'
+    | '/_authenticated/dashboard_/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
     | '/api/public/jobs/booking-reminders'
@@ -749,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard_/chat/$id': {
+      id: '/_authenticated/dashboard_/chat/$id'
+      path: '/dashboard/chat/$id'
+      fullPath: '/dashboard/chat/$id'
+      preLoaderRoute: typeof AuthenticatedDashboardChatIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/oauth/google_calendar/return': {
       id: '/api/oauth/google_calendar/return'
       path: '/api/oauth/google_calendar/return'
@@ -820,6 +840,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedClientDashboardRoute: typeof AuthenticatedClientDashboardRoute
+  AuthenticatedDashboardChatIdRoute: typeof AuthenticatedDashboardChatIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -827,6 +848,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedClientDashboardRoute: AuthenticatedClientDashboardRoute,
+  AuthenticatedDashboardChatIdRoute: AuthenticatedDashboardChatIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

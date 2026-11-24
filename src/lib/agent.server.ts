@@ -13,12 +13,14 @@ import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown, type BookingDraft } from "./booking-rules";
-import { notifyBooking, artistContact, siteOrigin } from "./notify.server";
+import { notifyBooking, notifyConversation, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
-import { AI_CREDIT_COST, MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
+import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
+import { catalogModel } from "./chat-model-catalog";
+import { reserveAgentTask, settleAgentTask } from "./agent-task-billing.server";
 
 export async function addMessage(conversationId: string, sender: string, body: string) {
   await supabaseAdmin.from("messages").insert({ conversation_id: conversationId, sender, body: body.slice(0, 4000) });
@@ -39,7 +41,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await Promise.all([
       supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, travel_surcharge_enabled, travel_step_km, travel_fee_per_step, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
-      supabaseAdmin.from("credit_wallets").select("balance").eq("artist_id", convo.artist_id).maybeSingle(),
+      supabaseAdmin.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description").eq("artist_id", convo.artist_id).order("sort"),
       convo.quote_request_id
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
@@ -49,14 +51,17 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
 
   history?.reverse(); // Retain the latest progress instead of freezing at the first forty messages.
   const handover = async (why: string) => {
-    await supabaseAdmin.from("conversations").update({ mode: "human" }).eq("id", conversationId);
+    const { data: changed, error } = await supabaseAdmin.from("conversations").update({ mode: "human", chat_operator_id: null, handover_requested_at: new Date().toISOString() }).eq("id", conversationId).eq("mode", "ai").select("id");
+    if (error) throw error;
+    if (!changed?.length) return;
     await addMessage(conversationId, "system", why);
+    if (convo.quote_request_id || convo.client_user_id) await notifyConversation(conversationId, "chat_takeover", "Apakah Anda ingin mengambil alih chat?", why);
   };
 
   if (!artist) return;
   const ownerUserId = artist.user_id;
   if (settings && !settings.enabled) return handover(`${artist.stage_name} will reply to you personally.`);
-  if ((wallet?.balance ?? 0) < AI_CREDIT_COST) return handover(`${artist.stage_name} will reply to you personally shortly.`);
+  if (Number(wallet?.balance ?? 0) + Number(wallet?.balance_fraction ?? 0) <= 0) return handover(`${artist.stage_name} will reply to you personally shortly.`);
   if (convo.ai_replies >= MAX_AI_REPLIES_PER_CONVERSATION) return handover(`I've passed this conversation to ${artist.stage_name} directly.`);
 
   const { data: flows } = await supabaseAdmin.from("ai_flows").select("artist_id, enabled, nodes, edges").or(`artist_id.is.null,artist_id.eq.${convo.artist_id}`);
@@ -97,7 +102,12 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(confirm));
     return;
   }
-  const MODEL = agentModel(settings?.model);
+  const { data: planCode, error: planError } = await supabaseAdmin.rpc("effective_artist_plan", { _artist: convo.artist_id });
+  if (planError) throw planError;
+  const { data: planTier, error: tierError } = await supabaseAdmin.from("plan_tiers").select("allowed_models").eq("code", planCode ?? "free").single();
+  if (tierError) throw tierError;
+  const selectedTier = catalogModel(settings?.model)?.tier ?? settings?.model ?? "balanced";
+  const MODEL = agentModel(planTier?.allowed_models.includes(selectedTier) ? settings?.model : planTier?.allowed_models[0] ?? "fast");
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
@@ -116,7 +126,7 @@ Use this token only once per conversation. ${existingBooking ? `Current server b
 QUICK REPLIES (strict): When reaching a saved Buttons step, call show_buttons with its nodeId and write only that card's question. The server displays its exact saved choices. NEVER turn choices into a prose list, merge in later event questions, or advance before the client selects an option. If no tool call is used, put the exact [BUTTONS: ...] token on the last line. Available saved buttons: ${JSON.stringify(buttons.map(node => ({ nodeId: node.id, choices: node.data.buttons })))}.
 INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
 VARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
-If the client asks something you cannot answer, or wants to speak to the artist, end your reply with the exact token [HANDOVER].
+Follow the configured Knowledge, Reply instructions and AI Flow for handover. When those rules suggest human help, first ask the client whether they want to speak to the artist. Emit [HANDOVER] only after the client agrees or explicitly requests the artist. Never claim the artist has taken control before they press Take Over.
 ${handoffRule(settings?.handoff)}
 ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they conflict with the pricing or safety rules above):\n${settings.extra_instructions}` : ""}
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
@@ -133,6 +143,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     .filter((m) => m.sender !== "system" || decodeInvoice(m.body))
     .map((m) => ({ role: m.sender === "client" ? ("user" as const) : ("assistant" as const), content: invoiceText(m.body) }));
 
+  const usage = newUsage();
+  let taskId: string | undefined;
   try {
     let calendarCheck: CalendarCheck | undefined;
     const resolvedForm = artistDecisionBookingId || selectedApproval ? undefined : nextSavedForm(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges, history ?? []);
@@ -141,8 +153,9 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
       ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
       ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
+    taskId = (await reserveAgentTask(convo.artist_id, conversationId, MODEL, input, instructions, 600)).taskId;
     let res = await generateResponse({ model: MODEL, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
-    const usage = newUsage(); addUsage(usage, res);
+    addUsage(usage, res);
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
       if (!calls.length) break;
@@ -185,6 +198,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       if (item.type === "message") for (const c of item.content) if (c.type === "output_text") text += c.text;
     }
     text = requestedButtonsId ? ensureAgentButtons(text.trim(), buttons, requestedButtonsId) : ensureAgentButtons(ensureAgentForm(text.trim(), forms, history ?? [], requestedFormId), buttons);
+    await settleAgentTask(taskId, usage);
+    taskId = undefined;
     const ex = extractDraft(text);
     if (ex.draft && !artistApprovalDraft(ex.draft.date, calendarCheck)) {
       await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");
@@ -194,16 +209,21 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     const wantsHandover = text.includes("[HANDOVER]");
     text = maskContacts(text.replace("[HANDOVER]", "").replace(/\*\*|__|^#+\s/gm, "").trim());
     if (!text) return;
+    const { data: current } = await supabaseAdmin.from("conversations").select("mode").eq("id", conversationId).single();
+    if (current?.mode !== "ai") return;
     await addMessage(conversationId, "ai", text);
-    await supabaseAdmin.from("credit_ledger").insert({ artist_id: convo.artist_id, delta: -AI_CREDIT_COST, reason: "ai_reply", ref: conversationId, ...(await usageColumns(usage, MODEL)) });
     await supabaseAdmin.from("conversations").update({ ai_replies: convo.ai_replies + 1 }).eq("id", conversationId);
     if (ex.draft && calendarCheck) {
       const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
       if (!artistApprovalDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
       else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction);
     }
-    if (wantsHandover) await handover(`I've notified ${artist.stage_name} to continue this conversation personally.`);
+    if (wantsHandover) await handover(`I've requested ${artist.stage_name} to take over this conversation.`);
   } catch (e) {
+    if (taskId) {
+      try { await settleAgentTask(taskId, usage, !usage.seen && e instanceof GatewayError && e.outcome === "not_started"); }
+      catch { console.error("AI task reservation awaits review"); }
+    }
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
     await handover(`${artist.stage_name} will reply to you personally shortly.`);
   }

@@ -225,6 +225,50 @@ export type Database = {
           },
         ]
       }
+      agent_credit_tasks: {
+        Row: {
+          artist_id: string
+          created_at: string
+          final_credits: number | null
+          id: string
+          model: string
+          rate_snapshot: Json
+          ref: string
+          reserved: number
+          status: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          final_credits?: number | null
+          id?: string
+          model: string
+          rate_snapshot: Json
+          ref: string
+          reserved: number
+          status?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          final_credits?: number | null
+          id?: string
+          model?: string
+          rate_snapshot?: Json
+          ref?: string
+          reserved?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_credit_tasks_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_prompt_enabled: {
         Row: {
           artist_id: string
@@ -1830,11 +1874,13 @@ export type Database = {
           access_key: string
           ai_replies: number
           artist_id: string
+          chat_operator_id: string | null
           client_name: string | null
           client_user_id: string | null
           created_at: string
           deleted_at: string | null
           deleted_reason: string | null
+          handover_requested_at: string | null
           id: string
           label: string | null
           last_message_at: string
@@ -1845,11 +1891,13 @@ export type Database = {
           access_key?: string
           ai_replies?: number
           artist_id: string
+          chat_operator_id?: string | null
           client_name?: string | null
           client_user_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
+          handover_requested_at?: string | null
           id?: string
           label?: string | null
           last_message_at?: string
@@ -1860,11 +1908,13 @@ export type Database = {
           access_key?: string
           ai_replies?: number
           artist_id?: string
+          chat_operator_id?: string | null
           client_name?: string | null
           client_user_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
+          handover_requested_at?: string | null
           id?: string
           label?: string | null
           last_message_at?: string
@@ -1894,6 +1944,8 @@ export type Database = {
           cost_usd_micros: number | null
           created_at: string
           delta: number
+          delta_fraction: number
+          final_charge_credits: number | null
           id: string
           kind: string | null
           model: string | null
@@ -1909,6 +1961,8 @@ export type Database = {
           cost_usd_micros?: number | null
           created_at?: string
           delta: number
+          delta_fraction?: number
+          final_charge_credits?: number | null
           id?: string
           kind?: string | null
           model?: string | null
@@ -1924,6 +1978,8 @@ export type Database = {
           cost_usd_micros?: number | null
           created_at?: string
           delta?: number
+          delta_fraction?: number
+          final_charge_credits?: number | null
           id?: string
           kind?: string | null
           model?: string | null
@@ -1948,16 +2004,19 @@ export type Database = {
         Row: {
           artist_id: string
           balance: number
+          balance_fraction: number
           updated_at: string
         }
         Insert: {
           artist_id: string
           balance?: number
+          balance_fraction?: number
           updated_at?: string
         }
         Update: {
           artist_id?: string
           balance?: number
+          balance_fraction?: number
           updated_at?: string
         }
         Relationships: [
@@ -2447,6 +2506,7 @@ export type Database = {
           audience: string
           booking_id: string | null
           channel: string
+          conversation_id: string | null
           created_at: string
           delivered_at: string | null
           error: string | null
@@ -2464,6 +2524,7 @@ export type Database = {
           audience: string
           booking_id?: string | null
           channel: string
+          conversation_id?: string | null
           created_at?: string
           delivered_at?: string | null
           error?: string | null
@@ -2481,6 +2542,7 @@ export type Database = {
           audience?: string
           booking_id?: string | null
           channel?: string
+          conversation_id?: string | null
           created_at?: string
           delivered_at?: string | null
           error?: string | null
@@ -2500,6 +2562,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -4113,6 +4182,14 @@ export type Database = {
         Args: { _id: string; _items: Json; _key: string }
         Returns: boolean
       }
+      artist_chat_mode: {
+        Args: { _id: string; _mode: string }
+        Returns: undefined
+      }
+      artist_chat_reply: {
+        Args: { _id: string; _text: string }
+        Returns: undefined
+      }
       artist_public_stats: {
         Args: never
         Returns: {
@@ -4401,6 +4478,16 @@ export type Database = {
       refresh_top_badges: { Args: never; Returns: Json }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
+      reserve_agent_task: {
+        Args: {
+          _artist: string
+          _model: string
+          _rate: Json
+          _ref: string
+          _reserve: number
+        }
+        Returns: string
+      }
       reserve_fonnte_revision_credit: {
         Args: { _event: string }
         Returns: boolean
@@ -4427,6 +4514,16 @@ export type Database = {
       }
       set_invoices_hidden: {
         Args: { _hidden: boolean; _ids: string[] }
+        Returns: number
+      }
+      settle_agent_task: {
+        Args: {
+          _cached: number
+          _in: number
+          _out: number
+          _release?: boolean
+          _task: string
+        }
         Returns: number
       }
       settle_sandbox_order: {

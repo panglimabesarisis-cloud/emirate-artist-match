@@ -491,6 +491,41 @@
       "when": 1795428904788,
       "tag": "0069_preserve_inquiry_owner_insert_returning",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1795506564502,
+      "tag": "0070_artist_chat_monitor_takeover",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1795506707921,
+      "tag": "0071_artist_chat_model_allowlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1795506959772,
+      "tag": "0072_fractional_agent_task_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1795507137819,
+      "tag": "0073_agent_task_final_charge",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1795507218703,
+      "tag": "0074_agent_task_admin_review",
+      "breakpoints": true
     }
   ]
 }

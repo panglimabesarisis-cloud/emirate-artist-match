@@ -51,3 +51,31 @@ export async function artistContact(artistId: string) {
 export function siteOrigin(req: Request | undefined) {
   try { return req ? new URL(req.url).origin : ""; } catch { return ""; }
 }
+
+/** Persist reservation before send; never blindly replay an ambiguous provider result. */
+export async function notifyConversation(id: string, kind: "booking_inquiry" | "chat_takeover", subject: string, details: string) {
+  try {
+    const { data: c, error } = await supabaseAdmin.from("conversations").select("artist_id, artists(notify_phone,manager_phone)").eq("id", id).single();
+    if (error || !c) throw error ?? new Error("Conversation unavailable");
+    const phones = [...new Set([c.artists?.notify_phone, c.artists?.manager_phone].filter((p): p is string => !!p))];
+    const link = `https://dealmakertalent.com/dashboard/chat/${id}`;
+    for (const phone of phones) {
+      const { data: attempt, error: reserveError } = await supabaseAdmin.from("notifications").insert({ conversation_id: id, audience: "artist", channel: "whatsapp", kind, recipient: phone, status: "sending" }).select("id").single();
+      if (reserveError?.code === "23505") continue;
+      if (reserveError || !attempt) throw reserveError ?? new Error("Notification reservation failed");
+      try {
+        const result = await sendWhatsApp(phone, subject, details, link);
+        const { error: saveError } = await supabaseAdmin.from("notifications").update({ status: result.status, error: result.error ?? null, provider_message_id: result.messageId ?? null }).eq("id", attempt.id);
+        if (saveError) throw saveError;
+        if (result.messageId && !result.messageId.startsWith("fonnte:")) {
+          const { data: events, error: readError } = await supabaseAdmin.from("whatsapp_webhook_events").select("id,event,payload").is("processed_at", null).eq("event", "whatsapp.status").contains("payload", { entry: [{ changes: [{ value: { statuses: [{ id: result.messageId }] } }] }] }).limit(20);
+          if (readError) throw readError;
+          const { processEvent } = await import("./whatsapp.server");
+          for (const event of events ?? []) await processEvent(event.id, event.event, event.payload);
+        }
+      } catch {
+        await supabaseAdmin.from("notifications").update({ status: "failed", error: "Send or persistence failed; check provider before retrying" }).eq("id", attempt.id);
+      }
+    }
+  } catch { console.error("Conversation notification could not be recorded or sent"); }
+}

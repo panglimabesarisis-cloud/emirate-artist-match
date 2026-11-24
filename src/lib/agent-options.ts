@@ -1,8 +1,11 @@
+import { catalogModel, type CatalogModel } from "./chat-model-catalog";
 /** Plan model tiers (plan_tiers.allowed_models) mapped to gateway models; null keeps the default. */
 export const DEFAULT_AGENT_MODEL = "openai/gpt-5.6-luna" as const;
 export const AGENT_MODELS = { fast: "openai/gpt-5.4-mini", balanced: "openai/gpt-5.6-luna", advanced: "openai/gpt-5.5" } as const;
-export type AgentModel = (typeof AGENT_MODELS)[keyof typeof AGENT_MODELS];
+export type AgentModel = (typeof AGENT_MODELS)[keyof typeof AGENT_MODELS] | CatalogModel;
 export function agentModel(choice: string | null | undefined): AgentModel {
+  const selected = catalogModel(choice);
+  if (selected) return selected.id;
   return choice && choice in AGENT_MODELS ? AGENT_MODELS[choice as keyof typeof AGENT_MODELS] : DEFAULT_AGENT_MODEL;
 }
 const LENGTH: Record<string, string> = { short: "Keep replies under 60 words.", medium: "Keep replies under 120 words.", detailed: "Keep replies under 220 words." };
@@ -15,7 +18,7 @@ export function handoffRule(h: unknown) {
   const o = (h && typeof h === "object" ? h : {}) as Record<string, unknown>;
   const on = (k: string) => o[k] !== false;
   const cases = [on("negotiation") && "the client keeps negotiating price beyond the allowed discount", on("complaints") && "the client complains or is upset", on("unclear") && "you cannot understand or answer the request"].filter(Boolean);
-  return cases.length ? `HANDOVER CASES: also end your reply with [HANDOVER] when ${cases.join("; or ")}.` : "";
+  return cases.length ? `HANDOVER CASES: offer to connect the client to the artist when ${cases.join("; or ")}. Wait for agreement before emitting [HANDOVER].` : "";
 }
 
 export type Usage = { seen: boolean; inTok: number; cached: number; outTok: number };

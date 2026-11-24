@@ -1,4 +1,6 @@
 # Roadmap
+- [x] AI Agent reference refresh, compatible model dropdown, booking WhatsApp monitor links and owner-only chat takeover/handback implemented with shared Inbox state. Automatic compiler and 9 focused checks pass; no screenshots. Live owner chat and WhatsApp delivery unverified: requesting-user session has no matching app account.
+- [ ] Activate token-priced tasks: reservation/fractional settlement implemented using +40% and AED 0.49/credit, packs unchanged, final-charge display only. Blocked by empty admin-managed ai_model_rates; missing rates prevent inference rather than guessing prices. Configure verified USD input/cache/output tariffs before live use.
 - [x] Your phone today: five illustrative chat stories with sequential messages, final outcomes, autoplay, manual selection, pause and reduced-motion support; retain right-hand notifications and all real booking/data flows.
 - [x] Repair private artist agent contract reads via the existing team RPC; recheck effective subscription at each read and require unlocked content plus permitted tier. No UI, payment or schema changes.
 - [ ] Public AI concierge: replace curated FAQ with live public-artist discovery/profile links and standard booking/registration guidance; read-only data allowlist, contact masking and no private account/action access.

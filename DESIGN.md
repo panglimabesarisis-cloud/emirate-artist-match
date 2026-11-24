@@ -117,3 +117,6 @@ Join / benefits guide          Join / process guide
 ```
 
 Genericness check: no guaranteed jobs, invented metrics, testimonials or live payment claims. Use actual profile approval, saved AI forms, rate cards, human handover, linked documents and separate wallets. Copy includes plan limits, provider configuration and demo-only payments. Skill reference files are absent from the supplied skill mount; follow the injected /design guidance and existing approved presentation. No screenshots, extra test suites or production visual score as requested.
+
+## Artist agent reference refresh
+Use the existing TanStack/React stack and studio tokens: preserve the uploaded navy/gold panel system, Bebas Neue headings, compact gold-selected pills and power controls. The two-column settings/test area leads into live account summaries, prompt table and a rules/knowledge editor with text-only preview. No invented prompt metadata, model speeds or prices. Quiet at rest; control hover lift only, reduced motion remains accessible. Monitor chat is a standalone owner-authenticated conversation with no dashboard/sidebar shell; its state comes from the same conversation rows as Inbox. The supplied design skill references are unavailable, so use the existing authoritative tokens and uploaded reference rather than adding an independent design system.

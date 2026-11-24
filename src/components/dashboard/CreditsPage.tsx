@@ -15,7 +15,7 @@ import { BillingPanel } from "./BillingPanel";
 import { useArtistPlan } from "./PromptLibrary";
 import { StudioHeading, StudioSection } from "./StudioPage";
 
-const n0 = (n: number) => Math.round(n).toLocaleString("en-US");
+const n0 = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 6 });
 const A2 = (n: number) => `AED ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const A4 = (n: number) => `AED ${n.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
 const aedc = (n: number) => (n < 0.01 ? A4(n) : A2(n));
@@ -45,11 +45,11 @@ export function CreditsPage({ artistId }: { artistId: string }) {
     queryKey: ["wallet", artistId],
     queryFn: async () => {
       const [w, l, r] = await Promise.all([
-        supabase.from("credit_wallets").select("balance").eq("artist_id", artistId).maybeSingle(),
-        supabase.from("credit_ledger").select("id, created_at, delta, reason, model, tokens_in, tokens_cached, tokens_out, cost_usd_micros").eq("artist_id", artistId).order("created_at", { ascending: false }).limit(1000),
-        supabase.from("ai_model_rates").select("model, label, usd_in_per_mtok, usd_cached_per_mtok, usd_out_per_mtok, is_active").eq("is_active", true),
+        supabase.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", artistId).maybeSingle(),
+        supabase.from("credit_ledger").select("id, created_at, delta, delta_fraction, final_charge_credits, ref, reason, model, tokens_in, tokens_cached, tokens_out, cost_usd_micros").eq("artist_id", artistId).order("created_at", { ascending: false }).limit(1000),
+        Promise.resolve({ data: [] as {model:string;label:string|null;usd_in_per_mtok:number;usd_cached_per_mtok:number;usd_out_per_mtok:number;is_active:boolean}[] }),
       ]);
-      return { balance: w.data?.balance ?? 0, ledger: (l.data ?? []) as LedgerRow[], rates: r.data ?? [] };
+      return { balance: Number(w.data?.balance ?? 0) + Number(w.data?.balance_fraction ?? 0), ledger: (l.data ?? []).filter(row => row.reason !== "ai_task_reserve").map(row => { const reservation = l.data?.find(item => item.reason === "ai_task_reserve" && item.ref === row.ref); const delta = row.reason === "ai_task_settlement" ? -Number(row.final_charge_credits ?? 0) : row.delta + Number(row.delta_fraction); return { ...row, delta, cost_usd_micros: row.reason === "ai_task_settlement" ? Math.round(Math.max(0,-delta) * 0.49 / 3.6725 * 1000000) : row.cost_usd_micros }; }) as LedgerRow[], rates: r.data ?? [] };
     },
   });
   const ledger = useMemo(() => data?.ledger ?? [], [data?.ledger]);
@@ -98,7 +98,7 @@ export function CreditsPage({ artistId }: { artistId: string }) {
   return (
     <div className="dmr-wrap dmr-cpage">
       <StudioHeading title="AI" accent="credits"><span className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-3.5 py-[9px] text-[12.5px] font-bold text-gold"><Sparkles className="h-3.5 w-3.5" />{t("Plan")} <b className="font-extrabold">{plan.data?.mine?.name ?? "-"}</b></span></StudioHeading>
-      <p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("Every AI reply costs one credit. See your balance, which model answered, the tokens it used and what that cost, reply by reply.")}</p>
+      <p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("Credits cover each AI task based on its token usage. Your history shows the final task charge.")}</p>
       <div className="dmr-c-12"><PaymentTestModeBanner />{checkout && <SandboxCheckout session={checkout} onPaid={() => { setCheckout(null); toast.success(t("Payment verified — credits added")); void qc.invalidateQueries({ queryKey: ["wallet", artistId] }); }} />}</div>
 
       <section className="dmr-panel dmr-c-12 grid gap-8 !p-[30px] bg-[radial-gradient(ellipse_at_0%_0%,rgba(232,176,74,.18),transparent_55%),linear-gradient(180deg,#10162a,#0a0e1b)] lg:grid-cols-[minmax(0,.8fr)_minmax(0,1.4fr)]" aria-labelledby="cr-bal-l">
@@ -106,7 +106,7 @@ export function CreditsPage({ artistId }: { artistId: string }) {
           <small id="cr-bal-l" className="block text-[11px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">{t("AI credit balance")}</small>
           <div className="mt-2.5 font-display text-[clamp(56px,6vw,88px)] leading-[.98] tracking-[-.035em] tabular-nums" aria-live="polite">{n0(data?.balance ?? 0)}<span className="ms-2 font-sans text-[.26em] font-bold tracking-normal text-gold">{t("credits")}</span></div>
           <p className="mt-3 max-w-[380px] text-sm text-muted-foreground">{t("Clients never pay for AI. Credits only cover the replies your AI agent sends for you.")}</p>
-          <div className="mt-3.5 flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground"><span><b className="text-foreground">1 {t("credit")}</b> = 1 {t("AI reply")}</span><span aria-hidden>·</span><span>{t("about")} <b className="text-foreground">{A4(avgAed)}</b> {t("of provider cost per reply")}</span></div>
+          <div className="mt-3.5 flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground"><span><b className="text-foreground">1 {t("credit")}</b> = AED 0.49</span><span aria-hidden>·</span><span>{t("about")} <b className="text-foreground">{A4(avgAed)}</b> {t("final charge per task")}</span></div>
           <div className="mt-5 flex flex-wrap items-center gap-3"><Button asChild className="rounded-full bg-gradient-gold px-5 font-bold text-gold-foreground"><a href="#cr-packs"><Sparkles className="me-2 h-4 w-4" />{t("Buy credits")}</a></Button><small className="text-xs text-muted-foreground/80">{n0(spentMonth)} {t("spent this month")}</small></div>
           {(data?.balance ?? 0) < 20 && <p className="mt-4 rounded-xl border border-gold/35 bg-gold/[.07] px-3.5 py-2.5 text-[13px]">{t("Your credits are running low. When they run out, new chats wait for your personal reply.")}</p>}
         </div>
@@ -217,21 +217,10 @@ export function CreditsPage({ artistId }: { artistId: string }) {
       </div>
 
       <div className="dmr-w-side">
-        <section className="dmr-panel" aria-labelledby="cr-rt-h">
-          <h2 id="cr-rt-h" className="font-display text-[22px] leading-tight">{t("Token")} <span className="it">{t("rates")}</span></h2>
-          <p className="mb-2.5 mt-2 text-xs text-muted-foreground">{t("Cost follows the standard way model providers bill: tokens in, tokens cached, tokens out, each at a price per 1,000,000 tokens.")}</p>
-          {rates.length > 0 ? (
-            <table className="w-full border-collapse text-[12.5px]"><thead><tr>{["Model", "Input", "Cached", "Output"].map((h) => <th key={h} className="pb-2 text-start text-[10.5px] font-extrabold uppercase tracking-[.1em] text-muted-foreground">{t(h)}</th>)}</tr></thead>
-              <tbody>{rates.map((r) => <tr key={r.model} className="border-t border-dashed border-border"><td className="py-2 pe-2"><span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: colors[r.model] }} />{r.label || r.model}</span></td><td className="tabular-nums">${Number(r.usd_in_per_mtok).toFixed(2)}</td><td className="tabular-nums">${Number(r.usd_cached_per_mtok).toFixed(2)}</td><td className="tabular-nums">${Number(r.usd_out_per_mtok).toFixed(2)}</td></tr>)}</tbody></table>
-          ) : <p className="text-xs text-muted-foreground">{t("No rates are published yet.")}</p>}
-          <div className="mt-3.5 rounded-xl bg-foreground/[.04] p-3 text-xs text-muted-foreground"><code className="block text-[11.5px] text-foreground">cost = (input x in + cached x cache + output x out) / 1,000,000</code>
-            {example && <span className="mt-2 block"><b className="text-foreground">{t("Example.")}</b> {t("A reply that read 1,200 new tokens, 800 cached tokens and wrote 300 tokens on")} {example.rate.label || example.rate.model} {t("costs")} <b className="text-foreground">${example.usd.toFixed(5)}</b>, {t("about")} {A4(example.usd * AED_PER_USD)}. {t("It still costs you 1 credit.")}</span>}</div>
-          <p className="mt-2.5 text-xs text-muted-foreground">{t("Rates are USD per 1M tokens. Reasoning tokens count as output. Long prompts can cost more at some providers. Figures here are estimates, the provider invoice is the final number.")}</p>
-        </section>
         <section className="dmr-panel" aria-labelledby="cr-hw-h">
           <h2 id="cr-hw-h" className="font-display text-[22px] leading-tight">{t("How credits")} <span className="it">{t("work")}</span></h2>
           <ul className="mt-3 grid gap-3 text-[13px] text-muted-foreground">
-            {([["One reply, one credit.", "A short answer and a long quote draft both cost 1 credit."], ["Tokens show the real work.", "Input is what the AI read, output is what it wrote. Cached input is cheaper because it was read before."], ["Nothing is hidden.", "Each row in your history keeps the rates that applied that day, so old rows never change."], ["Out of credits?", "Replies pause and chats go to you. Top up and the agent resumes."]] as const).map(([h, p]) => <li key={h}><b className="text-foreground">{t(h)}</b> {t(p)}</li>)}
+            {([["Per-task credits.", "The final charge follows the tokens used by the agent task."], ["Reserved credits.", "Credits are reserved before a task starts; unused credits return after verified completion."], ["Out of credits?", "AI tasks pause until sufficient credits are available."]] as const).map(([h, p]) => <li key={h}><b className="text-foreground">{t(h)}</b> {t(p)}</li>)}
           </ul>
         </section>
       </div>

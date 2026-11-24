@@ -9,8 +9,9 @@ html.dm-dash .agent-model b{font-family:var(--font-display);font-size:25px;font-
 html.dm-dash .agent-model span{font-size:12px;color:var(--muted-foreground)}
 html.dm-dash .agent-model[aria-checked=true]{border-color:var(--gold);background:var(--studio-gold-wash)}
 html.dm-dash .agent-pills{display:flex;gap:8px;flex-wrap:wrap}
-html.dm-dash .agent-pills button{border-radius:999px;font-size:13px;height:36px}
-html.dm-dash .agent-pills button[aria-checked=true],html.dm-dash .agent-pills button[aria-pressed=true]{background:var(--gradient-gold);color:var(--gold-foreground);border-color:transparent}
+html.dm-dash .studio-reference .agent-pills button{border-radius:999px;font-size:12px;height:32px;padding:0 14px;background:transparent;color:var(--foreground);border:1px solid var(--studio-line-2);box-shadow:none;min-width:0;transition:translate .2s,border-color .2s}
+html.dm-dash .agent-pills button:hover{translate:0 -1px;border-color:var(--gold)}
+html.dm-dash .studio-reference .agent-pills button[aria-checked=true],html.dm-dash .studio-reference .agent-pills button[aria-pressed=true]{background:var(--gradient-gold);color:var(--gold-foreground);border-color:transparent}
 html.dm-dash .agent-handoff{display:grid;gap:12px}
 html.dm-dash .agent-handoff label{display:flex;align-items:center;gap:10px;font-size:13px}
 html.dm-dash .agent-save{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid var(--studio-line)}
@@ -35,6 +36,18 @@ html.dm-dash .agent-prompt-table table{min-width:680px;width:100%;font-size:13px
 html.dm-dash .agent-prompt-table td small{display:block;color:var(--muted-foreground);margin-top:6px;max-width:340px;white-space:normal}
 html.dm-dash .agent-prompt-table td:last-child{text-align:end}
 html.dm-dash .agent-knowledge-preview{padding:20px;border-radius:16px;border:1px solid var(--studio-line);background:var(--studio-wash);min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+html.dm-dash .agent-own-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:20px}
+html.dm-dash .agent-knowledge-preview h3{font-family:var(--font-display);font-size:24px;margin-bottom:20px}
+html.dm-dash .agent-knowledge-preview p{margin-bottom:16px}
+html.dm-dash .agent-model-picker{margin-top:16px}
+html.dm-dash .studio-reference .agent-prompt-power{width:32px;height:32px;border-radius:50%;padding:0}
+html.dm-dash .studio-reference .agent-prompt-power[aria-pressed=true]{background:var(--gradient-gold);color:var(--gold-foreground)}
+@media(prefers-reduced-motion:reduce){html.dm-dash .agent-pills button{transition:none}html.dm-dash .agent-pills button:hover{translate:none}}
+html.dm-dash .agent-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+html.dm-dash .agent-summary>div{border:1px solid var(--studio-line);background:var(--studio-panel-gradient);border-radius:8px;padding:16px;min-width:0}
+html.dm-dash .agent-summary small{display:block;font-size:10px;text-transform:uppercase;color:var(--muted-foreground)}
+html.dm-dash .agent-summary b{display:block;font-family:var(--font-display);font-size:25px;overflow-wrap:anywhere}
+@media(max-width:700px){html.dm-dash .agent-own-grid{grid-template-columns:minmax(0,1fr)}html.dm-dash .agent-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 html.dm-dash .studio-account-main{align-items:start}
 html.dm-dash .studio-reference .studio-account-main{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
 html.dm-dash .account-section-head{display:flex;justify-content:space-between;align-items:start;gap:16px;flex-wrap:wrap;margin-bottom:18px}

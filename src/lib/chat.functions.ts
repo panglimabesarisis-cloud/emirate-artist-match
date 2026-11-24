@@ -60,6 +60,8 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
     packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
   });
   await addMessage(c.id, "client", maskContacts(summary));
+  const { notifyConversation } = await import("./notify.server");
+  await notifyConversation(c.id, "booking_inquiry", "Detail form yang di isi:", `${summary}\n\nClick here if you want monitor Ai Agent Chat :`);
   await runAgent(c.id);
   return { conversationId: c.id, key: c.access_key };
 }
@@ -153,9 +155,8 @@ export const artistReply = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string; text: string }) => ({ id: uuid(i.id), text: str(i.text, 2000, true)! }))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.supabase, data.id); // RLS: only the owning artist can see it
-    const { addMessage } = await import("./agent.server");
-    await addMessage(data.id, "artist", maskContacts(data.text));
+    const { error } = await context.supabase.rpc("artist_chat_reply", { _id: data.id, _text: maskContacts(data.text) });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 

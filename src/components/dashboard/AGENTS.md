@@ -3,3 +3,5 @@
 - Contract libraries share the reference card shell; contract-list visibility is a user-scoped local preference, while deletion uses existing protected booking RPCs so financial and accepted-contract rules stay authoritative.
 - Contract previews paginate React-rendered content into measured A4 sheets; oversized paragraphs split without discarding text, and screen fitting scales the sheets rather than changing their print geometry or stored terms.
 - Agent and account reference presentation uses scoped agent-account.css; settings, prompt entitlements, identity status and payout confirmation retain existing data/auth paths so HTML demo behavior cannot change security or credit rules.
+- Artist monitoring shares live Inbox conversations; only an owner-confirmed transactional operator claim unlocks manual replies, and protected handback checks AI settings and credits.
+- Conversation WhatsApp sends reserve notification rows before dispatch and reconcile delivery callbacks; ambiguous sends are never blindly retried.

@@ -1,0 +1,2 @@
+GRANT SELECT ON public.agent_credit_tasks TO authenticated;
+CREATE POLICY "Admins review AI task reservations" ON public.agent_credit_tasks FOR SELECT TO authenticated USING(public.has_role(auth.uid(),'admin'));
