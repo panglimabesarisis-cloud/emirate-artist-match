@@ -37,7 +37,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
   const color = `var(${kindColor(k)})`;
   return (
     <div className={`studio-flow-node w-56 overflow-visible text-card-foreground shadow-sm transition ${selected ? "ring-2 ring-primary" : ""}`}>
-      {k !== "start" && <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border !border-border !bg-background" />}
+      {!["start", "incoming_message", "incoming_form"].includes(k) && <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border !border-border !bg-background" />}
       <div className="flex items-center gap-2 px-3 pt-2.5 text-xs font-semibold">
         <span className="grid h-5 w-5 place-items-center rounded text-[10px] text-primary-foreground" style={{ background: color }}>{kindLabel(k)[0]}</span>
         <span className="truncate" title={cardTitle({ type: k, data })}>{cardTitle({ type: k, data })}</span>
@@ -125,7 +125,7 @@ function RichText({ value, onChange, disabled, variables }: { value: string; onC
   );
 }
 
-const GROUP_LABEL: Record<string, string> = { Send: "Talk", Ask: "Collect", Logic: "Logic", Actions: "Integrations" };
+const GROUP_LABEL: Record<string, string> = { Trigger: "Triggers", Send: "Talk", Ask: "Collect", Logic: "Logic", Actions: "Integrations" };
 
 function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowNode[]; edges: FlowEdge[] }; readOnly?: boolean; onSave: (f: { nodes: FlowNode[]; edges: FlowEdge[] }) => void; saving: boolean }) {
   const { t } = useI18n();

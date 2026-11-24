@@ -5,3 +5,5 @@
 - Agent and account reference presentation uses scoped agent-account.css; settings, prompt entitlements, identity status and payout confirmation retain existing data/auth paths so HTML demo behavior cannot change security or credit rules.
 - Artist monitoring shares live Inbox conversations; only an owner-confirmed transactional operator claim unlocks manual replies, and protected handback checks AI settings and credits.
 - Conversation WhatsApp sends reserve notification rows before dispatch and reconcile delivery callbacks; ambiguous sends are never blindly retried.
+- SupportWorkspace shares ticket/message rows across artist and admin views; append-only sender-verified messages preserve the thread while legacy reply fields retain client compatibility.
+- ArtistOwnPrompts persists owner-only instructions separately from protected library content; limits are transaction-checked and prompts join the server instructions below safety rules.

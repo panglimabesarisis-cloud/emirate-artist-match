@@ -48,7 +48,7 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
     client_user_id: clientUserId,
   }).select("id").single();
   if (error || !q) throw new Error("Could not save request");
-  const { data: c } = await supabaseAdmin.from("conversations").insert({ quote_request_id: q.id, artist_id: data.artistId, client_user_id: clientUserId }).select("id, access_key").single();
+  const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_form", quote_request_id: q.id, artist_id: data.artistId, client_user_id: clientUserId }).select("id, access_key").single();
   if (!c) throw new Error("Could not open conversation");
   const { data: pk } = data.packageIds?.length
     ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
@@ -178,8 +178,8 @@ export const testAgent = createServerFn({ method: "POST" })
     if (!artist) throw new Error("No artist profile");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { addMessage, runAgent } = await import("./agent.server");
-    let { data: c } = await supabaseAdmin.from("conversations").select("id, mode").eq("artist_id", artist.id).is("quote_request_id", null).maybeSingle();
-    if (!c) c = (await supabaseAdmin.from("conversations").insert({ artist_id: artist.id }).select("id, mode").single()).data;
+    let { data: c } = await supabaseAdmin.from("conversations").select("id, mode").eq("artist_id", artist.id).eq("entry_source", "test").limit(1).maybeSingle();
+    if (!c) c = (await supabaseAdmin.from("conversations").insert({ artist_id: artist.id, entry_source: "test" }).select("id, mode").single()).data;
     if (!c) throw new Error("Could not open test chat");
     if (c.mode !== "ai") await supabaseAdmin.from("conversations").update({ mode: "ai", ai_replies: 0 }).eq("id", c.id);
     await addMessage(c.id, "client", maskContacts(data.text));
@@ -206,7 +206,7 @@ export const startChat = createServerFn({ method: "POST" })
     const { data: artist } = await supabaseAdmin.from("artists").select("id, status").eq("id", data.artistId).single();
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
     const { optionalUserId } = await import("./request-user.server");
-    const { data: c } = await supabaseAdmin.from("conversations").insert({ artist_id: data.artistId, client_user_id: await optionalUserId() }).select("id, access_key").single();
+    const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_message", artist_id: data.artistId, client_user_id: await optionalUserId() }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
     await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
     await runAgent(c.id);

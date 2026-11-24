@@ -1,5 +1,5 @@
 import { catalogModel, type CatalogModel } from "./chat-model-catalog";
-/** Plan model tiers (plan_tiers.allowed_models) mapped to gateway models; null keeps the default. */
+/** Model presets are available on every plan; task credit checks remain server-owned. */
 export const DEFAULT_AGENT_MODEL = "openai/gpt-5.6-luna" as const;
 export const AGENT_MODELS = { fast: "openai/gpt-5.4-mini", balanced: "openai/gpt-5.6-luna", advanced: "openai/gpt-5.5" } as const;
 export type AgentModel = (typeof AGENT_MODELS)[keyof typeof AGENT_MODELS] | CatalogModel;
@@ -9,7 +9,7 @@ export function agentModel(choice: string | null | undefined): AgentModel {
   return choice && choice in AGENT_MODELS ? AGENT_MODELS[choice as keyof typeof AGENT_MODELS] : DEFAULT_AGENT_MODEL;
 }
 const LENGTH: Record<string, string> = { short: "Keep replies under 60 words.", medium: "Keep replies under 120 words.", detailed: "Keep replies under 220 words." };
-export const replyLengthRule = (v: string | null | undefined) => LENGTH[v ?? "medium"] ?? LENGTH["medium"]!;
+export const replyLengthRule = (v: string | null | undefined) => LENGTH[v ?? "medium"] ?? "Keep replies under 120 words.";
 export function languageRule(langs: string[] | null | undefined) {
   const list = (langs ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 10);
   return list.length ? `Reply in the client's language when it is one of: ${list.join(", ")}; otherwise reply in ${list[0]}.` : "Reply in the client's language (English or Arabic).";

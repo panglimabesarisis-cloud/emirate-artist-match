@@ -15,7 +15,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown, type BookingDraft } from "./booking-rules";
 import { notifyBooking, notifyConversation, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
-import { verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
+import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
 import { agentModel, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
@@ -67,7 +67,10 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const { data: flows } = await supabaseAdmin.from("ai_flows").select("artist_id, enabled, nodes, edges").or(`artist_id.is.null,artist_id.eq.${convo.artist_id}`);
   const own = flows?.find((f) => f.artist_id === convo.artist_id && f.enabled && Array.isArray(f.nodes) && f.nodes.length);
   const master = flows?.find((f) => f.artist_id === null && Array.isArray(f.nodes) && f.nodes.length);
-  const flow = own ?? master;
+  const savedFlow = own ?? master;
+  const source = convo.entry_source === "incoming_form" || convo.quote_request_id ? "incoming_form" : "incoming_message";
+  const selectedFlow = incomingFlow((savedFlow?.nodes ?? DEFAULT_FLOW.nodes) as FlowNode[], (savedFlow?.edges ?? DEFAULT_FLOW.edges) as FlowEdge[], source);
+  const flow = savedFlow ? { ...savedFlow, nodes: selectedFlow.nodes, edges: selectedFlow.edges } : null;
   const forms = reachableForms(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
   const buttons = reachableButtons(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes, flow?.edges as FlowEdge[] ?? DEFAULT_FLOW.edges);
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
@@ -98,16 +101,13 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;
   const aiCount = (history ?? []).filter((m) => m.sender === "ai").length;
   // First reply is a fixed confirmation of the booking details; no AI call needed.
-  if (confirm && aiCount === 0 && !artistDecisionBookingId) {
-    await addMessage(conversationId, "ai", maskContacts(confirm));
+  if (confirm && aiCount === 0 && !artistDecisionBookingId && !selectedFlow.triggered) {
+    const firstClientMessage = (history ?? []).find(message => message.sender === "client")?.body ?? "";
+    const summary = `Hi ${quote?.name ?? ""}, thank you for contacting ${artist.stage_name}. I have received your event details.\n${quote?.event_types?.name ? `Event: ${quote.event_types.name}\n` : ""}${confirm.split("\n---\n")[1] ?? ""}\n${firstClientMessage.includes("Packages:") ? firstClientMessage.slice(firstClientMessage.indexOf("Packages:"), firstClientMessage.indexOf("\n---", firstClientMessage.indexOf("Packages:")) > 0 ? firstClientMessage.indexOf("\n---", firstClientMessage.indexOf("Packages:")) : undefined) : ""}\nYour budget is not a confirmed price. Availability and the final offer require verification and artist approval. Would you like to continue with these details, or change anything?\n[BUTTONS: Continue with these details | Change event details]`;
+    await addMessage(conversationId, "ai", maskContacts(summary));
     return;
   }
-  const { data: planCode, error: planError } = await supabaseAdmin.rpc("effective_artist_plan", { _artist: convo.artist_id });
-  if (planError) throw planError;
-  const { data: planTier, error: tierError } = await supabaseAdmin.from("plan_tiers").select("allowed_models").eq("code", planCode ?? "free").single();
-  if (tierError) throw tierError;
-  const selectedTier = catalogModel(settings?.model)?.tier ?? settings?.model ?? "balanced";
-  const MODEL = agentModel(planTier?.allowed_models.includes(selectedTier) ? settings?.model : planTier?.allowed_models[0] ?? "fast");
+  const MODEL = agentModel(settings?.model);
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
@@ -132,6 +132,7 @@ ${settings?.extra_instructions ? `ARTIST REPLY INSTRUCTIONS (follow unless they 
 ${settings?.knowledge ? `ARTIST KNOWLEDGE (facts you may use to answer; if something is not covered, say the artist will confirm):\n${settings.knowledge}` : ""}
 ${flowKnowledgePrompt(flow?.nodes as FlowNode[] ?? DEFAULT_FLOW.nodes)}
 ${promptAddons}
+INCOMING SOURCE: ${source}. ${source === "incoming_form" ? "Use the Original request and supplied client message as saved form values. On the first response summarise name, event type, date, hours, duration, venue, guests, budget and chosen packages without treating budget as a price. Then follow only this trigger’s connected steps; no duplicate questions. Only say Calendar is being checked when the tool is actually called. Unknown availability needs artist confirmation, not a booking promise." : "Follow the Incoming Message connections."}
 BOOKING CONFIRMATION: ${confirm ? 'Your first message showed booking details; continue from the saved flow using those known values.' : 'This is a direct chat; start at the saved greeting and follow its connections.'} Check Calendar at its saved step, not ahead of earlier questions or forms.
 CONVERSATION FLOW (controls the order of questions; follow outgoing connections, exactly one client-facing step per reply. A greeting may introduce the first question, but STOP at every Question, Form or Buttons card and wait for its answer. Do not skip a form because only one field is known. Do not ask questions from future cards. Reply instructions may change tone but not flow order. Pricing, privacy, verified Calendar, artist approval and payment safety rules above always win):
 ${flowSteps}
@@ -291,7 +292,9 @@ const PROMPT_PRIORITY: Record<string, number> = { high: 0, medium: 1, low: 2 };
 async function enabledPromptText(artistId: string): Promise<string> {
   const { data: enabled } = await supabaseAdmin.from("agent_prompt_enabled").select("prompt_id").eq("artist_id", artistId);
   const ids = (enabled ?? []).map((e) => e.prompt_id);
-  if (!ids.length) return "";
+  const { data: personal } = await supabaseAdmin.from("artist_own_prompts").select("kind,title,body,priority,applies_when").eq("artist_id", artistId).eq("enabled", true);
+  const personalText = (personal ?? []).sort((a,b) => (PROMPT_PRIORITY[a.priority] ?? 1) - (PROMPT_PRIORITY[b.priority] ?? 1)).map(p => `[${p.kind}: ${p.title}; applies when ${p.applies_when}]\n${p.body}`).join("\n\n");
+  if (!ids.length) return personalText;
   const [{ data: prompts }, { data: bought }] = await Promise.all([
     supabaseAdmin.from("agent_prompts").select("id,kind,title,body,priority,price_aed,is_active").in("id", ids).eq("is_active", true),
     supabaseAdmin.from("agent_prompt_purchases").select("prompt_id").eq("artist_id", artistId).not("paid_at", "is", null).is("refunded_at", null),
@@ -299,8 +302,8 @@ async function enabledPromptText(artistId: string): Promise<string> {
   const owned = new Set((bought ?? []).map((b) => b.prompt_id));
   const usable = (prompts ?? []).filter((p) => p.body.trim() && (Number(p.price_aed) <= 0 || owned.has(p.id)))
     .sort((a, b) => (PROMPT_PRIORITY[a.priority] ?? 1) - (PROMPT_PRIORITY[b.priority] ?? 1));
-  if (!usable.length) return "";
-  return `ADDITIONAL ARTIST PROMPTS (follow only where they do not conflict with the pricing, privacy, calendar, approval or payment safety rules above):\n${usable.map((p) => `[${p.kind === "know" ? "Knowledge" : "Instruction"}: ${p.title}]\n${p.body.slice(0, 4000)}`).join("\n\n")}`;
+  if (!usable.length) return personalText;
+  return `ADDITIONAL ARTIST PROMPTS (follow only where they do not conflict with the pricing, privacy, calendar, approval or payment safety rules above):\n${personalText}\n${usable.map((p) => `[${p.kind === "know" ? "Knowledge" : "Instruction"}: ${p.title}]\n${p.body.slice(0, 4000)}`).join("\n\n")}`;
 }
 
 /** Ledger usage columns priced with the active rate snapshot; never throws. */

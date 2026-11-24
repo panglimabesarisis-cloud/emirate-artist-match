@@ -1,6 +1,6 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
 import { internationalPhone } from "./whatsapp-provider";
-export type FlowKind = "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge";
+export type FlowKind = "incoming_message" | "incoming_form" | "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge";
 export type UrlButton = { label: string; url: string };
 export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time" | "dropdown";
 export type FormField = { label: string; type: FieldType; saveAs?: string | undefined; options?: string[]; source?: "event_types" };
@@ -24,8 +24,10 @@ export const FORM_FIELD_PRESETS: FormField[] = [
 export type FlowNode = { id: string; type: FlowKind; position: { x: number; y: number }; data: FlowData };
 export type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
 
-export type FlowGroup = "Send" | "Ask" | "Logic" | "Actions";
+export type FlowGroup = "Trigger" | "Send" | "Ask" | "Logic" | "Actions";
 export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placeholder: string; group: FlowGroup; color: string }[] = [
+  { kind: "incoming_message", label: "Incoming Message", hint: "Chat from the artist profile", placeholder: "Welcome the visitor and follow the connected chat steps.", group: "Trigger", color: "--chart-1" },
+  { kind: "incoming_form", label: "Incoming Form", hint: "Submitted artist booking form", placeholder: "Thank the client, summarise the submitted event details, then follow the connected steps. Do not ask again for supplied values.", group: "Trigger", color: "--chart-2" },
   { kind: "knowledge", label: "AI Knowledge", hint: "Facts and question-answer mapping", placeholder: "", group: "Logic", color: "--chart-2" },
   { kind: "start", label: "Greeting", hint: "Opening message", placeholder: "Welcome the client warmly and introduce yourself as the AI assistant.", group: "Send", color: "--chart-1" },
   { kind: "message", label: "Send message", hint: "Say something", placeholder: "Tell the client the artist performs across all seven emirates.", group: "Send", color: "--chart-1" },
@@ -44,7 +46,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "payment", label: "Payment Stripe", hint: "DP 20% then balance", placeholder: "Client pays a 20% deposit through Stripe. Only verified payment reserves the calendar. Balance reminder seven days before the event.", group: "Actions", color: "--chart-5" },
   { kind: "whatsapp", label: "Send to WhatsApp", hint: "Artist approval → invoice", placeholder: "Send the agreed booking to the artist for approval. After approval, send the invoice to the client chat.", group: "Actions", color: "--chart-2" },
 ];
-export const FLOW_GROUPS: FlowGroup[] = ["Send", "Ask", "Logic", "Actions"];
+export const FLOW_GROUPS: FlowGroup[] = ["Trigger", "Send", "Ask", "Logic", "Actions"];
 export const kindColor = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.color ?? "--primary";
 
 /** AI replies may end with [BUTTONS: A | B]; the chat shows them as tappable quick replies. */
@@ -206,4 +208,14 @@ export function invoiceWorkflow(nodes: FlowNode[], edges: FlowEdge[]) {
  const queue = start ? [start.id] : []; const seen = new Set<string>();
  while (queue.length) { const id = queue.shift(); if (!id || seen.has(id)) continue; seen.add(id); const node=nodes.find(n=>n.id===id); if(node?.type==='ratecard')return { description:node.data.rateDescription?.trim() || 'Performance', price: Math.max(0,Number(node.data.ratePrice)||0) }; queue.push(...edges.filter(e=>e.source===id).map(e=>e.target)); }
  return null;
+}
+
+/** Select the source-specific reachable graph, leaving saved graphs byte-for-byte unchanged. */
+export function incomingFlow(nodes: FlowNode[], edges: FlowEdge[], source: "incoming_form" | "incoming_message") {
+  const root = nodes.find(node => node.type === source);
+  if (!root) return { nodes, edges, triggered: false };
+  const seen = new Set<string>(); const queue = [root.id];
+  while (queue.length) { const id = queue.shift(); if (!id || seen.has(id)) continue; seen.add(id); queue.push(...edges.filter(edge => edge.source === id).map(edge => edge.target)); }
+  const selected = nodes.filter(node => seen.has(node.id) || node.type === "knowledge").map(node => node.id === root.id ? { ...node, type: "start" as const } : node);
+  return { nodes: selected, edges: edges.filter(edge => seen.has(edge.source) && seen.has(edge.target)), triggered: true };
 }

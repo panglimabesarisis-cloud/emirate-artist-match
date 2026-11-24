@@ -2,7 +2,7 @@ import { ScheduleDialog, type BusySlot } from "@/components/site/ScheduleDialog"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { submitQuote } from "@/lib/chat.functions";
+import { startChat, submitQuote } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
@@ -170,6 +170,16 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
   const submit$ = useServerFn(submitQuote);
   const [showForm, setShowForm] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatText, setChatText] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const startChat$ = useServerFn(startChat);
+  const openChat = async () => {
+    if (!chatText.trim() || chatBusy) return;
+    setChatBusy(true);
+    try { const result = await startChat$({ data: { artistId, text: chatText } }); await navigate({ to: "/chat/$id", params: { id: result.conversationId }, search: { k: result.key } }); }
+    catch { toast.error(t("Could not open chat. Please try again.")); } finally { setChatBusy(false); }
+  };
   const { data: orderForm } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
     const { data } = await (supabase as any).from("artist_order_forms").select("title, description, fields, enabled").eq("artist_id", artistId).maybeSingle();
     return data as { title: string; description: string | null; fields: OrderField[]; enabled: boolean } | null;
@@ -231,6 +241,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
         <div className="mt-5 space-y-3">
           <Button type="button" onClick={() => setShowForm(true)} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">{t("Book Artist")}</Button>
           <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </div>
       ) : (
@@ -300,9 +311,11 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
             {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
           <Button type="button" variant="outline" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
+      <Dialog open={chatOpen} onOpenChange={setChatOpen}><DialogContent><DialogTitle>{t("Chat With Us")} · {artistName}</DialogTitle><form className="space-y-4" onSubmit={event => { event.preventDefault(); void openChat(); }}><Textarea aria-label={t("Your message")} value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><Button type="submit" disabled={chatBusy || !chatText.trim()}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form></DialogContent></Dialog>
       <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
     </aside>
   );

@@ -19,13 +19,13 @@ export function StudioHeading({ title, accent, children }: { title: string; acce
     "Wallet": "What you earned from jobs booked through Dealmaker.",
     "Account settings": "Your payout bank account lives here. The Wallet page shows locked bank details read-only.",
     "Invite team": "Give a teammate their own login to answer inbox chats for you.",
-    "AI credits": "Every AI reply costs one credit.",
+    "AI credits": "Your final AI task charges and remaining credits.",
     "Your profile": "This is what clients see before they book you. A complete profile with a real bio, photo and past work gets more quote requests.",
     "Rate card": "The jobs you offer, with a starting price and how long each one runs. Your AI agent quotes from this list.",
     "Order form": "The questions a client answers when they book you.",
     "Photos and videos": "Photos fill the slider on your profile and videos sit below it.",
     "Verification": "Verify who you are, and clients trust you faster. Your badges show on your public profile.",
-    "AI agent": "Your assistant answers new enquiries for you.",
+    "AI agent": "Your assistant answers new enquiries for you. Choose how it talks, teach it your rules and facts, and test it before clients ever see it.",
     "AI flow": "Draw how your assistant talks to a new client, step by step: what it asks, what it offers, and when it hands the chat to you.",
   };
   const description = descriptions[`${title}${joined ? "" : " "}${accent}`];

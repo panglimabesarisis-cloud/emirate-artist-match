@@ -70,3 +70,25 @@ html.dm-dash .account-modal input{background:var(--studio-wash);border-color:var
 html.dm-dash .account-modal-footer{border-top:1px solid var(--studio-line);padding-top:18px;margin-top:22px}
 @media(max-width:1100px){html.dm-dash .studio-reference .studio-agent-settings,html.dm-dash .studio-reference .studio-agent-test{grid-column:span 12}html.dm-dash .studio-reference .studio-account-main{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:620px){html.dm-dash .agent-models{grid-template-columns:minmax(0,1fr)}html.dm-dash .agent-model{min-height:90px}html.dm-dash .account-modal{padding:22px}html.dm-dash .account-record>div{flex-wrap:wrap}html.dm-dash .account-record dd{text-align:start}html.dm-dash .studio-reference .studio-agent-chat{height:320px}}
+/* Uploaded AI Agent reference: compact controls, stable model cards and an uninterrupted settings/test row. */
+html.dm-dash .agent-header-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+html.dm-dash .agent-header-actions>a,html.dm-dash .agent-header-actions>button{font-size:12px}
+html.dm-dash .agent-model{min-height:190px;padding:14px;gap:7px;font-weight:400}
+html.dm-dash .agent-model small{color:var(--muted-foreground);font-size:11px;overflow-wrap:anywhere}
+html.dm-dash .agent-model .agent-model-description{flex:1;line-height:1.5}
+html.dm-dash .agent-model-speed{display:flex;gap:3px}
+html.dm-dash .agent-model-speed i{display:block;width:14px;height:4px;border-radius:2px;background:var(--studio-line-2)}
+html.dm-dash .agent-model-speed i.is-filled{background:var(--gold)}
+html.dm-dash .dmr-agpage h2,html.dm-dash .dmr-agpage h3{font-family:var(--font-display);font-weight:400;font-style:normal;letter-spacing:0}
+html.dm-dash .dmr-agpage .it{font-style:normal}
+html.dm-dash .agent-prompt-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--studio-line);font-size:12px;color:var(--muted-foreground)}
+html.dm-dash .agent-own-heading{padding-bottom:14px;border-bottom:1px solid var(--studio-line)}
+html.dm-dash .agent-own-heading h2{font-size:28px}
+html.dm-dash .agent-own-heading p,html.dm-dash .agent-own-grid small{font-size:11px;color:var(--muted-foreground)}
+html.dm-dash .agent-own-grid h3{font-size:24px}
+html.dm-dash .agent-own-saved{margin-top:24px;border-top:1px solid var(--studio-line)}
+html.dm-dash .agent-own-saved article{display:flex;align-items:start;gap:12px;padding:18px 0;border-bottom:1px solid var(--studio-line)}
+html.dm-dash .agent-own-saved p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;margin:8px 0}
+html.dm-dash .agent-own-saved small{color:var(--muted-foreground);font-size:11px}
+@media(min-width:1000px){html.dm-dash .studio-reference .dmr-agpage .studio-agent-settings{grid-column:span 7}html.dm-dash .studio-reference .dmr-agpage .studio-agent-test{grid-column:span 5}}
+@media(max-width:700px){html.dm-dash .agent-prompt-pagination{flex-wrap:wrap}html.dm-dash .agent-model{min-height:140px}}

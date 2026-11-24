@@ -945,6 +945,50 @@ export type Database = {
           },
         ]
       }
+      artist_own_prompts: {
+        Row: {
+          applies_when: string
+          artist_id: string
+          body: string
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: string
+          priority: string
+          title: string
+        }
+        Insert: {
+          applies_when?: string
+          artist_id: string
+          body: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          priority?: string
+          title: string
+        }
+        Update: {
+          applies_when?: string
+          artist_id?: string
+          body?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          priority?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_own_prompts_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_portfolio: {
         Row: {
           artist_id: string
@@ -1880,6 +1924,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_reason: string | null
+          entry_source: string
           handover_requested_at: string | null
           id: string
           label: string | null
@@ -1897,6 +1942,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
+          entry_source?: string
           handover_requested_at?: string | null
           id?: string
           label?: string | null
@@ -1914,6 +1960,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_reason?: string | null
+          entry_source?: string
           handover_requested_at?: string | null
           id?: string
           label?: string | null
@@ -3588,6 +3635,41 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_role: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_requests"
             referencedColumns: ["id"]
           },
         ]

@@ -526,6 +526,20 @@
       "when": 1795507218703,
       "tag": "0074_agent_task_admin_review",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1795508538271,
+      "tag": "0075_all_tier_models_threaded_support_and_own_prompts",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1795508732782,
+      "tag": "0076_support_initial_message_sync",
+      "breakpoints": true
     }
   ]
 }
