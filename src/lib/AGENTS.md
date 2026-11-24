@@ -9,7 +9,7 @@
 - Managed booking jobs retry failed calendar writes and claim H-7 reminders before dispatch; WhatsApp acceptance is not delivery and public jobs must authenticate managed cron requests.
 
 # Library rules
-- Public booking agents, artist test chats and private artist task assistants use the workspace-resolved text/tool default; hidden legacy model settings do not override automatic execution, and verified per-model rates remain mandatory.
+- Public booking agents, artist test chats and private assistants share task routing; hidden legacy selectors cannot override execution, one model/rate snapshot covers all task rounds, and verified per-model pricing remains mandatory.
 - Incoming chat/form sources select only their connected saved graph before all form, button and approval resolvers run; legacy flows keep their existing root.
 - AI task billing uses service-only reservations and fractional ledger deltas, with verified provider-rate snapshots and per-task settlement; missing rates/usage fail closed rather than inventing prices or replaying uncertain inference.
 - Missing model pricing is a configuration failure, not human takeover; save the client message and preserve AI mode without inference so later messages can resume after verified rates are configured.

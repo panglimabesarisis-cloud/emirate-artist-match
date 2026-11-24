@@ -18,7 +18,9 @@ import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
 
-import { AUTOMATIC_AGENT_MODEL, replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
+import { replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
+import { agentTaskModel } from "./agent-task-routing";
+import { assertAgentTaskContext } from "./agent-task-cost";
 import { catalogModel } from "./chat-model-catalog";
 import { AgentPricingUnavailableError, reserveAgentTask, settleAgentTask } from "./agent-task-billing.server";
 
@@ -107,7 +109,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     await addMessage(conversationId, "ai", maskContacts(summary));
     return;
   }
-  const MODEL = AUTOMATIC_AGENT_MODEL;
+  const MODEL = agentTaskModel({ text: decodeChatMessage((history ?? []).findLast(m => m.sender === "client")?.body ?? "").text, privateAgent: false, bookingInProgress: !!existingBooking || !!artistDecisionBookingId });
   const promptAddons = await enabledPromptText(convo.artist_id);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
@@ -154,8 +156,9 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
       ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
       ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
+    assertAgentTaskContext(input, instructions, tools);
     taskId = (await reserveAgentTask(convo.artist_id, conversationId, MODEL, input, instructions, 600)).taskId;
-    let res = await generateResponse({ model: MODEL, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+    let res = await generateResponse({ model: MODEL, reasoning: { effort: "low" }, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
     addUsage(usage, res);
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
@@ -191,7 +194,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         } catch { /* Invalid arguments are not evidence of availability. */ }
         input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
       }
-      res = await generateResponse({ model: MODEL, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+      assertAgentTaskContext(input, instructions, tools);
+      res = await generateResponse({ model: MODEL, reasoning: { effort: "low" }, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
       addUsage(usage, res);
     }
     let text = "";
