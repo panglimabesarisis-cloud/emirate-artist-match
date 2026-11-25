@@ -8,7 +8,7 @@ ALTER TABLE public.artist_order_forms
 
 DO $pk$ BEGIN
  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname='artist_order_forms_pkey' AND conrelid='public.artist_order_forms'::regclass
-            AND (SELECT array_agg(attname ORDER BY attname) FROM pg_attribute WHERE attrelid=conrelid AND attnum=ANY(conkey)) <> ARRAY['id']) THEN
+            AND (SELECT array_agg(attname::text ORDER BY attname) FROM pg_attribute WHERE attrelid=conrelid AND attnum=ANY(conkey)) <> ARRAY['id']) THEN
   ALTER TABLE public.artist_order_forms DROP CONSTRAINT artist_order_forms_pkey;
  END IF;
  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='artist_order_forms_pkey' AND conrelid='public.artist_order_forms'::regclass) THEN

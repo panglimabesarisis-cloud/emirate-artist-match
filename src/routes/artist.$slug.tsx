@@ -1,6 +1,6 @@
 import { ScheduleDialog, type BusySlot } from "@/components/site/ScheduleDialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { startChat, submitQuote } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,8 +58,13 @@ export const Route = createFileRoute("/artist/$slug")({
   notFoundComponent: () => <PublicLayout><div className="mx-auto max-w-7xl px-4 py-16"><h1 className="text-2xl font-semibold">Artist unavailable</h1></div></PublicLayout>,
 });
 
+type Profile = { artist: NonNullable<Awaited<ReturnType<typeof getArtist>>>; catalog: Awaited<ReturnType<typeof getCatalog>> };
+// Typed by hand: asking the router for "whichever route is showing" is too deep for the type checker.
+const useShownProfile = useLoaderData as unknown as (options: { strict: false }) => Profile;
+
 export function ArtistPage() {
-  const { artist: a, catalog } = Route.useLoaderData();
+  // Also the page of /professional/$slug, so the data comes from whichever of the two routes is showing.
+  const { artist: a, catalog } = useShownProfile({ strict: false });
   const s = a.stats;
   const { t } = useI18n();
   const bars = [
