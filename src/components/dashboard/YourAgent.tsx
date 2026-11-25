@@ -354,7 +354,7 @@ export function YourAgent({
           </span>
         </header>
 
-        <Conversation className="min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_0%,rgba(232,176,74,.05),transparent_60%)]" aria-label={t("Chat with your AI agent")}>
+        <Conversation className="dm-chat-bg min-h-0 flex-1" aria-label={t("Chat with your AI agent")}>
           <ConversationContent className="space-y-3 p-5">
             {empty && (
               <div className="flex gap-3">

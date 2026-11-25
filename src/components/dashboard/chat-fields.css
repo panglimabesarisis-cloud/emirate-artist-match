@@ -35,3 +35,9 @@ html.dm-dash .ya-composer [data-slot="input-group"]:focus-within {
   border-color: #e8b04a;
   box-shadow: 0 0 0 4px rgba(232, 176, 74, 0.12);
 }
+/* Chat backdrop from the dashboard reference, shared by Inbox, Support tickets and Your AI agent: a faint geometric
+   pattern under a gold glow. It is a background layer, so it stays put while messages scroll. */
+.ibx-root .msgs,
+html.dm-dash .dm-chat-bg {
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cg fill='none' stroke='%23e8b04a' stroke-width='.8' opacity='.05'%3E%3Cpath d='M48 14L82 48L48 82L14 48Z'/%3E%3Cpath d='M24 24H72V72H24Z'/%3E%3Ccircle cx='48' cy='48' r='9'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 0%,rgba(232,176,74,.05),transparent 60%);
+}

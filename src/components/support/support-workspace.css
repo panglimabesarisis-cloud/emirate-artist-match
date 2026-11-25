@@ -1,16 +1,8 @@
-html.dm-dash .support-workspace{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);border:1px solid var(--studio-line);border-radius:8px;overflow:hidden;background:var(--studio-panel-gradient);min-height:620px}
-html.dm-dash .support-ticket-list{border-inline-end:1px solid var(--studio-line);max-height:760px;overflow-y:auto}
-html.dm-dash .studio-reference .support-ticket{display:flex;flex-direction:column;align-items:stretch;gap:8px;justify-content:start;border-radius:0;border:0;border-bottom:1px solid var(--studio-line);padding:18px;width:100%;height:auto;white-space:normal;text-align:start;background:transparent;color:var(--foreground)}
-html.dm-dash .support-ticket[aria-pressed=true]{background:var(--studio-gold-wash)}
-html.dm-dash .support-ticket small{color:var(--muted-foreground);font-size:11px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-html.dm-dash .support-thread{display:flex;flex-direction:column;min-width:0}
-html.dm-dash .support-thread-header{padding:20px;display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--studio-line)}
-html.dm-dash .support-thread-header h2{font-family:var(--font-display);font-size:25px}
-html.dm-dash .support-thread-header small{color:var(--muted-foreground)}
-html.dm-dash .support-thread-log{flex:1;min-height:300px;max-height:560px;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:18px}
-html.dm-dash .support-message{max-width:88%;border:1px solid var(--studio-line);border-radius:8px;padding:14px;background:var(--studio-wash);overflow-wrap:anywhere;white-space:pre-wrap}
-html.dm-dash .support-message.is-admin{align-self:flex-end;background:var(--studio-gold-wash);border-color:var(--studio-gold-line)}
-html.dm-dash .support-message small{display:block;margin-bottom:8px;font-size:11px;color:var(--muted-foreground)}
-html.dm-dash .support-composer{display:flex;align-items:end;gap:12px;padding:18px;border-top:1px solid var(--studio-line)}
-html.dm-dash .support-composer textarea{flex:1;min-width:0}
-@media(max-width:760px){html.dm-dash .support-workspace{grid-template-columns:minmax(0,1fr)}html.dm-dash .support-ticket-list{max-height:260px;border-inline-end:0;border-bottom:1px solid var(--studio-line)}html.dm-dash .support-thread-log{padding:16px}html.dm-dash .support-message{max-width:96%}}
+/* Support tickets reuse the Inbox layout (inbox.css); only the differences live here. */
+html.dm-dash .ibx-root.support-ibx .tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+html.dm-dash .ibx-root.support-ibx .tabs button,html.dm-dash .support-ibx .lbl{text-transform:capitalize}
+html.dm-dash .support-ibx .c-who b{display:block;font-size:15px}
+html.dm-dash .support-ibx .msgs .m{flex-shrink:0}
+html.dm-dash .support-topic{padding:14px 18px;border-bottom:1px solid var(--studio-line)}
+html.dm-dash .ibx-root.support-ibx{margin-top:20px}
+@media (min-width:981px){html.dm-dash .ibx-root.support-ibx{height:calc(100dvh - 250px)}}

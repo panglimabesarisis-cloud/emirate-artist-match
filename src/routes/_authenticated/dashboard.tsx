@@ -13,6 +13,8 @@ import { BookingsTab } from "@/components/dashboard/BookingsTab";
 import { ExportTab } from "@/components/dashboard/ExportTab";
 import { ContractsTable } from "@/components/dashboard/ContractsTable";
 import { InvoicesTab } from "@/components/dashboard/InvoicesTab";
+import { InvoiceRecords } from "@/components/dashboard/InvoiceRecords";
+import { memberCan, type TeamPage } from "@/lib/team-access";
 import { RateCardTable } from "@/components/dashboard/RateCardTable";
 import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
@@ -85,8 +87,7 @@ function MemberOrClient({ userId }: { userId: string }) {
   if (teams.length === 0) return <Navigate to="/client/dashboard" replace />;
   const t = teams[Math.min(pick, teams.length - 1)];
   const a = t?.artists;if(!t||!a)return <Navigate to="/client/dashboard" replace />;
-  const allowed = t.team_roles?.menus ?? null;
-  const can = (menu: string) => !allowed || allowed.includes(menu);
+  const can = (page: TeamPage) => memberCan(t.team_roles?.menus, page);
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -99,6 +100,8 @@ function MemberOrClient({ userId }: { userId: string }) {
           {can("bookings") && <TabsTrigger value="bookings">{tr("Bookings")}</TabsTrigger>}
           {can("quotes") && <TabsTrigger value="quotes">{tr("Quote requests")}</TabsTrigger>}
           {can("calendar") && <TabsTrigger value="calendar">{tr("Availability")}</TabsTrigger>}
+          {can("invoices") && <TabsTrigger value="invoices">{tr("Invoice")}</TabsTrigger>}
+          {can("contracts") && <TabsTrigger value="contracts">{tr("Contract")}</TabsTrigger>}
           {can("media") && <TabsTrigger value="media">{tr("Photos & videos")}</TabsTrigger>}
           <TabsTrigger value="mine">{tr("My requests")}</TabsTrigger>
         </TabsList>
@@ -106,6 +109,8 @@ function MemberOrClient({ userId }: { userId: string }) {
         {can("bookings") && <TabsContent value="bookings"><BookingsTab artistId={a.id} trn={null} notifyPhone={null} teamMode /></TabsContent>}
         {can("quotes") && <TabsContent value="quotes"><QuoteRequests artistId={a.id} /></TabsContent>}
         {can("calendar") && <TabsContent value="calendar"><Availability artistId={a.id} /></TabsContent>}
+        {can("invoices") && <TabsContent value="invoices"><InvoiceRecords artistId={a.id} /></TabsContent>}
+        {can("contracts") && <TabsContent value="contracts"><ContractsTable artistId={a.id} /></TabsContent>}
         {can("media") && <TabsContent value="media"><MediaTab artistId={a.id} /></TabsContent>}
         <TabsContent value="mine"><ClientDash /></TabsContent>
       </Tabs>

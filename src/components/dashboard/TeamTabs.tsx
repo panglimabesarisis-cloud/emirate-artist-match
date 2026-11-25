@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
+import { accessRoleName, sameAccess, TEAM_PAGES, teamMenus } from "@/lib/team-access";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "./StudioPage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -48,15 +49,44 @@ export function CalendarSync({ artistId }: { artistId: string }) {
   );
 }
 
-/** Menus a team member can be given. Wallet, export, verification, account and team are never available (database check). */
-export const TEAM_MENUS = ["inbox", "quotes", "bookings", "calendar", "media"] as const;
 const ago = (iso: string | null) => {
   if (!iso) return "Never signed in";
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   return m < 2 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
 };
 const initials = (email: string) => email.split("@")[0]!.split(/[._-]/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
-const MENU_LABEL: Record<string, string> = { inbox: "Inbox", quotes: "Quote requests", bookings: "Bookings", calendar: "Calendar", media: "Photos & videos" };
+const MENU_LABEL: Record<string, string> = Object.fromEntries(TEAM_PAGES.map((page) => [page.id, page.label]));
+
+/** Checklist of the pages a member may open. Inbox is always on. */
+function PageAccessList({ value, onChange }: { value: string[]; onChange: (menus: string[]) => void }) {
+  const { t } = useI18n();
+  const all = TEAM_PAGES.every((page) => value.includes(page.id));
+  return (
+    <fieldset className="min-w-0 space-y-2">
+      <legend className="sr-only">{t("Pages this member can open")}</legend>
+      <div className="flex items-center justify-between gap-3">
+        <span aria-hidden className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Pages this member can open")}</span>
+        <button type="button" className="text-xs font-bold text-gold hover:underline" onClick={() => onChange(all ? ["inbox"] : TEAM_PAGES.map((page) => page.id))}>{t(all ? "Clear" : "Select all")}</button>
+      </div>
+      <ul className="grid gap-1.5 sm:grid-cols-2">
+        {TEAM_PAGES.map((page) => {
+          const fixed = page.id === "inbox";
+          const on = fixed || value.includes(page.id);
+          return (
+            <li key={page.id}>
+              <label className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${on ? "border-gold/50 bg-gold/10" : "border-border"} ${fixed ? "cursor-default" : "cursor-pointer"}`}>
+                <input type="checkbox" className="size-4 shrink-0 accent-gold" checked={on} disabled={fixed} onChange={() => onChange(on ? value.filter((id) => id !== page.id) : [...value, page.id])} />
+                <span className="min-w-0 flex-1">{t(page.label)}</span>
+                {fixed && <small className="text-[11px] text-muted-foreground">{t("Always on")}</small>}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-muted-foreground">{t("Pages not ticked stay hidden from this member. Wallet, Export data, Verification, Account settings and Team are always yours only.")}</p>
+    </fieldset>
+  );
+}
 
 export function TeamTab({ artistId }: { artistId: string }) {
   const { t } = useI18n();
@@ -84,7 +114,8 @@ export function TeamTab({ artistId }: { artistId: string }) {
     selection.clear(); toast.success(t("Removed")); qc.invalidateQueries({ queryKey: key });
   };
   const [email, setEmail] = useState("");
-  const [roleId, setRoleId] = useState("");
+  const [pages, setPages] = useState<string[]>(["inbox"]);
+  const [inviting, setInviting] = useState(false);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -97,11 +128,29 @@ export function TeamTab({ artistId }: { artistId: string }) {
   const invite = async () => {
     const e = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast.error(t("Enter a valid email")); return; }
-    const chosen = roleId || roles?.find((r) => r.is_system)?.id || null;
-    const { error } = await supabase.from("artist_members").insert({ artist_id: artistId, email: e, role: "assistant", ...(chosen ? { role_id: chosen } : {}) });
-    if (error) { toast.error(error.code === "23505" ? t("Already invited") : error.message); return; }
-    setEmail(""); setAddOpen(false); toast.success(t("Invitation saved — they get access when they sign in with this email"));
-    qc.invalidateQueries({ queryKey: key });
+    // Without the saved roles an invite could silently fall back to different pages.
+    if (!roles || inviting) return;
+    setInviting(true);
+    try {
+      const menus = teamMenus(pages);
+      let roleId = roles.find((r) => sameAccess(r.menus, menus))?.id;
+      let createdRole: string | undefined;
+      if (!roleId) {
+        const made = await supabase.from("team_roles").insert({ artist_id: artistId, name: accessRoleName(menus, roles.map((r) => r.name)), menus }).select("id").single();
+        if (made.error) { toast.error(made.error.message); return; }
+        roleId = createdRole = made.data.id;
+      }
+      const { error } = await supabase.from("artist_members").insert({ artist_id: artistId, email: e, role: "assistant", role_id: roleId });
+      if (error) {
+        if (createdRole) await supabase.from("team_roles").delete().eq("id", createdRole);
+        toast.error(error.code === "23505" ? t("Already invited") : error.message);
+        return;
+      }
+      setEmail(""); setPages(["inbox"]); setAddOpen(false); toast.success(t("Invitation saved — they get access when they sign in with this email"));
+    } finally {
+      setInviting(false);
+      void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: rolesKey });
+    }
   };
   const setStatus = async (id: string, status: "active" | "suspended") => {
     const { error } = await supabase.from("artist_members").update({ status }).eq("id", id);
@@ -122,7 +171,7 @@ export function TeamTab({ artistId }: { artistId: string }) {
   const saveRole = async () => {
     const name = draft.name.trim();
     if (!name) { toast.error(t("Name the role")); return; }
-    const { error } = await supabase.from("team_roles").insert({ artist_id: artistId, name: name.slice(0, 60), description: draft.description.trim() || null, menus: Array.from(new Set(["inbox", ...draft.menus])) });
+    const { error } = await supabase.from("team_roles").insert({ artist_id: artistId, name: name.slice(0, 60), description: draft.description.trim() || null, menus: teamMenus(draft.menus) });
     if (error) { toast.error(error.code === "23505" ? t("A role with this name exists") : error.message); return; }
     setDraft({ name: "", description: "", menus: ["inbox"] }); setRoleOpen(false);
     qc.invalidateQueries({ queryKey: rolesKey });
@@ -135,7 +184,6 @@ export function TeamTab({ artistId }: { artistId: string }) {
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: rolesKey }); qc.invalidateQueries({ queryKey: key });
   };
-  const toggleMenu = (m: string) => setDraft((d) => ({ ...d, menus: d.menus.includes(m) ? d.menus.filter((x) => x !== m) : [...d.menus, m] }));
 
   const needle = search.trim().toLowerCase();
   const shown = (members ?? []).filter((m) => !needle || `${m.email} ${roleName(m.role_id) ?? m.role}`.toLowerCase().includes(needle));
@@ -242,27 +290,24 @@ export function TeamTab({ artistId }: { artistId: string }) {
       </section>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-md rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+        <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
           <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{t("Add team")} <span className="it">{t("member")}</span></DialogTitle><DialogDescription>{t("Invitations go by email. Nobody gets a password from us; they sign in with their own account.")}</DialogDescription></DialogHeader>
           <form className="grid gap-3.5" onSubmit={(e) => { e.preventDefault(); void invite(); }}>
             <div className="space-y-2"><label htmlFor="studio-team-email" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Email")}</label><Input id="studio-team-email" type="email" placeholder={t("name@example.com")} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
-            <div className="space-y-2"><label htmlFor="studio-team-role" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Role")}</label>
-              <Select value={roleId} onValueChange={setRoleId}><SelectTrigger id="studio-team-role"><SelectValue placeholder={t("Inbox responder")} /></SelectTrigger><SelectContent>{roles?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent></Select></div>
+            <PageAccessList value={pages} onChange={setPages} />
             {full && <p className="text-xs text-gold">{max === 0 ? t("Your plan has no team seats. Upgrade to invite teammates.") : `${t("Seat limit reached for your plan")} (${used}/${max}).`}</p>}
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setAddOpen(false)}>{t("Cancel")}</Button><Button type="submit" disabled={full} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t("Send invite")}</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setAddOpen(false)}>{t("Cancel")}</Button><Button type="submit" disabled={full || inviting || !roles} className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t("Send invite")}</Button></div>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
-        <DialogContent className="max-w-lg rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
+        <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
           <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{t("New")} <span className="it">{t("role")}</span></DialogTitle><DialogDescription>{t("Every role can answer the Inbox. Choose the other menus this role can open.")}</DialogDescription></DialogHeader>
           <form className="grid gap-3.5" onSubmit={(e) => { e.preventDefault(); void saveRole(); }}>
             <div className="space-y-2"><label htmlFor="role-name" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Role name")}</label><Input id="role-name" maxLength={60} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} autoFocus /></div>
             <div className="space-y-2"><label htmlFor="role-desc" className="text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Description")}</label><Input id="role-desc" maxLength={160} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
-            <fieldset className="flex flex-wrap gap-4"><legend className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{t("Menus this role can open")}</legend>
-              {TEAM_MENUS.map((m) => <label key={m} className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-gold" checked={draft.menus.includes(m)} disabled={m === "inbox"} onChange={() => toggleMenu(m)} />{t(MENU_LABEL[m] ?? m)}</label>)}
-            </fieldset>
+            <PageAccessList value={draft.menus} onChange={(menus) => setDraft((d) => ({ ...d, menus }))} />
             <div className="flex justify-end gap-2"><Button type="button" variant="outline" className="rounded-full" onClick={() => setRoleOpen(false)}>{t("Cancel")}</Button><Button type="submit" className="rounded-full bg-gradient-gold font-bold text-gold-foreground">{t("Save role")}</Button></div>
           </form>
         </DialogContent>
