@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bot, RotateCcw, ArrowRight } from "lucide-react";
-import { cardTitle, whatsappEdges, type FlowNode, type FlowEdge } from "@/lib/ai-flow";
+import { cardTitle, isNotice, whatsappEdges, type FlowNode, type FlowEdge } from "@/lib/ai-flow";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { ChatFlowButtons, ChatFlowForm } from "./ChatFlowControls";
@@ -23,7 +23,7 @@ export function FlowChatPreview({ nodes, edges, selectedId }: { nodes: FlowNode[
       {answers.map((answer, i) => <div key={i} className="ms-auto max-w-[90%] whitespace-pre-wrap break-words rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground">{answer}</div>)}
       {node && <div key={node.id} className="flex min-w-0 gap-2">
         <div className="mt-1 grid size-6 shrink-0 place-items-center rounded-full bg-muted text-primary"><Bot className="size-3.5" /></div>
-        <div className="min-w-0 flex-1"><div className="whitespace-pre-wrap break-words rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed">{node.type === "knowledge" ? cardTitle(node) : node.data.text}</div>
+        <div className="min-w-0 flex-1"><div className="whitespace-pre-wrap break-words rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed">{isNotice(node.type) && <div className="mb-1 font-semibold text-primary">{node.type === "wa_client" ? t("WhatsApp to client") : t("WhatsApp to artist")}</div>}{node.type === "knowledge" ? cardTitle(node) : node.data.text}</div>
           {node.type === "knowledge" && <div className="mt-2 space-y-3 text-xs"><p className="whitespace-pre-wrap break-words">{node.data.text}</p>{node.data.knowledgeQA?.map((pair, index) => <div key={index} className="space-y-1 border-b pb-2"><p className="font-medium break-words">{pair.question}</p><p className="whitespace-pre-wrap break-words text-muted-foreground">{pair.answer}</p></div>)}</div>}
           {node.type === "ratecard" && <div className="mt-2 space-y-2 rounded-md border p-3 text-xs"><div>{node.data.rateDescription || "Artist fills invoice items"}</div><div>AED {node.data.ratePrice ?? 0}</div><Button size="sm" variant="outline" onClick={()=>advance("Artist invoice submitted")}>Preview artist approval</Button></div>}
           {node.type === "payment" && <div className="mt-2 rounded-md border p-3 text-xs">DP 20% · Stripe sandbox<br/>Calendar reserved after verified payment<br/>Balance reminder H-7</div>}

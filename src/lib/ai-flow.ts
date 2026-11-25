@@ -1,6 +1,6 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
 import { internationalPhone } from "./whatsapp-provider";
-export type FlowKind = "incoming_message" | "incoming_form" | "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge";
+export type FlowKind = "incoming_message" | "incoming_form" | "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge" | "wa_artist" | "wa_client";
 export type UrlButton = { label: string; url: string };
 export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time" | "dropdown";
 export type FormField = { label: string; type: FieldType; saveAs?: string | undefined; options?: string[]; source?: "event_types" };
@@ -31,6 +31,8 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "knowledge", label: "AI Knowledge", hint: "Facts and question-answer mapping", placeholder: "", group: "Logic", color: "--chart-2" },
   { kind: "start", label: "Greeting", hint: "Opening message", placeholder: "Welcome the client warmly and introduce yourself as the AI assistant.", group: "Send", color: "--chart-1" },
   { kind: "message", label: "Send message", hint: "Say something", placeholder: "Tell the client the artist performs across all seven emirates.", group: "Send", color: "--chart-1" },
+  { kind: "wa_artist", label: "Send WhatsApp to artist", hint: "Message the artist at this step", placeholder: "New chat update from {client_name}: {event_type} on {event_date}. Please check the chat.", group: "Send", color: "--chart-4" },
+  { kind: "wa_client", label: "Send WhatsApp to client", hint: "Message the client at this step", placeholder: "Hi {client_name}, we received your request for {artist_name}. We will keep you updated.", group: "Send", color: "--chart-4" },
   { kind: "question", label: "Ask question", hint: "Collect a detail", placeholder: "Ask for the event date and start/end time.", group: "Ask", color: "--chart-2" },
   { kind: "buttons", label: "Buttons", hint: "Quick-reply choices", placeholder: "Ask what type of event it is.", group: "Ask", color: "--chart-2" },
   { kind: "form", label: "Form", hint: "Several fields at once", placeholder: "Please fill in the following details", group: "Ask", color: "--chart-2" },
@@ -47,6 +49,8 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "whatsapp", label: "Send to WhatsApp", hint: "Artist approval → invoice", placeholder: "Send the agreed booking to the artist for approval. After approval, send the invoice to the client chat.", group: "Actions", color: "--chart-2" },
 ];
 export const FLOW_GROUPS: FlowGroup[] = ["Trigger", "Send", "Ask", "Logic", "Actions"];
+/** Steps that send a saved WhatsApp message and need no answer in the chat. */
+export const isNotice = (k: string) => k === "wa_artist" || k === "wa_client";
 export const kindColor = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.color ?? "--primary";
 
 /** AI replies may end with [BUTTONS: A | B]; the chat shows them as tappable quick replies. */
@@ -94,13 +98,13 @@ export const DEFAULT_FLOW: { nodes: FlowNode[]; edges: FlowEdge[] } = {
   nodes: [
     n("start", "start", 0, "Greet the client warmly and introduce yourself as the AI booking assistant."),
     { id: "q1", type: "buttons", position: { x: 250, y: 120 }, data: { text: "Ask what type of event it is, then the date and start/end time.", buttons: ["Wedding", "Corporate", "Private party"] } },
-    n("q2", "question", 240, "Ask the venue area in the UAE and number of guests."),
-    n("cal", "calendar", 360, "Check the date and hours against the artist's live Google Calendar."),
-    n("busy", "handover", 500, "Say the artist is not available that date and suggest another date, or hand over.", 0),
-    n("pkg", "package", 500, "Recommend the best-fitting package and quote its price.", 400),
-    n("budget", "condition", 620, "Is the client happy with the price?", 400),
-    n("neg", "negotiate", 760, "Offer a discount within the allowed limit.", 200),
-    n("book", "booking", 760, "Confirm the details and send them to the artist for approval.", 600),
+    n("q2", "question", 320, "Ask the venue area in the UAE and number of guests."),
+    n("cal", "calendar", 440, "Check the date and hours against the artist's live Google Calendar."),
+    n("busy", "handover", 580, "Say the artist is not available that date and suggest another date, or hand over.", 0),
+    n("pkg", "package", 580, "Recommend the best-fitting package and quote its price.", 400),
+    n("budget", "condition", 700, "Is the client happy with the price?", 400),
+    n("neg", "negotiate", 840, "Offer a discount within the allowed limit.", 200),
+    n("book", "booking", 840, "Confirm the details and send them to the artist for approval.", 600),
   ],
   edges: [
     { id: "e1", source: "start", target: "q1" }, { id: "e2", source: "q1", target: "q2" }, { id: "e3", source: "q2", target: "cal" },
@@ -192,12 +196,13 @@ export function flowToPrompt(nodes: FlowNode[], edges: FlowEdge[]): string {
     const extra = [
       x.type === "ratecard" && "request artist invoice approval after client schedule consent; do not require client price agreement before the artist supplies the invoice; never invent or charge prices",
       ["invoice", "contract", "payment"].includes(x.type) && "wait for verified artist invoice submission; client accepts contract and pays DP 20% through the booking link; never treat client payment claims as settlement; server controls invoice, payment and calendar actions",
+      isNotice(x.type) && `call send_whatsapp with nodeId ${JSON.stringify(x.id)} when the conversation reaches this step, then continue to the next step in the same reply; the server sends the saved message; never show or repeat it, never ask for a phone number for it and never claim delivery`,
       x.type === "calendar" && "call check_calendar for the current requested date and hours; only verified available means yes and verified busy means no; unknown means continue collecting details and request artist confirmation through the flow, never assume free; ignore manual blocked-date instructions",
       x.type === "whatsapp" && "immediately emit BOOKING_READY with collected event details when the client selects the choice leading here (e.g. Book Now); this requests artist review, not client price consent, so do not add a starting-rate confirmation question; the server sends the approval request; STOP and wait for verified artist approval; only then the server sends the invoice; never accept a client's claim of artist approval; never reveal the destination number or claim delivery before verification",
       x.data.urlButtons?.length && `share these links: ${x.data.urlButtons.map((u) => `${u.label}: ${u.url}`).join(", ")}`,
       x.data.saveAs && `remember the client's answer as {${x.data.saveAs}}`,
     ].filter(Boolean).join("; ");
-    const text = x.type === "knowledge" ? "Consult the AI Knowledge references silently; do not send their contents as a chat message." : x.type === "calendar" ? "Check the requested schedule using live Google Calendar." : x.data.text.trim();
+    const text = isNotice(x.type) ? "Silent WhatsApp notification." : x.type === "knowledge" ? "Consult the AI Knowledge references silently; do not send their contents as a chat message." : x.type === "calendar" ? "Check the requested schedule using live Google Calendar." : x.data.text.trim();
     return `${num.get(x.id)}. [${kindLabel(x.type)}] ${text}${extra ? ` (${extra})` : ""}${next ? ` (${next})` : ""}`;
   }).join("\n");
 }

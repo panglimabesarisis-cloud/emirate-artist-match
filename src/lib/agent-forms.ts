@@ -1,4 +1,5 @@
 import { extractButtons, extractForm, interactiveFields, type FlowNode, type FlowEdge, type FormField } from "./ai-flow";
+import { skipNotices } from "./flow-whatsapp";
 
 type Message = { sender: string; body: string };
 const normal = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -75,7 +76,7 @@ export function nextSavedForm(nodes: FlowNode[], edges: FlowEdge[], history: Mes
   if (current.type === "buttons" && index < 0) return undefined;
   const outs = edges.filter(edge => edge.source === current.id && (current.type !== "buttons" || edge.sourceHandle === `b${index}` || !edge.sourceHandle));
   if (outs.length !== 1) return undefined;
-  const next = nodes.find(node => node.id === outs[0]?.target);
+  const next = skipNotices(nodes, edges, outs[0]?.target);
   if (next?.type === "calendar") {
     const timingForms = reachableForms([next, ...nodes.filter(node => node.id !== next.id && node.type !== "start")], edges.filter(edge => edge.target !== next.id)).filter(node => node.data.fields?.some(field => field.saveAs === "start_time") && node.data.fields.some(field => field.saveAs === "end_time"));
     const hasTiming = history.some(message => message.sender === "client" && timingForms.some(node => node.data.fields?.filter(field => field.saveAs === "start_time" || field.saveAs === "end_time").every(field => message.body.split("\n").some(line => normal(line.split(":")[0] ?? "") === normal(field.label) && Boolean(line.slice(line.indexOf(":") + 1).trim())))));

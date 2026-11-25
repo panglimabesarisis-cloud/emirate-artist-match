@@ -7,6 +7,7 @@ import { decodeInvoice } from "./invoice";
 import { agentRates, negotiationFloor, sellingPoints } from "./agent-pricing";
 import { clientTravelDistance, travelPrompt } from "./travel-rules";
 import { approvalPriceRule, selectedWhatsAppStep } from "./agent-approval";
+import { capturedValues, decisionNotices, fillNotice, noticeRequest, passedNotices, reachableNotices } from "./flow-whatsapp";
 import { GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
 import { aiResponse } from "./ai-provider.server";
 import { checkGoogleAvailability } from "./calendar-availability.server";
@@ -14,7 +15,7 @@ import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown, type BookingDraft } from "./booking-rules";
-import { notifyBooking, notifyConversation, artistContact, siteOrigin } from "./notify.server";
+import { notifyBooking, notifyConversation, notifyFlowSteps, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
 import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
@@ -81,6 +82,24 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const flowSteps = flow ? flowToPrompt(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : flowToPrompt(DEFAULT_FLOW.nodes, DEFAULT_FLOW.edges);
   const action = flow ? approvalAction(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : null;
   const selectedApproval = flow ? selectedWhatsAppStep(flow.nodes as FlowNode[], flow.edges as FlowEdge[], history ?? []) : null;
+  const aiCount = (history ?? []).filter((m) => m.sender === "ai").length;
+  // WhatsApp steps the conversation has reached. The artist's own test chat never messages anyone.
+  const notices = flow && convo.entry_source !== "test" ? reachableNotices(flow.nodes as FlowNode[], flow.edges as FlowEdge[]) : [];
+  const dueNotices = new Map<string, Record<string, string>>();
+  const queueNotice = (node: FlowNode, values: Record<string, string> = {}) => dueNotices.set(node.id, { ...dueNotices.get(node.id), ...values });
+  if (notices.length && flow) {
+    for (const node of passedNotices(flow.nodes as FlowNode[], flow.edges as FlowEdge[], history ?? [], aiCount === 0 && !artistDecisionBookingId)) queueNotice(node);
+  }
+  const flushNotices = async () => {
+    if (!dueNotices.size || !artist) return;
+    const known = { client_name: quote?.name ?? convo.client_name, artist_name: artist.stage_name, event_type: quote?.event_types?.name, event_date: quote?.event_date,
+      start_time: quote?.start_time?.slice(0, 5), end_time: quote?.end_time?.slice(0, 5), guest_count: quote?.guests, budget: quote?.budget, venue_area: quote?.areas?.name };
+    const read = capturedValues(flow?.nodes as FlowNode[] ?? [], history ?? [], known);
+    const due = notices.filter(node => dueNotices.has(node.id)).map(node => ({ nodeId: node.id, audience: node.type === "wa_client" ? "client" as const : "artist" as const,
+      text: fillNotice(node.data.text, { ...dueNotices.get(node.id), ...read }) }));
+    dueNotices.clear();
+    await notifyFlowSteps(convo, artist.stage_name, due);
+  };
 
   let decisionInstruction = "";
   {
@@ -92,6 +111,9 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     if (verified && flow) {
     const decision = verifiedArtistDecision(verified);
     const branch = decision ? artistDecisionBranch(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision) : null;
+    if (decision && artistDecisionBookingId && notices.length) {
+      for (const node of decisionNotices(flow.nodes as FlowNode[], flow.edges as FlowEdge[], decision)) queueNotice(node);
+    }
     if (decision && branch) decisionInstruction = `VERIFIED ARTIST RESPONSE: ${decision.toUpperCase()} for ${verified.package_title} on ${verified.event_date}. ${decision === "no" ? `Decline reason: ${verified.cancel_reason}. No invoice or payment is allowed for this cancelled booking.` : "The artist approved the invoice; payment is not confirmed."} ${artistDecisionBookingId ? "Resume now" : "Continue from the conversation's progress"} on the WhatsApp ${decision.toUpperCase()} branch, starting with this saved step: ${JSON.stringify({ type: branch.type, instructions: branch.data.text, fields: branch.data.fields, buttons: branch.data.buttons })}. Do not restart the greeting, request approval again for this booking, or follow the opposite branch. Follow its outgoing steps. All pricing, invoice and payment safety rules still apply.`;
     }
   }
@@ -105,12 +127,12 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
 
   const confirm = quote ? formatBookingConfirm({ name: quote.name, artistName: artist.stage_name, eventDate: quote.event_date, venue: quote.areas?.name ?? null,
     startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;
-  const aiCount = (history ?? []).filter((m) => m.sender === "ai").length;
   // First reply is a fixed confirmation of the booking details; no AI call needed.
   if (confirm && aiCount === 0 && !artistDecisionBookingId && !selectedFlow.triggered) {
     const firstClientMessage = (history ?? []).find(message => message.sender === "client")?.body ?? "";
     const summary = `Hi ${quote?.name ?? ""}, thank you for contacting ${artist.stage_name}. I have received your event details.\n${quote?.event_types?.name ? `Event: ${quote.event_types.name}\n` : ""}${confirm.split("\n---\n")[1] ?? ""}\n${firstClientMessage.includes("Packages:") ? firstClientMessage.slice(firstClientMessage.indexOf("Packages:"), firstClientMessage.indexOf("\n---", firstClientMessage.indexOf("Packages:")) > 0 ? firstClientMessage.indexOf("\n---", firstClientMessage.indexOf("Packages:")) : undefined) : ""}\nYour budget is not a confirmed price. Availability and the final offer require verification and artist approval. Would you like to continue with these details, or change anything?\n[BUTTONS: Continue with these details | Change event details]`;
     await addMessage(conversationId, "ai", maskContacts(summary));
+    await flushNotices();
     return;
   }
   const MODEL = artistAgentModel(settings?.model, { text: decodeChatMessage((history ?? []).slice().reverse().find(m => m.sender === "client")?.body ?? "").text, privateAgent: false, bookingInProgress: !!existingBooking || !!artistDecisionBookingId });
@@ -161,7 +183,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     let requestedButtonsId: string | undefined;
     const tools = [{ type: "function" as const, name: "check_calendar", description: "Check the artist's live Google Calendar. Use YYYY-MM-DD and HH:mm UAE times, null times for a preliminary whole-day check. No manual blocked dates.", strict: true, parameters: { type: "object", properties: { date: { type: "string" }, startTime: { type: ["string", "null"] }, endTime: { type: ["string", "null"] } }, required: ["date", "startTime", "endTime"], additionalProperties: false } },
       ...(forms.length ? [{ type: "function" as const, name: "show_form", description: "Display the current saved Form step as interactive inputs, never as a question list. Use the saved nodeId and wait for submission.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: forms.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
-      ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
+      ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : []),
+      ...(notices.length ? [{ type: "function" as const, name: "send_whatsapp", description: "Send the saved WhatsApp notification of a flow step when the conversation reaches it. The server writes the message; pass only values the client really gave for its {variables}.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: notices.map(node => node.id) }, values: { type: "array", items: { type: "object", properties: { name: { type: "string" }, value: { type: "string" } }, required: ["name", "value"], additionalProperties: false } } }, required: ["nodeId", "values"], additionalProperties: false } }] : [])];
     assertAgentTaskContext(input, instructions, tools);
     taskId = (await reserveAgentTask(convo.artist_id, conversationId, MODEL, input, instructions, 600)).taskId;
     let res = await aiResponse({ model: MODEL, reasoning: { effort: "low" }, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
@@ -172,6 +195,13 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       for (const call of calls) {
         input.push({ type: "function_call", name: call.name, call_id: call.call_id, arguments: call.arguments });
         let output: unknown = { status: "unknown", reason: "Invalid calendar request" };
+        // Silent, so it is accepted even after a card is displayed.
+        if (call.name === "send_whatsapp") {
+          const request = noticeRequest(call.arguments, notices);
+          if (request) queueNotice(request.node, request.values);
+          input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(request ? { queued: true, instruction: "Continue with the next step. Do not mention this message or claim delivery." } : { queued: false }) });
+          continue;
+        }
         if (requestedFormId || requestedButtonsId) {
           input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify({ paused: true, instruction: "An interactive card is already displayed. Wait for the client; do not advance or run actions." }) });
           continue;
@@ -211,6 +241,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     text = requestedButtonsId ? ensureAgentButtons(text.trim(), buttons, requestedButtonsId) : ensureAgentButtons(ensureAgentForm(text.trim(), forms, history ?? [], requestedFormId), buttons);
     await settleAgentTask(taskId, usage);
     taskId = undefined;
+    await flushNotices();
     const ex = extractDraft(text);
     if (ex.draft && !artistApprovalDraft(ex.draft.date, calendarCheck)) {
       await handover("The requested schedule could not be verified as available in Google Calendar. The artist will confirm it personally before a booking or invoice is sent.");
@@ -236,6 +267,8 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       catch { console.error("AI task reservation awaits review"); }
     }
     console.error("AI agent failed", e instanceof GatewayError ? { code: e.code, ids: e.ids } : e);
+    // The client already took the step, whether or not the reply worked.
+    await flushNotices();
     if (e instanceof AgentPricingUnavailableError) {
       // Configuration failure is not an artist takeover or consent to one.
       // Preserve AI mode so a later message can proceed after rates are configured.

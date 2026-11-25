@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- AI flow WhatsApp steps (`wa_artist`, `wa_client`) are silent: the server writes the saved message (src/lib/flow-whatsapp.ts), fires on saved form/button/start/artist-decision edges or the `send_whatsapp` tool, sends once per chat, step and number through notify.server.ts, caps client numbers per day, and never sends from `test` chats. The AI never writes the message or chooses a number.
 - Model calls go through `aiResponse` (src/lib/ai-provider.server.ts): Lovable's gateway first, then Google Gemini with the admin-entered `google_api_key` (admin_secrets) only when the gateway refuses before doing work. The owner chose this fallback over the gateway-only default; artists keep the selected model's credit rate, and the key never reaches client chat code.
 - Migrations may be hand-written under `drizzle/migrations/` when Lovable credits are unavailable: add the next numbered file, apply it in the Supabase SQL editor, update `src/integrations/supabase/types.ts` to match, and ask Lovable to re-sync the schema once credits return. `drizzle/schema.ts` stays untouched.
 - Custom AI Flow variables use the shared selector and are derived from saved node/field saveAs names; this preserves existing names and carries custom variables through templates and reloads without a separate catalog.

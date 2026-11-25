@@ -1,5 +1,6 @@
 import { extractButtons, type FlowEdge, type FlowNode } from './ai-flow';
 import { reachableButtons } from './agent-buttons';
+import { skipNotices } from './flow-whatsapp';
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 
@@ -19,7 +20,8 @@ export function selectedWhatsAppStep(nodes: FlowNode[], edges: FlowEdge[], histo
   if (index < 0) return null;
   const edge = edges.find(candidate => candidate.source === source.id && candidate.sourceHandle === `b${index}`)
     ?? edges.find(candidate => candidate.source === source.id && !candidate.sourceHandle);
-  return nodes.find(node => node.id === edge?.target && node.type === 'whatsapp') ?? null;
+  const next = skipNotices(nodes, edges, edge?.target);
+  return next?.type === 'whatsapp' ? next : null;
 }
 
 /** Requesting artist review is not consenting to an estimate or authorizing payment. */

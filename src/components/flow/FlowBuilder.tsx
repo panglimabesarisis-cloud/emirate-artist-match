@@ -7,8 +7,9 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { cardTitle, FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
-import { collectFlowVariables } from "@/lib/flow-variables";
+import { cardTitle, FIELD_TYPES, FORM_FIELD_PRESETS, type FormField, type FieldType, type UrlButton, DEFAULT_FLOW, FLOW_GROUPS, FLOW_KINDS, isBranching, isNotice, kindColor, kindLabel, type FlowData, type FlowEdge, type FlowKind, type FlowNode } from "@/lib/ai-flow";
+import { capturedVariables, collectFlowVariables } from "@/lib/flow-variables";
+import { tidyLayout } from "@/lib/flow-layout";
 import { FlowVariableSelect } from "./FlowVariableSelect";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { approvalAction, whatsappEdges } from "@/lib/ai-flow";
 import { useI18n } from "@/lib/i18n";
-import { CalendarDays, Eye, Settings2, Trash2 } from "lucide-react";
+import { CalendarDays, Eye, LayoutGrid, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
 import { FlowTemplateLibrary } from "./FlowTemplateLibrary";
 import type { TemplateFlow } from "@/lib/flow-templates";
@@ -43,6 +44,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
         <span className="truncate" title={cardTitle({ type: k, data })}>{cardTitle({ type: k, data })}</span>
       </div>
       <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || t("Click to edit…")}</div>
+      {isNotice(k) && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{k === "wa_client" ? t("To the client's WhatsApp") : t("To the artist's WhatsApp")}</div>}
       {k === "knowledge" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{data.knowledgeQA?.length ?? 0} {t("Q&A")}</div>}
       {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || t("Artist's WhatsApp")}</div><div>{t("Approval → Invoice")}</div></div>}
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
@@ -146,7 +148,9 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     const def = FLOW_KINDS.find((k) => k.kind === kind);
     if (!def) return;
     const id = crypto.randomUUID();
-    const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 200, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 120 });
+    const position = pos ?? rf.screenToFlowPosition({ x: (wrap.current?.getBoundingClientRect().left ?? 0) + 40, y: (wrap.current?.getBoundingClientRect().top ?? 0) + 40 });
+    // A clicked block goes to the first free spot, never on top of another card.
+    for (let tries = 0; !pos && tries < 40 && nodes.some(x => Math.abs(x.position.x - position.x) < 250 && position.y < x.position.y + (x.measured?.height ?? 120) + 20 && x.position.y < position.y + 140); tries++) position.y += 80;
     setNodes((ns) => [...ns, { id, type: kind, position, data: datePicker ? { text: "Please select your preferred event date", fields: [{ label: "Event date", type: "date", saveAs: "event_date" }] } : kind === "buttons" ? { text: def.placeholder, buttons: ["Option 1", "Option 2"] } : kind === "form" ? { text: def.placeholder, fields: [{ label: "Name", type: "text", saveAs: "client_name" }, { label: "Email", type: "email" }, { label: "Phone", type: "phone" }, ...FORM_FIELD_PRESETS.slice(0, 4).map((f) => ({ ...f }))] } : { text: def.placeholder } }]);
     setSel(id);
   };
@@ -179,8 +183,15 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     }),
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })),
   });
+  const tidy = () => {
+    const placed = tidyLayout(nodes.map(x => ({ id: x.id, position: x.position, ...(x.measured?.height ? { height: x.measured.height } : {}) })), edges);
+    setNodes((ns) => ns.map((x) => ({ ...x, position: placed.get(x.id) ?? x.position })));
+    // After the new positions are drawn.
+    setTimeout(() => void rf.fitView({ maxZoom: 1, padding: "48px" }), 60);
+  };
   const blocks = FLOW_KINDS.filter((k) => (tab === "All" || k.group === tab) && k.label.toLowerCase().includes(q.toLowerCase()));
-  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge"].includes(selected.type as string);
+  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge", "wa_artist", "wa_client"].includes(selected.type as string);
+  const captured = useMemo(() => capturedVariables(nodes as FlowNode[]), [nodes]);
 
   return (
     <div className="studio-flow-canvas">
@@ -189,6 +200,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
         <Button size="sm" variant="outline" onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Test bot")}</Button>
         {!readOnly && (
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={tidy}><LayoutGrid className="size-4" />{t("Tidy layout")}</Button>
             <Button size="sm" variant="outline" onClick={() => { const d = toRF(DEFAULT_FLOW); setNodes(d.nodes); setEdges(d.edges); setSel(null); }}>{t("Reset")}</Button>
             <Button size="sm" onClick={save} disabled={saving}>{saving ? t("Saving…") : t("Save flow")}</Button>
           </div>
@@ -218,7 +230,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
           onDrop={(e) => { e.preventDefault(); const k = e.dataTransfer.getData("application/flow") as FlowKind; if (k) add(k, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
           {!readOnly && selectedEdge && <Button variant="destructive" size="icon" className="absolute end-3 top-3 z-10" aria-label={t("Delete connection")} title={t("Delete connection")} onClick={deleteConnection}><Trash2 className="size-4" /></Button>}
           <ReactFlow nodes={nodes} edges={edges} defaultEdgeOptions={{ interactionWidth: 28 }} nodeTypes={nodeTypes} {...(readOnly ? {} : { onNodesChange, onEdgesChange, onConnect })} onNodeClick={(_, n) => { setSel(n.id); setEdgeId(null); }} onEdgeClick={(_, edge) => { setEdgeId(edge.id); setSel(null); setPanel("edit"); }} onPaneClick={() => { setSel(null); setEdgeId(null); }}
-            nodesDraggable={!readOnly} nodesConnectable={!readOnly} deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]} fitView fitViewOptions={{ maxZoom: 1, padding: 0.2 }}>
+            nodesDraggable={!readOnly} nodesConnectable={!readOnly} deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]} minZoom={0.2} fitView fitViewOptions={{ maxZoom: 1, padding: "48px" }}>
             <Background gap={16} size={1.2} /><Controls position="bottom-center" orientation="horizontal" /><MiniMap pannable zoomable style={{ width: 140, height: 90 }} className="!hidden md:!block" />
           </ReactFlow>
         </div>
@@ -249,9 +261,17 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 {!readOnly && <Button size="sm" variant="outline" className="w-full" onClick={() => patch(selected.id, d => ({ ...d, knowledgeQA: [...(d.knowledgeQA ?? []), { question: "", answer: "" }] }))}>{t("Add question & answer")}</Button>}
               </div>
             </div> : <div className="space-y-1.5">
-              <Label className="text-xs">{t("Bot asks / does this")}</Label>
+              <Label className="text-xs">{isNotice(selected.type as string) ? t("WhatsApp message") : t("Bot asks / does this")}</Label>
               <RichText variables={variables} disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
             </div>}
+            {isNotice(selected.type as string) && <p className="text-[11px] text-muted-foreground">{selected.type === "wa_client" ? t("Sent to the client's number from the booking form or chat.") : t("Sent to the artist's saved WhatsApp and manager number.")} {t("Sent once per chat when the conversation reaches this block. Phone numbers, emails and links are hidden.")}</p>}
+            {canSave && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("Save response")}</Label>
+                <FlowVariableSelect key={selected.id} button captured={captured} variables={variables} disabled={!!readOnly} value={selected.data.saveAs} onChange={v => patch(selected.id, d => ({ ...d, saveAs: v }))} />
+                <p className="text-[11px] text-muted-foreground">{t("Use it later in any step as")} {"{"}{t("variable")}{"}"}{t(", e.g. \"Hi")} {t("{client_name}")}".</p>
+              </div>
+            )}
             {selected.type === "form" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">{t("Fields included in the form")}</Label>
@@ -324,13 +344,6 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
                 <p className="text-[11px] text-muted-foreground">{t("Drag from the dot beside each branch button to the step it leads to.")}</p>
               </div>
             )}
-            {canSave && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t("Save response")}</Label>
-                <FlowVariableSelect key={selected.id} variables={variables} disabled={!!readOnly} value={selected.data.saveAs} onChange={v => patch(selected.id, d => ({ ...d, saveAs: v }))} />
-                <p className="text-[11px] text-muted-foreground">{t("Use it later in any step as")} {"{"}{t("variable")}{"}"}{t(", e.g. \"Hi")} {t("{client_name}")}".</p>
-              </div>
-            )}
             {selected.type === "calendar" && <div className="text-xs text-muted-foreground">{t("Google Calendar")}</div>}
             {!readOnly && <Button variant="outline" size="sm" className="w-full" onClick={() => { setNodes((ns) => ns.filter((x) => x.id !== selected.id)); setEdges((es) => es.filter((e) => e.source !== selected.id && e.target !== selected.id)); setSel(null); }}>{t("Delete block")}</Button>}
           </>) : <p className="text-xs text-muted-foreground">{t("Click a block to edit it. Connect blocks by dragging from the dot at the bottom of one to the top of another.")}</p>}
@@ -368,6 +381,7 @@ export function FlowBuilder({ artistId, canEdit = true, libraryOnly = false }: {
 
   const persist = async (f: { nodes: FlowNode[]; edges: FlowEdge[] }, enabled = true) => {
     if (f.nodes.filter(n => n.type === "whatsapp").length > 1) { toast.error(t("Use one WhatsApp approval block per flow")); return; }
+    if (f.nodes.some(n => isNotice(n.type) && !n.data.text.trim())) { toast.error(t("Write the message of every WhatsApp block")); return; }
     try {
       for (const node of f.nodes.filter(n => n.type === "whatsapp")) approvalAction([node], []);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Invalid WhatsApp number"); return; }
