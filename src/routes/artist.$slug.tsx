@@ -176,7 +176,7 @@ type Sent = { name: string; conversationId: string; key: string };
 
 function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, packages, categories, specialties }: {
   artistId: string; artistName: string; blocked: string[]; busy: BusySlot[]; similar: Similar[];
-  packages: { id: string; job_kind?: string | null }[];
+  packages: { job_kind?: string | null }[];
   categories: { id?: string; slug: string; name: string }[];
   specialties: { id?: string; slug: string; name: string }[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
@@ -263,7 +263,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null, phoneProof: whatsapp.proof,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null, packageIds: [],
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null,
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });

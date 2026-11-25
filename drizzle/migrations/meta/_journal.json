@@ -680,6 +680,13 @@
       "when": 1795572420202,
       "tag": "0096_private_artist_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1795572480202,
+      "tag": "0097_security_findings",
+      "breakpoints": true
     }
   ]
 }

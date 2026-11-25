@@ -162,7 +162,7 @@ export function Inbox({ artistId }: { artistId: string }) {
     },
     refetchInterval: 5000,
   });
-  const { data: attachments } = useQuery({ queryKey: ["inbox-files", open, msgs?.length], enabled: !!open, queryFn: () => open ? files$({ data: { id: open } }) : Promise.resolve([]), refetchInterval: 300000 });
+  const { data: attachments } = useQuery({ queryKey: ["inbox-files", open, msgs?.length], enabled: !!open, queryFn: () => open ? files$({ data: { id: open } }) : Promise.resolve([]), refetchInterval: 60_000 });
   useEffect(() => { msgsEnd.current?.scrollIntoView({ block: "end" }); }, [open, msgs?.length]);
 
   const current = rows.find((c) => c.id === open);

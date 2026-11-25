@@ -17,7 +17,7 @@ const str = (v: unknown, max: number, required = false) => {
 export type QuoteInput = {
   artistId: string; clientUserId: string | null; name: string; email: string; phone: string | null;
   eventTypeId: string | null; eventDate: string | null; areaId: string | null; guests: number | null; budget: number | null; message: string | null;
-  startTime?: string | null; endTime?: string | null; performMinutes?: number | null; packageIds?: string[];
+  startTime?: string | null; endTime?: string | null; performMinutes?: number | null;
   /** Shows the WhatsApp number was verified with a one-time code. */
   phoneProof?: string | null;
 };
@@ -32,7 +32,6 @@ function validateQuote(i: QuoteInput): QuoteInput {
     budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
     startTime: typeof i.startTime === "string" && /^\d{2}:\d{2}$/.test(i.startTime) ? i.startTime : null,
     endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
-    packageIds: Array.isArray(i.packageIds) ? i.packageIds.slice(0, 10).map(uuid) : [],
     performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
   };
 }
@@ -52,14 +51,11 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
   if (error || !q) throw new Error("Could not save request");
   const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_form", quote_request_id: q.id, artist_id: data.artistId, client_user_id: clientUserId }).select("id, access_key").single();
   if (!c) throw new Error("Could not open conversation");
-  const { data: pk } = data.packageIds?.length
-    ? await supabaseAdmin.from("rate_cards").select("title, price").eq("artist_id", data.artistId).in("id", data.packageIds)
-    : { data: [] };
   const { data: area } = data.areaId ? await supabaseAdmin.from("areas").select("name").eq("id", data.areaId).maybeSingle() : { data: null };
   const summary = formatBookingMessage({
     venue: area?.name ?? null, name: data.name, artistName: artist.stage_name, eventDate: data.eventDate, startTime: data.startTime ?? null, endTime: data.endTime ?? null,
     performMinutes: data.performMinutes ?? null, guests: data.guests, budget: data.budget,
-    packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
+    packages: [], note: data.message,
   });
   await addMessage(c.id, "client", maskContacts(summary));
   const { notifyNewInquiry, notifyClientChatLink } = await import("./notify.server");

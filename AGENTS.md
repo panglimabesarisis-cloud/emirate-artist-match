@@ -30,6 +30,8 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- A Stripe customer is reached only through a verified user id; link checkouts (booking, chat invoice) pass `customer_email` and never a saved customer.
+- SQL rules read plans with `artist_plan_internal`; `effective_artist_plan` is the client call and answers only the artist, team, admin and server. `has_role` answers only about the caller.
 - Admin Settings General, Menu and Invoice are read through `useSiteSettings` / `parseSiteSettings` (src/lib/site-settings.ts); `/search` and `/for-artists` menu entries open the built-in drop-downs, and new invoice numbers take the saved prefix (`invoice_prefix()`, `newInvoiceNumber`).
 - Calendar event detail comes from `team_booking_detail` (no client contacts; chat lines only with Inbox access). Rate cards carry per-item `turnaround` and `rush_items`; the AI and booking offers take job type, deposit and rush costs from them. `markWorkReady` asks once for the balance before work is delivered.
 - Profile limits (categories, specialities, portfolio, clients) come from `plan_tiers` through `usePlanLimits`, never constants; the database enforces the same numbers (0091). `plan_tiers` is intentionally public read-only; `client_commission_tiers` is readable only by signed-in users, without `updated_by`.

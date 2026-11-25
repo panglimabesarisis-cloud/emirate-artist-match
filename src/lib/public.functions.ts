@@ -208,8 +208,8 @@ export const getArtist = createServerFn({ method: "GET" })
     const sb = publicClient();
     const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }, { data: portfolioRows }, { data: clientRows }] = await Promise.all([
       sb.from("artists").select("bio, travel_radius_km, photo_path, skills, body, category_ids, specialty_ids").eq("id", card.id).single(),
-      // Rates are private to the chat and the invoice: only what the booking form needs leaves the server, never a price.
-      import("@/integrations/supabase/client.server").then(({ supabaseAdmin: admin }) => admin.from("rate_cards").select("id, title, job_kind").eq("artist_id", card.id).order("sort")),
+      // Rate cards are private to the artist's team: the booking form only needs to know what kind of job they sell.
+      import("@/integrations/supabase/client.server").then(({ supabaseAdmin: admin }) => admin.from("rate_cards").select("job_kind").eq("artist_id", card.id)),
       sb
         .from("reviews")
         .select("id, client_name, event_label, rating, rating_performance, rating_punctuality, rating_communication, body, reply, created_at")

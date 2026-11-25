@@ -39,7 +39,7 @@ export function ArtistChatMonitor({ id }: { id: string }) {
   const log = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const query = useQuery({ queryKey: ["artist-chat-monitor", id], queryFn: () => read$({ data: { id } }), refetchInterval: 4000, retry: false });
-  const files = useQuery({ queryKey: ["artist-monitor-files", id, query.data?.messages.length], queryFn: () => files$({ data: { id } }), enabled: !!query.data, staleTime: 240000 });
+  const files = useQuery({ queryKey: ["artist-monitor-files", id, query.data?.messages.length], queryFn: () => files$({ data: { id } }), enabled: !!query.data, staleTime: 60_000, refetchInterval: 60_000 });
   const artistId = query.data?.chat.artist_id;
   const chats = useQuery({
     queryKey: ["artist-chat-list", artistId], enabled: !!artistId, refetchInterval: 30000,

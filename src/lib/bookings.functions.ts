@@ -150,9 +150,8 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     }
     const { error } = await db.from("bookings").update({ contract_accepted_at: now, ...(data.phone?{client_phone:data.phone}:{}) }).eq("id", b.id).in("status", ["quoted","confirmed"]);
     if (error) throw new Error(error.message);
-    const { data: identity } = await db.from("bookings").select("client_user_id").eq("id", b.id).single();
     const { openOrder } = await import("./payments.server");
-    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: payment.dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { userId: identity?.client_user_id ?? undefined, email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
+    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: payment.dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
     } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 

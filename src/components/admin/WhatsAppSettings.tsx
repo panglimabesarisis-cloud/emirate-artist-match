@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import { Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,13 @@ export function WhatsAppSettings() {
   const settings = useQuery({ queryKey: ["whatsapp-settings"], queryFn: () => load() });
   const [provider, setProvider] = useState<WhatsAppProvider>("meta");
   const [token, setToken] = useState("");
-  const [phone, setPhone] = useState("");
+  // The test only ever goes to the signed-in admin's verified number.
+  const own = useQuery({ queryKey: ["admin-own-whatsapp"], queryFn: async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return null;
+    const { data } = await supabase.from("profiles").select("phone, phone_verified_at").eq("id", auth.user.id).maybeSingle();
+    return data?.phone_verified_at ? data.phone : null;
+  } });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
   useEffect(() => { if (settings.data) setProvider(settings.data.provider); }, [settings.data]);
@@ -39,7 +46,7 @@ export function WhatsAppSettings() {
   const sendTest = async () => {
     setBusy(true); setResult("");
     try {
-      const r = await test({ data: { phone } });
+      const r = await test({});
       setResult(r.status === "accepted" ? "Request accepted. Check the recipient's WhatsApp; delivery is not yet verified." : r.error ?? "Provider setup is incomplete.");
     } catch (error) { setResult(error instanceof Error ? error.message : "Unable to send test"); }
     finally { setBusy(false); }
@@ -61,9 +68,8 @@ export function WhatsAppSettings() {
     <Button onClick={saveSettings} disabled={busy || !dirty}><Save className="size-4" />Save settings</Button>
     <div className="space-y-3 border-t pt-5">
       <h3 className="font-medium">Test notification</h3>
-      <Label htmlFor="wa-test-phone">Recipient WhatsApp number</Label>
-      <Input id="wa-test-phone" type="tel" placeholder="+971501234567" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={busy} />
-      <Button variant="outline" onClick={sendTest} disabled={busy || dirty || !phone.trim()}><Send className="size-4" />Send test</Button>
+      <p className="text-sm text-muted-foreground">{own.data ? <>The test goes to your verified number <b dir="ltr" className="text-foreground">{own.data}</b>.</> : <>Verify your own WhatsApp number in <Link to="/account" className="text-gold underline">Account settings</Link> first. Receiving the code also tests the connection.</>}</p>
+      <Button variant="outline" onClick={sendTest} disabled={busy || dirty || !own.data}><Send className="size-4" />Send test to my number</Button>
       {result && <p role="status" className="text-sm break-words">{result}</p>}
     </div>
     <OtpRequirement />

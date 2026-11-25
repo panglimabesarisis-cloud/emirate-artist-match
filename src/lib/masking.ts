@@ -1,6 +1,7 @@
 // Hides contact details so clients and artists keep talking on the platform.
 const PATTERNS: RegExp[] = [
-  /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, // email
+  // Bounded like real addresses: open-ended repeats take minutes on a long crafted message.
+  /[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,24}/gi, // email
   /(?:\+|00)?\d[\d\s().-]{7,}\d/g, // phone numbers (8+ digits)
   /\b(?:https?:\/\/|www\.)\S+/gi, // links
   /@[a-z0-9_.]{3,}/gi, // social handles

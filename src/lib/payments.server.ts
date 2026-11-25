@@ -7,17 +7,16 @@ export async function resolveOrCreateCustomer(
   options: { email?: string | undefined; userId?: string | undefined },
 ): Promise<string> {
   if (options.userId && !/^[a-zA-Z0-9_-]+$/.test(options.userId)) throw new Error('Invalid userId');
+  // A customer holds saved cards and billing history, so only a verified account reaches its own one.
+  // An email address alone proves nothing: it never finds, reuses or reassigns a customer.
   if (options.userId) {
     const found = await stripe.customers.search({ query: `metadata['userId']:'${options.userId}'`, limit: 1 });
     const first = found.data[0];
     if (first) return first.id;
-  }
-  if (options.email) {
-    const existing = await stripe.customers.list({ email: options.email, limit: 1 });
-    const customer = existing.data[0];
-    if (customer) {
-      if (options.userId && customer.metadata?.['userId'] !== options.userId) await stripe.customers.update(customer.id, {metadata: {...customer.metadata, userId: options.userId}});
-      return customer.id;
+    // The search index lags new customers; the email narrows the list and the account id decides.
+    if (options.email) {
+      const own = (await stripe.customers.list({ email: options.email, limit: 20 })).data.find((c) => c.metadata?.['userId'] === options.userId);
+      if (own) return own.id;
     }
   }
   const created = await stripe.customers.create({...(options.email && {email:options.email}), ...(options.userId && {metadata:{userId:options.userId}})});
@@ -28,7 +27,8 @@ export async function openOrder(order: {artist_id:string; kind:'credits'|'deposi
   const processorAmount = testProcessorAmount(order.amount_minor);
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const stripe=createStripeClient('sandbox');
-  const customer=identity.userId||identity.email?await resolveOrCreateCustomer(stripe,identity):undefined;
+  // Payers on a booking or chat link are not signed in as anyone: they pay with their email only.
+  const customer=identity.userId?await resolveOrCreateCustomer(stripe,identity):undefined;
   const purchaseKey=[order.artist_id,order.kind,order.target_id??order.package_id??'registration',order.amount_minor,customer??'guest'].join(':');
   const {data:o,error}=await db.rpc('begin_test_purchase',{_order:{...order,processor_amount_minor:processorAmount,processor_currency:'idr'},_customer:customer??'',_key:purchaseKey});
   if(error||!o)throw new Error(error?.message??'Could not create payment');
@@ -41,7 +41,7 @@ export async function openOrder(order: {artist_id:string; kind:'credits'|'deposi
       await db.from('payment_orders').update({status:'expired'}).eq('id',o.id);
       throw new Error('Previous checkout expired. Try again.');
     }
-    const session=await stripe.checkout.sessions.create({mode:'payment',...hostedCheckoutSettings,...hostedReturnUrls(returnUrl,{orderId:o.id}),...(customer ? {customer} : {}),
+    const session=await stripe.checkout.sessions.create({mode:'payment',...hostedCheckoutSettings,...hostedReturnUrls(returnUrl,{orderId:o.id}),...(customer ? {customer} : identity.email ? {customer_email:identity.email} : {}),
       line_items:[{price_data:{currency:'idr',product_data:{name:description},unit_amount:Number(o.processor_amount_minor),tax_behavior:'inclusive'},quantity:1}],
       payment_intent_data:{description},metadata:{orderId:o.id,...(identity.userId?{userId:identity.userId}:{})}}, {idempotencyKey:o.id});
     const {error:saveError}=await db.from('payment_orders').update({stripe_session_id:session.id}).eq('id',o.id);

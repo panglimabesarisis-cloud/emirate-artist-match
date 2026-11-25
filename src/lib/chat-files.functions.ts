@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CHAT_BUCKET, decodeChatMessage, validateAttachment, attachmentInConversation } from "./chat-attachments";
 
+/** A team member who loses inbox access keeps a file link for this long at most; open inboxes renew it. */
+export const TEAM_FILE_SECONDS = 120;
+
 export const uploadChatFile = createServerFn({ method: "POST" })
   .inputValidator((input: FormData) => input)
   .handler(async ({ data }) => {
@@ -36,7 +39,7 @@ export const artistChatFiles = createServerFn({ method: "POST" })
     const { data: messages } = await context.supabase.from("messages").select("id, body").eq("conversation_id", data.id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     return Promise.all((messages ?? []).map(async message => ({ id: message.id, files: await Promise.all(decodeChatMessage(message.body).attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {
-      const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 3600);
+      const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, TEAM_FILE_SECONDS);
       return { ...file, ...(signed?.signedUrl ? { url: signed.signedUrl } : {}) };
     })) })));
   });

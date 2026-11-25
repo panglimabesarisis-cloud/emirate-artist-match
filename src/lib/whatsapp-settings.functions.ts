@@ -33,12 +33,14 @@ export const saveWhatsAppSettings = createServerFn({ method: "POST" })
 
 export const testWhatsAppSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ phone: z.string().max(32).transform(internationalPhone) }).parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     const { data: admin, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (error) throw new Error("Unable to verify admin access");
     requireWhatsAppAdmin(admin);
+    // The test goes to the admin's own verified number, so it can never contact someone who did not ask.
+    const { data: profile } = await context.supabase.from("profiles").select("phone, phone_verified_at").eq("id", context.userId).maybeSingle();
+    if (!profile?.phone || !profile.phone_verified_at) return { status: "failed" as const, error: "Verify your own WhatsApp number in Account settings first." };
     const { sendWhatsApp } = await import("./whatsapp-provider.server");
-    const result = await sendWhatsApp(data.phone, "Dealmaker WhatsApp test", "This is a test notification from Dealmaker admin settings.", "https://dealmakertalent.com");
+    const result = await sendWhatsApp(internationalPhone(profile.phone), "Dealmaker WhatsApp test", "This is a test notification from Dealmaker admin settings.", "https://dealmakertalent.com");
     return { status: result.status, error: result.error };
   });

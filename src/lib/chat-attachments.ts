@@ -6,7 +6,7 @@ export type ChatAttachment = { path: string; name: string; type: string; size: n
 export function validateAttachment(file: { name: string; type: string; size: number }) {
   if (!ATTACHMENT_TYPES.includes(file.type)) throw new Error("Only JPG, PNG, WebP, PDF, MP4 and MOV files are supported.");
   if (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > 50 * 1024 * 1024) throw new Error("Maximum file size is 50 MB.");
-  return { name: maskContacts(file.name).replace(/[\r\n]/g, " ").slice(0, 120), type: file.type, size: file.size };
+  return { name: maskContacts(String(file.name).slice(0, 300)).replace(/[\r\n]/g, " ").slice(0, 120), type: file.type, size: file.size };
 }
 export function attachmentInConversation(path: string, id: string) {
   return new RegExp(`^chat/${id}/[0-9a-f-]{36}\\.(jpg|png|webp|pdf|mp4|mov)$`, "i").test(path);
