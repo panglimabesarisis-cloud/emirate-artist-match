@@ -69,7 +69,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
         </div>
         <div className="studio-quick">
           <Button variant="outline" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b>{t(planName)}</b></Button>
-          <Button variant="outline" className={quick} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</Button>
+          <Button variant="outline" className={`${quick} studio-button-gold`} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</Button>
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
         </div>
       </section>

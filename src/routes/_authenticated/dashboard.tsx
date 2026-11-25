@@ -43,6 +43,7 @@ import { ProfileSide } from "@/components/dashboard/ProfileSide";
 import { TravelSettings } from "@/components/dashboard/TravelSettings";
 import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import { LogoutButton } from "@/components/shared/LogoutButton";
+import { usePendingSpecialties } from "@/hooks/use-pending-specialties";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -200,6 +201,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
       } as Record<string, number>;
     },
   });
+  usePendingSpecialties(artist, () => void refetch());
   const NAV_COUNT: Partial<Record<string, string>> = { inbox: "inbox", quotes: "quotes", inquiries: "inquiries", bookings: "bookings", invoices: "invoices", credits: "credits" };
   if (isLoading) return null;
   if (!artist) return <PublicLayout><div className="flex justify-end p-4"><LogoutButton /></div><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;

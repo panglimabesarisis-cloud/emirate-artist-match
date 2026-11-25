@@ -1,4 +1,6 @@
 # Public browse and artist presentation
+- Checkout shows one invoice sheet (ReceiptSheet) before payment and on the payment status page with a PAID stamp and PDF download; Continue then goes straight to the dashboard, and only guests on secret links return to their booking.
+- The registration invoice lists the chosen plan outside the total because only the deposit is charged at signup; specialties above the paid limit wait in user metadata until the plan is paid.
 - Every artist search bar offers name/talent/city text plus Talent and City selects defaulting to All; matching lives in src/lib/artist-search.ts and /all is a pseudo-category on the existing listing routes.
 - Join-as-talent calls to action are wrapped in HideForArtist, and every dashboard header uses the shared LogoutButton.
 - Browse Talent and For clients share ClientBookingGuide and the public concierge; AI Elements present chat while server-owned approved catalog records supply links, and the concierge has no private reads or action tools. Artist presentation remains scoped and preserves existing data handlers.

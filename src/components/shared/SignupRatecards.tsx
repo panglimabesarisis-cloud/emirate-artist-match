@@ -37,7 +37,7 @@ export function SignupRatecards({ packages, onChange, draftKey, onPending }: { p
       <h3 className="font-display text-2xl">{editing === null ? "Add ratecard" : "Edit ratecard"}</h3>
       <RatecardFields value={draft} onChange={setDraft} units={packages.flatMap(p => [p.unit_label, ...p.items.map(i => i.unit)])} />
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => { setDraft(emptyRate()); setEditing(null); setError(""); }}>Reset / clear</Button><Button type="button" className="bg-gradient-gold text-gold-foreground" onClick={save}><Check className="me-2 h-4 w-4" />Save ratecard</Button></div>
+      <div className="flex justify-end gap-3"><Button type="button" variant="outline" className="ratecard-reset" onClick={() => { setDraft(emptyRate()); setEditing(null); setError(""); }}>Reset / clear</Button><Button type="button" className="bg-gradient-gold text-gold-foreground" onClick={save}><Check className="me-2 h-4 w-4" />Save ratecard</Button></div>
     </section>}
     <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-sm"><thead className="border-y border-border text-muted-foreground"><tr>{["Job / service title", "Base price", "Unit & scope", "Actions"].map(label => <th key={label} className="p-3 text-start">{label}</th>)}</tr></thead><tbody>
       {packages.map((p, i) => {

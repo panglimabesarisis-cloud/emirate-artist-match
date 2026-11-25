@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { slugify } from "@/lib/format";
 import { specialtyLimit } from "@/lib/join-rules";
+import { readPending, splitSpecialties } from "@/lib/signup-specialties";
+import { AddableLocation } from "@/components/shared/AddableLocation";
 import { X } from "lucide-react";
 import { SceneBackground } from "@/components/shared/SceneBackground";
 import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
@@ -79,7 +81,7 @@ function JoinPage() {
         <ol className="reference-stepper">
           {STEPS.map((s, i) => (
             <li key={s} aria-current={i === shown ? "step" : undefined}>
-              <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold ${i < shown ? "bg-gold text-gold-foreground border-gold" : i === shown ? "border-gold text-gold" : "text-muted-foreground"}`}>
+              <div data-state={i < shown ? "done" : i === shown ? "current" : "todo"} className={`reference-step-number mx-auto flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold ${i === shown ? "border-gold text-gold" : "text-muted-foreground"}`}>
                 {i < shown ? <Check className="h-4 w-4" /> : i + 1}
               </div>
               <div className={`mt-2 hidden text-xs sm:block ${i === shown ? "font-medium" : "text-muted-foreground"}`}>{s}</div>
@@ -125,7 +127,7 @@ function PlanStep({ onPick }: { onPick: (p: string) => void }) {
           </div>
         ))}
       </div>
-      <div className="mt-6 flex justify-between"><Button variant="outline" disabled>Back</Button><Button className="reference-gold" disabled={!selected} onClick={() => { if (selected) onPick(selected); }}>Next</Button></div>
+      <div className="mt-6 flex justify-between"><Button variant="outline" className="join-back" disabled>Back</Button><Button className="reference-gold" disabled={!selected} onClick={() => { if (selected) onPick(selected); }}>Next</Button></div>
     </div>
   );
 }
@@ -159,7 +161,7 @@ function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () =>
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} /></div>
         <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
         <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>
-        <div className="flex justify-between gap-4"><Button type="button" variant="outline" onClick={onChangePlan}>Back</Button><Button type="submit" disabled={busy || !valid} className="bg-gradient-gold text-gold-foreground">{busy ? "Please wait…" : "Next · Create account"}</Button></div>
+        <div className="flex justify-between gap-4"><Button type="button" variant="outline" className="join-back" onClick={onChangePlan}>Back</Button><Button type="submit" disabled={busy || !valid} className="bg-gradient-gold text-gold-foreground">{busy ? "Please wait…" : "Next · Create account"}</Button></div>
       </form>
       <p className="mt-4 text-sm text-muted-foreground">Already registered? <Link to="/auth" search={{ redirect: "/join" }} className="underline">Sign in</Link></p>
     </div>
@@ -168,7 +170,10 @@ function AccountStep({ plan, onChangePlan }: { plan: string; onChangePlan: () =>
 
 function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: string; email: string; name: string }; plan: string; step: number; setStep: (n: number) => void; onChangePlan: () => void }) {
   const navigate = useNavigate();
-  const limit = specialtyLimit('free');
+  // The plan picked on the first screen decides how many specialties can be chosen.
+  const tier = useQuery({ queryKey: ["join-plan-limit", plan], queryFn: async () => (await supabase.from("plan_tiers").select("name,max_specialties").eq("code", plan).maybeSingle()).data }).data;
+  const limit = tier?.max_specialties ?? specialtyLimit(plan);
+  const queryClient = useQueryClient();
   const cat = useQuery({
     queryKey: ["join-catalog"],
     queryFn: async () => {
@@ -195,7 +200,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   useEffect(()=>{let alive=true;const restore=async()=>{
    try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);setBasePrice(d.basePrice??'');setPkgs(Array.isArray(d.pkgs)?d.pkgs.map(restoreRateDraft):[]);setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');setStep(Number.isInteger(d.step)?Math.min(4,Math.max(0,d.step)):0);}}
    catch{localStorage.removeItem(`join_draft:${user.id}`);}
-   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');setSpecs(a.specialty_ids??[]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(rateDraft));setStep((count??0)<5?1:4);}}}
+   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');const waitingFor=readPending((await supabase.auth.getUser()).data.user?.user_metadata?.['pending_specialties']);setSpecs([...new Set([...(a.specialty_ids??[]),...(waitingFor&&waitingFor.category_id===a.category_id?waitingFor.ids:[])])]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(rateDraft));setStep((count??0)<5?1:4);}}}
    if(alive)setRestored(true);
   };void restore();return()=>{alive=false;};},[user.id]);
   useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
@@ -211,7 +216,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       if (!Number.isFinite(Number(basePrice)) || Number(basePrice) <= 0 || !pkgs.length) return "Enter a starting price and save at least one ratecard.";
       try { pkgs.forEach(ratePayload); } catch { return "Complete each ratecard's title, base items, quantity and price."; }
     }
-    if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage name and base emirate.";
+    if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage, team or corporate name and base emirate.";
     if (step === 4 && !agree) return "Please accept the partnership contract.";
     return null;
   };
@@ -229,9 +234,15 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       const rateRows = pkgs.map(ratePayload);
       if (!rateRows.length) throw new Error("Save at least one ratecard before submitting.");
       const {data:existing}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();
+      // The database only accepts what the paid plan allows; the other choices wait on the account until it is paid.
+      let allowedNow=specialtyLimit('free');
+      if(existing){const current=await supabase.rpc('effective_artist_plan',{_artist:existing.id});const paid=current.data?await supabase.from('plan_tiers').select('max_specialties').eq('code',current.data).maybeSingle():null;allowedNow=paid?.data?.max_specialties??allowedNow;}
+      const chosen=splitSpecialties(specs,allowedNow);
+      const waiting=await supabase.auth.updateUser({data:{pending_specialties:chosen.later.length?{category_id:categoryId,ids:chosen.later}:null}});
+      if(waiting.error)throw waiting.error;
       const profile={
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
-        category_id: categoryId, subcategory_id: specs[0] ?? null, specialty_ids: specs, emirate_id: emirateId, area_id: areaId || null,
+        category_id: categoryId, subcategory_id: chosen.now[0] ?? null, specialty_ids: chosen.now, emirate_id: emirateId, area_id: areaId || null,
         base_price: Number(basePrice), languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
         travel_radius_km: Number(radius) || null, notify_phone: phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
@@ -269,7 +280,6 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   return (
     <div className="space-y-4">
       <PlanBadge plan={plan} onChange={onChangePlan} />
-      <p className="text-sm text-muted-foreground">Registration starts on Free. Add more specialties after your separate subscription payment.</p>
       {step === 0 && <>
         <h2 className="text-xl font-semibold">Step 1 · Account</h2>
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></div>
@@ -286,6 +296,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
               {specs.map((id) => <span key={id} className="inline-flex items-center gap-1 rounded-full border bg-muted px-2 py-0.5 text-xs">{cat?.subcategories.find((s) => s.id === id)?.name}<button type="button" aria-label="Remove" onClick={() => setSpecs(specs.filter((x) => x !== id))}><X className="h-3 w-3" /></button></span>)}
             </div>
             <Input className="mt-1" value={q} onChange={(e) => setQ(e.target.value)} disabled={!categoryId || specs.length >= limit} placeholder={!categoryId ? "Choose a category first" : specs.length >= limit ? `Limit reached on ${plan} plan` : "Search specialty…"} />
+            <p className="mt-1 text-xs text-muted-foreground">Your <span className="capitalize">{plan}</span> plan allows {limit} {limit === 1 ? "specialty" : "specialties"}.{limit > 1 ? " The first shows right away; the others are added once your plan is paid." : ""}</p>
             {q.trim() && specs.length < limit && (
               <div className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-md border bg-popover shadow">
                 {subs.filter((s) => !specs.includes(s.id) && s.name.toLowerCase().includes(q.toLowerCase())).map((s) => (
@@ -322,12 +333,12 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         <SignupRatecards packages={pkgs} onChange={setPkgs} draftKey={`join_rate_editor:${user.id}`} onPending={setRatePending} />
       </>}
       {step === 3 && <>
-        <h2 className="text-xl font-semibold">Step 4 · Stage identity</h2>
+        <h2 className="text-xl font-semibold">Step 4 · Stage identity / Name Of Team</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div><Label>Stage name</Label><Input value={stage} onChange={(e) => setStage(e.target.value)} maxLength={80} /></div>
+          <div><Label>Stage Name / Team Name / Corporate Name</Label><Input value={stage} onChange={(e) => setStage(e.target.value)} maxLength={80} /></div>
           <div><Label>Tagline</Label><Input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={120} /></div>
-          <div><Label>Base emirate</Label><Select value={emirateId} onValueChange={(v) => { setEmirateId(v); setAreaId(""); }}><SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger><SelectContent>{cat?.emirates.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-          <div><Label>Base area</Label><Select value={areaId} onValueChange={setAreaId}><SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger><SelectContent>{cat?.areas.filter((a) => a.emirate_id === emirateId).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <AddableLocation label="Base emirate" addLabel="Add new emirate" placeholder="Choose" value={emirateId} options={cat?.emirates ?? []} onChange={(v) => { setEmirateId(v); setAreaId(""); }} onAdded={() => queryClient.invalidateQueries({ queryKey: ["join-catalog"] })} />
+          <AddableLocation label="Base area" addLabel="Add new area" placeholder={emirateId ? "Optional" : "Choose an emirate first"} value={areaId} options={cat?.areas.filter((a) => a.emirate_id === emirateId) ?? []} emirateId={emirateId} disabled={!emirateId} onChange={setAreaId} onAdded={() => queryClient.invalidateQueries({ queryKey: ["join-catalog"] })} />
           <div><Label>Languages (comma separated)</Label><Input value={languages} onChange={(e) => setLanguages(e.target.value)} /></div>
           <div><Label>Travel radius (km)</Label><Input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} /></div>
         </div>
@@ -350,7 +361,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         <label className="flex items-start gap-2 text-sm"><Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" /> I agree to the Dealmaker Talent Partnership Agreement and Terms of Service.</label>
       </>}
       <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={() => { if (step === 0) onChangePlan(); else setStep(step - 1); }}>Back</Button>
+        <Button type="button" variant="outline" className="join-back" onClick={() => { if (step === 0) onChangePlan(); else setStep(step - 1); }}>Back</Button>
         {step < 4 ? <Button type="button" disabled={validate() !== null} onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
           : <Button type="button" disabled={busy || validate() !== null} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Next · Submit & continue to payment"}</Button>}
       </div>

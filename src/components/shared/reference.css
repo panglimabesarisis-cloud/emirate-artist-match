@@ -67,6 +67,22 @@
 .reference-join-card:after {content:"✦";position:absolute;left:50%;top:40px;color:var(--dm-gold);translate:-50% 0}
 .reference-join-card h2 {font-size:40px;line-height:1.1;text-align:center;margin-bottom:14px}
 .reference-join-card textarea {height:auto}
+/* Signup: dropdowns look and size like the text fields beside them. */
+.reference-join .ratecard-field,.reference-join [data-slot="select-trigger"],.reference-join button[role="combobox"] {background:var(--dm-tone-3);color:var(--dm-cream);border:1px solid var(--dm-line);height:48px;width:100%;margin-top:8px;border-radius:10px;font-weight:400;box-shadow:none}
+.reference-join .ratecard-field:hover {background:var(--dm-tone-3);color:var(--dm-cream);border-color:var(--dm-gold)}
+/* Dropdown lists open outside the signup card, so they carry their own colours while it is on screen. */
+html:has(.reference-join) .ratecard-menu,html:has(.reference-join) [role="listbox"] {background:#151a2c;color:#f6efe2;border-color:rgba(246,239,226,.16)}
+html:has(.reference-join) .ratecard-menu :is(button,input) {color:#f6efe2}
+html:has(.reference-join) .ratecard-menu input {background:rgba(246,239,226,.05);border-color:rgba(246,239,226,.16)}
+html:has(.reference-join) .ratecard-menu button:hover,html:has(.reference-join) .ratecard-menu button[aria-pressed="true"],html:has(.reference-join) [role="option"][data-highlighted] {background:var(--dm-grad,linear-gradient(100deg,#f0c062,#d4842a));color:#0a0e1b}
+/* Add field matches Next; Reset matches the fields; Back matches an inactive dashboard button. */
+.reference-join .ratecard-add,.reference-join .ratecard-add:hover {background:var(--dm-grad);color:var(--dm-ink);border-color:transparent;border-radius:10px;font-weight:700}
+.reference-join .ratecard-reset {background:var(--dm-tone-3);color:var(--dm-cream);border:1px solid var(--dm-line);border-radius:10px}
+.reference-join .ratecard-reset:hover {background:var(--dm-tone-3);color:var(--dm-cream);border-color:var(--dm-gold)}
+.reference-join button.join-back {background:transparent;color:var(--dm-cream);border:1px solid rgba(246,239,226,.16);border-radius:10px}
+.reference-join button.join-back:hover {background:transparent;color:var(--dm-gold);border-color:var(--dm-gold)}
+/* Completed steps: gold circle with a dark mark. */
+.join-centered .reference-stepper li > div.reference-step-number[data-state="done"] {background:linear-gradient(100deg,#f0c062 0%,#e8a33f 45%,#d4842a 100%);color:#07090f;border-color:transparent}
 .reference-plans {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:36px}
 .reference-plan {position:relative;border:1px solid var(--dm-line);border-radius:80px 80px 8px 8px /50px 50px 8px 8px;padding:40px 18px 20px;display:flex;flex-direction:column;cursor:pointer;transition:border-color .4s,transform .4s}
 .reference-plan:hover,.reference-plan.selected {border-color:var(--dm-gold)}

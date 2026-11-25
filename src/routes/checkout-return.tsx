@@ -8,6 +8,9 @@ import {paymentReturnPath} from '@/lib/hosted-checkout';
 import {PublicLayout} from '@/components/site/PublicLayout';
 import {PaymentTestModeBanner} from '@/components/site/SandboxCheckout';
 import {PaidStamp} from '@/components/site/PaidStamp';
+import {ReceiptSheet} from '@/components/site/ReceiptSheet';
+import type {Receipt} from '@/lib/receipt';
+import {afterPaymentPath} from '@/lib/after-payment';
 import {Button} from '@/components/ui/button';
 import {useI18n} from '@/lib/i18n';
 
@@ -39,10 +42,11 @@ function CheckoutReturn(){
   const [status,setStatus]=useState('pending');
   const [error,setError]=useState('');
   const [retry,setRetry]=useState(0);
+  const [receipt,setReceipt]=useState<Receipt|null>(null);
   const key=new URL(returnTo,'https://dealmakertalent.com').searchParams.get('k');
   const needsSignIn=(!key||subscription)&&!user;
   useEffect(()=>{
-    setStatus('pending');setError('');
+    setStatus('pending');setError('');setReceipt(null);
     if(loading||needsSignIn)return;
     let active=true; let running=false; let attempts=0;
     const check=async()=>{
@@ -56,7 +60,7 @@ function CheckoutReturn(){
           :key?await linkCheck({data:{orderId,key}}):await artistCheck({data:{orderId}});
         if(!active)return;
         if('error' in response){setError(response.error);clearInterval(timer);}
-        else {setStatus(response.status);setError('');if(response.status==='paid'||response.status==='expired')clearInterval(timer);}
+        else {setStatus(response.status);setReceipt(response.receipt??null);setError('');if(response.status==='paid'||response.status==='expired')clearInterval(timer);}
       }catch(e){if(active){setError(e instanceof Error?e.message:'Payment verification unavailable.');clearInterval(timer);}}
       finally{running=false;}
     };
@@ -68,8 +72,8 @@ function CheckoutReturn(){
   return <PublicLayout><PaymentTestModeBanner /><main className="mx-auto max-w-3xl space-y-5 px-4 py-10">
     <h1 className="font-display text-3xl">{t('Payment status')}</h1>
     {loading?<p role="status">{t('Loading account…')}</p>:needsSignIn?<Button asChild><Link to="/auth" search={{redirect:authReturn}}>{t('Sign in to verify payment')}</Link></Button>
-      :status==='paid'?<><PaidStamp /><p role="status">{t('Payment verified')}</p></>
+      :status==='paid'?<><p role="status" className="text-center">{t('Payment verified')}</p>{receipt?<ReceiptSheet receipt={receipt}/>:<div className="flex justify-center"><PaidStamp /></div>}</>
       :<><p role="status">{t(status==='expired'?'Checkout expired. No payment has been confirmed.':'Payment has not been confirmed yet.')}</p>{error&&<p role="alert" className="text-destructive">{t(error)}</p>}<Button variant="outline" onClick={()=>setRetry(n=>n+1)}>{t('Check payment status')}</Button></>}
-    <Button asChild><a href={returnTo}>{t(status==='paid'?'Continue':'Return')}</a></Button>
+    <div className="flex justify-center"><Button asChild className={status==='paid'?'rounded-full bg-gradient-gold px-8 font-bold text-gold-foreground':'rounded-full'}><a href={status==='paid'?afterPaymentPath(returnTo,!!user):returnTo}>{t(status==='paid'?'Continue':'Return')}</a></Button></div>
   </main></PublicLayout>;
 }
