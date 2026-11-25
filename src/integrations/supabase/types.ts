@@ -3207,6 +3207,8 @@ export type Database = {
           id: string
           items: Json
           price: number
+          price_high: number | null
+          price_low: number | null
           rules_of_work: string | null
           sort: number | null
           title: string
@@ -3219,6 +3221,8 @@ export type Database = {
           id?: string
           items?: Json
           price: number
+          price_high?: number | null
+          price_low?: number | null
           rules_of_work?: string | null
           sort?: number | null
           title: string
@@ -3231,6 +3235,8 @@ export type Database = {
           id?: string
           items?: Json
           price?: number
+          price_high?: number | null
+          price_low?: number | null
           rules_of_work?: string | null
           sort?: number | null
           title?: string

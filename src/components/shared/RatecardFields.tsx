@@ -25,6 +25,10 @@ export function RatecardFields({ value, onChange, units = [], disabled = false }
   const id = useId();
   const { t } = useI18n();
   const totals = rateTotals(value.items);
+  const low = value.price_low.trim() === "" ? null : Number(value.price_low);
+  const high = value.price_high.trim() === "" ? null : Number(value.price_high);
+  const rangeProblem = low !== null && low > totals.base ? "Lowest price cannot be above the base package price."
+    : high !== null && high < totals.base ? "Highest price cannot be below the base package price." : null;
   const update = (index: number, field: string, next: string) => onChange({ ...value, items: value.items.map((item, i) => i === index ? { ...item, [field]: next } : item) });
   return <fieldset disabled={disabled} className="dmr-rc-fields space-y-5">
     <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -66,6 +70,31 @@ export function RatecardFields({ value, onChange, units = [], disabled = false }
         </span>
         <small>{t("Each price covers its stated quantity. Add-ons are excluded from the base price. Prices exclude VAT.")}</small>
       </div>
+    </div>
+
+    <div className="dmr-rc-nego">
+      <div className="dmr-rc-nego-h">
+        <h3>{t("Negotiation range")}</h3>
+        <p>{t("What your AI agent may ask and may accept. It opens near the highest price, aims for the base, and never goes below the lowest.")}</p>
+      </div>
+      <div className="dmr-rc-nego-grid">
+        <div>
+          <Label htmlFor={`${id}-low`}>{t("Lowest price (AED)")}</Label>
+          <Input id={`${id}-low`} type="number" min="0" max="20000000" step="0.01" placeholder={t("No floor set")} value={value.price_low} onChange={e => onChange({ ...value, price_low: e.target.value })} aria-describedby={`${id}-low-help`} />
+          <small id={`${id}-low-help`}>{t("Hard floor. Leave empty to keep the plan's discount limit.")}</small>
+        </div>
+        <div>
+          <Label>{t("Base price (AED)")}</Label>
+          <output className="dmr-rc-nego-base" dir="ltr">{aed(totals.base)}</output>
+          <small>{t("Adds up from your base items. Edit the items to change it.")}</small>
+        </div>
+        <div>
+          <Label htmlFor={`${id}-high`}>{t("Highest price (AED)")}</Label>
+          <Input id={`${id}-high`} type="number" min="0" max="20000000" step="0.01" placeholder={t("No anchor set")} value={value.price_high} onChange={e => onChange({ ...value, price_high: e.target.value })} aria-describedby={`${id}-high-help`} />
+          <small id={`${id}-high-help`}>{t("Opening ask for busy dates or wider scope.")}</small>
+        </div>
+      </div>
+      {rangeProblem && <p role="alert" className="dmr-rc-nego-error">{t(rangeProblem)}</p>}
     </div>
 
     <div className="space-y-2"><Label htmlFor={`${id}-included`}>{t("What is included")}</Label><Textarea id={`${id}-included`} maxLength={1000} rows={2} placeholder={t("What the client gets for the base price")} value={value.description} onChange={e => onChange({ ...value, description: e.target.value })} /></div>

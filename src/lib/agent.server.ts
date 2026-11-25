@@ -4,7 +4,7 @@ import { ensureAgentForm, nextSavedForm, reachableForms } from "./agent-forms";
 import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
-import { agentRates } from "./agent-pricing";
+import { agentRates, negotiationFloor } from "./agent-pricing";
 import { clientTravelDistance, travelPrompt } from "./travel-rules";
 import { approvalPriceRule, selectedWhatsAppStep } from "./agent-approval";
 import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
@@ -44,7 +44,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
       supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, travel_surcharge_enabled, travel_step_km, travel_fee_per_step, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
       supabaseAdmin.from("credit_wallets").select("balance,balance_fraction").eq("artist_id", convo.artist_id).maybeSingle(),
-      supabaseAdmin.from("rate_cards").select("title, price, duration_minutes, description, unit_label, rules_of_work, items").eq("artist_id", convo.artist_id).order("sort"),
+      supabaseAdmin.from("rate_cards").select("title, price, price_low, price_high, duration_minutes, description, unit_label, rules_of_work, items").eq("artist_id", convo.artist_id).order("sort"),
       convo.quote_request_id
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),
@@ -97,7 +97,8 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const {data: existingBooking} = await supabaseAdmin.from("bookings").select("status,artist_invoice_required,paid_amount,total").eq("conversation_id",conversationId).is("deleted_at",null).in("status",["inquiry","quoted","confirmed"]).limit(1).maybeSingle();
   const maxDiscount = settings?.max_discount_pct ?? 10;
   const pricing = agentRates(rates ?? [], artist.base_price);
-  const floor = pricing.minimum === null ? Infinity : pricing.minimum * (pricing.startingOnly ? 1 : 1 - maxDiscount / 100);
+  // An artist-set lowest price wins over the plan discount; createDraft clamps to this.
+  const floor = negotiationFloor(rates ?? [], artist.base_price, maxDiscount);
 
   const confirm = quote ? formatBookingConfirm({ name: quote.name, artistName: artist.stage_name, eventDate: quote.event_date, venue: quote.areas?.name ?? null,
     startTime: quote.start_time?.slice(0, 5) ?? null, endTime: quote.end_time?.slice(0, 5) ?? null, performMinutes: quote.perform_minutes, guests: quote.guests, budget: quote.budget ? Number(quote.budget) : null }) : null;

@@ -59,3 +59,14 @@
   .dmr-rc-fields .dmr-rc-break{padding:13px}
   .dmr-rc-fields .dmr-rc-row{grid-template-columns:minmax(0,1fr)}
 }
+
+/* negotiation range: the three prices the AI agent works between */
+.dmr-rc-fields .dmr-rc-nego{border:1px solid var(--rc-line);border-radius:16px;background:var(--rc-wash);padding:16px}
+.dmr-rc-fields .dmr-rc-nego-h h3{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--foreground)}
+.dmr-rc-fields .dmr-rc-nego-h p{margin-top:5px;font-size:11.5px;line-height:1.6;color:var(--muted-foreground);max-width:70ch}
+.dmr-rc-fields .dmr-rc-nego-grid{display:grid;gap:12px;margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.dmr-rc-fields .dmr-rc-nego-grid label{display:block;margin-bottom:5px}
+.dmr-rc-fields .dmr-rc-nego-grid small{display:block;margin-top:5px;font-size:11px;line-height:1.5;color:var(--rc-mute)}
+.dmr-rc-fields .dmr-rc-nego-base{display:flex;align-items:center;min-height:44px;padding:0 12px;border:1px dashed var(--rc-line-2);border-radius:12px;font-size:13px;font-weight:700;color:var(--gold);background:transparent}
+.dmr-rc-fields .dmr-rc-nego-error{margin-top:10px;font-size:12px;color:var(--destructive)}
+@media (max-width:760px){.dmr-rc-fields .dmr-rc-nego-grid{grid-template-columns:minmax(0,1fr)}}

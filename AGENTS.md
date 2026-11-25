@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Migrations may be hand-written under `drizzle/migrations/` when Lovable credits are unavailable: add the next numbered file, apply it in the Supabase SQL editor, update `src/integrations/supabase/types.ts` to match, and ask Lovable to re-sync the schema once credits return. `drizzle/schema.ts` stays untouched.
 - Custom AI Flow variables use the shared selector and are derived from saved node/field saveAs names; this preserves existing names and carries custom variables through templates and reloads without a separate catalog.
 - Public pages read data through `createServerFn` in `src/lib/public.functions.ts` using a publishable-key client; signed-in dashboards use the browser client under `_authenticated` so RLS enforces ownership.
 - Public artist stats come only from the `artist_public_stats()` SQL function, which computes from bookings/reviews and applies each artist's visibility settings — never store or type stat numbers.
