@@ -112,7 +112,7 @@ html:has(.reference-join) .ratecard-menu button:hover,html:has(.reference-join) 
 .join-centered .reference-join-grid {grid-template-columns:minmax(0,1fr);gap:30px}
 .join-centered .reference-join-side {position:static;text-align:center;min-width:0;width:100%;max-width:1080px;margin-inline:auto}
 .join-centered .reference-join-side p {max-width:680px;margin-inline:auto;font-size:16px;line-height:1.6}
-.join-centered .reference-stepper {display:grid;grid-template-columns:repeat(6,minmax(95px,1fr));gap:0;max-width:1000px;margin:36px auto 0;padding:0 0 12px;overflow-x:auto}
+.join-centered .reference-stepper {display:grid;grid-template-columns:repeat(7,minmax(82px,1fr));gap:0;max-width:1000px;margin:36px auto 0;padding:0 0 12px;overflow-x:auto}
 .join-centered .reference-stepper::before {display:none}
 .join-centered .reference-stepper li {display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0;padding-inline:8px;position:relative}
 .join-centered .reference-stepper li::before {content:"";position:absolute;inset-inline:0;top:19px;height:1px;background:var(--dm-line)}

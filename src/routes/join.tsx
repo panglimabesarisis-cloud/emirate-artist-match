@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,8 +20,7 @@ import { X } from "lucide-react";
 import { SceneBackground } from "@/components/shared/SceneBackground";
 import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
 import { SampleTestimonials } from "@/components/site/SampleTestimonials";
-import { SignupRatecards } from "@/components/shared/SignupRatecards";
-import { rateDraft, ratePayload, restoreRateDraft, type RateDraft } from "@/lib/ratecard";
+import { JoinRateStep } from "@/components/shared/JoinRateStep";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/join")({
   component: JoinPage,
 });
 
-const STEPS = ["Plan", "Account", "Category & photos", "Rate card", "Stage identity", "Contract"];
+const STEPS = ["Plan", "Account", "Category & photos", "Stage identity", "Contract", "Deposit", "Rate card"];
 
 function GoogleG() {
   return (<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>);
@@ -47,11 +46,14 @@ function JoinPage() {
   const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
   const [checked, setChecked] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
+  const [submitted, setSubmitted] = useState<{ artistId: string; paid: boolean; needsRates: boolean } | null>(null);
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [plan, setPlanState] = useState<string | null>(null);
   useEffect(() => { setPlanState(localStorage.getItem("join_plan")); }, []);
   const setPlan = (p: string | null) => { if (p) localStorage.setItem("join_plan", p); else localStorage.removeItem("join_plan"); setPlanState(p); };
-  const shown = plan ? step + 1 : 0;
+  // After submitting: Deposit is the sixth circle, Rate card the seventh.
+  const shown = submitted ? (submitted.paid ? 6 : 5) : plan ? step + 1 : 0;
 
   useEffect(() => {
     const load = async () => {
@@ -61,7 +63,12 @@ function JoinPage() {
         await supabase.rpc("become_artist");
         const m = u.user_metadata ?? {};
         setUser({ id: u.id, email: u.email ?? "", name: m["display_name"] ?? m["full_name"] ?? m["name"] ?? "" });
-        const { data: a } = await supabase.from("artists").select("id,onboarding_complete").eq("user_id", u.id).maybeSingle();
+        const { data: a } = await supabase.from("artists").select("id,onboarding_complete,registration_paid_at").eq("user_id", u.id).maybeSingle();
+        if (a?.onboarding_complete) {
+          const paid = !!a.registration_paid_at;
+          const rates = paid ? await supabase.from("rate_cards").select("id", { count: "exact", head: true }).eq("artist_id", a.id) : null;
+          setSubmitted({ artistId: a.id, paid, needsRates: !!rates && !rates.error && (rates.count ?? 0) === 0 });
+        }
         setHasProfile(!!a?.onboarding_complete);
       }
       setChecked(true);
@@ -77,7 +84,7 @@ function JoinPage() {
       <div className="reference-wrap reference-join-grid">
         <header className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
         <h1 className="text-3xl font-semibold">Talent register</h1>
-        <p className="mt-1 text-muted-foreground">Choose a plan, then five quick steps. Our team reviews every profile before it goes live.</p>
+        <p className="mt-1 text-muted-foreground">Choose a plan, then six quick steps. Our team reviews every profile before it goes live.</p>
         <ol className="reference-stepper">
           {STEPS.map((s, i) => (
             <li key={s} aria-current={i === shown ? "step" : undefined}>
@@ -89,9 +96,11 @@ function JoinPage() {
           ))}
         </ol>
         </header>
-        <div className={`reference-join-card${!plan && !hasProfile ? " reference-join-plans" : ""}${plan && user && step === 2 ? " reference-join-rates" : ""}`}>
+        <div className={`reference-join-card${!plan && !hasProfile ? " reference-join-plans" : ""}${submitted?.needsRates ? " reference-join-rates" : ""}`}>
           {!checked ? <p className="text-muted-foreground">Loading…</p>
-            : hasProfile ? <div><p>Your talent profile is already submitted.</p><Button asChild className="mt-4"><Link to="/dashboard">Go to dashboard</Link></Button></div>
+            : submitted?.needsRates && user ? <JoinRateStep artistId={submitted.artistId} userId={user.id} onDone={() => void navigate({ to: "/dashboard" })} />
+            : submitted?.paid ? <Navigate to="/dashboard" replace />
+            : hasProfile ? <div className="space-y-4 text-center"><p>Your talent profile is submitted. Pay the registration deposit to add your rate card.</p><div className="flex flex-wrap justify-center gap-3"><Button asChild className="bg-gradient-gold text-gold-foreground"><Link to="/join/payment">Pay registration deposit</Link></Button><Button asChild variant="outline" className="join-back"><Link to="/dashboard">Go to dashboard</Link></Button></div></div>
             : !plan ? <PlanStep onPick={setPlan} />
             : !user ? <AccountStep plan={plan} onChangePlan={() => setPlan(null)} />
             : <Wizard user={user} plan={plan} step={step} setStep={setStep} onChangePlan={() => setPlan(null)} />}
@@ -189,21 +198,18 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   const [name, setName] = useState(user.name); const [phone, setPhone] = useState("");
   const [categoryId, setCategoryId] = useState(""); const [specs, setSpecs] = useState<string[]>([]); const [q, setQ] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
-  const [basePrice, setBasePrice] = useState("");
-  const [pkgs, setPkgs] = useState<RateDraft[]>([]);
-  const [ratePending, setRatePending] = useState(false);
   const [stage, setStage] = useState(""); const [tagline, setTagline] = useState(""); const [bio, setBio] = useState("");
   const [emirateId, setEmirateId] = useState(""); const [areaId, setAreaId] = useState("");
   const [languages, setLanguages] = useState("English"); const [radius, setRadius] = useState("30");
   const [trn, setTrn] = useState(""); const [agree, setAgree] = useState(false); const [busy, setBusy] = useState(false);
   const [restored,setRestored]=useState(false);const [savedPhotos,setSavedPhotos]=useState(0);
   useEffect(()=>{let alive=true;const restore=async()=>{
-   try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);setBasePrice(d.basePrice??'');setPkgs(Array.isArray(d.pkgs)?d.pkgs.map(restoreRateDraft):[]);setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');setStep(Number.isInteger(d.step)?Math.min(4,Math.max(0,d.step)):0);}}
+   try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);if(Array.isArray(d.pkgs)&&d.pkgs.length&&!localStorage.getItem(`join_rate_draft:${user.id}`))localStorage.setItem(`join_rate_draft:${user.id}`,JSON.stringify({basePrice:d.basePrice??'',pkgs:d.pkgs}));setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');/* Drafts saved before the rate card moved counted it as step 2. */const savedStep=Number.isInteger(d.step)?(d.v===2||d.step<3?d.step:d.step-1):0;setStep(Math.min(3,Math.max(0,savedStep)));}}
    catch{localStorage.removeItem(`join_draft:${user.id}`);}
-   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:rates},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('rate_cards').select('*').eq('artist_id',a.id).order('sort'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');const waitingFor=readPending((await supabase.auth.getUser()).data.user?.user_metadata?.['pending_specialties']);setSpecs([...new Set([...(a.specialty_ids??[]),...(waitingFor&&waitingFor.category_id===a.category_id?waitingFor.ids:[])])]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setBasePrice(String(a.base_price??''));setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');if(rates?.length)setPkgs(rates.map(rateDraft));setStep((count??0)<5?1:4);}}}
+   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');const waitingFor=readPending((await supabase.auth.getUser()).data.user?.user_metadata?.['pending_specialties']);setSpecs([...new Set([...(a.specialty_ids??[]),...(waitingFor&&waitingFor.category_id===a.category_id?waitingFor.ids:[])])]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');setStep((count??0)<5?1:3);}}}
    if(alive)setRestored(true);
   };void restore();return()=>{alive=false;};},[user.id]);
-  useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,basePrice,pkgs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
+  useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({v:2,name,phone,categoryId,specs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
   const previews = photos.map((f) => URL.createObjectURL(f));
 
   const validate = (): string | null => {
@@ -211,13 +217,8 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     if (step === 1 && !categoryId) return "Choose your talent category.";
     if (step === 1 && specs.length > limit) return `Your plan allows up to ${limit} specialties.`;
     if (step === 1 && photos.length+savedPhotos !== 5) return "Upload exactly 5 photos in total; saved photos are retained.";
-    if (step === 2) {
-      if (ratePending) return "Save or clear the current ratecard before continuing.";
-      if (!Number.isFinite(Number(basePrice)) || Number(basePrice) <= 0 || !pkgs.length) return "Enter a starting price and save at least one ratecard.";
-      try { pkgs.forEach(ratePayload); } catch { return "Complete each ratecard's title, base items, quantity and price."; }
-    }
-    if (step === 3 && (!stage.trim() || !emirateId)) return "Enter your stage, team or corporate name and base emirate.";
-    if (step === 4 && !agree) return "Please accept the partnership contract.";
+    if (step === 2 && (!stage.trim() || !emirateId)) return "Enter your stage, team or corporate name and base emirate.";
+    if (step === 3 && !agree) return "Please accept the partnership contract.";
     return null;
   };
   const next = () => { const e = validate(); if (e) { toast.error(e); return; } setStep(step + 1); window.scrollTo({ top: 0 }); };
@@ -231,8 +232,6 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     const e = validate(); if (e) { toast.error(e); return; }
     setBusy(true);
     try {
-      const rateRows = pkgs.map(ratePayload);
-      if (!rateRows.length) throw new Error("Save at least one ratecard before submitting.");
       const {data:existing}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();
       // The database only accepts what the paid plan allows; the other choices wait on the account until it is paid.
       let allowedNow=specialtyLimit('free');
@@ -243,7 +242,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       const profile={
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
         category_id: categoryId, subcategory_id: chosen.now[0] ?? null, specialty_ids: chosen.now, emirate_id: emirateId, area_id: areaId || null,
-        base_price: Number(basePrice), languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
+        languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
         travel_radius_km: Number(radius) || null, notify_phone: phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
         intended_plan:plan,onboarding_complete:false,
@@ -252,11 +251,6 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       const { data: a, error } = existing?await supabase.from('artists').update(profile).eq('id',existing.id).select('id').single():await supabase.from('artists').insert(profile).select('id').single();
       if (error || !a) throw new Error(error?.message ?? "Could not save profile");
       const userSave=await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", user.id);if(userSave.error)throw userSave.error;
-      const {data:rates,error:rateError}=await supabase.from('rate_cards').select('id,sort').eq('artist_id',a.id);
-      if(rateError)throw rateError;
-      for(const [i,p] of rateRows.entries()){const row={...p,artist_id:a.id,sort:i+1};const prior=rates?.find(r=>r.sort===i+1);const save=prior?await supabase.from('rate_cards').update(row).eq('id',prior.id).eq('artist_id',a.id):await supabase.from('rate_cards').insert(row);if(save.error)throw save.error;}
-      const retired=(rates??[]).filter(r=>(r.sort??0)>rateRows.length&& (r.sort??0)<=3).map(r=>r.id);
-      if(retired.length){const removed=await supabase.from('rate_cards').delete().eq('artist_id',a.id).in('id',retired);if(removed.error)throw removed.error;}
       const {count:countPhotos}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');let uploaded=countPhotos??0;
       for (const [i, f] of photos.entries()) {
         if(uploaded>=5)break;
@@ -270,8 +264,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       if(uploaded!==5)throw new Error('Profile details saved. Add the remaining portfolio photos to finish registration.');
       const done=await supabase.from('artists').update({onboarding_complete:true}).eq('id',a.id);if(done.error)throw done.error;
       localStorage.removeItem(`join_draft:${user.id}`);
-      localStorage.removeItem(`join_rate_editor:${user.id}`);
-      toast.success("Profile saved — one last step: payment.");
+      toast.success("Profile saved. Next: the registration deposit.");
       navigate({ to: "/join/payment" });
     } catch (err) {const {data:a}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();if(a){const {count}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');setSavedPhotos(count??0);setPhotos([]);}toast.error((err as Error).message+' — your progress is saved.');} finally { setBusy(false); }
   };
@@ -328,12 +321,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         </div>
       </>}
       {step === 2 && <>
-        <h2 className="text-xl font-semibold">Step 3 · Rate card</h2>
-        <div><Label>Starting price (AED)</Label><Input type="number" min={0} value={basePrice} onChange={(e) => setBasePrice(e.target.value)} /></div>
-        <SignupRatecards packages={pkgs} onChange={setPkgs} draftKey={`join_rate_editor:${user.id}`} onPending={setRatePending} />
-      </>}
-      {step === 3 && <>
-        <h2 className="text-xl font-semibold">Step 4 · Stage identity / Name Of Team</h2>
+        <h2 className="text-xl font-semibold">Step 3 · Stage identity / Name Of Team</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div><Label>Stage Name / Team Name / Corporate Name</Label><Input value={stage} onChange={(e) => setStage(e.target.value)} maxLength={80} /></div>
           <div><Label>Tagline</Label><Input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={120} /></div>
@@ -344,8 +332,8 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         </div>
         <div><Label>Bio</Label><Textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={2000} /></div>
       </>}
-      {step === 4 && <>
-        <h2 className="text-xl font-semibold">Step 5 · Partnership contract</h2>
+      {step === 3 && <>
+        <h2 className="text-xl font-semibold">Step 4 · Partnership contract</h2>
         <div className="max-h-72 overflow-y-auto rounded-xl border bg-muted/40 p-4 text-sm leading-relaxed">
           <p className="font-semibold">Dealmaker Talent Partnership Agreement</p>
           <ol className="mt-2 list-decimal space-y-2 ps-5">
@@ -362,7 +350,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       </>}
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" className="join-back" onClick={() => { if (step === 0) onChangePlan(); else setStep(step - 1); }}>Back</Button>
-        {step < 4 ? <Button type="button" disabled={validate() !== null} onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
+        {step < 3 ? <Button type="button" disabled={validate() !== null} onClick={next} className="bg-gradient-gold text-gold-foreground">Next</Button>
           : <Button type="button" disabled={busy || validate() !== null} onClick={submit} className="bg-gradient-gold text-gold-foreground">{busy ? "Submitting…" : "Next · Submit & continue to payment"}</Button>}
       </div>
     </div>

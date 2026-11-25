@@ -24,7 +24,8 @@ describe("checkout invoice", () => {
     expect(orderLabel("booking", { title: "Wedding set" })).toBe("Booking payment: Wedding set");
   });
   it("sends a signed-in payer to the dashboard and a guest back to their link", () => {
-    expect(afterPaymentPath("/join/payment", true)).toBe("/dashboard");
+    expect(afterPaymentPath("/join/payment", true)).toBe("/join");
+    expect(afterPaymentPath("/dashboard", true)).toBe("/dashboard");
     expect(afterPaymentPath("/booking/abc?k=1", true)).toBe("/dashboard");
     expect(afterPaymentPath("/booking/abc?k=1", false)).toBe("/booking/abc?k=1");
     expect(afterPaymentPath("/chat/abc?k=1", false)).toBe("/chat/abc?k=1");

@@ -33,9 +33,9 @@ function PaymentPage(){
   lines:[{label:'Talent registration deposit',detail:'One-time, for every plan',amount:t.subtotal}],subtotal:t.subtotal,vat:t.vat,total:t.total,
   later:planLater(data.tier?{name:data.tier.name,monthly:Number(data.tier.price_monthly)}:null)}:null;
  const pay=async()=>{setBusy(true);try{const r=await pay$({data:{kind:'deposit',plan:data?.code??'free'}});if('error'in r)throw new Error(r.error);setSession(r);}catch(e){toast.error(e instanceof Error?e.message:'Checkout unavailable');}finally{setBusy(false);}};
- // Already paid: nothing left to do here.
- if(data?.artist?.registration_paid_at)return <Navigate to="/dashboard" replace />;
- return <PublicLayout><PaymentTestModeBanner /><main className="mx-auto max-w-3xl space-y-6 px-4 py-10"><h1 className="text-center text-3xl font-semibold">Registration deposit</h1>
+ // /join continues with the rate card step, or goes to the dashboard when it is already filled.
+ if(data?.artist?.registration_paid_at)return <Navigate to="/join" replace />;
+ return <PublicLayout><PaymentTestModeBanner /><main className="mx-auto max-w-3xl space-y-6 px-4 py-10"><h1 className="text-center text-3xl font-semibold">Step 5 · Registration deposit</h1>
   {loading||(user&&account.isPending)?<p role="status" className="text-center">Loading your invoice…</p>
   :!user?<div className="flex justify-center"><Button asChild><Link to="/auth" search={{redirect:'/join/payment'}}>Sign in to pay registration</Link></Button></div>
   :account.error?<p role="alert" className="text-center text-destructive">Could not load your invoice. Refresh the page.</p>
