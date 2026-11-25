@@ -7,6 +7,7 @@
 - Conversation WhatsApp sends reserve notification rows before dispatch and reconcile delivery callbacks; ambiguous sends are never blindly retried.
 - SupportWorkspace shares ticket/message rows across artist and admin views; append-only sender-verified messages preserve the thread while legacy reply fields retain client compatibility.
 - ArtistOwnPrompts persists owner-only instructions separately from protected library content; limits are transaction-checked and prompts join the server instructions below safety rules.
+- The artist overview shows a rate card reminder (RatecardReminder) only for a deposit-paid, submitted profile with no rate cards; it opens /join, which sets the starting price too.
 - Ratecard dashboard, signup and admin share item fields and price validation; item prices cover stated scope, base totals exclude add-ons, database triggers retain legacy writes, and public/private agents read the same saved rules.
 - Support tickets reuse the Inbox layout (inbox.css), and Inbox, Support and Your AI Agent share one chat backdrop in chat-fields.css.
 - Team page access uses the shared checklist and database page gates; cross-page labels and document fields use narrow page-authorized RPCs instead of granting booking or quote tables.

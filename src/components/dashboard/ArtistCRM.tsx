@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { OverviewPlan, PlanDialogs, type PlanModal } from "./OverviewPlan";
+import { RatecardReminder } from "./RatecardReminder";
 import { DashboardArtwork } from "./DashboardArtwork";
 import { WalletPage } from "./WalletPage";
 import { ChatsPerformChart, InvoiceProgressChart, JobProgressChart, RevenueChart, escrowNow, useOverviewMoney } from "./OverviewCharts";
@@ -60,6 +61,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
   const quick = "studio-button";
   return (
     <div className="studio-overview">
+      <RatecardReminder artistId={artistId} />
       <section className="studio-hello studio-span-12" aria-labelledby="ov-hello">
         <DashboardArtwork />
         <div className="studio-greeting">

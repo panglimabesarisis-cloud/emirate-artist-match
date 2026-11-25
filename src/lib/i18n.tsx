@@ -101,6 +101,7 @@ const AR: Record<string, string> = {
   "Could not send your request. Please try again.": "تعذر إرسال طلبك. حاول مرة أخرى.",
   "Completed bookings": "حجوزات مكتملة", Rating: "التقييم", "Total earned": "إجمالي الأرباح", "Response rate": "معدل الرد", "Repeat clients": "عملاء متكررون", "Member since": "عضو منذ",
   "ID Verified": "هوية موثقة", "Business Verified": "نشاط تجاري موثق", "Verified Performer": "فنان موثق",
+  "Fill in your rate card": "أكمل قائمة أسعارك", "Fill rate card": "إضافة الأسعار", "Your deposit is paid. Add your starting price and prices so clients and your AI agent can quote them.": "تم دفع العربون. أضف السعر المبدئي وأسعارك ليتمكن العملاء ومساعدك الذكي من تقديم العروض.",
   // event types (by English name)
   Wedding: "حفل زفاف", Corporate: "فعالية شركات", "Corporate event": "فعالية شركات", "Birthday": "عيد ميلاد", "Private party": "حفلة خاصة", "Gala dinner": "عشاء رسمي", "Product launch": "إطلاق منتج", Festival: "مهرجان", Ramadan: "رمضان", "Ramadan / Iftar": "رمضان / إفطار", "Hotel & venue": "فندق ومكان", "Yacht party": "حفلة يخت", "National Day": "اليوم الوطني",
 };
