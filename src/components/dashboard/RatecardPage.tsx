@@ -1,19 +1,21 @@
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, ChevronDown, ChevronUp, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Info, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { aed } from "@/lib/format";
-import { emptyRate, rateDraft, rateItems, ratePayload, rateScope, type RateDraft, type StoredRate } from "@/lib/ratecard";
+import { RATE_PRESETS, emptyRate, rateDraft, rateItems, ratePayload, rateScope, type RateDraft, type StoredRate } from "@/lib/ratecard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RatecardFields } from "@/components/shared/RatecardFields";
 import { RatecardDetails } from "@/components/shared/RatecardDetails";
 import { StudioHeading } from "./StudioPage";
+import "./ratecard.css";
 
 type Row = StoredRate & { id: string; sort: number | null; artist_id: string };
+
 export function RatecardPage({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -70,27 +72,83 @@ export function RatecardPage({ artistId }: { artistId: string }) {
     } catch (err) { toast.error(err instanceof Error ? err.message : t("Could not delete ratecard.")); } finally { setBusy(false); }
   };
   const edit = (row: Row) => { setEditing(row); setForm(rateDraft(row)); setMessage(""); setOpen(true); document.getElementById("ratecard-builder")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }); };
+
   return <div className="dmr-wrap dmr-rcpage">
-    <StudioHeading title="Rate" accent="card"><div className="flex flex-wrap items-center gap-3"><div className="dmr-q-stats">{[["Ratecards", String(data.length)], ["Lowest", prices.length ? aed(Math.min(...prices)) : "—"], ["Highest", prices.length ? aed(Math.max(...prices)) : "—"], ["Average", prices.length ? aed(prices.reduce((a,b) => a+b,0)/prices.length) : "—"]].map(([label, value]) => <div className="dmr-qs" key={label}><small>{t(label ?? "")}</small><b className="text-gold" dir="ltr">{value}</b></div>)}</div><Button type="button" variant="outline" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? <ChevronUp className="me-2 h-4 w-4" /> : <Plus className="me-2 h-4 w-4" />}{t(open ? "Collapse form" : "Add ratecard")}</Button></div></StudioHeading>
-    <section id="ratecard-builder" className="dmr-c-12 scroll-mt-24 border-y border-border py-5" hidden={!open} aria-label={t("Ratecard builder")}>
-      <div className="mb-5 flex items-center justify-between gap-3"><h2 className="font-display text-2xl">{t(editing ? "Edit ratecard" : "Add ratecard")}</h2>{editing && <span className="text-sm text-gold">{editing.title}</span>}</div>
+    <StudioHeading title="Rate" accent="card" badge={<span className="dmr-rc-sync"><i aria-hidden="true" />{t("AI quote engine synced")}</span>}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="dmr-q-stats">{([["Ratecards", String(data.length)], ["Lowest", prices.length ? aed(Math.min(...prices)) : "—"], ["Highest", prices.length ? aed(Math.max(...prices)) : "—"], ["Average", prices.length ? aed(prices.reduce((a, b) => a + b, 0) / prices.length) : "—"]] as const).map(([label, value]) => <div className="dmr-qs" key={label}><small>{t(label)}</small><b className="text-gold" dir="ltr">{value}</b></div>)}</div>
+        <Button type="button" variant="outline" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? <ChevronUp className="me-2 h-4 w-4" /> : <Plus className="me-2 h-4 w-4" />}{t(open ? "Collapse form" : "Add ratecard")}</Button>
+      </div>
+    </StudioHeading>
+
+    <section id="ratecard-builder" className="dmr-panel dmr-rc-builder dmr-c-12" hidden={!open} aria-label={t("Ratecard builder")}>
+      <div className="dmr-rc-head">
+        <div>
+          <h2>{t(editing ? "Edit ratecard" : "Add ratecard")}{editing && <span className="dmr-rc-edit">{t("Editing")}</span>}</h2>
+          <p>{editing ? editing.title : t("Set what the base price covers, add optional extras, and write the rules your AI agent follows when it quotes.")}</p>
+        </div>
+        {!editing && <div className="dmr-rc-chips">
+          <small>{t("Start from")}</small>
+          {RATE_PRESETS.map(preset => <Button key={preset.label} type="button" variant="ghost" className="dmr-rc-chip" disabled={busy} onClick={() => { setForm(preset.draft); setMessage(""); }}>{t(preset.label)}</Button>)}
+        </div>}
+      </div>
       <form noValidate onSubmit={e => { e.preventDefault(); void save(); }} className="space-y-5">
         <RatecardFields value={form} onChange={v => { if (!busy) setForm(v); }} units={units} disabled={busy} />
         {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
-        <div className="flex justify-end gap-3"><Button type="button" variant="outline" disabled={busy} onClick={reset}>{t(editing ? "Cancel" : "Reset / clear")}</Button><Button type="submit" disabled={busy} className="bg-gradient-gold text-gold-foreground"><Check className="me-2 h-4 w-4" />{t(busy ? "Saving…" : "Save ratecard")}</Button></div>
+        <div className="dmr-rc-foot">
+          <span className="dmr-rc-note"><Info aria-hidden="true" />{t("Clients and your AI agent see these rates as soon as you save.")}</span>
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" disabled={busy} onClick={reset}>{t(editing ? "Cancel" : "Reset / clear")}</Button>
+            <Button type="submit" disabled={busy} className="bg-gradient-gold text-gold-foreground"><Check className="me-2 h-4 w-4" />{t(busy ? "Saving…" : "Save ratecard")}</Button>
+          </div>
+        </div>
       </form>
     </section>
-    <section className="dmr-c-12 min-w-0" aria-label={t("Ratecard list")}>
-      <div className="flex flex-wrap items-center gap-3 py-4"><div className="relative min-w-48 flex-1"><Search className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="search" aria-label={t("Search ratecards")} placeholder={t("Search service, item or work rules")} className="ps-9" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} /></div>
+
+    <section className="dmr-panel dmr-q-panel dmr-c-12" aria-label={t("Ratecard list")}>
+      <div className="dmr-q-tools">
+        <div className="dmr-q-srch relative"><Search className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="search" aria-label={t("Search ratecards")} placeholder={t("Search service, item or work rules")} className="ps-9" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} /></div>
         <Select value={unit} onValueChange={v => { setUnit(v); setPage(1); }}><SelectTrigger className="w-40" aria-label={t("Filter by unit")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("All units")}</SelectItem>{units.map(u => <SelectItem value={u} key={u}>{t(u)}</SelectItem>)}</SelectContent></Select>
-        <Select value={sort} onValueChange={v => { setSort(v); setPage(1); }}><SelectTrigger className="w-44" aria-label={t("Sort ratecards")}><SelectValue /></SelectTrigger><SelectContent>{[["newest", "Newest first"], ["az", "Name A to Z"], ["low", "Price low to high"], ["high", "Price high to low"]].map(([v, text]) => <SelectItem key={v} value={v ?? "newest"}>{t(text ?? "")}</SelectItem>)}</SelectContent></Select>
+        <Select value={sort} onValueChange={v => { setSort(v); setPage(1); }}><SelectTrigger className="w-44" aria-label={t("Sort ratecards")}><SelectValue /></SelectTrigger><SelectContent>{([["newest", "Newest first"], ["az", "Name A to Z"], ["low", "Price low to high"], ["high", "Price high to low"]] as const).map(([v, text]) => <SelectItem key={v} value={v}>{t(text)}</SelectItem>)}</SelectContent></Select>
         {selected.length > 0 && <Button variant="destructive" size="sm" disabled={busy} onClick={() => void remove(selected)}><Trash2 className="me-2 h-4 w-4" />{t("Delete selected")} ({selected.length})</Button>}
       </div>
-      {error ? <p role="alert" className="py-5 text-destructive">{t("Could not load ratecards.")} <Button variant="outline" onClick={() => void refresh()}>{t("Retry")}</Button></p> : <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-start text-sm"><thead className="border-y border-border bg-muted/40 text-xs text-muted-foreground"><tr><th className="p-3"><input type="checkbox" className="accent-gold" aria-label={t("Select all on this page")} checked={shown.length > 0 && shown.every(r => selected.includes(r.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...shown.map(r => r.id)])] : selected.filter(id => !shown.some(r => r.id === id)))} /></th>{["Job / service title", "Base price", "Unit & scope", "Rules of work", "Actions"].map(title => <th className="p-3 text-start" key={title}>{t(title)}</th>)}</tr></thead><tbody>
-        {shown.map(r => <Fragment key={r.id}><tr className="border-b border-border"><td className="p-3"><input type="checkbox" className="accent-gold" aria-label={`${t("Select")} ${r.title}`} checked={selected.includes(r.id)} onChange={e => setSelected(e.target.checked ? [...selected, r.id] : selected.filter(id => id !== r.id))} /></td><td className="p-3"><b>{r.title}</b><Button type="button" variant="ghost" size="sm" className="mt-1 flex text-xs text-gold" aria-expanded={expanded.includes(r.id)} onClick={() => setExpanded(s => s.includes(r.id) ? s.filter(id => id !== r.id) : [...s, r.id])}>{rateItems(r).length} {t("items")}{expanded.includes(r.id) ? <ChevronUp className="ms-1 h-3 w-3" /> : <ChevronDown className="ms-1 h-3 w-3" />}</Button></td><td className="whitespace-nowrap p-3 font-semibold text-gold" dir="ltr">{aed(Number(r.price))}</td><td className="p-3">{rateScope(r)}<small className="block text-muted-foreground">{rateItems(r).filter(i => i.type === "addon").length} {t("optional add-ons")}</small></td><td className="max-w-64 p-3"><p className="line-clamp-2 text-muted-foreground">{r.rules_of_work || r.description || "—"}</p></td><td className="p-3"><div className="flex gap-1"><Button size="icon" variant="ghost" aria-label={`${t("Edit")} ${r.title}`} disabled={busy} onClick={() => edit(r)}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" aria-label={`${t("Delete")} ${r.title}`} disabled={busy} onClick={() => void remove([r.id])}><Trash2 className="h-4 w-4" /></Button></div></td></tr>{expanded.includes(r.id) && <tr className="border-b border-border"><td colSpan={6} className="p-4"><RatecardDetails rate={r} /></td></tr>}</Fragment>)}
-        {shown.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t(isPending ? "Loading…" : data.length ? "No matching ratecards." : "No ratecards yet.")}</td></tr>}
-      </tbody></table></div>}
-      <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-xs text-muted-foreground"><span>{rows.length} {t("ratecards")}</span><div className="flex items-center gap-2"><Select value={String(size)} onValueChange={v => { setSize(Number(v)); setPage(1); }}><SelectTrigger className="w-28" aria-label={t("Rows per page")}><SelectValue /></SelectTrigger><SelectContent>{[10,25,50].map(n => <SelectItem key={n} value={String(n)}>{n} / {t("page")}</SelectItem>)}</SelectContent></Select><Button size="sm" variant="outline" disabled={current <= 1} onClick={() => setPage(current - 1)}>{t("Prev")}</Button><span>{current} / {pages}</span><Button size="sm" variant="outline" disabled={current >= pages} onClick={() => setPage(current + 1)}>{t("Next")}</Button></div></div>
+
+      {error ? <p role="alert" className="p-5 text-destructive">{t("Could not load ratecards.")} <Button variant="outline" onClick={() => void refresh()}>{t("Retry")}</Button></p> : <div className="dmr-tbl-wrap"><table className="min-w-[720px]">
+        <thead><tr>
+          <th><input type="checkbox" className="accent-gold" aria-label={t("Select all on this page")} checked={shown.length > 0 && shown.every(r => selected.includes(r.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...shown.map(r => r.id)])] : selected.filter(id => !shown.some(r => r.id === id)))} /></th>
+          {["Job / service title", "Base price", "Unit & scope", "Rules of work", "Actions"].map(title => <th key={title}>{t(title)}</th>)}
+        </tr></thead>
+        <tbody>
+          {shown.map(r => <Fragment key={r.id}>
+            <tr>
+              <td><input type="checkbox" className="accent-gold" aria-label={`${t("Select")} ${r.title}`} checked={selected.includes(r.id)} onChange={e => setSelected(e.target.checked ? [...selected, r.id] : selected.filter(id => id !== r.id))} /></td>
+              <td>
+                <b>{r.title}</b>
+                <Button type="button" variant="ghost" size="sm" className="dmr-rc-more flex" aria-expanded={expanded.includes(r.id)} onClick={() => setExpanded(s => s.includes(r.id) ? s.filter(id => id !== r.id) : [...s, r.id])}>{rateItems(r).length} {t("items")}{expanded.includes(r.id) ? <ChevronUp className="ms-1 h-3 w-3" /> : <ChevronDown className="ms-1 h-3 w-3" />}</Button>
+              </td>
+              <td><span className="dmr-rc-price" dir="ltr">{aed(Number(r.price))}</span><small>{t("Starting base")}</small></td>
+              <td>
+                <span className="dmr-rc-scope"><i aria-hidden="true" />{rateScope(r)}</span>
+                <small className="dmr-rc-addons">{rateItems(r).filter(i => i.type === "addon").length} {t("optional add-ons")}</small>
+              </td>
+              <td className="dmr-rc-rules-cell"><p className="dmr-rc-rules line-clamp-3">{r.rules_of_work || r.description || "—"}</p></td>
+              <td><div className="flex gap-1"><Button size="icon" variant="ghost" aria-label={`${t("Edit")} ${r.title}`} disabled={busy} onClick={() => edit(r)}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" aria-label={`${t("Delete")} ${r.title}`} disabled={busy} onClick={() => void remove([r.id])}><Trash2 className="h-4 w-4" /></Button></div></td>
+            </tr>
+            {expanded.includes(r.id) && <tr><td colSpan={6}><div className="dmr-rc-exp"><p>{t("Detailed pricing items")}</p><RatecardDetails rate={r} /></div></td></tr>}
+          </Fragment>)}
+          {shown.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t(isPending ? "Loading…" : data.length ? "No matching ratecards." : "No ratecards yet.")}</td></tr>}
+        </tbody>
+      </table></div>}
+
+      <div className="dmr-q-foot">
+        <span>{rows.length} {t("ratecards")}</span>
+        <div className="flex items-center gap-2">
+          <Select value={String(size)} onValueChange={v => { setSize(Number(v)); setPage(1); }}><SelectTrigger className="w-28" aria-label={t("Rows per page")}><SelectValue /></SelectTrigger><SelectContent>{[10, 25, 50].map(n => <SelectItem key={n} value={String(n)}>{n} / {t("page")}</SelectItem>)}</SelectContent></Select>
+          <Button size="sm" variant="outline" disabled={current <= 1} onClick={() => setPage(current - 1)}>{t("Prev")}</Button>
+          <span>{current} / {pages}</span>
+          <Button size="sm" variant="outline" disabled={current >= pages} onClick={() => setPage(current + 1)}>{t("Next")}</Button>
+        </div>
+      </div>
     </section>
   </div>;
 }

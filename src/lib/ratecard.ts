@@ -50,3 +50,62 @@ export function ratePayload(draft: RateDraft) {
 export function rateScope(rate: StoredRate) {
   return rateItems(rate).filter(i => i.type === "base").map(i => `${i.qty} ${i.unit}`).join(" + ");
 }
+/** Work-rule snippets offered as one-tap chips under the rules field. */
+export const RULE_SNIPPETS: { label: string; text: string }[] = [
+  { label: "Revision limit", text: "Includes up to 3 minor revisions. Extra rounds are charged per request." },
+  { label: "Extra revision fee", text: "Any revision beyond the agreed limit is billed as an add-on." },
+  { label: "Travel not included", text: "Price excludes travel and accommodation outside the listed emirate." },
+  { label: "50% deposit", text: "A 50% deposit confirms the date. The balance is due on delivery." },
+  { label: "Overtime rate", text: "Time beyond the booked duration is billed hourly once you approve it." },
+];
+
+/** Append a snippet as its own bullet line, ignoring one that is already there. */
+export function appendRule(current: string, text: string, limit = 600) {
+  const body = current.trim();
+  if (body.toLowerCase().includes(text.toLowerCase())) return current;
+  const next = body ? `${body}\n• ${text}` : `• ${text}`;
+  return next.length > limit ? current : next;
+}
+
+/** Starter packages so a new talent does not face an empty builder. */
+export const RATE_PRESETS: { label: string; draft: RateDraft }[] = [
+  {
+    label: "Event host / MC",
+    draft: {
+      title: "Event hosting & MC",
+      unit_label: "Minutes Perform",
+      description: "Hosting the run of show, crowd engagement and script alignment with your team.",
+      rules_of_work: "• Includes one technical soundcheck before the event.\n• Time beyond the booked duration is billed hourly once you approve it.",
+      items: [
+        { desc: "Main hosting slot", qty: "90", price: "4000", type: "base", unit: "Minutes Perform" },
+        { desc: "Overtime, per extra 30 minutes", qty: "30", price: "900", type: "addon", unit: "Minutes Perform" },
+      ],
+    },
+  },
+  {
+    label: "DJ set",
+    draft: {
+      title: "DJ set",
+      unit_label: "Hours",
+      description: "A prepared set, your own controller and headphones, and a curated playlist agreed in advance.",
+      rules_of_work: "• Venue provides the sound system, speakers and power.\n• A 50% deposit confirms the date. The balance is due on delivery.",
+      items: [
+        { desc: "Live DJ set", qty: "3", price: "3500", type: "base", unit: "Hours" },
+        { desc: "Extra hour", qty: "1", price: "900", type: "addon", unit: "Hours" },
+      ],
+    },
+  },
+  {
+    label: "Photo / video",
+    draft: {
+      title: "Event photography",
+      unit_label: "Hours",
+      description: "On-site coverage plus a gallery of edited, colour-graded images delivered online.",
+      rules_of_work: "• Edited gallery is delivered within 10 working days.\n• Raw files stay with the photographer unless agreed in writing.",
+      items: [
+        { desc: "Event coverage with edited gallery", qty: "4", price: "2800", type: "base", unit: "Hours" },
+        { desc: "Same-day highlight reel", qty: "1", price: "1200", type: "addon", unit: "Project" },
+      ],
+    },
+  },
+];

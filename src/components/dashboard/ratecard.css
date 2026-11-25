@@ -1,0 +1,52 @@
+/* Rate card page chrome: heading badge, builder panel and the list table. */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-sync{display:inline-flex;align-items:center;gap:6px;margin-inline-start:10px;padding:4px 11px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);border:1px solid var(--studio-reference-tone-11);background:var(--studio-gold-wash-soft);vertical-align:middle;white-space:nowrap}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-sync i{width:5px;height:5px;border-radius:999px;background:var(--gold)}
+
+/* builder panel */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-builder{scroll-margin-top:96px}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-builder[hidden]{display:none}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--studio-line)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-head h2{font-family:var(--font-display);font-size:26px;line-height:1.15;font-weight:400}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-head p{margin-top:5px;font-size:12px;line-height:1.6;color:var(--muted-foreground);max-width:60ch}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-edit{display:inline-block;margin-inline-start:9px;padding:3px 9px;border-radius:7px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gold);border:1px solid var(--studio-reference-tone-11);background:var(--studio-gold-wash-soft);vertical-align:middle}
+
+/* form footer */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid var(--studio-line)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-note{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-note svg{width:15px;height:15px;color:var(--gold);flex-shrink:0}
+
+/* list */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-more[data-slot=button]{min-height:0;height:auto;margin-top:6px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;color:var(--gold);background:var(--studio-wash);border:1px solid var(--studio-line-2)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-price{font-family:var(--font-display);font-size:21px;font-weight:400;line-height:1.1;color:var(--gold)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-price+small{display:block;margin-top:2px;font-size:10px;color:var(--studio-mute-2)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-scope{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--studio-wash);border:1px solid var(--studio-line-2);white-space:nowrap}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-scope i{width:5px;height:5px;border-radius:999px;background:var(--gold);flex-shrink:0}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-addons{display:block;margin-top:6px;font-size:11px;color:var(--gold)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-rules{font-size:12px;line-height:1.6;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .dmr-rcpage td.dmr-rc-rules-cell{white-space:normal;max-width:34ch}
+
+/* expanded breakdown */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-exp{padding-inline-start:14px;border-inline-start:2px solid var(--studio-reference-tone-11)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-exp>p:first-child{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--studio-mute-2);margin-bottom:10px}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-exp-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(248px,1fr))}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px;border-radius:12px;border:1px solid var(--studio-line);background:var(--studio-panel-gradient)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-tag.base{color:var(--studio-reference-tone-113);border:1px solid var(--studio-reference-tone-110);background:var(--studio-reference-tone-112)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-tag.addon{color:var(--gold);border:1px solid var(--studio-reference-tone-11);background:var(--studio-gold-wash-soft)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-item h4{margin-top:6px;font-size:12.5px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-item h4+p{margin-top:3px;font-size:11px;color:var(--muted-foreground)}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-item>b{font-family:var(--font-display);font-size:17px;font-weight:400;color:var(--gold);white-space:nowrap}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-exp-meta{margin-top:12px;display:grid;gap:7px;font-size:12px;line-height:1.6}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-exp-meta b{color:var(--gold);font-weight:700}
+
+@media (max-width:620px){
+  html.dm-dash .studio-reference .dmr-rcpage .dmr-rc-head h2{font-size:23px}
+}
+
+/* The shared field rule `:is(input:not(…),textarea,[data-slot=select-trigger])`
+   scores (0,4,2) and beats `.dmr-q-tools [data-slot=select-trigger]` at (0,4,1),
+   so every toolbar select stretched to its own row. Re-assert the intent here. */
+html.dm-dash .studio-reference .dmr-rcpage .dmr-q-tools .dmr-q-srch{flex:1 1 240px;max-width:420px}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-q-tools [data-slot=select-trigger],
+html.dm-dash .studio-reference .dmr-rcpage .dmr-q-foot [data-slot=select-trigger]{width:auto;min-width:148px;flex:0 0 auto}
+html.dm-dash .studio-reference .dmr-rcpage .dmr-q-foot{align-items:center;flex-wrap:wrap}

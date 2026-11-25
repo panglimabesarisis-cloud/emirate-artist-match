@@ -1,0 +1,62 @@
+/* Rate card builder fields. Shared by the dashboard, the admin dialog and the
+   signup wizard, so every colour falls back to a base token when the studio
+   palette is not on the page. */
+.dmr-rc-fields{
+  --rc-line:var(--studio-line, var(--border));
+  --rc-line-2:var(--studio-line-2, var(--border));
+  --rc-wash:var(--studio-wash, color-mix(in oklab, var(--foreground) 4%, transparent));
+  --rc-mute:var(--studio-mute-2, var(--muted-foreground));
+  --rc-gold-wash:var(--studio-gold-wash-soft, color-mix(in oklab, var(--gold) 10%, transparent));
+  --rc-gold-line:color-mix(in oklab, var(--gold) 38%, transparent);
+  min-width:0;
+}
+
+/* chip rows: presets and quick-insert rules */
+.dmr-rc-fields .dmr-rc-chips,.dmr-rc-chips{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.dmr-rc-chips>small{font-size:11px;color:var(--rc-mute, var(--muted-foreground));margin-inline-end:2px}
+[data-slot=button].dmr-rc-chip{min-height:0;height:auto;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.4;white-space:normal;color:var(--muted-foreground);background:var(--rc-wash, transparent);border:1px solid var(--rc-line-2, var(--border));transition:color .25s,border-color .25s,background .25s}
+[data-slot=button].dmr-rc-chip:hover:not(:disabled){color:var(--gold);border-color:var(--rc-gold-line);background:var(--rc-gold-wash)}
+
+/* nested item & pricing card */
+.dmr-rc-fields .dmr-rc-break{border:1px solid var(--rc-line);border-radius:16px;background:var(--rc-wash);padding:16px}
+.dmr-rc-fields .dmr-rc-break-h{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.dmr-rc-fields .dmr-rc-break-h h3{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--foreground)}
+.dmr-rc-fields .dmr-rc-break-h p{margin-top:5px;font-size:11.5px;line-height:1.6;color:var(--muted-foreground);max-width:62ch}
+.dmr-rc-fields .dmr-rc-count{padding:2px 9px;border-radius:999px;font-size:10px;font-weight:700;color:var(--gold);background:var(--rc-gold-wash);border:1px solid var(--rc-line-2)}
+
+/* one column template drives the header row and every item row */
+.dmr-rc-fields .dmr-rc-cols,.dmr-rc-fields .dmr-rc-row{display:grid;gap:10px;grid-template-columns:minmax(0,2.4fr) minmax(76px,.7fr) minmax(92px,1fr) minmax(112px,1fr) minmax(132px,1.3fr) 38px}
+.dmr-rc-fields .dmr-rc-cols{padding:0 2px 8px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--rc-mute);border-bottom:1px solid var(--rc-line)}
+.dmr-rc-fields .dmr-rc-cols span:last-child{text-align:end}
+.dmr-rc-fields .dmr-rc-cols em{font-style:normal;color:var(--gold)}
+.dmr-rc-fields .dmr-rc-row{align-items:end;padding:12px 0;border-bottom:1px solid var(--rc-line)}
+.dmr-rc-fields .dmr-rc-row:last-of-type{border-bottom:0;padding-bottom:4px}
+.dmr-rc-fields .dmr-rc-row label{display:block;margin-bottom:5px}
+.dmr-rc-fields .dmr-rc-row :is(input,[data-slot=select-trigger],.ratecard-field){min-height:40px;font-size:12.5px}
+[data-slot=button].dmr-rc-del{min-height:40px;width:38px;padding:0;border-radius:10px;color:var(--muted-foreground)}
+[data-slot=button].dmr-rc-del:hover:not(:disabled){color:var(--destructive);background:var(--rc-wash, transparent)}
+
+/* the visible column headers label the inputs above 900px */
+@media (min-width:901px){
+  .dmr-rc-fields .dmr-rc-row label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+
+/* totals */
+.dmr-rc-fields .dmr-rc-totals{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rc-line);font-size:12.5px}
+.dmr-rc-fields .dmr-rc-tot-sum{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted-foreground)}
+.dmr-rc-fields .dmr-rc-totals b{font-weight:700;color:var(--foreground)}
+.dmr-rc-fields .dmr-rc-totals b.gold{color:var(--gold)}
+.dmr-rc-fields .dmr-rc-totals small{font-size:11px;color:var(--rc-mute)}
+
+.dmr-rc-fields .dmr-rc-count-chars{font-size:11px;color:var(--rc-mute)}
+
+@media (max-width:900px){
+  .dmr-rc-fields .dmr-rc-cols{display:none}
+  .dmr-rc-fields .dmr-rc-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:14px 0}
+  .dmr-rc-fields .dmr-rc-row>div:first-child{grid-column:1/-1}
+  [data-slot=button].dmr-rc-del{grid-column:1/-1;justify-self:end}
+}
+@media (max-width:620px){
+  .dmr-rc-fields .dmr-rc-break{padding:13px}
+  .dmr-rc-fields .dmr-rc-row{grid-template-columns:minmax(0,1fr)}
+}
