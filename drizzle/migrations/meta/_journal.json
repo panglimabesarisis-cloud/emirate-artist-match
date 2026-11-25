@@ -652,6 +652,13 @@
       "when": 1795572180202,
       "tag": "0092_wallet_rush_costs_event_detail",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1795572240202,
+      "tag": "0093_invoice_prefix_and_menu",
+      "breakpoints": true
     }
   ]
 }

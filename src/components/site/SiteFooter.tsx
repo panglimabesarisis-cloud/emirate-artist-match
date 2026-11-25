@@ -5,16 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { StarlightWordmark } from "@/components/shared/StarlightWordmark";
 import "@/components/shared/shared.css";
 import { HideForArtist } from "@/components/shared/HideForArtist";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import { supportWhatsApp } from "@/lib/site-settings";
 
 export function SiteFooter() {
   const { t } = useI18n();
+  const { general } = useSiteSettings();
+  const whatsapp = supportWhatsApp(general.supportPhone);
   const pages = useQuery({ queryKey: ["footer-pages"], queryFn: async () => (await supabase.from("site_pages").select("slug, title").eq("published", true).eq("in_menu", true).order("sort")).data ?? [] }).data ?? [];
   return (
     <footer className="shared-footer mt-24">
       <div className="mx-auto max-w-7xl px-4 py-12 grid gap-8 md:grid-cols-4 text-sm">
         <div>
-          <div className="font-display text-2xl">Dealmaker<span className="text-gold">.</span></div>
-          <p className="mt-2 opacity-70">{t("Dubai's AI-powered talent marketplace. Every artist deserves an AI manager.")}</p>
+          <div className="font-display text-2xl">{general.siteTitle}<span className="text-gold">.</span></div>
+          <p className="mt-2 opacity-70">{t(general.tagline || "Dubai's AI-powered talent marketplace. Every artist deserves an AI manager.")}</p>
+          {general.supportEmail && <p className="mt-3"><a className="break-all underline-offset-4 hover:underline" href={`mailto:${general.supportEmail}`}>{general.supportEmail}</a></p>}
+          {general.supportPhone && <p className="mt-1">{whatsapp ? <a className="underline-offset-4 hover:underline" dir="ltr" href={whatsapp} target="_blank" rel="noreferrer">WhatsApp {general.supportPhone}</a> : general.supportPhone}</p>}
         </div>
         <div>
           <div className="font-semibold mb-3 text-gold">{t("Discover")}</div>
@@ -40,7 +46,7 @@ export function SiteFooter() {
         </div>
       </div>
       <StarlightWordmark />
-      <div className="shared-footer-bottom"><span>© 2026 Dealmaker · Management by Dede Fajar Kurniawan</span><span>Dubai · Abu Dhabi · Sharjah</span></div>
+      <div className="shared-footer-bottom"><span>© 2026 {general.siteTitle} · Management by Dede Fajar Kurniawan</span><span>Dubai · Abu Dhabi · Sharjah</span></div>
     </footer>
   );
 }

@@ -9,6 +9,7 @@ import { archiveFileName, archiveFolders, dubaiDate } from "./invoice-archive-na
 import { buildInvoicePdf, type ArchiveInvoice } from "./invoice-pdf";
 import { BudgetExceeded, DriveError, ensureChildFolder, uploadPdf, type Guard } from "./drive.server";
 import type { Invoice } from "./invoice";
+import { parseSiteSettings } from "./site-settings";
 
 const MAX_ATTEMPTS = 8;
 type Job = { id: string; invoice_id: string; kind: string; attempts: number };
@@ -57,9 +58,15 @@ async function loadInvoice(job: Job): Promise<{ data: ArchiveInvoice; artistId: 
   };
 }
 
+/** Admin invoice settings; the archived copy is still made when they cannot be read. */
+async function issuerSettings() {
+  try { const { data } = await supabaseAdmin.from("site_settings").select("key, value").eq("key", "invoice"); return parseSiteSettings(data ?? []).invoice; }
+  catch { return undefined; }
+}
+
 async function archiveOne(job: Job, guard: Guard) {
   const { data, artistId } = await loadInvoice(job);
-  const bytes = buildInvoicePdf(data);
+  const bytes = buildInvoicePdf(data, await issuerSettings());
   const name = archiveFileName({ artistName: data.artistName, number: data.number, client: data.client, issued: data.issued, total: data.total, paid: job.kind === "paid" });
   const names = archiveFolders(data.artistName, data.issued);
   const root = await rootFolderId();

@@ -7,6 +7,8 @@ import { InvoicePaper, type PaperData } from "@/components/dashboard/InvoicePape
 import { InvoicePreviewDialog } from "@/components/dashboard/InvoicePreviewDialog";
 import { archiveFromPaper, invoiceFileName } from "@/lib/chat-invoice";
 import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import type { SiteSettings } from "@/lib/site-settings";
 import { invoiceCheckout } from "@/lib/payments.functions";
 import { validateHostedUrl } from "@/lib/hosted-checkout";
 import { useI18n } from "@/lib/i18n";
@@ -44,8 +46,8 @@ export function A4Fit({ data }: { data: PaperData }) {
   );
 }
 
-export function downloadPaper(paper: PaperData) {
-  const url = URL.createObjectURL(new Blob([buildInvoicePdf(archiveFromPaper(paper)) as BlobPart], { type: "application/pdf" }));
+export function downloadPaper(paper: PaperData, issuer?: SiteSettings["invoice"]) {
+  const url = URL.createObjectURL(new Blob([buildInvoicePdf(archiveFromPaper(paper), issuer) as BlobPart], { type: "application/pdf" }));
   const link = document.createElement("a");
   link.href = url;
   link.download = invoiceFileName(paper);
@@ -55,8 +57,9 @@ export function downloadPaper(paper: PaperData) {
 
 export function DownloadInvoiceButton({ paper }: { paper: PaperData }) {
   const { t } = useI18n();
+  const issuer = useSiteSettings().invoice;
   const download = () => {
-    try { downloadPaper(paper); }
+    try { downloadPaper(paper, issuer); }
     catch { toast.error(t("Could not create the invoice file.")); }
   };
   return <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={download}><Download className="me-1.5 h-4 w-4" />{t("Download PDF")}</Button>;
@@ -64,7 +67,8 @@ export function DownloadInvoiceButton({ paper }: { paper: PaperData }) {
 
 /** The full-size preview, with download and print. */
 export function ChatInvoiceDialog({ paper, onClose }: { paper: PaperData | null; onClose: () => void }) {
-  return <InvoicePreviewDialog data={paper} onClose={onClose} sheet={paper ? <A4Fit data={paper} /> : null} {...(paper ? { onDownload: () => downloadPaper(paper) } : {})} />;
+  const issuer = useSiteSettings().invoice;
+  return <InvoicePreviewDialog data={paper} onClose={onClose} sheet={paper ? <A4Fit data={paper} /> : null} {...(paper ? { onDownload: () => downloadPaper(paper, issuer) } : {})} />;
 }
 
 /** One invoice as it appears in a chat or a list: the A4 sheet with its actions underneath. */

@@ -10,6 +10,15 @@ import { useI18n, localName } from "@/lib/i18n";
 import type { HomeCatalog } from "./types";
 import { ALL } from "@/lib/artist-search";
 import "./send-job-navigation.css";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import { ARTIST_MENU, TALENT_MENU, type MenuItem } from "@/lib/site-settings";
+
+/** A header link saved in Admin → Settings → Menu. */
+function NavLink({ item, onClick }: { item: MenuItem; onClick?: () => void }) {
+  const { t } = useI18n();
+  if (!/^\/[^?#]*$/.test(item.href)) return <a href={item.href} onClick={onClick}>{t(item.label)}</a>;
+  return <Link to={item.href as "/"} activeProps={{ "aria-current": "page" }} onClick={onClick}>{t(item.label)}</Link>;
+}
 
 export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const { user, isAdmin, isArtist, loading } = useAuth();
@@ -20,6 +29,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [menu, setMenu] = useState(false);
+  const navItems = useSiteSettings().menu;
   const [dropdown, setDropdown] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
@@ -50,21 +60,21 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
       <div className="wrap nav-in">
         <Link to="/" className="logo" aria-label="Dealmaker home"><i>D</i><span>Dealmaker<b>.</b></span></Link>
         <nav className="links" aria-label={t("Main navigation")}>
-          <div className={`dd ${dropdown === "talent" ? "open" : ""}`} onMouseEnter={() => openDd("talent")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
-            <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "talent"} aria-controls="home-talent-menu" onClick={() => setDropdown(dropdown === "talent" ? null : "talent")}>{t("Find talent")}<ChevronDown className="chev h-3 w-3" /></Button>
+          {navItems.map((item) => item.href === TALENT_MENU ? (
+          <div key={item.href} className={`dd ${dropdown === "talent" ? "open" : ""}`} onMouseEnter={() => openDd("talent")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
+            <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "talent"} aria-controls="home-talent-menu" onClick={() => setDropdown(dropdown === "talent" ? null : "talent")}>{t(item.label)}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p mega" id="home-talent-menu" inert={dropdown !== "talent"}>
               <div className="dd-col"><span className="dd-h">{t("Categories")}</span>{categories}</div>
               <div className="dd-col"><span className="dd-h">{t("Musicians")}</span><div className="dd-2">{catalog.subcategories.filter((s) => s.category_id === musicians?.id).map((s) => <Link key={s.slug} to="/$category" params={{ category: musicians?.slug ?? "musicians" }} search={{ sub: s.slug }} onClick={close}>{t(s.name)}</Link>)}</div></div>
               <Link className="dd-card" to="/$category" params={{ category: ALL }} onClick={close}><span className="dd-h">{t("All talent")}</span><b className="serif">{t("Show all")} <span className="it">{t("talent.")}</span></b><span className="arr">↗</span></Link>
             </div>
           </div>
-          <div className={`dd ${dropdown === "artists" ? "open" : ""}`} onMouseEnter={() => openDd("artists")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
-            <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "artists"} aria-controls="home-artists-menu" onClick={() => setDropdown(dropdown === "artists" ? null : "artists")}>{t("For artists")}<ChevronDown className="chev h-3 w-3" /></Button>
+          ) : item.href === ARTIST_MENU ? (
+          <div key={item.href} className={`dd ${dropdown === "artists" ? "open" : ""}`} onMouseEnter={() => openDd("artists")} onMouseLeave={closeDd} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropdown(null); }} onKeyDown={(e) => { if (e.key === "Escape") setDropdown(null); }}>
+            <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "artists"} aria-controls="home-artists-menu" onClick={() => setDropdown(dropdown === "artists" ? null : "artists")}>{t(item.label)}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p" id="home-artists-menu" inert={dropdown !== "artists"}>{artistLinks}</div>
           </div>
-          <Link to="/for-clients" activeProps={{ "aria-current": "page" }}>{t("For clients")}</Link>
-          <Link to="/features">{t("Features")}</Link>
-          <Link to="/how-it-works">{t("How it works")}</Link>
+          ) : <NavLink key={`${item.label}-${item.href}`} item={item} />)}
         </nav>
         <div className="nav-r">
           <Button variant="ghost" size="sm" className="language" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}>{lang === "ar" ? "EN" : "عربي"}</Button>
@@ -79,10 +89,11 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
         </div>
       </div>
       {menu && <nav id="home-mobile-menu" className="home-mobile-menu" aria-label={t("Mobile navigation")}>
-        <details><summary>{t("Find talent")}</summary><div>{categories}</div></details>
-        <details><summary>{t("For artists")}</summary><div>{artistLinks}</div></details>
-        <Link to="/for-clients" activeProps={{ "aria-current": "page" }} onClick={close}>{t("For clients")}</Link><Link to="/how-it-works" onClick={close}>{t("How it works")}</Link>
-        <Link to="/features" onClick={close}>{t("Features")}</Link><Link to="/support" onClick={close}>{t("Support")}</Link><Link to="/terms" onClick={close}>{t("Terms of Service")}</Link>
+        {navItems.map((item) => item.href === TALENT_MENU ? <details key={item.href}><summary>{t(item.label)}</summary><div>{categories}</div></details>
+          : item.href === ARTIST_MENU ? <details key={item.href}><summary>{t(item.label)}</summary><div>{artistLinks}</div></details>
+          : <NavLink key={`${item.label}-${item.href}`} item={item} onClick={close} />)}
+        {!navItems.some((item) => item.href === "/support") && <Link to="/support" onClick={close}>{t("Support")}</Link>}
+        {!navItems.some((item) => item.href === "/terms") && <Link to="/terms" onClick={close}>{t("Terms of Service")}</Link>}
         {!signedInArtist && <Link to="/join" onClick={close}>{t("Join as talent")}</Link>}
         <Link to="/send-job" onClick={close}>{t("Send Job")}</Link>
         {user ? <><Link to="/dashboard" onClick={close}>{t(dashboardLabel)}</Link>{isAdmin && <Link to="/admin" onClick={close}>{t("Admin")}</Link>}<Button variant="ghost" onClick={signOut}>{t("Sign out")}</Button></> : <Link to="/auth" onClick={close}>{t("Sign in")}</Link>}

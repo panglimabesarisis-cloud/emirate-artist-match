@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppSettings } from "./WhatsAppSettings";
+import { ARTIST_MENU, DEFAULT_MENU, TALENT_MENU } from "@/lib/site-settings";
 import { GoogleBackupTest } from "./GoogleBackupTest";
 import { StripeConnectionCheck } from "./StripeConnectionCheck";
 
@@ -22,7 +23,7 @@ function useSetting(key: string) {
   const save = async (value: Obj) => {
     const { error } = await supabase.from("site_settings").upsert({ key, value: value as Json, updated_at: new Date().toISOString() });
     if (error) { toast.error(error.message); return; }
-    toast.success("Settings saved"); qc.invalidateQueries({ queryKey: ["setting", key] });
+    toast.success("Settings saved"); qc.invalidateQueries({ queryKey: ["setting", key] }); qc.invalidateQueries({ queryKey: ["site-settings"] });
   };
   return { value: q.data, save };
 }
@@ -70,6 +71,7 @@ function General() {
   const { s, set, save } = useDraft("general");
   return (
     <Card title="Website">
+      <p className="text-xs text-muted-foreground">Used for the home page title and description, the footer and the Support page.</p>
       <F label="Website title"><Input value={s("site_title")} onChange={(e) => set("site_title", e.target.value)} /></F>
       <F label="Tagline / SEO description"><Textarea value={s("tagline")} onChange={(e) => set("tagline", e.target.value)} /></F>
       <F label="Support email"><Input value={s("support_email")} onChange={(e) => set("support_email", e.target.value)} /></F>
@@ -107,10 +109,11 @@ function Locale() {
 
 function Menu() {
   const { d, set, save } = useDraft("menu");
-  const items = (d["items"] as { label: string; href: string }[] | undefined) ?? [];
+  const items = (d["items"] as { label: string; href: string }[] | undefined) ?? DEFAULT_MENU;
   const upd = (next: typeof items) => set("items", next);
   return (
     <Card title="Header menu">
+      <p className="text-xs text-muted-foreground">These links are the website header, in this order. {TALENT_MENU} opens the talent categories and {ARTIST_MENU} opens the artist menu. Other links start with / or https://. Sign in, Join and Send Job always stay.</p>
       {items.map((it, i) => (
         <div key={i} className="flex gap-2">
           <Input placeholder="Label" value={it.label} onChange={(e) => upd(items.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />

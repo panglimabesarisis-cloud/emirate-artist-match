@@ -1,6 +1,8 @@
 import type { InvoiceItem } from "@/lib/invoice";
+import { issuerLines } from "@/lib/site-settings";
 import { invoiceMoney as aed } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 export type PaperStatus = "draft" | "unpaid" | "partial" | "paid" | "expired" | "none";
 
@@ -36,6 +38,7 @@ const STAMP: Record<PaperStatus, { color: string; word: string }> = {
 export function InvoicePaper({ data, tall = false, a4 = false }: { data: PaperData; tall?: boolean; /** Always the 794px A4 layout, whatever the screen: the caller scales it. */ a4?: boolean }) {
   const { t } = useI18n();
   const { status } = data;
+  const issuer = useSiteSettings().invoice;
   const paid = Math.min(data.total, data.paid ?? 0);
   const balance = Math.max(0, data.total - paid);
   const stamp = STAMP[status];
@@ -44,10 +47,12 @@ export function InvoicePaper({ data, tall = false, a4 = false }: { data: PaperDa
   const settles = status === "unpaid" || status === "partial" || status === "paid";
   return (
     <article data-testid="invoice-paper" dir="ltr" className={`relative flex flex-col overflow-hidden rounded-md bg-[#fbf7ef] px-6 pb-8 pt-10 text-[13px] leading-normal text-[#1a1712] shadow-[0_30px_70px_rgba(0,0,0,.45),0_0_0_1px_rgba(255,255,255,.04)] before:absolute before:inset-x-0 before:top-0 before:h-1.5 before:bg-[linear-gradient(90deg,#f0c062,#d4842a)] before:content-[''] sm:px-10 ${a4 ? "aspect-[210/297] w-[794px] !px-[54px] !pb-10 !pt-[52px]" : tall ? "mx-auto w-full max-w-[794px] sm:aspect-[210/297] sm:px-[54px] sm:pb-10 sm:pt-[52px]" : ""}`}>
+      {issuer.accent && <span aria-hidden="true" className="absolute inset-x-0 top-0 z-10 h-1.5" style={{ background: issuer.accent }} />}
       <header className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <b className="block font-display text-[34px] font-normal leading-none tracking-[.04em] text-[#111]">DEALMAKER</b>
+          {issuer.logoUrl ? <img src={issuer.logoUrl} alt={issuer.legalName || "Dealmaker"} className="block h-10 max-w-[200px] object-contain object-left" /> : <b className="block font-display text-[34px] font-normal leading-none tracking-[.04em] text-[#111]">DEALMAKER</b>}
           <small className="mt-1.5 block text-[10.5px] font-bold uppercase tracking-[.24em] text-[#7a7062]">Artist Management</small>
+          {issuerLines(issuer).map((line) => <small key={line} className="mt-0.5 block max-w-[320px] break-words text-[10.5px] text-[#7a7062]">{line}</small>)}
           <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-[3px] text-xs">
             <dt className="font-semibold text-[#7a7062]">Artist name:</dt><dd className="break-all font-bold text-[#111]">{data.artistName || "—"}</dd>
             <dt className="font-semibold text-[#7a7062]">Invoice number:</dt><dd className="break-all font-bold text-[#111]">{data.number ?? t("Assigned on send")}</dd>
@@ -91,6 +96,7 @@ export function InvoicePaper({ data, tall = false, a4 = false }: { data: PaperDa
         <div className="flex flex-col items-end gap-[3px] text-end"><em className="mb-6 not-italic text-[#7a7062]">Dubai, {fmtDate(data.issued ?? new Date().toISOString().slice(0, 10), true)}</em><span className="mb-1 block h-px w-full bg-[#1a1712]" /><b>( {data.artistName || "—"} )</b><small className="text-[#7a7062]">Artist of Dealmaker Management</small></div>
       </div>
       {data.notes && <div className="mt-6 rounded-lg bg-[#f3ebdb] px-4 py-3.5 text-xs text-[#4d463b]"><span className="mb-1 block text-[9.5px] font-extrabold uppercase tracking-[.14em] text-[#b07a1f]">Notes</span>{data.notes}</div>}
+      {issuer.footer && <p className="mt-[26px] whitespace-pre-line break-words text-[11px] text-[#4d463b]">{issuer.footer}</p>}
       <footer className="mt-[26px] flex justify-between gap-4 border-t border-dashed border-[#e7dcc6] pt-3.5 text-[11px] text-[#7a7062]"><span>{data.trn ? <>TRN <b className="text-[#1a1712]">{data.trn}</b></> : "TRN not added yet"}</span><span>Paid through Dealmaker. Held until the job is completed.</span></footer>
     </article>
   );

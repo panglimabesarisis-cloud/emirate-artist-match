@@ -4,6 +4,8 @@
  * Latin text is drawn; other characters print as "?" (the Drive file name keeps the original letters).
  */
 
+import { issuerLines, type SiteSettings } from "./site-settings";
+
 export type ArchiveInvoice = {
   number: string;
   artistName: string;
@@ -76,9 +78,10 @@ class Page {
 }
 
 /** One A4 page per 12 item rows; the last page carries totals, signatures, notes and footer. */
-export function buildInvoicePdf(d: ArchiveInvoice): Uint8Array {
+export function buildInvoicePdf(d: ArchiveInvoice, issuer?: SiteSettings["invoice"]): Uint8Array {
   const pages: Page[] = [];
-  const fresh = () => { const p = new Page(); p.rect(0, 0, W, H, CREAM); p.rect(0, 0, W, 5, [0.9, 0.67, 0.25]); pages.push(p); return p; };
+  const accent: Color = issuer?.accent ? [1, 3, 5].map((at) => parseInt(issuer.accent!.slice(at, at + 2), 16) / 255) as Color : [0.9, 0.67, 0.25];
+  const fresh = () => { const p = new Page(); p.rect(0, 0, W, H, CREAM); p.rect(0, 0, W, 5, accent); pages.push(p); return p; };
   let p = fresh();
   const balance = Math.max(0, d.total - Math.min(d.total, d.paid));
   const stampColor = d.status === "paid" ? GREEN : d.status === "partial" ? GOLD : d.status === "expired" ? MUTED : RED;
@@ -93,6 +96,7 @@ export function buildInvoicePdf(d: ArchiveInvoice): Uint8Array {
   p.text("INVOICE", W - M, 84, 30, INK, { bold: true, align: "r" });
   if (d.status !== "none") p.stamp(W - M - 70, 122, word, sub, stampColor);
 
+  if (issuer) { const by = issuerLines(issuer).join(" · "); if (by) p.text(wrap(by, W - 2 * M, 7.5)[0]!, M, 156, 7.5, MUTED); }
   p.line(M, 166, W - M, 166, LINE);
   const cols = [M, M + 215, M + 365];
   p.text("BILL TO", cols[0]!, 186, 7, MUTED, { bold: true }); p.text("ISSUED", cols[1]!, 186, 7, MUTED, { bold: true }); p.text("INVOICE DUE DATE", cols[2]!, 186, 7, MUTED, { bold: true });
@@ -146,6 +150,7 @@ export function buildInvoicePdf(d: ArchiveInvoice): Uint8Array {
     ny += notes.length * 12 + 36;
   }
   p.line(M, H - 54, W - M, H - 54, LINE, 0.5);
+  if (issuer?.footer) p.text(wrap(issuer.footer.replace(/\s+/g, " "), W - 2 * M, 8)[0]!, M, H - 26, 8, INK);
   p.text(d.trn ? `TRN ${d.trn}` : "TRN not added yet", M, H - 40, 8, MUTED);
   p.text("Paid through Dealmaker. Held until the job is completed.", W - M, H - 40, 8, MUTED, { align: "r" });
   void ny;

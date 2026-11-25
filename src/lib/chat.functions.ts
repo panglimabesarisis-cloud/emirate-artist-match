@@ -256,7 +256,8 @@ export const sendInvoice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertOwner(context.supabase, data.conversationId);
     const { buildInvoice, encodeInvoice } = await import("./invoice");
-    const no = `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const { newInvoiceNumber } = await import("./invoice-number.server");
+    const no = await newInvoiceNumber();
     const inv = buildInvoice(no, data.items.map(x => ({ ...x, title: maskContacts(x.title) })), data.due, data.notes ? maskContacts(data.notes) : null);
     const { data: c } = await context.supabase.from("conversations").select("artist_id").eq("id", data.conversationId).single();
     if (!c) throw new Error("Conversation not found");

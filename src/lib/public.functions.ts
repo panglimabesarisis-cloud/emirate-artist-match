@@ -1,3 +1,4 @@
+import { parseSiteSettings } from "./site-settings";
 import { createServerFn } from "@tanstack/react-start";
 import { conciergeInput } from "./concierge-rules";
 import { artistOwnedMediaPath, publicPhysicalDetails } from "./public-profile";
@@ -264,6 +265,13 @@ export const getArtist = createServerFn({ method: "GET" })
       media,
     };
   });
+
+/** Saved website settings, for page titles rendered on the server. */
+export const getSiteSettings = createServerFn({ method: "GET" }).handler(async () => {
+  const { publicClient } = await import("./public-client.server");
+  const { data } = await publicClient().from("site_settings").select("key, value").in("key", ["general", "menu", "invoice"]);
+  return parseSiteSettings(data ?? []);
+});
 
 export const getSitePage = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => d)

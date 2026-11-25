@@ -1,4 +1,5 @@
 import type { Receipt } from "./receipt";
+import { issuerLines, type SiteSettings } from "./site-settings";
 
 /** Wraps one JPEG into a single A4 page PDF. Pure, so it can be tested without a browser. */
 export function jpegToPdf(jpeg: Uint8Array, width: number, height: number) {
@@ -29,7 +30,7 @@ export const receiptDate = (value: string) => new Date(value).toLocaleDateString
 
 const W = 1240, H = 1754, M = 96;
 /** Draws the invoice on a canvas, so names in any script come out correctly, and returns it as a PDF. */
-export function receiptPdf(receipt: Receipt) {
+export function receiptPdf(receipt: Receipt, issuer?: SiteSettings["invoice"]) {
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const c = canvas.getContext("2d");
@@ -53,9 +54,10 @@ export function receiptPdf(receipt: Receipt) {
   const rule = (y: number, color = "#e7dcc6", thickness = 2) => { c.fillStyle = color; c.fillRect(M, y, W - M * 2, thickness); };
   c.fillStyle = "#fbf7ef"; c.fillRect(0, 0, W, H);
   const band = c.createLinearGradient(0, 0, W, 0); band.addColorStop(0, "#f0c062"); band.addColorStop(1, "#d4842a");
-  c.fillStyle = band; c.fillRect(0, 0, W, 14);
+  c.fillStyle = issuer?.accent ?? band; c.fillRect(0, 0, W, 14);
   text("DEALMAKER", M, 150, 64, { bold: true });
   text("ARTIST MANAGEMENT", M, 188, 22, { color: "#7a7062", bold: true });
+  (issuer ? issuerLines(issuer) : []).forEach((line, index) => text(line, M, 232 + index * 32, 22, { color: "#7a7062", max: 700 }));
   text("INVOICE", W - M, 150, 64, { bold: true, align: "right" });
   text(receipt.number, W - M, 190, 24, { color: "#7a7062", align: "right" });
   const paid = receipt.status === "paid";
@@ -83,10 +85,10 @@ export function receiptPdf(receipt: Receipt) {
     rule(y); y += 60;
   }
   for (const [label, value] of [["Subtotal", receipt.subtotal], ["VAT 5%", receipt.vat]] as const) {
-    text(label, 740, y, 28, { color: "#7a7062" }); text(aed(value), W - M, y, 28, { align: "right" }); y += 48;
+    text(label, 460, y, 28, { color: "#7a7062" }); text(aed(value), W - M, y, 28, { align: "right" }); y += 48;
   }
-  c.fillStyle = "#1a1712"; c.fillRect(740, y - 16, W - M - 740, 3); y += 48;
-  text(paid ? "TOTAL PAID" : "TOTAL DUE NOW", 740, y, 30, { bold: true }); text(aed(receipt.total), W - M, y, 40, { bold: true, align: "right" });
+  c.fillStyle = "#1a1712"; c.fillRect(460, y - 16, W - M - 460, 3); y += 48;
+  text(paid ? "TOTAL PAID" : "TOTAL DUE NOW", 460, y, 30, { bold: true }); text(aed(receipt.total), W - M, y, 40, { bold: true, align: "right" });
   y += 110;
   if (receipt.later.length) {
     text("BILLED SEPARATELY (NOT IN THIS TOTAL)", M, y, 20, { bold: true, color: "#b07a1f" }); y += 52;
@@ -97,13 +99,14 @@ export function receiptPdf(receipt: Receipt) {
   }
   rule(H - 130);
   text("Prices in AED, including 5% VAT. Sandbox payment: no real money is charged.", M, H - 80, 22, { color: "#7a7062" });
+  if (issuer?.footer) text(issuer.footer.replace(/\s+/g, " "), M, H - 46, 20, { color: "#4d463b", max: W - M * 2 });
   const base64 = canvas.toDataURL("image/jpeg", 0.94).split(",")[1] ?? "";
   const jpeg = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
   return jpegToPdf(jpeg, W, H);
 }
 
-export function downloadReceipt(receipt: Receipt) {
-  const url = URL.createObjectURL(new Blob([receiptPdf(receipt)], { type: "application/pdf" }));
+export function downloadReceipt(receipt: Receipt, issuer?: SiteSettings["invoice"]) {
+  const url = URL.createObjectURL(new Blob([receiptPdf(receipt, issuer)], { type: "application/pdf" }));
   const link = document.createElement("a");
   link.href = url; link.download = `invoice-${receipt.number}.pdf`;
   document.body.appendChild(link); link.click(); link.remove();

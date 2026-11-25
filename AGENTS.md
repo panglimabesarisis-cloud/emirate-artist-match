@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Admin Settings General, Menu and Invoice are read through `useSiteSettings` / `parseSiteSettings` (src/lib/site-settings.ts); `/search` and `/for-artists` menu entries open the built-in drop-downs, and new invoice numbers take the saved prefix (`invoice_prefix()`, `newInvoiceNumber`).
 - Calendar event detail comes from `team_booking_detail` (no client contacts; chat lines only with Inbox access). Rate cards carry per-item `turnaround` and `rush_items`; the AI and booking offers take job type, deposit and rush costs from them. `markWorkReady` asks once for the balance before work is delivered.
 - Profile limits (categories, specialities, portfolio, clients) come from `plan_tiers` through `usePlanLimits`, never constants; the database enforces the same numbers (0091). `plan_tiers` is intentionally public read-only; `client_commission_tiers` is readable only by signed-in users, without `updated_by`.
 - A client chat needs a signed-in client: `submitQuote`/`startChat` reject guests, artist pages keep the typed form across Google sign-in (src/lib/booking-draft.ts), and `/chat` shows the sign-in window first. Opening messages to artist and client use src/lib/new-chat-message.ts (English).

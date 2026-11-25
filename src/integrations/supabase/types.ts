@@ -4748,6 +4748,7 @@ export type Database = {
         }[]
       }
       my_verification_rank: { Args: { _artist: string }; Returns: Json }
+      invoice_prefix: { Args: never; Returns: string }
       next_invoice_no: { Args: never; Returns: string }
       record_test_refund: {
         Args: { _order: string; _processor: number }
