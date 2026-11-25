@@ -30,6 +30,8 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- A verified booking or invoice payment posts one `[[RECEIPT]]` system message (id = order id, no contact details) into its chat and returns the payer there (src/lib/payment-proof.server.ts). Render receipts only from `system` messages. The `/booking` page offers no client cancel or dispute cards.
+- Plan checkout creates a missing sandbox recurring price from `plan_tiers` under its `PLAN_LOOKUP_KEYS` key; it never moves a lookup key from an existing price, because subscription sync identifies plans by it.
 - AI flow WhatsApp steps (`wa_artist`, `wa_client`) are silent: the server writes the saved message (src/lib/flow-whatsapp.ts), fires on saved form/button/start/artist-decision edges or the `send_whatsapp` tool, sends once per chat, step and number through notify.server.ts, caps client numbers per day, and never sends from `test` chats. The AI never writes the message or chooses a number.
 - Model calls go through `aiResponse` (src/lib/ai-provider.server.ts): Lovable's gateway first, then Google Gemini with the admin-entered `google_api_key` (admin_secrets) only when the gateway refuses before doing work. The owner chose this fallback over the gateway-only default; artists keep the selected model's credit rate, and the key never reaches client chat code.
 - Migrations may be hand-written under `drizzle/migrations/` when Lovable credits are unavailable: add the next numbered file, apply it in the Supabase SQL editor, update `src/integrations/supabase/types.ts` to match, and ask Lovable to re-sync the schema once credits return. `drizzle/schema.ts` stays untouched.

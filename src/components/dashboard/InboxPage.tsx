@@ -9,6 +9,8 @@ import { changeArtistChatMode } from "@/lib/artist-chat.functions";
 import { artistChatFiles } from "@/lib/chat-files.functions";
 import { decodeChatMessage } from "@/lib/chat-attachments";
 import { decodeInvoice } from "@/lib/invoice";
+import { decodeReceipt, receiptSummary } from "@/lib/receipt-message";
+import { ReceiptSheet } from "@/components/site/ReceiptSheet";
 import { clientNameFromMessages, inboxLabelFor, INBOX_LABELS, type InboxLabel } from "@/lib/chat-client-name";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -132,6 +134,8 @@ export function Inbox({ artistId }: { artistId: string }) {
   const lastLine = (id: string) => {
     const m = lastMsgs?.get(id);
     if (!m) return "";
+    const receipt = m.sender === "system" ? decodeReceipt(m.body) : null;
+    if (receipt) return receiptSummary(receipt);
     return `${m.sender === "ai" ? `${t("AI")}: ` : m.sender === "artist" ? `${t("You")}: ` : ""}${decodeChatMessage(m.body).text}`;
   };
 
@@ -283,6 +287,8 @@ export function Inbox({ artistId }: { artistId: string }) {
           <div className="msgs" aria-live="polite">
             {msgs?.map((m) => {
               const inv = decodeInvoice(m.body);
+              const receipt = m.sender === "system" ? decodeReceipt(m.body) : null;
+              if (receipt) return <ReceiptSheet key={m.id} receipt={receipt} />;
               if (m.sender === "system" && !inv) return <span key={m.id} className="sys">{m.body}</span>;
               const who = m.sender === "ai" ? "ai" : m.sender === "artist" ? "you" : "client";
               return (

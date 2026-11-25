@@ -15,6 +15,8 @@ import { ChatShell, type ChatSetting } from "@/components/chat/shell/ChatShell";
 import { ChatSettingsPage, LanguageChoice } from "@/components/chat/shell/ChatSettingsPage";
 import { chatInvoices } from "@/components/chat/shell/billing-split";
 import { decodeInvoice } from "@/lib/invoice";
+import { decodeReceipt } from "@/lib/receipt-message";
+import { ReceiptSheet } from "@/components/site/ReceiptSheet";
 import { InvoiceBlock } from "@/components/chat/shell/InvoiceSheet";
 import { paperForInvoice, savedInvoice } from "@/lib/chat-invoice";
 import { Button } from "@/components/ui/button";
@@ -113,6 +115,8 @@ export function ArtistChatMonitor({ id }: { id: string }) {
             {query.error && <p role="alert" className="dmc-hint">{query.error.message}</p>}
             {query.data?.messages.map((message) => {
               const invoice = decodeInvoice(message.body);
+              const receipt = message.sender === "system" ? decodeReceipt(message.body) : null;
+              if (receipt) return <ReceiptSheet key={message.id} receipt={receipt} />;
               if (message.sender === "system") return <p key={message.id} className="dmc-hint">{message.body}</p>;
               const ours = message.sender !== "client";
               return (

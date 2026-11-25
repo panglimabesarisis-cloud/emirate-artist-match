@@ -15,6 +15,8 @@ import { uploadChatFile } from "@/lib/chat-files.functions";
 import { validateAttachment, type ChatAttachment } from "@/lib/chat-attachments";
 import { useI18n } from "@/lib/i18n";
 import { decodeInvoice, type Invoice } from "@/lib/invoice";
+import { decodeReceipt } from "@/lib/receipt-message";
+import { ReceiptSheet } from "@/components/site/ReceiptSheet";
 import { paperForInvoice, type InvoiceParties, type SavedInvoice } from "@/lib/chat-invoice";
 import { InvoiceBlock, usePayInvoice } from "@/components/chat/shell/InvoiceSheet";
 import { extractButtons, extractForm } from "@/lib/ai-flow";
@@ -106,7 +108,9 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
             </div>
           )}
           {data?.messages.map((m) =>
-            decodeInvoice(m.body) ? (
+            m.sender === "system" && decodeReceipt(m.body) ? (
+              <ReceiptSheet key={m.id} receipt={decodeReceipt(m.body)!} />
+            ) : decodeInvoice(m.body) ? (
               <div key={m.id}>{invoice(decodeInvoice(m.body) as Invoice)}</div>
             ) : m.sender === "system" ? (
               <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>

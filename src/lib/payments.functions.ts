@@ -6,6 +6,8 @@ import {joinPaymentTotal} from './join-rules';
 import {getStripeErrorMessage} from './stripe.server';
 import {ITEM_KINDS,itemAmountMinor,tierAllowed,type ItemKind} from './billing-rules';
 const id=(v:string)=>{if(!/^[0-9a-f-]{36}$/i.test(v))throw new Error('Invalid reference');return v;};
+/** Booking and invoice payers return to their chat; without one they stay on the payment page. */
+async function chatFor(orderId:string,status:string){if(status!=='paid')return null;try{const {paymentChatPath}=await import('./payment-proof.server');return await paymentChatPath(orderId);}catch(e){console.error('Chat link unavailable',e);return null;}}
 /** A missing invoice must never turn a verified payment into an error. */
 async function receiptFor(orderId:string,status:string,email?:string){if(status!=='paid')return null;try{const {orderReceipt}=await import('./receipt.server');return await orderReceipt(orderId,email);}catch(e){console.error('Receipt unavailable',e);return null;}}
 export const artistCheckout=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((i:{kind:'credits'|'deposit'|ItemKind;packageId?:string;plan?:string;itemId?:string})=>i).handler(async({data,context})=>{
@@ -51,4 +53,4 @@ export const checkArtistPayment=createServerFn({method:'POST'}).middleware([requ
 export const checkLinkPayment=createServerFn({method:'POST'}).inputValidator((i:{orderId:string;key:string})=>({orderId:id(i.orderId),key:id(i.key)})).handler(async({data})=>{try{const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');const {data:o}=await db.from('payment_orders').select('*').eq('id',data.orderId).single();if(!o||!o.target_id)throw new Error('Payment not found');
  if(o.kind==='invoice'){const {data:inv}=await db.from('service_invoices').select('conversation_id').eq('id',o.target_id).single();const {data:c}=await db.from('conversations').select('id').eq('id',inv?.conversation_id??'').eq('access_key',data.key).maybeSingle();if(!c)throw new Error('Invalid chat link');}
  else if(o.kind==='booking'){const {data:b}=await db.from('bookings').select('id').eq('id',o.target_id).eq('access_key',data.key).maybeSingle();if(!b)throw new Error('Invalid booking link');}else throw new Error('Invalid payment');
- const {reconcileOrder}=await import('./payments.server');const result=await reconcileOrder(o.id);return {...result,receipt:await receiptFor(o.id,result.status)};}catch(e){return {error:getStripeErrorMessage(e)};}});
+ const {reconcileOrder}=await import('./payments.server');const result=await reconcileOrder(o.id);return {...result,receipt:await receiptFor(o.id,result.status),chatPath:await chatFor(o.id,result.status)};}catch(e){return {error:getStripeErrorMessage(e)};}});

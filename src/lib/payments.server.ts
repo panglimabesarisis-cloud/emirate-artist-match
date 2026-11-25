@@ -53,7 +53,7 @@ export async function reconcileOrder(id:string) {
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');
   const {data:o}=await db.from('payment_orders').select('*').eq('id',id).single();
   if(!o)throw new Error('Payment not found');
-  if(o.status==='paid'){await processPaymentFollowup(o.id);return {status:'paid'};}
+  if(o.status==='paid'){await sendPaymentProof(o.id);await processPaymentFollowup(o.id);return {status:'paid'};}
   if(!o.stripe_session_id)return {status:o.status};
   const s=await createStripeClient('sandbox').checkout.sessions.retrieve(o.stripe_session_id);
   if(s.metadata?.['orderId']!==o.id)throw new Error('Payment reference mismatch');
@@ -61,11 +61,17 @@ export async function reconcileOrder(id:string) {
   if(s.mode!=='payment'||(o.stripe_customer_id&&customer!==o.stripe_customer_id))throw new Error('Payment identity mismatch');
   if(sandboxPaymentSettled(s)){ const {error}=await db.rpc('settle_test_purchase',{_id:o.id,_session:s.id,_amount:s.amount_total??0,_currency:s.currency??''}); if(error)throw new Error(error.message);
     await db.from('payment_orders').update({stripe_payment_intent_id:typeof s.payment_intent==='string'?s.payment_intent:s.payment_intent?.id??null}).eq('id',o.id);
+    await sendPaymentProof(o.id);
     await processPaymentFollowup(o.id);
     return {status:'paid'};
   }
   if(s.status==='expired')await db.from('payment_orders').update({status:'expired'}).eq('id',o.id).neq('status','paid');
   return {status:s.status==='expired'?'expired':'pending'};
+}
+/** The chat gets its paid invoice; a failure never turns a verified payment into an error. */
+async function sendPaymentProof(orderId:string){
+  try{const {postPaymentProof}=await import('./payment-proof.server');await postPaymentProof(orderId);}
+  catch(e){console.error('Payment proof not posted',e instanceof Error?e.message:'unknown');}
 }
 export async function processPaymentFollowup(orderId:string){
   const {supabaseAdmin:db}=await import('@/integrations/supabase/client.server');

@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Printer, Link2, Star } from "lucide-react";
-import { getBooking, acceptBookingOffer, acceptAndPay, cancelBookingAsClient, submitBookingReview, openDisputeAsClient } from "@/lib/bookings.functions";
+import { getBooking, acceptBookingOffer, acceptAndPay, submitBookingReview } from "@/lib/bookings.functions";
 import { bookingPayment, canCheckoutBooking } from "@/lib/booking-payment-rules";
 import { bookingIsFullyPaid } from "@/lib/payment-rules";
 import { validateHostedUrl } from "@/lib/hosted-checkout";
 import { PaidStamp } from "@/components/site/PaidStamp";
 import { invoiceMoney as aed, type InvoiceItem } from "@/lib/invoice";
-import { CONTRACT_TERMS, refundAmount, canDispute } from "@/lib/booking-rules";
+import { CONTRACT_TERMS } from "@/lib/booking-rules";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,6 @@ function BookingPage() {
   const get$ = useServerFn(getBooking);
   const pay$ = useServerFn(acceptAndPay);
   const accept$ = useServerFn(acceptBookingOffer);
-  const cancel$ = useServerFn(cancelBookingAsClient);
   const review$ = useServerFn(submitBookingReview);
   const [checkout, setCheckout] = useState<(CheckoutSession & { dueMinor: number }) | null>(null);
   const [phone,setPhone]=useState("");
@@ -46,8 +45,6 @@ function BookingPage() {
   const [rating, setRating] = useState(5);
   const [subs, setSubs] = useState({ performance: 5, punctuality: 5, communication: 5 });
   const [body, setBody] = useState("");
-  const dispute$ = useServerFn(openDisputeAsClient);
-  const [problem, setProblem] = useState("");
   const { data: b, error } = useQuery({ queryKey: ["booking", id], queryFn: () => get$({ data: { id, key: k } }), retry: false, refetchInterval: 5000 });
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
@@ -141,14 +138,6 @@ function BookingPage() {
           )}
         </section>
 
-        {canDispute(b.status, b.escrow_status) && (
-          <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
-            <h2 className="font-semibold">Report a problem</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Funds stay frozen in escrow while Dealmaker reviews your case.</p>
-            <Textarea className="mt-3" rows={3} maxLength={1500} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="What went wrong?" />
-            <Button variant="outline" className="mt-3" disabled={busy || problem.trim().length < 10} onClick={() => run(() => dispute$({ data: { id, key: k, reason: problem } }), "Dispute opened — our team will review it")}>Open dispute</Button>
-          </section>
-        )}
         {b.disputes?.map((d) => (
           <section key={d.id} className="rounded-2xl bg-card p-6 shadow-card print:hidden">
             <h2 className="font-semibold">Dispute · {d.status === "open" ? "under review" : "resolved"}</h2>
@@ -156,16 +145,6 @@ function BookingPage() {
             {d.resolution && <p className="mt-2 text-sm text-muted-foreground">Decision: {d.resolution === "release_to_artist" ? "payment released to the artist" : d.resolution === "refund_full" ? "full refund" : "partial refund"}</p>}
           </section>
         ))}
-
-        {(b.status === "inquiry" || b.status === "quoted" || b.status === "confirmed") && (
-          <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
-            <h2 className="font-semibold">Cancel booking</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {paid > 0 ? <>If you cancel today you get back <b>{aed(refundAmount(paid, "client", b.event_date))}</b> of {aed(paid)}.</> : "Nothing has been paid yet."}
-            </p>
-            <Button variant="outline" className="mt-3" disabled={busy} onClick={() => { if (confirm("Cancel this booking?")) run(() => cancel$({ data: { id, key: k } }), "Booking cancelled"); }}>Cancel booking</Button>
-          </section>
-        )}
 
         {b.status === "completed" && (
           <section className="rounded-2xl bg-card p-6 shadow-card print:hidden">
