@@ -67,7 +67,8 @@ export const getConversationBookings = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: c } = await db.from("conversations").select("id").eq("id", data.id).eq("access_key", data.key).maybeSingle();
     if (!c) throw new Error("Not found");
-    const { data: rows } = await db.from("bookings").select("id, access_key, package_title, event_date, total, status").eq("conversation_id", c.id).order("created_at", { ascending: false });
+    // Removed and expired offers carry deleted_at; this read bypasses the policy that hides them.
+    const { data: rows } = await db.from("bookings").select("id, access_key, package_title, event_date, total, status, start_time, end_time, guests, job_detail, notes, paid_at, paid_amount, amount, vat_amount, invoice_no, invoice_items, created_at, client_name, client_email").eq("conversation_id", c.id).is("deleted_at", null).order("created_at", { ascending: false });
     return rows ?? [];
   });
 

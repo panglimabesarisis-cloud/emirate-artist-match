@@ -1637,6 +1637,33 @@ export type Database = {
         }
         Relationships: []
       }
+      client_commission_tiers: {
+        Row: {
+          commission_pct: number
+          min_withdrawal: number
+          target_amount: number
+          tier: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          commission_pct: number
+          min_withdrawal: number
+          target_amount: number
+          tier: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          commission_pct?: number
+          min_withdrawal?: number
+          target_amount?: number
+          tier?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       client_payout_accounts: {
         Row: {
           bank_name: string
@@ -4529,6 +4556,28 @@ export type Database = {
           commission_pct: number
           enabled: boolean
           min_withdrawal: number
+        }[]
+      }
+      client_tier_of: {
+        Args: { _user: string; _without?: string }
+        Returns: {
+          paid_total: number
+          progress: number
+          tier: number
+        }[]
+      }
+      client_tier_status: {
+        Args: { _user?: string }
+        Returns: {
+          available: number
+          commission_pct: number
+          commission_total: number
+          enabled: boolean
+          min_withdrawal: number
+          paid_total: number
+          progress: number
+          target_amount: number
+          tier: number
         }[]
       }
       client_wallet: {

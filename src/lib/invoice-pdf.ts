@@ -17,7 +17,7 @@ export type ArchiveInvoice = {
   total: number;
   paid: number;
   paidAt?: string | null;
-  status: "unpaid" | "partial" | "paid";
+  status: "unpaid" | "partial" | "paid" | "expired" | "none";
   notes?: string | null;
   trn?: string | null;
 };
@@ -81,22 +81,23 @@ export function buildInvoicePdf(d: ArchiveInvoice): Uint8Array {
   const fresh = () => { const p = new Page(); p.rect(0, 0, W, H, CREAM); p.rect(0, 0, W, 5, [0.9, 0.67, 0.25]); pages.push(p); return p; };
   let p = fresh();
   const balance = Math.max(0, d.total - Math.min(d.total, d.paid));
-  const stampColor = d.status === "paid" ? GREEN : d.status === "partial" ? GOLD : RED;
-  const word = d.status === "paid" ? "PAID" : d.status === "partial" ? "PARTIALLY PAID" : "UNPAID";
-  const sub = d.status === "paid" ? `PAID ${dmy(d.paidAt ?? d.issued).toUpperCase()}` : `BALANCE ${money(balance).toUpperCase()}`;
+  const stampColor = d.status === "paid" ? GREEN : d.status === "partial" ? GOLD : d.status === "expired" ? MUTED : RED;
+  const word = d.status === "paid" ? "PAID" : d.status === "partial" ? "PARTIALLY PAID" : d.status === "expired" ? "EXPIRED" : "UNPAID";
+  const sub = d.status === "paid" ? `PAID ${dmy(d.paidAt ?? d.issued).toUpperCase()}` : d.status === "expired" ? "NO LONGER PAYABLE" : `BALANCE ${money(balance).toUpperCase()}`;
+  const settles = d.status !== "expired" && d.status !== "none";
 
   p.text("DEALMAKER", M, 84, 26, [0.07, 0.07, 0.07], { bold: true });
   p.text("ARTIST MANAGEMENT", M, 100, 7.5, MUTED, { bold: true });
   p.text("Artist name:", M, 126, 8.5, MUTED); p.text(d.artistName || "-", M + 72, 126, 8.5, INK, { bold: true });
   p.text("Invoice number:", M, 140, 8.5, MUTED); p.text(d.number, M + 72, 140, 8.5, INK, { bold: true });
   p.text("INVOICE", W - M, 84, 30, INK, { bold: true, align: "r" });
-  p.stamp(W - M - 70, 122, word, sub, stampColor);
+  if (d.status !== "none") p.stamp(W - M - 70, 122, word, sub, stampColor);
 
   p.line(M, 166, W - M, 166, LINE);
   const cols = [M, M + 215, M + 365];
   p.text("BILL TO", cols[0]!, 186, 7, MUTED, { bold: true }); p.text("ISSUED", cols[1]!, 186, 7, MUTED, { bold: true }); p.text("INVOICE DUE DATE", cols[2]!, 186, 7, MUTED, { bold: true });
   p.text(d.client || "-", cols[0]!, 202, 10.5, INK, { bold: true }); p.text(dmy(d.issued), cols[1]!, 202, 10.5, INK, { bold: true }); p.text(dmy(d.due), cols[2]!, 202, 10.5, INK, { bold: true });
-  p.text(d.client ? d.clientEmail || "Email not on file" : "", cols[0]!, 215, 8, MUTED); p.text("Currency AED", cols[1]!, 215, 8, MUTED); p.text(`Balance due ${money(balance)}`, cols[2]!, 215, 8, MUTED);
+  p.text(d.client ? d.clientEmail || "Email not on file" : "", cols[0]!, 215, 8, MUTED); p.text("Currency AED", cols[1]!, 215, 8, MUTED); p.text(settles ? `Balance due ${money(balance)}` : "", cols[2]!, 215, 8, MUTED);
   p.line(M, 228, W - M, 228, LINE);
 
   const header = (pg: Page, y: number) => {
@@ -126,8 +127,11 @@ export function buildInvoicePdf(d: ArchiveInvoice): Uint8Array {
   rows.forEach(([a, b]) => { p.text(a, lx, y, 10, MUTED); p.text(b, rx, y, 10, INK, { align: "r" }); y += 17; });
   p.line(lx, y - 8, rx, y - 8, INK, 1);
   p.text("TOTAL", lx, y + 9, 13, INK, { bold: true }); p.text(money(d.total), rx, y + 9, 18, INK, { bold: true, align: "r" }); y += 30;
-  p.text("Paid", lx, y, 10, MUTED); p.text(money(Math.min(d.total, d.paid)), rx, y, 10, INK, { align: "r" }); y += 17;
-  p.text("Balance due", lx, y, 10, MUTED); p.text(money(balance), rx, y, 10, balance > 0 ? RED : GREEN, { bold: true, align: "r" }); y += 36;
+  if (settles) {
+    p.text("Paid", lx, y, 10, MUTED); p.text(money(Math.min(d.total, d.paid)), rx, y, 10, INK, { align: "r" }); y += 17;
+    p.text("Balance due", lx, y, 10, MUTED); p.text(money(balance), rx, y, 10, balance > 0 ? RED : GREEN, { bold: true, align: "r" });
+  }
+  y += 36;
 
   const sy = Math.max(y, H - 230 - (notes.length ? notes.length * 12 + 40 : 0));
   p.text(`Dubai, ${dmy(d.issued, true)}`, W - M, sy - 12, 9, MUTED, { align: "r" });

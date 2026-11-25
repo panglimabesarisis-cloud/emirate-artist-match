@@ -5,6 +5,8 @@
   body.inv-printing [data-ivp-print] .ivp-bar { display: none !important; }
   body.inv-printing [data-ivp-print] .ivp-sheet { padding: 0 !important; }
   body.inv-printing [data-ivp-print] [data-testid="invoice-paper"], body.inv-printing [data-ivp-print] [data-paper] { box-shadow: none !important; border-radius: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.inv-printing [data-a4-fit] { height: auto !important; overflow: visible !important; }
+  body.inv-printing [data-a4-scale] { position: static !important; transform: none !important; margin: 0 auto !important; }
   body.inv-printing [data-radix-popper-content-wrapper], body.inv-printing [role="status"], body.inv-printing section[aria-label~="Notifications"] { display: none !important; }
   body.inv-printing { background: #fff !important; }
 }

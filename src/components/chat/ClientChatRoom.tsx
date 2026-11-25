@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Bot, Send } from "lucide-react";
 import { getChat, sendClientMessage } from "@/lib/chat.functions";
@@ -14,14 +14,15 @@ import { ChatAttachments } from "@/components/chat/ChatAttachments";
 import { uploadChatFile } from "@/lib/chat-files.functions";
 import { validateAttachment, type ChatAttachment } from "@/lib/chat-attachments";
 import { useI18n } from "@/lib/i18n";
-import { decodeInvoice } from "@/lib/invoice";
-import { PayableInvoice } from "@/components/site/PayableInvoice";
+import { decodeInvoice, type Invoice } from "@/lib/invoice";
+import { paperForInvoice, type InvoiceParties, type SavedInvoice } from "@/lib/chat-invoice";
+import { InvoiceBlock, usePayInvoice } from "@/components/chat/shell/InvoiceSheet";
 import { extractButtons, extractForm } from "@/lib/ai-flow";
 import { ChatFlowButtons, ChatFlowForm } from "@/components/flow/ChatFlowControls";
 import { maskContacts } from "@/lib/masking";
 
 /** The client side of a quote conversation (secret link key), shared by /chat and the client portal. */
-export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[calc(100dvh-var(--site-header-height))] flex-col bg-background" }: { id: string; k: string; embedded?: boolean; className?: string }) {
+export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[calc(100dvh-var(--site-header-height))] flex-col bg-background", leading, suggestions = [] }: { id: string; k: string; embedded?: boolean; className?: string; leading?: ReactNode; suggestions?: string[] }) {
   const qc = useQueryClient();
   const get$ = useServerFn(getChat);
   const send$ = useServerFn(sendClientMessage);
@@ -73,13 +74,15 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
 
   if (error && !data) return <div className={className}><div role="alert" className="m-auto space-y-4 p-10 text-center"><p>{tr("This conversation could not load. Check your connection and try again.")}</p><Button onClick={() => { void refetch(); }}>{tr("Try again")}</Button></div></div>;
   const a = data?.artist;
+  const invoice = (inv: Invoice) => <ChatInvoiceMessage inv={inv} saved={data?.invoices.find(i => i.id === inv.id)} parties={{ artistName: a?.stage_name ?? "", trn: a?.trn }} conversationId={id} linkKey={k} />;
   return (
     <div className={className}>
-      <div className="border-b bg-card">
+      <div className="cr-hd border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+          {leading}
           {a && <ArtistAvatar name={a.stage_name} hue={a.hue ?? 30} src={a.profilePhotoUrl} className="h-10 w-10 rounded-full text-sm" />}
           <div className="min-w-0 flex-1">
-            <div className="truncate font-semibold">{a?.stage_name ?? "…"}</div>
+            <div className="cr-name truncate font-semibold">{a?.stage_name ?? "…"}</div>
             <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               {data?.mode === "human" ? tr("The artist is handling this chat personally") : <><Bot className="h-3 w-3 text-gold" /> {tr("AI assistant replying on the artist's behalf")}</>}
             </div>
@@ -87,7 +90,7 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
           {a && <Link to="/artist/$slug" params={{ slug: a.slug }} className="text-xs text-gold underline">{tr("View profile")}</Link>}
         </div>
       </div>
-      <div ref={box} className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={box} className="cr-msgs min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
           {!embedded && <div className="text-center text-xs text-muted-foreground">{tr("Save this page's link to come back to your conversation.")}</div>}
           {offers && offers.length > 0 && (
@@ -104,21 +107,21 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
           )}
           {data?.messages.map((m) =>
             decodeInvoice(m.body) ? (
-              <div key={m.id} className="max-w-md"><PayableInvoice inv={decodeInvoice(m.body) as NonNullable<ReturnType<typeof decodeInvoice>>} conversationId={id} linkKey={k} status={data.invoices.find(i => i.id === decodeInvoice(m.body)?.id)?.status} /></div>
+              <div key={m.id}>{invoice(decodeInvoice(m.body) as Invoice)}</div>
             ) : m.sender === "system" ? (
               <div key={m.id} className="text-center text-xs text-muted-foreground">{m.body}</div>
             ) : m.sender === "client" ? (
               <div key={m.id} className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{m.body}<ChatAttachments files={m.attachments} /></div>
+                <div className="cr-me max-w-[85%] whitespace-pre-wrap rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{m.body}<ChatAttachments files={m.attachments} /></div>
               </div>
             ) : (
               <div key={m.id} className="flex gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground">
+                <div className="cr-av grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground">
                   {m.sender === "ai" ? <Bot className="h-4 w-4" /> : <span className="text-xs font-bold">{a?.stage_name?.[0]}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 text-xs font-semibold text-muted-foreground">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>
-                  {decodeInvoice(m.body) ? <div className="max-w-md"><PayableInvoice inv={decodeInvoice(m.body) as NonNullable<ReturnType<typeof decodeInvoice>>} conversationId={id} linkKey={k} status={data.invoices.find(i => i.id === decodeInvoice(m.body)?.id)?.status} /></div> : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
+                  {decodeInvoice(m.body) ? invoice(decodeInvoice(m.body) as Invoice) : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
                     <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
                     {buttons.length > 0 && last && data.mode !== "human" && (
                       <ChatFlowButtons buttons={buttons} busy={busy} onSelect={(value) => send(value)} />
@@ -131,12 +134,12 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
           )}
           {pendingVisible && pending && (
             <div className="flex justify-end">
-              <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{pending.body}</div>
+              <div className="cr-me max-w-[85%] whitespace-pre-wrap break-words rounded-3xl bg-primary px-4 py-2.5 text-sm text-primary-foreground" dir="auto">{pending.body}</div>
             </div>
           )}
           {busy && (
             <div className="flex gap-3">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground"><Bot className="h-4 w-4" /></div>
+              <div className="cr-av grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-gold-foreground"><Bot className="h-4 w-4" /></div>
               <div role="status" className="flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground">
                 <span>{tr("AI assistant")} · {tr("Typing…")}</span>
                 <span className="flex gap-1" aria-hidden="true">{[0, 1, 2].map((n) => <span key={n} className="h-2 w-2 animate-bounce motion-reduce:animate-none rounded-full bg-muted-foreground" style={{ animationDelay: `${n * 0.15}s` }} />)}</span>
@@ -145,9 +148,12 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
           )}
         </div>
       </div>
-      <div className="bg-background px-4 pb-4 pt-2">
+      <div className="cr-foot bg-background px-4 pb-4 pt-2">
         <div className="mx-auto max-w-3xl">
-          <ChatComposer text={text} onChange={setText} onSend={() => void send()} busy={busy || uploading} files={files} onFiles={list => void addFiles(list)} onRemove={path => setFiles(current => current.filter(file => file.path !== path))} />
+          {suggestions.length > 0 && data && data.mode !== "human" && data.messages.length <= 3 && (
+            <div className="dmc-chips">{suggestions.map((s) => <button type="button" key={s} disabled={busy || uploading} onClick={() => void send(tr(s))}>{tr(s)}</button>)}</div>
+          )}
+          <div className="cr-composer"><ChatComposer text={text} onChange={setText} onSend={() => void send()} busy={busy || uploading} files={files} onFiles={list => void addFiles(list)} onRemove={path => setFiles(current => current.filter(file => file.path !== path))} /></div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">{tr("DEMO MODE · Phone numbers, emails and social handles are hidden automatically to keep you protected.")}</p>
         </div>
       </div>
@@ -155,3 +161,18 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
   );
 }
 
+/** An invoice posted in the chat: the A4 sheet, with Pay now while it is open. */
+function ChatInvoiceMessage({ inv, saved, parties, conversationId, linkKey }: { inv: Invoice; saved: SavedInvoice | undefined; parties: InvoiceParties; conversationId: string; linkKey: string }) {
+  const { t } = useI18n();
+  const pay = usePayInvoice(conversationId, linkKey);
+  const [busy, setBusy] = useState(false);
+  const paper = paperForInvoice(inv, saved, parties);
+  const open = !!inv.id && (paper.status === "unpaid" || paper.status === "partial");
+  const start = async () => {
+    setBusy(true);
+    try { await pay(inv.id!); }
+    catch (error) { toast.error(error instanceof Error ? error.message : t("Checkout unavailable")); }
+    finally { setBusy(false); }
+  };
+  return <InvoiceBlock paper={paper} actions={open && <Button type="button" size="sm" className="dmc-pay rounded-full" disabled={busy} onClick={() => void start()}>{t("Pay now")}</Button>} />;
+}

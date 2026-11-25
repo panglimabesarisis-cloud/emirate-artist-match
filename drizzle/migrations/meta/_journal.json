@@ -610,6 +610,13 @@
       "when": 1795571820202,
       "tag": "0086_deliverable_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795571880202,
+      "tag": "0087_client_commission_tiers",
+      "breakpoints": true
     }
   ]
 }

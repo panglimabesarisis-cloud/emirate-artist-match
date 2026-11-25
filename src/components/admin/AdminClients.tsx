@@ -1,3 +1,4 @@
+import { ClientTierSettings } from "@/components/admin/ClientTierSettings";
 import { SupportWorkspace } from "@/components/support/SupportWorkspace";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { StudioEmpty, StudioSection } from "@/components/dashboard/StudioPage";
 
 const aed = (n: number | string | null | undefined) => `AED ${Number(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -92,17 +91,6 @@ export function ClientAccounts() {
 /** Client commission programme settings and the withdrawal queue. */
 export function ClientWithdrawals() {
   const qc = useQueryClient();
-  const program = useQuery({
-    queryKey: ["admin-client-program"],
-    queryFn: async () => {
-      const r = await supabase.from("client_program_settings").select("commission_pct, min_withdrawal, enabled, updated_at").maybeSingle();
-      if (r.error) throw new Error("Unable to load programme settings");
-      return r.data ?? { commission_pct: 2, min_withdrawal: 500, enabled: true, updated_at: null };
-    },
-  });
-  const [v, setV] = useState({ pct: "2", min: "500", enabled: true });
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { if (program.data) setV({ pct: String(Number(program.data.commission_pct)), min: String(Number(program.data.min_withdrawal)), enabled: program.data.enabled }); }, [program.data]);
   const list = useQuery({
     queryKey: ["admin-client-withdrawals"],
     queryFn: async () => {
@@ -111,18 +99,6 @@ export function ClientWithdrawals() {
       return r.data ?? [];
     },
   });
-  const pct = Number(v.pct);
-  const min = Number(v.min);
-  const invalid = !(pct >= 0 && pct <= 20) || !(min >= 0 && min <= 100000) || !v.pct || !v.min;
-  const save = async () => {
-    if (invalid) return;
-    setBusy(true);
-    const { error } = await supabase.from("client_program_settings").upsert({ id: true, commission_pct: Math.round(pct * 100) / 100, min_withdrawal: Math.round(min * 100) / 100, enabled: v.enabled });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Programme settings saved. New rates apply from each booking's first payment.");
-    await qc.invalidateQueries({ queryKey: ["admin-client-program"] });
-  };
   const decide = async (id: string, status: "approved" | "paid" | "rejected") => {
     const note = status === "rejected" ? (prompt("Reason for rejecting?") ?? "").trim() : null;
     if (status === "rejected" && !note) return;
@@ -133,14 +109,7 @@ export function ClientWithdrawals() {
   };
   return (
     <div className="space-y-6">
-      <StudioSection title="Client commission" accent="programme" subtitle="Applies to the booking value before VAT. The rate is fixed on each booking at its first payment and becomes available after payment is released to the artist.">
-        <form className="grid gap-4 sm:grid-cols-3" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-          <div className="space-y-1.5"><Label htmlFor="cpp-pct">Commission rate (%)</Label><Input id="cpp-pct" type="number" min={0} max={20} step="0.01" value={v.pct} onChange={(e) => setV({ ...v, pct: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label htmlFor="cpp-min">Minimum withdrawal (AED)</Label><Input id="cpp-min" type="number" min={0} max={100000} step="1" value={v.min} onChange={(e) => setV({ ...v, min: e.target.value })} /></div>
-          <div className="flex items-end gap-3 pb-2"><Switch id="cpp-on" checked={v.enabled} onCheckedChange={(c) => setV({ ...v, enabled: c })} /><Label htmlFor="cpp-on">{v.enabled ? "Programme active" : "Paused for new bookings"}</Label></div>
-          <div className="sm:col-span-3 flex items-center gap-3"><Button type="submit" disabled={invalid || busy}>{busy ? "Saving…" : "Save programme"}</Button>{program.data?.updated_at && <span className="text-xs text-muted-foreground">Last changed {when(program.data.updated_at)}</span>}</div>
-        </form>
-      </StudioSection>
+      <ClientTierSettings />
       <StudioSection title="Client" accent="withdrawals" subtitle="Approve, then mark paid after the transfer. Demo mode: no real money moves.">
         {list.error ? <p className="p-4 text-sm text-destructive">Unable to load withdrawals.</p> : (list.data ?? []).length === 0 ? <StudioEmpty title="No withdrawal requests yet" icon={Banknote} /> : (
           <div className="divide-y rounded-xl border">

@@ -60,8 +60,11 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
     packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
   });
   await addMessage(c.id, "client", maskContacts(summary));
-  const { notifyConversation } = await import("./notify.server");
-  await notifyConversation(c.id, "booking_inquiry", "Detail form yang di isi:", `${summary}\n\nClick here if you want monitor Ai Agent Chat :`);
+  const { notifyConversation, notifyClientChatLink } = await import("./notify.server");
+  await Promise.all([
+    notifyConversation(c.id, "booking_inquiry", "Detail form yang di isi:", `${summary}\n\nClick here if you want monitor Ai Agent Chat :`),
+    data.phone ? notifyClientChatLink(c.id, c.access_key, data.phone, artist.stage_name) : null,
+  ]);
   await runAgent(c.id);
   return { conversationId: c.id, key: c.access_key };
 }
@@ -98,9 +101,16 @@ export const submitClientQuote = createServerFn({ method: "POST" })
 
 async function verifyKey(conversationId: string, key: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, artists(stage_name, slug, hue, photo_path)").eq("id", conversationId).single();
+  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, client_name, quote_requests(name, email), artists(stage_name, slug, hue, photo_path, trn)").eq("id", conversationId).single();
   if (!data || data.access_key !== key) throw new Error("Conversation not found");
   return { supabaseAdmin, convo: data };
+}
+
+/** Whether a WhatsApp message with this chat's link was accepted by the provider or delivered. */
+async function chatLinkSent(conversationId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { count } = await supabaseAdmin.from("notifications").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).eq("kind", "chat_link").in("status", ["accepted", "sent", "delivered", "read"]);
+  return (count ?? 0) > 0;
 }
 
 /** Public with secret link key: read a conversation. */
@@ -112,15 +122,20 @@ export const getChat = createServerFn({ method: "GET" })
     const photoPath = artistOwnedMediaPath(convo.artist_id, convo.artists?.photo_path);
     const photoUrl = photoPath ? (await supabaseAdmin.storage.from("artist-media").createSignedUrl(photoPath, 3600)).data?.signedUrl ?? null : null;
     const { data: msgs } = await supabaseAdmin.from("messages").select("id, sender, body, created_at").eq("conversation_id", data.id).order("created_at");
-    const { data: invoices } = await supabaseAdmin.from("service_invoices").select("id,status,paid_at").eq("conversation_id", data.id);
-    return { mode: convo.mode, artist: convo.artists ? { stage_name: convo.artists.stage_name, slug: convo.artists.slug, hue: convo.artists.hue, profilePhotoUrl: photoUrl } : null, messages: await Promise.all((msgs ?? []).map(async message => {
+    const { data: saved } = await supabaseAdmin.from("service_invoices").select("id,status,total,paid_at,created_at,deleted_at,booking_id,document").eq("conversation_id", data.id);
+    const { data: billed } = await supabaseAdmin.from("bookings").select("id,paid_amount,client_name,client_email").eq("conversation_id", data.id);
+    // This read bypasses the policy that hides removed records, so savedInvoice applies expiry itself.
+    const { savedInvoice } = await import("./chat-invoice");
+    const client = { client: convo.client_name ?? convo.quote_requests?.name, email: convo.quote_requests?.email };
+    const invoices = (saved ?? []).map(row => savedInvoice(row, billed?.find(b => b.id === row.booking_id), client));
+    return { mode: convo.mode, artist: convo.artists ? { stage_name: convo.artists.stage_name, slug: convo.artists.slug, hue: convo.artists.hue, trn: convo.artists.trn, profilePhotoUrl: photoUrl } : null, messages: await Promise.all((msgs ?? []).map(async message => {
       const parsed = decodeChatMessage(message.body);
       const attachments = await Promise.all(parsed.attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {
         const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 3600);
         return { ...file, ...(signed?.signedUrl ? { url: signed.signedUrl } : {}) };
       }));
       return { ...message, body: parsed.text, attachments };
-    })), invoices: invoices ?? [] };
+    })), invoices, linkSent: await chatLinkSent(data.id) };
   });
 
 /** Public with secret link key: client sends a message; AI replies if in AI mode. */

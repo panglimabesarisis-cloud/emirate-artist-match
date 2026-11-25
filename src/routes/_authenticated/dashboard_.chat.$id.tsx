@@ -13,4 +13,4 @@ export const Route = createFileRoute("/_authenticated/dashboard_/chat/$id")({
   ] }),
   component: MonitorPage,
 });
-function MonitorPage() { const { id } = Route.useParams(); return <ArtistChatMonitor id={id} />; }
+function MonitorPage() { const { id } = Route.useParams(); return <ArtistChatMonitor key={id} id={id} />; }

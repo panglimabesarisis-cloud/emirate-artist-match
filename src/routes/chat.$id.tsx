@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ClientChatRoom } from "@/components/chat/ClientChatRoom";
+import { ClientChatPage } from "@/components/chat/ClientChatPage";
 
 export const Route = createFileRoute("/chat/$id")({
   ssr: false,
@@ -11,5 +11,5 @@ export const Route = createFileRoute("/chat/$id")({
 function ChatPage() {
   const { id } = Route.useParams();
   const { k } = Route.useSearch();
-  return <ClientChatRoom key={id} id={id} k={k} />;
+  return <ClientChatPage key={id} id={id} k={k} />;
 }

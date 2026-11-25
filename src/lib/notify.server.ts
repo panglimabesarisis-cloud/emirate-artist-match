@@ -52,6 +52,28 @@ export function siteOrigin(req: Request | undefined) {
   try { return req ? new URL(req.url).origin : ""; } catch { return ""; }
 }
 
+/**
+ * Sends the client the private link of their chat. One send per conversation and number, and at most
+ * three a day to a number because the booking form is public. The link itself is never stored.
+ */
+export async function notifyClientChatLink(conversationId: string, key: string, phone: string, artistName: string) {
+  try {
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const { count, error } = await supabaseAdmin.from("notifications").select("id", { count: "exact", head: true }).eq("kind", "chat_link").eq("recipient", phone).gte("created_at", since);
+    if (error) throw error;
+    if ((count ?? 0) >= 3) return;
+    const { data: attempt, error: reserveError } = await supabaseAdmin.from("notifications").insert({ conversation_id: conversationId, audience: "client", channel: "whatsapp", kind: "chat_link", recipient: phone, status: "sending" }).select("id").single();
+    if (reserveError || !attempt) throw reserveError ?? new Error("Notification reservation failed");
+    try {
+      const result = await sendWhatsApp(phone, "Link chat Dealmaker Anda", `Chat booking Anda dengan ${artistName}. Simpan pesan ini untuk membukanya kapan pun:`, `https://dealmakertalent.com/chat/${conversationId}?k=${key}`);
+      const { error: saveError } = await supabaseAdmin.from("notifications").update({ status: result.status, error: result.error ?? null, provider_message_id: result.messageId ?? null }).eq("id", attempt.id);
+      if (saveError) throw saveError;
+    } catch {
+      await supabaseAdmin.from("notifications").update({ status: "failed", error: "Send or persistence failed; check provider before retrying" }).eq("id", attempt.id);
+    }
+  } catch { console.error("Chat link message could not be recorded or sent"); }
+}
+
 /** Persist reservation before send; never blindly replay an ambiguous provider result. */
 export async function notifyConversation(id: string, kind: "booking_inquiry" | "chat_takeover", subject: string, details: string) {
   try {
