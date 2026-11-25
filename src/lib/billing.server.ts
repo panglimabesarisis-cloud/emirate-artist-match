@@ -44,6 +44,15 @@ export async function reconcileSubscriptionSession(sessionId:string,artistId:str
  const database=await db();const {data:sub}=await database.from('artist_subscriptions').select('paid_until').eq('id',subId).single();
  return {status:sub?.paid_until&&Date.parse(sub.paid_until)>Date.now()?'paid':'pending'};
 }
+/** A talent who finished registration, paid the deposit and holds a paid subscription is published without waiting for review.
+ *  Only a pending profile changes, so a rejection or suspension by an admin stays. */
+export async function approvePaidArtist(artistId:string){
+ const database=await db();const {data:plan,error}=await database.rpc('effective_artist_plan',{_artist:artistId});
+ if(error)throw new Error(error.message);
+ if(!plan||plan==='free')return;
+ const approved=await database.from('artists').update({status:'approved'}).eq('id',artistId).eq('status','pending').eq('onboarding_complete',true).not('registration_paid_at','is',null);
+ if(approved.error)throw new Error(approved.error.message);
+}
 /** Drops an unpaid checkout so another plan, or Free, can be chosen. */
 export async function cancelPendingCheckout(artistId:string){
  const database=await db();const {data:r,error}=await database.from('subscription_checkouts').select('session_id,attempt_key').eq('artist_id',artistId).maybeSingle();
@@ -96,6 +105,7 @@ export async function syncSubscription(id:string){
  const allocation=await database.rpc('allocate_plan_month',{_artist:artistId,_month:new Date().toISOString().slice(0,7)+'-01'});if(allocation.error)throw new Error(allocation.error.message);
  for(const i of invoices.data){if(!i.id||i.livemode)continue;const {error:e}=await database.from('billing_invoices').upsert({id:i.id,subscription_id:s.id,artist_id:artistId,status:i.status??'draft',amount_minor:i.amount_paid,currency:i.currency,period_start:iso(i.period_start),period_end:iso(i.period_end),hosted_url:i.hosted_invoice_url??null,pdf_url:i.invoice_pdf??null});if(e)throw new Error(e.message);}
  if(s.status!=='incomplete')await database.from('subscription_checkouts').delete().eq('artist_id',artistId);
+ await approvePaidArtist(artistId);
 }
 export async function changeSubscription(artistId:string,code:string,interval:BillingInterval){
  const database=await db();const {data:r}=await database.from('artist_subscriptions').select('*').eq('artist_id',artistId).not('status','in','(canceled,incomplete_expired)').order('created_at',{ascending:false}).limit(1).maybeSingle();

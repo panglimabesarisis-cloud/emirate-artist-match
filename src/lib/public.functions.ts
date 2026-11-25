@@ -37,6 +37,8 @@ export type ArtistCard = {
   emirate: { slug: string; name: string; name_ar?: string | null } | null;
   area: { slug: string; name: string } | null;
   badges: string[];
+  /** Holds a paid subscription today. */
+  subscribed?: boolean;
   stats: {
     completed_orders: number | null;
     rating: number | null;
@@ -47,6 +49,19 @@ export type ArtistCard = {
     member_since: string | null;
   };
 };
+
+/** Artists whose subscription is paid today (the rule of effective_artist_plan). Only the ids leave the server.
+ *  A failed read hides the badge rather than the artists. */
+async function paidSubscriberIds(admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin, ids: string[]) {
+  if (!ids.length) return new Set<string>();
+  try {
+    const { data } = await admin.from("artist_subscriptions").select("artist_id").eq("environment", "sandbox")
+      .in("status", ["active", "trialing", "past_due", "canceled", "unpaid"]).gt("paid_until", new Date().toISOString()).in("artist_id", ids);
+    return new Set((data ?? []).map((row) => row.artist_id));
+  } catch {
+    return new Set<string>();
+  }
+}
 
 async function loadCards(filter?: { artistSlug?: string }) {
   const { publicClient } = await import("./public-client.server");
@@ -67,6 +82,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const signedPhotos = photoPaths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(photoPaths, 6 * 3600)).data ?? [] : [];
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
+  const subscribers = await paidSubscriberIds(supabaseAdmin, (artists ?? []).map((a) => a.id));
   const {data:specialties}=await sb.from('subcategories').select('id,slug,name');
   const slugMap=new Map((specialties??[]).map(s=>[s.id,s.slug]));
   const nameMap=new Map((specialties??[]).map(s=>[s.id,s.name]));
@@ -91,6 +107,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
       emirate: a.emirate,
       area: a.area,
       badges: (a.artist_badges ?? []).map((b) => b.badge),
+      subscribed: subscribers.has(a.id),
       stats: {
         completed_orders: s?.completed_orders ?? null,
         rating: s?.rating != null ? Number(s.rating) : null,

@@ -52,7 +52,7 @@ const benefitSections: GuideSection[] = [
 ];
 
 const bookingFaqs = [
-  { question: "When does my profile become public?", answer: "After the team reviews and approves it. Completing registration does not immediately publish your profile, and verification badges follow their own document review." },
+  { question: "When does my profile become public?", answer: "With a paid subscription, as soon as the payment is confirmed. On the Free plan, after the team reviews and approves it. Verification badges follow their own document review." },
   { question: "Does the AI agent accept a job for me?", answer: "No. It gathers details and helps prepare the request. You review and approve or revise the offer before the client follows the approval and payment stages." },
   { question: "What if my calendar is not connected?", answer: "The enquiry can continue, but availability remains subject to your approval. A verified busy date blocks a draft; an unknown date is not treated as confirmed availability." },
   { question: "Can clients make real payments now?", answer: "No. Payments currently run in demo and sandbox mode. The booking flow shows AED invoice amounts, applicable VAT, deposit and balance stages without charging real money." },

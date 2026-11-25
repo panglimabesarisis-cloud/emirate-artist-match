@@ -77,7 +77,7 @@ const AR: Record<string, string> = {
   "Instant AI quotes": "عروض أسعار فورية بالذكاء الاصطناعي", "Every artist has an AI agent that replies 24/7 using their own prices and rules.": "لكل فنان وكيل ذكي يرد على مدار الساعة بأسعاره وقواعده الخاصة.",
   "Verified talent": "مواهب موثقة", "ID, business and performer badges reviewed by our team before they appear.": "شارات الهوية والرخصة التجارية والأداء يراجعها فريقنا قبل ظهورها.",
   "Real reviews only": "تقييمات حقيقية فقط", "Reviews come exclusively from completed bookings on the platform.": "التقييمات تأتي حصريًا من حجوزات مكتملة على المنصة.",
-  "Top Performer": "الأفضل أداءً", Verified: "موثق", bookings: "حجوزات", from: "من",
+  "Top Performer": "الأفضل أداءً", Verified: "موثق", Subscribe: "مشترك", bookings: "حجوزات", from: "من",
   Home: "الرئيسية", All: "الكل", "Budget (starting price)": "الميزانية (السعر المبدئي)", "Any budget": "أي ميزانية", "Up to": "حتى",
   Language: "اللغة", "Any language": "أي لغة", "Minimum rating": "الحد الأدنى للتقييم", "Any rating": "أي تقييم",
   "Verified only": "الموثقون فقط", "Top Performers": "الأفضل أداءً", "Areas in": "مناطق في", "artists found": "فنان",

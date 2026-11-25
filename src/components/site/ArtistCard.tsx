@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Star, BadgeCheck, Trophy, MapPin } from "lucide-react";
+import { Star, BadgeCheck, Trophy, MapPin, Crown } from "lucide-react";
 import type { ArtistCard as Card } from "@/lib/public.functions";
 import { aed, initials } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -38,6 +38,11 @@ export function ArtistCardView({ a, compact = false }: { a: Card; compact?: bool
           {verified && (
             <span className="inline-flex items-center gap-1 rounded-full bg-card/90 text-primary text-[11px] font-bold px-2 py-0.5">
               <BadgeCheck className="h-3 w-3 text-success" /> {t("Verified")}
+            </span>
+          )}
+          {a.subscribed && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-card/90 text-primary text-[11px] font-bold px-2 py-0.5">
+              <Crown className="h-3 w-3 text-gold" /> {t("Subscribe")}
             </span>
           )}
         </div>

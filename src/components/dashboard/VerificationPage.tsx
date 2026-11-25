@@ -81,7 +81,7 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
   const verified = !!data?.badges.some((b) => b.startsWith("verified"));
   const status: VStatus = verified ? "approved" : !latest ? "none" : latest.status === "submitted" ? "waiting" : latest.status === "under_review" ? "review" : latest.status === "approved" ? "approved" : "rejected";
   const plan = data?.plan ?? "free";
-  const subscribed = verified && plan !== "free";
+  const subscribed = plan !== "free";
   const topEarned = !!data?.badges.includes("top");
   const clients = data?.clients ?? 0;
   const decidedOn = latest?.decided_at ? fd(new Date(latest.decided_at)) : "";
@@ -136,8 +136,8 @@ export function VerificationPage({ artistId, userId }: { artistId: string; userI
           <Shield kind="b" state={subscribed ? "on" : "off"} />
           <span className={`dmr-vf-st ${subscribed ? "ok" : ""}`}>{t(subscribed ? "Active" : "Not active")}</span><h3 className="dmr-serif">{t("Subscribe")}</h3>
           <p>{t("Shows you are a paying member. It is about your plan, not your identity, and it is a separate badge.")}</p>
-          <ul><Item ok={verified}>{t("Verified badge")}</Item><Item ok={plan !== "free"}>{t("Paid plan (Basic or higher)")}</Item></ul>
-          {subscribed ? <button type="button" className="dmr-btn dmr-btn-line" disabled>{plan.charAt(0).toUpperCase() + plan.slice(1)} {t("plan active")}</button> : verified ? <button type="button" className="dmr-btn dmr-btn-gold" onClick={plansToast}>{t("See plans")}</button> : <button type="button" className="dmr-btn dmr-btn-line" disabled>{t("Get verified first")}</button>}
+          <ul><Item ok={plan !== "free"}>{t("Paid plan (Basic or higher)")}</Item></ul>
+          {subscribed ? <button type="button" className="dmr-btn dmr-btn-line" disabled>{plan.charAt(0).toUpperCase() + plan.slice(1)} {t("plan active")}</button> : <button type="button" className="dmr-btn dmr-btn-gold" onClick={plansToast}>{t("See plans")}</button>}
         </article>
         <article className={`dmr-vf-b g${topEarned ? " on" : ""}`}>
           <Shield kind="g" state={topEarned ? "on" : "off"} />

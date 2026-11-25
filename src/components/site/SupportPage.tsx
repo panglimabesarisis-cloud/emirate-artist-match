@@ -16,7 +16,7 @@ const faqs = [
  ["clients", "How do I book an artist?", "Find a performer, open their profile and send a free quick quote. Their AI manager replies with a price from their rate card. Once the artist approves, you pay the deposit and the booking is confirmed."],
  ["clients", "Can I cancel a booking?", "Yes. The cancellation and refund policy is shown before you confirm, and it decides what happens to any held payment."],
  ["clients", "Are the reviews real?", "Only clients with a completed booking can leave a review, so every rating comes from a real event."],
- ["artists", "How long does profile review take?", "Our team checks every new profile before it goes live. You will be notified once yours is approved."],
+ ["artists", "How long does profile review take?", "With a paid subscription your profile is approved as soon as the payment is confirmed. On the Free plan our team checks it before it goes live."],
  ["artists", "Can I change my plan later?", "Manage your plan from your dashboard. Review the price and effective date before confirming any change."],
  ["artists", "What does the AI manager answer?", "Price questions, availability, what is included and simple follow-ups, using the prices and rules you set."],
  ["payments", "When does the artist get paid?", "Dealmaker holds the payment and releases it to the artist once the job is completed."],

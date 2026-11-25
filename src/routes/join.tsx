@@ -85,7 +85,7 @@ function JoinPage() {
       <div className="reference-wrap reference-join-grid">
         <header className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
         <h1 className="text-3xl font-semibold">Talent register</h1>
-        <p className="mt-1 text-muted-foreground">Choose a plan, then seven quick steps. Our team reviews every profile before it goes live.</p>
+        <p className="mt-1 text-muted-foreground">Choose a plan, then seven quick steps. Our team reviews profiles before they go live; with a paid subscription yours goes live as soon as the payment is confirmed.</p>
         <ol className="reference-stepper">
           {STEPS.map((s, i) => (
             <li key={s} aria-current={i === shown ? "step" : undefined}>

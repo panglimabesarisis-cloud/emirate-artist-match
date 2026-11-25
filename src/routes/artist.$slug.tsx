@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play, Crown } from "lucide-react";
 import { youtubeId } from "@/lib/media";
 import { getArtist, getCatalog } from "@/lib/public.functions";
 import { PublicLayout } from "@/components/site/PublicLayout";
@@ -94,6 +94,7 @@ export function ArtistPage() {
                   {b === "top_performer" ? <Trophy className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3 text-gold" />} {t(BADGE_LABELS[b] ?? b)}
                 </span>
               ))}
+              {a.subscribed && <span className="inline-flex items-center gap-1 rounded-full bg-sidebar-accent text-xs font-bold px-2.5 py-1"><Crown className="h-3 w-3 text-gold" /> {t("Subscribe")}</span>}
             </div>
             <div className="mt-4 flex flex-wrap gap-5 text-sm opacity-85">
               {s.rating != null && <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-gold text-gold" /> {s.rating.toFixed(1)} ({s.review_count} {t("reviews")})</span>}
