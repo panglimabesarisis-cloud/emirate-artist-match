@@ -6,13 +6,15 @@ import {testProcessorAmount} from './processor-rules';
 const db=async()=>(await import('@/integrations/supabase/client.server')).supabaseAdmin;
 const iso=(n:number)=>new Date(n*1000).toISOString();
 async function priceFor(code:PaidPlan,interval:BillingInterval){
- const stripe=createStripeClient('sandbox');
- const prices=await stripe.prices.list({lookup_keys:[PLAN_LOOKUP_KEYS[code][interval]],active:true});
- const price=prices.data[0];
+ const stripe=createStripeClient('sandbox');const key=PLAN_LOOKUP_KEYS[code][interval];
  const database=await db();const {data:t,error}=await database.from('plan_tiers').select('*').eq('code',code).single();
- if(error||!t||!price)throw new Error('Plan price is not configured in the project’s Stripe test account');
- const fils=Math.round(Number(interval==='year'?t.price_yearly:t.price_monthly)*1.05*100);
- if(price.currency!=='idr'||price.unit_amount!==testProcessorAmount(fils)||price.recurring?.interval!==interval)throw new Error('Stripe plan price differs from the saved catalog; ask an administrator to synchronize prices');
+ if(error||!t)throw new Error('This plan is not in the saved catalog');
+ const amount=testProcessorAmount(Math.round(Number(interval==='year'?t.price_yearly:t.price_monthly)*1.05*100));
+ const prices=await stripe.prices.list({lookup_keys:[key],active:true});
+ // A test account that has never sold this plan gets its price from the catalog. An existing price is never
+ // replaced here: running subscriptions are recognised by its lookup key.
+ const price=prices.data[0]??await stripe.prices.create({currency:'idr',unit_amount:amount,recurring:{interval},lookup_key:key,tax_behavior:'inclusive',product_data:{name:`Dealmaker ${t.name} plan (${interval==='year'?'yearly':'monthly'})`}},{idempotencyKey:`plan-price:${key}:${amount}`});
+ if(price.currency!=='idr'||price.unit_amount!==amount||price.recurring?.interval!==interval)throw new Error('Stripe plan price differs from the saved catalog; ask an administrator to synchronize prices');
  return price;
 }
 export async function openSubscription(artistId:string,userId:string,email:string|undefined,code:PaidPlan,interval:BillingInterval,returnUrl:string){
