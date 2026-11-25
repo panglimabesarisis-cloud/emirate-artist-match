@@ -25,7 +25,7 @@ export function ForClientsPage() {
         <h1 className="serif">Book talent <span className="it">for your event.</span></h1>
         <p className="lead">From an intimate celebration to a corporate stage, find UAE performers, share your brief and agree the details with the artist through Dealmaker.</p>
         <div className="client-hero-actions">
-          <Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "musicians" }}>Find talent<Search aria-hidden="true" /></Link></Button>
+          <Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "all" }}>Find talent<Search aria-hidden="true" /></Link></Button>
           <Button asChild variant="outline" className="btn btn-line"><Link to="/how-it-works">How booking works<ArrowRight aria-hidden="true" /></Link></Button>
         </div>
         <p className="client-hero-note"><ShieldCheck aria-hidden="true" /><span>Free quote requests. Artist approval before payment.</span></p>
@@ -34,7 +34,7 @@ export function ForClientsPage() {
     <div className="wrap">
       <div className="client-occasions" aria-label="Event occasions">{occasions.map(({ icon: Icon, title, subtitle }) => <div className="client-occasion" key={title}><Icon aria-hidden="true" /><div><strong>{title}</strong><span>{subtitle}</span></div></div>)}</div>
       <ClientBookingGuide />
-      <section className="f-cta" aria-labelledby="client-cta-title"><h2 id="client-cta-title">Give your event <span className="it">its moment.</span></h2><div><Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "musicians" }}>Explore talent<ArrowRight aria-hidden="true" /></Link></Button><Button asChild variant="outline" className="btn btn-line"><Link to="/">Browse categories<Search aria-hidden="true" /></Link></Button></div></section>
+      <section className="f-cta" aria-labelledby="client-cta-title"><h2 id="client-cta-title">Give your event <span className="it">its moment.</span></h2><div><Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "all" }}>Explore talent<ArrowRight aria-hidden="true" /></Link></Button><Button asChild variant="outline" className="btn btn-line"><Link to="/">Browse categories<Search aria-hidden="true" /></Link></Button></div></section>
     </div>
   </div></PublicLayout></ReferenceTheme>;
 }

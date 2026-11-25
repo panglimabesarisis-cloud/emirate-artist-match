@@ -31,7 +31,7 @@ function RevealTalent({ name, children }: { name: string; children: React.ReactN
   </div>;
 }
 
-export function FeaturedTalents({ artists, category }: { artists: ArtistCard[]; category: string }) {
+export function FeaturedTalents({ artists }: { artists: ArtistCard[] }) {
   const { t } = useI18n();
   const stageRef = useRef<HTMLDivElement>(null);
   useFeaturedChoreography(stageRef, artists.length);
@@ -46,6 +46,6 @@ export function FeaturedTalents({ artists, category }: { artists: ArtistCard[]; 
     </Link></RevealTalent></div>)}</div>
     </div></div>
     {artists.length === 0 && <p className="home-empty">{t("No featured artists in this category yet.")}</p>}
-    <div className="see-all see-all-c rv"><p className="explore-ask">{t("WANT EXPLORE ALL PERFORMER ?")}</p><Button asChild className="btn btn-dark"><Link to="/$category" params={{ category }}>{t("See all talent")}<ArrowRight className="arr h-4 w-4" /></Link></Button></div>
+    <div className="see-all see-all-c rv"><p className="explore-ask">{t("WANT EXPLORE ALL PERFORMER ?")}</p><Button asChild className="btn btn-dark"><Link to="/$category" params={{ category: "all" }}>{t("See all talent")}<ArrowRight className="arr h-4 w-4" /></Link></Button></div>
   </div></section>;
 }

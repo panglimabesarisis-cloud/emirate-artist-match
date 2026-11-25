@@ -15,6 +15,7 @@ import { Profile, Notifications, Support, Settings } from "./sections/Account";
 import { PortalModals } from "./Modals";
 import { ClientOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import "./client-portal.css";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 
 type NavItem = { id: ClientSection; label: string; icon: LucideIcon };
 const NAV: { group: string; items: NavItem[] }[] = [
@@ -116,6 +117,7 @@ export function ClientPortal({ uid, email, section, thread, onNavigate }: { uid:
               <button type="button" className="cp-icon-btn" aria-label={`${t("Notifications")}${counts.notifications ? ` (${counts.notifications})` : ""}`} onClick={() => onNavigate("notifications")}><Bell aria-hidden="true" />{counts.notifications ? <i className="cp-dot" aria-hidden="true">{counts.notifications > 9 ? "9+" : counts.notifications}</i> : null}</button>
               <button type="button" className="cp-icon-btn" aria-label={`${t("Messages")}${counts.messages ? ` (${counts.messages})` : ""}`} onClick={() => onNavigate("messages")}><Mail aria-hidden="true" />{counts.messages ? <i className="cp-dot" aria-hidden="true">{counts.messages > 9 ? "9+" : counts.messages}</i> : null}</button>
               <button type="button" className="cp-user-pill" onClick={() => onNavigate("profile")} aria-label={t("My profile")}><div className="cp-avatar" aria-hidden="true">{initials(name)}</div><span>{name}</span></button>
+              <LogoutButton />
             </div>
           </header>
           <main id="cp-main" ref={main} tabIndex={-1} className="cp-content">

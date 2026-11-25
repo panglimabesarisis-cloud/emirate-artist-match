@@ -486,7 +486,6 @@ footer{background:var(--dm-ink);border-top:1px solid var(--dm-line);padding-top:
   .search .s-go { height: 100%; }
   .s-in { padding-top: 4px; }
   .hints button { height: auto; }
-  .home-search-error { color: var(--dm-gold); margin-top: 14px; }
   .mq-copy { display: inline-flex; }
   .marquee a { font-size: 64px; }
   .sh h2 { font-size: 92px; margin-top: 18px; }

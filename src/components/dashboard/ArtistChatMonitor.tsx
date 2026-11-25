@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
 import "./studio.css";
 import "./artist-chat-monitor.css";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 
 export function ArtistChatMonitor({ id }: { id: string }) {
   const { t } = useI18n();
@@ -47,7 +48,10 @@ export function ArtistChatMonitor({ id }: { id: string }) {
   };
   return <main className="artist-chat-monitor">
     <header className="artist-chat-top"><div><h1>{query.data?.chat.client_name ?? query.data?.chat.quote_requests?.name ?? t("Booking chat")}</h1><span>{t(canReply ? "You are handling this chat" : query.data?.chat.handover_requested_at ? "Waiting for artist takeover" : "AI is handling this chat")}</span></div>
-      {query.data && <Button disabled={busy} onClick={() => void mode(canReply ? "ai" : "human")}>{canReply ? <Bot /> : <Hand />}{t(canReply ? "Return to AI" : "Take Over Chat")}</Button>}
+      <div className="artist-chat-actions">
+        {query.data && <Button disabled={busy} onClick={() => void mode(canReply ? "ai" : "human")}>{canReply ? <Bot /> : <Hand />}{t(canReply ? "Return to AI" : "Take Over Chat")}</Button>}
+        <LogoutButton />
+      </div>
     </header>
     <div className="artist-chat-history" role="log" aria-live="polite" aria-label={t("Conversation")}>
       {query.isPending && <p>{t("Loading…")}</p>}{query.error && <p role="alert">{query.error.message}</p>}

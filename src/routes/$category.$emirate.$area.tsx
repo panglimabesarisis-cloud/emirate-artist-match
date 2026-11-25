@@ -1,13 +1,14 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getCatalog, searchArtists } from "@/lib/public.functions";
 import { SearchPage, validateFilters } from "@/components/site/SearchPage";
+import { findCategory } from "@/lib/artist-search";
 
 export const Route = createFileRoute("/$category/$emirate/$area")({
   validateSearch: validateFilters,
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
     const catalog = await getCatalog();
-    const cat = catalog.categories.find((c) => c.slug === params.category);
+    const cat = findCategory(catalog.categories, params.category);
     const em = catalog.emirates.find((e) => e.slug === params.emirate);
     const area = em && catalog.areas.find((a) => a.slug === params.area && a.emirate_id === em.id);
     if (!cat || !em || !area) throw notFound();

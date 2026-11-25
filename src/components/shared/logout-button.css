@@ -1,0 +1,8 @@
+/* Self-contained so it looks the same in the artist, team, client and admin headers. */
+html button.dm-logout{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;height:40px;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(232,176,74,.45);background:transparent;color:inherit;font-size:13px;font-weight:700;line-height:1;white-space:nowrap;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+html button.dm-logout:hover{background:linear-gradient(100deg,#f0c062 0%,#e8a33f 45%,#d4842a 100%);border-color:transparent;color:#0a0e1b}
+html button.dm-logout:disabled{opacity:.5;cursor:wait}
+html button.dm-logout svg{width:16px;height:16px;flex-shrink:0}
+html[dir=rtl] button.dm-logout svg{transform:scaleX(-1)}
+/* Phones: icon only, so the header never overflows. */
+@media (max-width:640px){html button.dm-logout{width:40px;padding:0}html button.dm-logout span{display:none}}

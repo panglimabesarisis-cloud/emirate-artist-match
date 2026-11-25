@@ -62,6 +62,8 @@ const AR: Record<string, string> = {
   Verification: "التوثيق", Team: "الفريق", "Export data": "تصدير البيانات", "View public profile": "عرض الملف العام", "Plan:": "الخطة:",
   "DEMO MODE — no real payments are processed.": "وضع تجريبي — لا تتم معالجة أي مدفوعات حقيقية.",
   Musicians: "موسيقيون", DJs: "منسقو أغاني", "Cultural Acts": "عروض ثقافية", "How it works": "كيف يعمل",
+  "Show all": "عرض كل", "All talent": "كل المواهب", "Name, talent or city": "الاسم أو الموهبة أو المدينة", "Search artists": "ابحث عن فنانين",
+  "Artist Dashboard": "لوحة تحكم الفنان", "Client Dashboard": "لوحة تحكم العميل", "Log out": "تسجيل الخروج", "Could not sign out": "تعذر تسجيل الخروج",
   Admin: "الإدارة", Dashboard: "لوحة التحكم", "Sign out": "تسجيل الخروج", "Sign in": "تسجيل الدخول", "Join as talent": "انضم كفنان",
   "Dubai's AI-powered talent marketplace. Every artist deserves an AI manager.": "سوق المواهب في دبي المدعوم بالذكاء الاصطناعي. كل فنان يستحق مديرًا ذكيًا.",
   Discover: "اكتشف", "Musicians in Dubai": "موسيقيون في دبي", "DJs in Dubai": "منسقو أغاني في دبي", "Variety entertainers": "فنانو الترفيه المتنوع",

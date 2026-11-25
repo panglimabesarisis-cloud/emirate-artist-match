@@ -32,6 +32,7 @@ import { ClientAccounts, ClientWithdrawals, SupportInbox } from "@/components/ad
 import { useServerFn } from "@tanstack/react-start";
 import { decideVerification, openVerificationFile } from "@/lib/verification.functions";
 import { VERIFICATION_REASONS } from "@/lib/verification-rules";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Master Control Center | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Dealmaker master administration for talent, bookings, separate artist and client commissions, support and payment oversight." }, { property: "og:title", content: "Master Control Center | Dealmaker" }, { property: "og:description", content: "Manage the Dealmaker talent ecosystem from one protected operational workspace." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -161,6 +162,7 @@ function Admin() {
             <span className="studio-mail" title={user?.email ?? ""} dir="ltr">{user?.email}</span>
             <Button variant="outline" className="admin-search" onClick={() => setCommand(true)} aria-label="Find admin section"><Search /><span>Find a section</span></Button>
             <Button variant="ghost" size="icon" disabled={refreshing} aria-label="Refresh admin data" title="Refresh admin data" onClick={() => void refresh()}><RefreshCw /></Button>
+            <LogoutButton />
           </div>
         </header>
         <main id="admin-content" className="studio-content studio-reference" tabIndex={-1}>

@@ -14,6 +14,7 @@ import { usePortal } from "../portal-context";
 import { usePortalRows, type PortalRow } from "../derived";
 import { useCommissions, usePayouts, useProfile, useSettings, useSupport, useThreads, useWallet } from "../useClientPortal";
 import { ArtistPhoto, CardHead, Empty, Kpi, LoadError, PageHead, Skeleton, Status, money, moneyShort, shortDate } from "../ui";
+import { matchesSearch } from "@/lib/artist-search";
 
 const ACTION_LABEL: Record<string, string> = { quotation: "Review", pay: "Pay now", job: "Confirm", review: "Review artist", chat: "Open chat", details: "View" };
 
@@ -129,14 +130,17 @@ export function Browse() {
   const artists = useQuery({ queryKey: ["cp-artists"], queryFn: () => search({ data: {} }), staleTime: 5 * 60_000 });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
+  const [city, setCity] = useState("");
+  const cities = useMemo(() => [...new Map((artists.data ?? []).filter((a) => a.emirate).map((a) => [a.emirate!.slug, a.emirate!.name])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [artists.data]);
   const categories = useMemo(() => [...new Map((artists.data ?? []).filter((a) => a.category).map((a) => [a.category!.slug, a.category!.name])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [artists.data]);
-  const list = (artists.data ?? []).filter((a) => (!cat || a.category?.slug === cat) && `${a.stage_name} ${a.category?.name ?? ""} ${a.subcategory?.name ?? ""} ${a.emirate?.name ?? ""} ${a.tagline ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const list = (artists.data ?? []).filter((a) => (!cat || a.category?.slug === cat) && (!city || a.emirate?.slug === city) && matchesSearch(a, q));
   return (
     <section className="cp-page">
       <PageHead eyebrow="Discover talent" title="BROWSE ARTISTS" text="Discover talent for your next event, campaign or production." />
       <div className="cp-toolbar">
-        <input className="cp-input cp-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search artists or categories…")} aria-label={t("Search artists or categories")} />
-        <select className="cp-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t("Category")}><option value="">{t("All categories")}</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select>
+        <input className="cp-input cp-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Name, talent or city")} aria-label={t("Search artists")} />
+        <select className="cp-input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t("Category")}><option value="">{t("All")}</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select>
+        <select className="cp-input" value={city} onChange={(e) => setCity(e.target.value)} aria-label={t("City")}><option value="">{t("All")}</option>{cities.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select>
         <span className="cp-spacer" />
         <span className="cp-muted cp-small">{artists.data ? `${list.length} ${t(list.length === 1 ? "artist" : "artists")}` : ""}</span>
       </div>

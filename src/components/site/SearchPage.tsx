@@ -16,8 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useI18n, localName } from "@/lib/i18n";
 import { ClientBookingGuide } from "./ClientBookingGuide";
 import "./artist-profile.css";
+import { ALL, ALL_CATEGORY, searchText } from "@/lib/artist-search";
 
 export type Filters = {
+  q?: string | undefined;
   sub?: string | undefined; event?: string | undefined; lang?: string | undefined;
   maxPrice?: number | undefined; minRating?: number | undefined;
   verified?: boolean | undefined; top?: boolean | undefined;
@@ -54,7 +56,8 @@ export function SearchPage(props: {
     }),
   });
   const { t, lang } = useI18n();
-  const cat = catalog.categories.find((c) => c.slug === categorySlug);
+  const categories = [ALL_CATEGORY, ...catalog.categories];
+  const cat = categories.find((c) => c.slug === categorySlug);
   const subs = catalog.subcategories.filter((s) => s.category_id === cat?.id);
   const emirate = catalog.emirates.find((e) => e.slug === emirateSlug);
   const areas = emirate ? catalog.areas.filter((a) => a.emirate_id === emirate.id) : [];
@@ -82,8 +85,8 @@ export function SearchPage(props: {
           </nav>
           <h1 className="mt-3 text-3xl md:text-5xl font-semibold">{lang === "ar" && cat ? `${localName(lang, cat)}${emirate ? ` في ${localName(lang, emirate)}` : " في الإمارات"}` : props.title}</h1>
           {lang === "en" && <p className="mt-2 opacity-75 max-w-2xl">{cat?.description}</p>}
-          <ListingSearch catalog={catalog} categorySlug={categorySlug} emirateSlug={emirateSlug} filters={filters} />
-          <div className="reference-category-chips">{catalog.categories.map(c => <Link key={c.slug} to="/$category" params={{ category: c.slug }} search={filters} className={c.slug === categorySlug ? "is-active" : ""}>{localName(lang, c)}</Link>)}</div>
+          <ListingSearch key={`${categorySlug}|${emirateSlug ?? ALL}|${filters.q ?? ""}`} catalog={catalog} categorySlug={categorySlug} emirateSlug={emirateSlug} filters={filters} />
+          <div className="reference-category-chips">{categories.map(c => <Link key={c.slug} to="/$category" params={{ category: c.slug }} search={{ ...filters, sub: undefined }} className={c.slug === categorySlug ? "is-active" : ""}>{c.slug === ALL ? t("All") : localName(lang, c)}</Link>)}</div>
           {subs.length > 0 && (
             <div className="listing-subcategories mt-6 flex flex-wrap gap-2">
               <Button variant="ghost" onClick={() => set({ sub: undefined })}
@@ -163,7 +166,7 @@ export function SearchPage(props: {
 
         <div>
           <div className="listing-filter-chips">{Object.entries(filters).filter(([key, value]) => key !== "sort" && value !== undefined && value !== false).map(([key, value]) => <Button key={key} variant="ghost" onClick={() => set({ [key]: undefined })} aria-label={`${t("Remove")} ${key}`}>
-            {key === "sub" ? catalog.subcategories.find(s => s.slug === value)?.name ?? String(value) : key === "event" ? catalog.eventTypes.find(e => e.slug === value)?.name ?? String(value) : key === "maxPrice" ? `${t("Up to")} AED ${value}` : key === "minRating" ? `${value}+ ${t("rating")}` : key === "verified" ? t("Verified only") : key === "top" ? t("Top Performers") : String(value)}<X className="h-3 w-3" />
+            {key === "q" ? `“${value}”` : key === "sub" ? catalog.subcategories.find(s => s.slug === value)?.name ?? String(value) : key === "event" ? catalog.eventTypes.find(e => e.slug === value)?.name ?? String(value) : key === "maxPrice" ? `${t("Up to")} AED ${value}` : key === "minRating" ? `${value}+ ${t("rating")}` : key === "verified" ? t("Verified only") : key === "top" ? t("Top Performers") : String(value)}<X className="h-3 w-3" />
           </Button>)}</div>
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">{results.length} {t("artists found")}</p>
@@ -184,7 +187,7 @@ export function SearchPage(props: {
             </div>
           ) : (
             <div className="listing-artists">
-              {results.slice(0, shown).map((a) => <ListingArtistCard key={a.id} artist={a} match={subs.find(s => s.slug === filters.sub)?.name ?? cat?.name ?? ""} />)}
+              {results.slice(0, shown).map((a) => <ListingArtistCard key={a.id} artist={a} match={subs.find(s => s.slug === filters.sub)?.name ?? (categorySlug === ALL ? a.category?.name : cat?.name) ?? ""} />)}
             </div>
           )}
           {shown < results.length && (
@@ -205,6 +208,7 @@ export function validateFilters(s: Record<string, unknown>): Filters {
   const num = (v: unknown) => (v != null && !isNaN(Number(v)) ? Number(v) : undefined);
   const sorts = ["recommended", "rating", "price_asc", "price_desc", "bookings"];
   return {
+    q: searchText(s["q"]),
     sub: str(s["sub"]), event: str(s["event"]), lang: str(s["lang"]),
     maxPrice: num(s["maxPrice"]), minRating: num(s["minRating"]),
     verified: s["verified"] === true || s["verified"] === "true" ? true : undefined,

@@ -42,6 +42,7 @@ import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/compone
 import { ProfileSide } from "@/components/dashboard/ProfileSide";
 import { TravelSettings } from "@/components/dashboard/TravelSettings";
 import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -92,7 +93,10 @@ function MemberOrClient({ userId }: { userId: string }) {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-3xl font-semibold">{a.stage_name}</h1><p className="text-sm text-muted-foreground">You are a {t.role} on this team</p></div>
-        {teams.length > 1 && <Select value={String(pick)} onValueChange={(v) => setPick(Number(v))}><SelectTrigger className="w-56"><SelectValue /></SelectTrigger><SelectContent>{teams.map((x, i) => <SelectItem key={x.artists?.id??i} value={String(i)}>{x.artists?.stage_name}</SelectItem>)}</SelectContent></Select>}
+        <div className="ms-auto flex flex-wrap items-center gap-3">
+          {teams.length > 1 && <Select value={String(pick)} onValueChange={(v) => setPick(Number(v))}><SelectTrigger className="w-56"><SelectValue /></SelectTrigger><SelectContent>{teams.map((x, i) => <SelectItem key={x.artists?.id??i} value={String(i)}>{x.artists?.stage_name}</SelectItem>)}</SelectContent></Select>}
+          <LogoutButton />
+        </div>
       </div>
       <Tabs key={a.id} defaultValue="inbox" className="mt-8">
         <TabsList className="flex-wrap h-auto">
@@ -198,7 +202,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
   });
   const NAV_COUNT: Partial<Record<string, string>> = { inbox: "inbox", quotes: "quotes", inquiries: "inquiries", bookings: "bookings", invoices: "invoices", credits: "credits" };
   if (isLoading) return null;
-  if (!artist) return <PublicLayout><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;
+  if (!artist) return <PublicLayout><div className="flex justify-end p-4"><LogoutButton /></div><div className="py-16 text-center"><h1 className="text-3xl font-semibold">{tr("Finish your talent register")}</h1><Button asChild className="mt-6 bg-gradient-gold text-gold-foreground"><Link to="/join">{tr("Continue registration")}</Link></Button></div></PublicLayout>;
   const current = ARTIST_NAV.find((n) => n.id === section) ?? ARTIST_NAV[0];
   let lastGroup: string | undefined;
   return (
@@ -256,6 +260,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
             <Button variant="outline" size="icon" className="studio-icon-button relative" aria-label={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} title={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} onClick={() => setSection(navCounts?.["inquiries"] ? "inquiries" : "inbox")}><Bell aria-hidden="true" />{!!navCounts?.["inquiries"] && <span className="absolute -top-1 -end-1 rounded-full bg-gold px-1 text-[10px] text-gold-foreground">{navCounts["inquiries"]}</span>}</Button>
             {artist.status === "approved" && <Button asChild variant="outline" size="sm" className="studio-button studio-public-link"><Link to="/artist/$slug" params={{ slug: artist.slug }} aria-label={tr("View public profile")}><Eye aria-hidden="true" /><span>{tr("View public profile")}</span></Link></Button>}
             <span className="studio-mail" title={email} dir="ltr">{email}</span>
+            <LogoutButton />
           </div>
         </header>
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>

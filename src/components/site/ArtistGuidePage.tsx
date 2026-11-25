@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { PublicLayout } from "./PublicLayout";
 import "./information.css";
 import "./how-it-works.css";
+import { HideForArtist } from "@/components/shared/HideForArtist";
 
 type GuideSection = {
   title: string; accent: string; body: string; details: string[];
@@ -76,7 +77,7 @@ export function ArtistGuidePage({ kind }: { kind: "booking" | "benefits" }) {
         <h1 className="serif">{t(booking ? "How you get" : "Why artists")} <span className="it">{t(booking ? "booked." : "join.")}</span></h1>
         <p className="lead">{t(booking ? "From your first profile to a completed event: share your work, collect the brief and stay in control of every offer." : "A place for your work. An agent for your enquiries. A workspace for the details around every performance.")}</p>
         <div className="f-index">
-          <Button asChild className="btn btn-gold"><Link to="/join">{t("Create a profile")}<ArrowRight aria-hidden="true" /></Link></Button>
+          <HideForArtist><Button asChild className="btn btn-gold"><Link to="/join">{t("Create a profile")}<ArrowRight aria-hidden="true" /></Link></Button></HideForArtist>
           <Button asChild variant="outline" className="btn btn-line"><Link to={booking ? "/why-artists-join" : "/how-you-get-booked"}>{t(booking ? "Why artists join" : "How you get booked")}</Link></Button>
         </div>
       </div>
@@ -90,7 +91,7 @@ export function ArtistGuidePage({ kind }: { kind: "booking" | "benefits" }) {
         </article>)}
       </section>
       <section className="how-faq" aria-labelledby="artist-faq-title"><div><h2 id="artist-faq-title">{t(booking ? "Before your first" : "Before you")} <span className="it">{t(booking ? "booking." : "join.")}</span></h2><p>{t("Clear expectations about approval, plans and the tools in your workspace.")}</p></div><Accordion type="single" collapsible>{faqs.map(({ question, answer }) => <AccordionItem key={question} value={question}><AccordionTrigger className="how-faq-trigger">{t(question)}</AccordionTrigger><AccordionContent className="how-faq-answer">{t(answer)}</AccordionContent></AccordionItem>)}</Accordion></section>
-      <section className="f-cta" aria-labelledby="artist-cta-title"><h2 id="artist-cta-title">{t("Put your talent")} <span className="it">{t("in the picture.")}</span></h2><div><Button asChild className="btn btn-gold"><Link to="/join">{t("Join as talent")}<ArrowRight aria-hidden="true" /></Link></Button><Button asChild variant="outline" className="btn btn-line"><Link to="/support">{t("Support")}</Link></Button></div></section>
+      <section className="f-cta" aria-labelledby="artist-cta-title"><h2 id="artist-cta-title">{t("Put your talent")} <span className="it">{t("in the picture.")}</span></h2><div><HideForArtist><Button asChild className="btn btn-gold"><Link to="/join">{t("Join as talent")}<ArrowRight aria-hidden="true" /></Link></Button></HideForArtist><Button asChild variant="outline" className="btn btn-line"><Link to="/support">{t("Support")}</Link></Button></div></section>
     </div>
   </div></PublicLayout></ReferenceTheme>;
 }

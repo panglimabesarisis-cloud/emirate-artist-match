@@ -7,6 +7,7 @@ import { SceneBackground } from "@/components/shared/SceneBackground";
 import { PublicLayout } from "./PublicLayout";
 import "./information.css";
 import "./how-it-works.css";
+import { HideForArtist } from "@/components/shared/HideForArtist";
 
 type Milestone = { icon: LucideIcon; title: string; body: string };
 type JourneyStep = {
@@ -143,8 +144,8 @@ export function HowItWorksPage() {
         <Accordion type="single" collapsible>{faqs.map(({ question, answer }) => <AccordionItem key={question} value={question}><AccordionTrigger className="how-faq-trigger">{question}</AccordionTrigger><AccordionContent className="how-faq-answer">{answer}</AccordionContent></AccordionItem>)}</Accordion>
       </section>
       <section className="f-cta" aria-labelledby="how-cta-title"><h2 id="how-cta-title">Make your next event <span className="it">happen.</span></h2><div>
-        <Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "musicians" }}>Find talent<ArrowRight aria-hidden="true" /></Link></Button>
-        <Button asChild variant="outline" className="btn btn-line"><Link to="/join">Join as talent<UserRound aria-hidden="true" /></Link></Button>
+        <Button asChild className="btn btn-gold"><Link to="/$category" params={{ category: "all" }}>Find talent<ArrowRight aria-hidden="true" /></Link></Button>
+        <HideForArtist><Button asChild variant="outline" className="btn btn-line"><Link to="/join">Join as talent<UserRound aria-hidden="true" /></Link></Button></HideForArtist>
         <Button asChild variant="ghost" className="btn btn-line"><Link to="/support"><LockKeyhole aria-hidden="true" />Booking support</Link></Button>
       </div></section>
     </div>

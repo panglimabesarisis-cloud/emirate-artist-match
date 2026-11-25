@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { StarlightWordmark } from "@/components/shared/StarlightWordmark";
 import "@/components/shared/shared.css";
+import { HideForArtist } from "@/components/shared/HideForArtist";
 
 export function SiteFooter() {
   const { t } = useI18n();
@@ -26,7 +27,7 @@ export function SiteFooter() {
         <div>
           <div className="font-semibold mb-3 text-gold">{t("For talent")}</div>
           <ul className="space-y-2 opacity-80">
-            <li><Link to="/join">{t("Create a profile")}</Link></li>
+            <HideForArtist><li><Link to="/join">{t("Create a profile")}</Link></li></HideForArtist>
             <li><Link to="/how-it-works">{t("How it works")}</Link></li>
             <li><Link to="/features">{t("Features")}</Link></li>
             <li><Link to="/support">{t("Support")}</Link></li>

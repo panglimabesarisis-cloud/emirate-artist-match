@@ -3,6 +3,7 @@ import { ArrowRight, Bot, Check, Banknote, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { PhoneStories } from "./PhoneStories";
+import { HideForArtist } from "@/components/shared/HideForArtist";
 const notifications = [
   { icon: Bot, title: "AI manager replied", text: "6 enquiries answered with your rates", time: "now" },
   { icon: Check, title: "Booking confirmed", text: "Wedding · Palm Jumeirah", time: "2m" },
@@ -21,6 +22,6 @@ export function HomeArtists() {
     <div className="duo"><PhoneStories />
       <div className="pane pane-b"><div className="pane-h"><span>{t("Your phone with Dealmaker")}</span><b className="live">{t("Automatic")}</b></div><ul className="notes" aria-label={t("Example of automatic booking notifications")}>{notifications.map(({ icon: Icon, title, text, time }) => <li key={title}><span className="ic" aria-hidden="true"><Icon className="h-5 w-5" /></span><div><b>{t(title)}</b><span>{t(text)}</span></div><time>{t(time)}</time></li>)}</ul></div></div>
     <ul className="perks">{perks.map(([title, text]) => <li className="rv" key={title}><span className="pk serif">{t(title ?? "")}</span><p>{t(text ?? "")}</p></li>)}</ul>
-    <div className="art-cta rv"><Button asChild className="btn btn-dark"><Link to="/join">{t("Create your profile")}<ArrowRight className="arr h-4 w-4" /></Link></Button><span>{t("Free plan available. Our team reviews every profile.")}</span></div>
+    <div className="art-cta rv"><HideForArtist><Button asChild className="btn btn-dark"><Link to="/join">{t("Create your profile")}<ArrowRight className="arr h-4 w-4" /></Link></Button></HideForArtist><span>{t("Free plan available. Our team reviews every profile.")}</span></div>
   </div></section>;
 }

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { conciergeInput } from "./concierge-rules";
 import { artistOwnedMediaPath, publicPhysicalDetails } from "./public-profile";
+import { ALL, matchesSearch } from "./artist-search";
 
 export const askPublicConcierge = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => conciergeInput.parse(input))
@@ -29,10 +30,11 @@ export type ArtistCard = {
   plan: string;
   hue: number;
   profilePhotoUrl?: string | null;
-  category: { slug: string; name: string } | null;
+  category: { slug: string; name: string; name_ar?: string | null } | null;
   subcategory: { slug: string; name: string } | null;
   specialty_slugs?:string[];
-  emirate: { slug: string; name: string } | null;
+  specialty_names?: string[];
+  emirate: { slug: string; name: string; name_ar?: string | null } | null;
   area: { slug: string; name: string } | null;
   badges: string[];
   stats: {
@@ -52,7 +54,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
   let q = sb
     .from("artists")
     .select(
-      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(slug,name), subcategory:subcategories(slug,name), emirate:emirates(slug,name), area:areas(slug,name), artist_badges(badge)",
+      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(slug,name,name_ar), subcategory:subcategories(slug,name), emirate:emirates(slug,name,name_ar), area:areas(slug,name), artist_badges(badge)",
     )
     .eq("status", "approved");
   if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
@@ -65,8 +67,9 @@ async function loadCards(filter?: { artistSlug?: string }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const signedPhotos = photoPaths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(photoPaths, 6 * 3600)).data ?? [] : [];
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
-  const {data:specialties}=await sb.from('subcategories').select('id,slug');
+  const {data:specialties}=await sb.from('subcategories').select('id,slug,name');
   const slugMap=new Map((specialties??[]).map(s=>[s.id,s.slug]));
+  const nameMap=new Map((specialties??[]).map(s=>[s.id,s.name]));
   return (artists ?? []).map((a): ArtistCard => {
     const s = statMap.get(a.id);
     return {
@@ -84,6 +87,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
       category: a.category,
       subcategory: a.subcategory,
       specialty_slugs:(a.specialty_ids??[]).flatMap(id=>{const slug=slugMap.get(id);return slug?[slug]:[];}),
+      specialty_names: (a.specialty_ids ?? []).flatMap(id => { const name = nameMap.get(id); return name ? [name] : []; }),
       emirate: a.emirate,
       area: a.area,
       badges: (a.artist_badges ?? []).map((b) => b.badge),
@@ -127,6 +131,8 @@ export const getFeatured = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export type SearchInput = {
+  /** Free text matched against artist name, talent and city. */
+  q?: string | undefined;
   category?: string | undefined;
   sub?: string | undefined;
   emirate?: string | undefined;
@@ -144,7 +150,8 @@ export const searchArtists = createServerFn({ method: "GET" })
   .inputValidator((i: SearchInput) => i)
   .handler(async ({ data }) => {
     let cards = await loadCards();
-    if (data.category) cards = cards.filter((c) => c.category?.slug === data.category);
+    if (data.q) cards = cards.filter((c) => matchesSearch(c, data.q));
+    if (data.category && data.category !== ALL) cards = cards.filter((c) => c.category?.slug === data.category);
     if (data.sub) cards = cards.filter((c) => c.subcategory?.slug === data.sub||c.specialty_slugs?.includes(data.sub??''));
     if (data.emirate) cards = cards.filter((c) => c.emirate?.slug === data.emirate);
     if (data.area) cards = cards.filter((c) => c.area?.slug === data.area);

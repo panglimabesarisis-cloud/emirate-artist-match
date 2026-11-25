@@ -4,6 +4,7 @@ import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
 import { PublicLayout } from "./PublicLayout";
 import { FlowDemo, NoCodeDemo } from "./FeatureDemos";
 import "./information.css";
+import { HideForArtist } from "@/components/shared/HideForArtist";
 
 export function FeaturesPage() { return <ReferenceTheme><PublicLayout><section className="reference-features">
 <div className="f-hero scenehost" data-scenes="arch"><SceneBackground></SceneBackground>
@@ -74,6 +75,6 @@ export function FeaturesPage() { return <ReferenceTheme><PublicLayout><section c
 <ul><li>Rules written like sentences</li><li>Rate card, availability and policies in simple forms</li><li>Works on your phone</li></ul></div>
 <div className="ft-vis in d1"><NoCodeDemo></NoCodeDemo></div>
 </article>
-<div className="f-cta in"><h2 className="serif">Ready to let it <span className="it">run?</span></h2><div><Link className="btn btn-gold" to="/join">Join as talent <span className="arr">→</span></Link><Link params={{category:"musicians"}} className="btn btn-line" to="/$category">Find talent</Link></div></div>
+<div className="f-cta in"><h2 className="serif">Ready to let it <span className="it">run?</span></h2><div><HideForArtist><Link className="btn btn-gold" to="/join">Join as talent <span className="arr">→</span></Link></HideForArtist><Link params={{category:"all"}} className="btn btn-line" to="/$category">Find talent</Link></div></div>
 </div>
 </section></PublicLayout></ReferenceTheme>; }
