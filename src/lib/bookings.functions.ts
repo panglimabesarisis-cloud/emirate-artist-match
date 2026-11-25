@@ -3,6 +3,7 @@ import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
+import { rushItems } from "./ratecard";
 import { bookingPayment, canCheckoutBooking } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
 import { priceBreakdown, refundAmount, canComplete, canDispute, canClientConfirm } from "./booking-rules";
@@ -14,7 +15,7 @@ const uuid = (v: unknown) => {
 };
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
-const BOOKING_COLS = "start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, contract_template_id, contract_terms, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body), conversations(quote_requests(start_time,end_time,perform_minutes,areas(name)))";
+const BOOKING_COLS = "job_kind, work_ready_at, start_time, end_time, job_detail, invoice_items, deposit_pct, calendar_sync_status, calendar_sync_error, id, guests, client_phone, revision_note, drafted_by, disputes(id, status, reason, resolution, opened_by), artist_id, conversation_id, client_name, client_email, package_title, notes, event_date, amount, vat_amount, total, paid_amount, escrow_status, status, invoice_no, contract_accepted_at, contract_template_id, contract_terms, paid_at, completed_at, cancelled_at, cancelled_by, cancel_reason, refund_amount, created_at, event_types(name), artists(stage_name, slug, trn), reviews(id, rating, body), conversations(quote_requests(start_time,end_time,perform_minutes,areas(name)))";
 
 async function bookingByKey(id: string, key: string) {
   const db = await admin();
@@ -33,25 +34,36 @@ async function assertArtistOwns(supabase: any, userId: string, artistId: string)
 /** Artist: send a formal booking offer from a quote conversation. */
 export const createBookingOffer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { conversationId: string; title: string; amount: number; eventDate: string; notes?: string }) => {
+  .inputValidator((i: { conversationId: string; title: string; amount: number; eventDate: string; notes?: string; startTime?: string; endTime?: string; rateCardId?: string; rushIndex?: number | null }) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(i.eventDate)) throw new Error("Event date required");
     const amount = Number(i.amount);
     if (!(amount > 0 && amount < 10_000_000)) throw new Error("Invalid amount");
-    return { conversationId: uuid(i.conversationId), title: String(i.title ?? "").trim().slice(0, 120) || "Performance", amount, eventDate: i.eventDate, notes: maskContacts(String(i.notes ?? "").slice(0, 1000)) || null };
+    const time = (value: unknown) => (typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : null);
+    const rushIndex = Number.isInteger(i.rushIndex) && (i.rushIndex as number) >= 0 && (i.rushIndex as number) < 10 ? (i.rushIndex as number) : null;
+    return { conversationId: uuid(i.conversationId), title: String(i.title ?? "").trim().slice(0, 120) || "Performance", amount, eventDate: i.eventDate, notes: maskContacts(String(i.notes ?? "").slice(0, 1000)) || null, startTime: time(i.startTime), endTime: time(i.endTime), rateCardId: i.rateCardId ? uuid(i.rateCardId) : null, rushIndex };
   })
   .handler(async ({ data, context }) => {
-    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, client_user_id, quote_requests(name, email, phone, guests, start_time, end_time, perform_minutes, message, areas(name), event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
+    const { data: conv } = await context.supabase.from("conversations").select("id, artist_id, client_user_id, client_name, quote_requests(name, email, phone, guests, start_time, end_time, perform_minutes, message, areas(name), event_type_id, client_user_id)").eq("id", data.conversationId).maybeSingle();
     if (!conv) throw new Error("Conversation not found");
     await assertArtistOwns(context.supabase, context.userId, conv.artist_id);
     const q = conv.quote_requests;
-    const p = priceBreakdown(data.amount);
     const db = await admin();
+    // The chosen package sets how the job runs; its rush option adds a priced line.
+    const { data: card } = data.rateCardId
+      ? await db.from("rate_cards").select("job_kind, deposit_pct, rush_items").eq("id", data.rateCardId).eq("artist_id", conv.artist_id).maybeSingle()
+      : { data: null };
+    const rush = data.rushIndex === null ? null : rushItems(card ?? {})[data.rushIndex] ?? null;
+    if (data.rushIndex !== null && !rush) throw new Error("That rush option is no longer on the rate card");
+    const items = [{ title: data.title, qty: 1, price: priceBreakdown(data.amount).subtotal }, ...(rush ? [{ title: maskContacts(`Rush job (${rush.rush}): ${rush.desc}`).slice(0, 120), qty: 1, price: rush.price }] : [])];
+    const p = priceBreakdown(items.reduce((sum, item) => sum + item.price, 0));
+    const deliverable = card?.job_kind === "deliverable";
     const { data: b, error } = await db.from("bookings").insert({
-      artist_id: conv.artist_id, conversation_id: conv.id, client_name: q?.name ?? "Client", client_email: q?.email ?? null,
+      ...(card ? { deposit_pct: card.deposit_pct, job_kind: deliverable ? "deliverable" as const : "stage" as const, release_rule: deliverable ? "on_delivery" as const : "on_performance" as const } : {}),
+      artist_id: conv.artist_id, conversation_id: conv.id, client_name: q?.name ?? conv.client_name ?? "Client", client_email: q?.email ?? null,
       client_user_id: conv.client_user_id ?? q?.client_user_id ?? null, event_type_id: q?.event_type_id ?? null, event_date: data.eventDate,
       package_title: data.title, notes: maskContacts([data.notes, q?.areas?.name ? `Venue / emirate: ${q.areas.name}` : null, q?.perform_minutes ? `Performance duration: ${q.perform_minutes} minutes` : null].filter(Boolean).join("\n")) || null,
-      start_time: q?.start_time ?? null, end_time: q?.end_time ?? null, guests: q?.guests ?? null, client_phone: q?.phone ?? null, job_detail: maskContacts(q?.message ?? "") || null,
-      invoice_items: [{title:data.title,qty:1,price:p.subtotal}], amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "quoted",
+      start_time: data.startTime ?? q?.start_time ?? null, end_time: data.endTime ?? q?.end_time ?? null, guests: q?.guests ?? null, client_phone: q?.phone ?? null, job_detail: maskContacts(q?.message ?? "") || null,
+      invoice_items: items, amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "quoted",
     }).select("id").single();
     if (error || !b) throw new Error("Could not create offer");
     await db.from("messages").insert({ conversation_id: conv.id, sender: "system", body: `Booking offer sent: ${data.title} on ${data.eventDate} — AED ${p.total.toLocaleString("en-US")} incl. VAT. Open it below to review the contract and pay.` });
@@ -177,13 +189,41 @@ export const completeBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string }) => ({ id: uuid(i.id) }))
   .handler(async ({ data, context }) => {
-    const { data: b } = await context.supabase.from("bookings").select("artist_id, status, event_date,paid_amount,total").eq("id", data.id).maybeSingle();
+    const { data: b } = await context.supabase.from("bookings").select("artist_id, status, event_date,paid_amount,total,job_kind").eq("id", data.id).maybeSingle();
     if (!b) throw new Error("Not found");
     await assertArtistOwns(context.supabase, context.userId, b.artist_id);
-    if (Number(b.paid_amount)<Number(b.total) || !canComplete(b.status, b.event_date)) throw new Error("Only paid bookings on or after the event date can be completed");
+    // Deliverable work can be handed over early; a performance only once its date has come.
+    const due = b.job_kind === "deliverable" ? b.status === "confirmed" : canComplete(b.status, b.event_date);
+    if (Number(b.paid_amount)<Number(b.total) || !due) throw new Error("Only paid bookings on or after the event date can be completed");
     const db = await admin();
     await db.from("bookings").update({ status: "completed", completed_at: new Date().toISOString(), escrow_status: "release_pending" }).eq("id", data.id);
     return { ok: true };
+  });
+
+/** Artist: the work is finished. The client is asked once to pay the balance before receiving it. */
+export const markWorkReady = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { id: string }) => ({ id: uuid(i.id) }))
+  .handler(async ({ data, context }) => {
+    const { data: own } = await context.supabase.from("bookings").select("artist_id").eq("id", data.id).maybeSingle();
+    if (!own) throw new Error("Not found");
+    await assertArtistOwns(context.supabase, context.userId, own.artist_id);
+    const db = await admin();
+    const { data: b, error } = await db.from("bookings").update({ work_ready_at: new Date().toISOString() }).eq("id", data.id).eq("status", "confirmed").is("work_ready_at", null).is("deleted_at", null)
+      .select("id, access_key, conversation_id, package_title, total, paid_amount, deposit_pct, client_phone, client_email, artists(stage_name)").maybeSingle();
+    if (error) throw new Error("Could not update the booking");
+    if (!b) throw new Error("Only a confirmed booking can be marked ready, and only once");
+    const balance = bookingPayment(Number(b.total), Number(b.paid_amount), b.deposit_pct).balance;
+    if (balance <= 0) return { balance };
+    const title = b.package_title ?? "your booking";
+    const amount = `AED ${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+    if (b.conversation_id) {
+      await db.from("messages").insert({ conversation_id: b.conversation_id, sender: "system", body: `Your work for ${title} is ready. Please pay the balance of ${amount} to receive it. Open the booking above to pay.` });
+      await db.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", b.conversation_id);
+    }
+    const { notifyBooking, siteOrigin } = await import("./notify.server");
+    await notifyBooking(b.id, "client", "work_ready", { phone: b.client_phone, email: b.client_email }, "Your work is ready", `${title} from ${b.artists?.stage_name ?? "your artist"} is ready. Please pay the balance of ${amount} to receive it.`, `${siteOrigin(getRequest())}/booking/${b.id}?k=${b.access_key}`);
+    return { balance };
   });
 
 /** Client (secret link): confirm the completed job, waiving the rest of the escrow hold so payment is released now. */

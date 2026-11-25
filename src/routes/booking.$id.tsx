@@ -117,6 +117,7 @@ function BookingPage() {
           ) : <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">{CONTRACT_TERMS.map((t) => <li key={t}>{t}</li>)}</ol>}
           {b.contract_accepted_at && <p className="mt-3 text-xs text-muted-foreground">Accepted {new Date(b.contract_accepted_at).toLocaleString("en-GB")}</p>}
           {b.status === "inquiry" && <p className="mt-4 text-sm text-muted-foreground">The artist is reviewing these details. You can pay once they approve.</p>}
+          {b.work_ready_at && b.status === "confirmed" && payment.balance > 0 && <p role="status" className="mt-4 rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm font-semibold">Your work is ready. Pay the balance of {aed(payment.balance)} to receive it.</p>}
           {["quoted","confirmed"].includes(b.status) && (
             <div className="mt-5 space-y-4">
               <div><Label htmlFor="client-whatsapp">WhatsApp for payment reminders</Label><Input id="client-whatsapp" type="tel" dir="ltr" placeholder="+971501234567" value={phone || b.client_phone || ""} onChange={e=>setPhone(e.target.value.replace(/[^+\d]/g,""))} /></div>

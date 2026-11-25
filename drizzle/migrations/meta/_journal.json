@@ -645,6 +645,13 @@
       "when": 1795572120202,
       "tag": "0091_profile_limits_and_tier_privacy",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795572180202,
+      "tag": "0092_wallet_rush_costs_event_detail",
+      "breakpoints": true
     }
   ]
 }

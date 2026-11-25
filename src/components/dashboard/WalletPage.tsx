@@ -29,7 +29,7 @@ export function WalletPage({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const key = ["wallet-pay", artistId];
-  const { data } = useQuery({
+  const { data, error: loadError } = useQuery({
     queryKey: key,
     queryFn: async () => {
       const [w, r, b] = await Promise.all([
@@ -100,6 +100,7 @@ export function WalletPage({ artistId }: { artistId: string }) {
   return (
     <div className="dmr-wrap dmr-wpage">
       <StudioHeading title="Wal" accent="let"><span className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-3.5 py-[9px] text-[12.5px] font-bold text-gold">{t("Platform fee")} <b className="font-extrabold">{pct}%</b></span></StudioHeading>
+      {loadError && <p role="alert" className="dmr-c-12 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">{t("Your wallet could not be loaded, so the amounts below are not shown correctly. Refresh the page, and contact support if this stays.")}</p>}
       <p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("What you earned from jobs booked through Dealmaker. Clients pay into escrow, your plan fee is already taken off, and you withdraw what has been released.")}</p>
 
       <section className="dmr-panel dmr-c-12 grid gap-10 !p-[30px] bg-[radial-gradient(ellipse_at_0%_0%,rgba(232,176,74,.18),transparent_55%),linear-gradient(180deg,#10162a,#0a0e1b)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" aria-labelledby="w-av-l">

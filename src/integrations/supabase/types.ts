@@ -1461,6 +1461,7 @@ export type Database = {
           start_time: string | null
           status: string
           total: number
+          work_ready_at: string | null
           vat_amount: number
         }
         Insert: {
@@ -1519,6 +1520,7 @@ export type Database = {
           start_time?: string | null
           status?: string
           total?: number
+          work_ready_at?: string | null
           vat_amount?: number
         }
         Update: {
@@ -1577,6 +1579,7 @@ export type Database = {
           start_time?: string | null
           status?: string
           total?: number
+          work_ready_at?: string | null
           vat_amount?: number
         }
         Relationships: [
@@ -3335,6 +3338,7 @@ export type Database = {
           price: number
           price_high: number | null
           price_low: number | null
+          rush_items: Json
           rules_of_work: string | null
           sort: number | null
           title: string
@@ -3351,6 +3355,7 @@ export type Database = {
           price: number
           price_high?: number | null
           price_low?: number | null
+          rush_items?: Json
           rules_of_work?: string | null
           sort?: number | null
           title: string
@@ -3367,6 +3372,7 @@ export type Database = {
           price?: number
           price_high?: number | null
           price_low?: number | null
+          rush_items?: Json
           rules_of_work?: string | null
           sort?: number | null
           title?: string
@@ -4823,6 +4829,10 @@ export type Database = {
       storage_artist_team: { Args: { _name: string }; Returns: boolean }
       submit_verification: {
         Args: { _artist: string; _details: Json; _files: Json }
+        Returns: Json
+      }
+      team_booking_detail: {
+        Args: { _artist: string; _booking: string }
         Returns: Json
       }
       team_calendar_bookings: {

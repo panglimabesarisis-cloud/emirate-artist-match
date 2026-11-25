@@ -1,12 +1,22 @@
 import { z } from "zod";
 
 export const RATE_UNITS = ["Minutes Perform", "Hours", "Days", "Project", "Pages", "Screens", "Photos", "Videos", "Concepts", "Rooms", "m²", "Revisions", "Years"];
+/** Turnaround is the usual time to finish; rush times are the faster options sold at an extra cost. */
+export const TURNAROUND_OPTIONS = ["1 Day", "3 Days", "1 Week", "2 Weeks", "3 Weeks", "1 Month"];
+export const RUSH_OPTIONS = ["1 Day", "3 Days", "7 Days"];
+export const rushItemSchema = z.object({
+  desc: z.string().trim().min(1, "Enter a rush job description.").max(300),
+  rush: z.string().trim().min(1, "Choose the rush time.").max(40),
+  price: z.coerce.number().min(0).max(1_000_000).refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 0.000001, "Use at most two decimal places."),
+});
+export type RushItem = z.infer<typeof rushItemSchema>;
 export const rateItemSchema = z.object({
   desc: z.string().trim().min(1, "Enter an item description.").max(300),
   qty: z.coerce.number().positive().max(1_000_000),
   price: z.coerce.number().min(0).max(1_000_000).refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 0.000001, "Use at most two decimal places."),
   type: z.enum(["base", "addon"]),
   unit: z.string().trim().min(1).max(40),
+  turnaround: z.string().trim().max(40).optional(),
 });
 const negotiationPrice = z.union([z.literal(""), z.coerce.number().min(0).max(20_000_000)]).transform(v => v === "" ? null : Number(v));
 export const ratecardSchema = z.object({
@@ -19,18 +29,24 @@ export const ratecardSchema = z.object({
   job_kind: z.enum(["stage","deliverable"]),
   deposit_pct: z.coerce.number().int().min(10).max(100),
   items: z.array(rateItemSchema).min(1).max(20),
+  rush_items: z.array(rushItemSchema).max(10).default([]),
 }).refine(v => v.items.some(i => i.type === "base" && i.price > 0), "Add at least one priced base item.");
 export type RateItem = z.infer<typeof rateItemSchema>;
-export type RateDraft = { title: string; unit_label: string; description: string; rules_of_work: string; price_low: string; price_high: string; job_kind: "stage" | "deliverable"; deposit_pct: string; items: { desc: string; qty: string; price: string; type: "base" | "addon"; unit: string }[] };
-export type StoredRate = { title: string; price: number | string; duration_minutes: number | null; description: string | null; unit_label?: string; rules_of_work?: string | null; price_low?: number | null; price_high?: number | null; job_kind?: string | null; deposit_pct?: number | null; items?: unknown };
+export type RateDraft = { title: string; unit_label: string; description: string; rules_of_work: string; price_low: string; price_high: string; job_kind: "stage" | "deliverable"; deposit_pct: string; items: { desc: string; qty: string; price: string; type: "base" | "addon"; unit: string; turnaround?: string | undefined }[]; rush_items?: { desc: string; rush: string; price: string }[] | undefined };
+export type StoredRate = { rush_items?: unknown; title: string; price: number | string; duration_minutes: number | null; description: string | null; unit_label?: string; rules_of_work?: string | null; price_low?: number | null; price_high?: number | null; job_kind?: string | null; deposit_pct?: number | null; items?: unknown };
 export const emptyRate = (): RateDraft => ({ title: "", unit_label: "Project", description: "", rules_of_work: "", price_low: "", price_high: "", job_kind: "stage", deposit_pct: "100", items: [{ desc: "", qty: "1", price: "", type: "base", unit: "Project" }] });
 export function rateItems(rate: StoredRate): RateItem[] {
   const parsed = z.array(rateItemSchema).safeParse(rate.items);
   if (parsed.success && parsed.data.length) return parsed.data;
   return [{ desc: rate.description || rate.title, qty: rate.duration_minutes || 1, price: Number(rate.price), type: "base", unit: rate.duration_minutes ? "Minutes Perform" : rate.unit_label || "Project" }];
 }
+/** Saved rush costs; anything unreadable is left out. */
+export function rushItems(rate: { rush_items?: unknown }): RushItem[] {
+  const parsed = z.array(rushItemSchema).safeParse(rate.rush_items ?? []);
+  return parsed.success ? parsed.data : [];
+}
 export function rateDraft(rate: StoredRate): RateDraft {
-  return { title: rate.title, unit_label: rate.unit_label || (rate.duration_minutes ? "Minutes Perform" : "Project"), description: rate.description || "", rules_of_work: rate.rules_of_work || "", price_low: rate.price_low == null ? "" : String(rate.price_low), price_high: rate.price_high == null ? "" : String(rate.price_high), job_kind: rate.job_kind === "deliverable" ? "deliverable" : "stage", deposit_pct: String(rate.deposit_pct ?? 100), items: rateItems(rate).map(i => ({ ...i, qty: String(i.qty), price: String(i.price) })) };
+  return { title: rate.title, unit_label: rate.unit_label || (rate.duration_minutes ? "Minutes Perform" : "Project"), description: rate.description || "", rules_of_work: rate.rules_of_work || "", price_low: rate.price_low == null ? "" : String(rate.price_low), price_high: rate.price_high == null ? "" : String(rate.price_high), job_kind: rate.job_kind === "deliverable" ? "deliverable" : "stage", deposit_pct: String(rate.deposit_pct ?? 100), rush_items: rushItems(rate).map(item => ({ desc: item.desc, rush: item.rush, price: String(item.price) })), items: rateItems(rate).map(i => ({ ...i, qty: String(i.qty), price: String(i.price) })) };
 }
 export function restoreRateDraft(value: unknown): RateDraft {
   if (!value || typeof value !== "object") return emptyRate();
@@ -46,7 +62,11 @@ export function rateTotals(items: { price: string | number; type: string }[]) {
   return { base: sum("base"), addons: sum("addon") };
 }
 export function ratePayload(draft: RateDraft) {
-  const parsed = ratecardSchema.parse(draft);
+  // A rush row the artist never filled in is simply not saved.
+  const rush_items = (draft.rush_items ?? []).filter(item => item.desc.trim() || String(item.price).trim());
+  if (rush_items.some(item => !String(item.price).trim())) throw new Error("Enter the price of every rush job.");
+  const items = draft.items.map(({ turnaround, ...item }) => (turnaround?.trim() ? { ...item, turnaround } : item));
+  const parsed = ratecardSchema.parse({ ...draft, items, rush_items });
   const base = parsed.items.filter(i => i.type === "base");
   const minutes = base.every(i => i.unit === "Minutes Perform" || i.unit === "Hours") ? base.reduce((n, i) => n + i.qty * (i.unit === "Hours" ? 60 : 1), 0) : null;
   if (minutes !== null && (!Number.isInteger(minutes) || minutes > 525600)) throw new Error("Enter a whole number of minutes, up to one year.");
@@ -59,6 +79,23 @@ export function ratePayload(draft: RateDraft) {
 export function rateScope(rate: StoredRate) {
   return rateItems(rate).filter(i => i.type === "base").map(i => `${i.qty} ${i.unit}`).join(" + ");
 }
+/** What is paid to book and what is paid before the work is sent, VAT excluded. */
+export function dealSplit(base: number, depositPct: string | number) {
+  const pct = Math.min(100, Math.max(10, Math.round(Number(depositPct)) || 100));
+  const deposit = Math.round(base * pct) / 100;
+  return { depositPct: pct, balancePct: 100 - pct, deposit, balance: Math.round((base - deposit) * 100) / 100 };
+}
+
+/** The date a job is due when it starts on `from` and takes "3 Days", "2 Weeks" or "1 Month". */
+export function dueDate(from: string, time: string | null | undefined): string | null {
+  const match = /^\s*(\d{1,3})\s*(day|week|month)s?\s*$/i.exec(time ?? "");
+  const date = new Date(`${from}T00:00:00Z`);
+  if (!match || Number.isNaN(date.getTime())) return null;
+  const amount = Number(match[1]), unit = match[2]!.toLowerCase();
+  if (unit === "month") date.setUTCMonth(date.getUTCMonth() + amount); else date.setUTCDate(date.getUTCDate() + amount * (unit === "week" ? 7 : 1));
+  return date.toISOString().slice(0, 10);
+}
+
 /** Work-rule snippets offered as one-tap chips under the rules field. */
 export const RULE_SNIPPETS: { label: string; text: string }[] = [
   { label: "Revision limit", text: "Includes up to 3 minor revisions. Extra rounds are charged per request." },

@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { useQuoteInvoices } from "./useQuoteInvoices";
+import { ChatInvoiceDialog } from "@/components/chat/shell/InvoiceSheet";
+import type { PaperData } from "./InvoicePaper";
 
 type Status = "new" | "replied" | "closed";
 type Quote = {
@@ -84,6 +87,8 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
   const [tab, setTab] = useState<"all" | Status>("all");
   const [sort, setSort] = useState<{ k: SortKey; dir: 1 | -1 }>({ k: "event_date", dir: -1 });
   const [sel, setSel] = useState<string[]>([]);
+  const invoices = useQuoteInvoices(artistId);
+  const [paper, setPaper] = useState<PaperData | null>(null);
   const hide = useHideRows("soft_delete_quote_requests", [key], () => setSel([]));
 
   const counts = useMemo(
@@ -228,6 +233,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                   {t("Notes")}
                 </th>
                 {th("status", "Status")}
+                <th scope="col" className={`text-start ${headCell}`}>{t("Invoice")}</th>
               </tr>
             </thead>
             <tbody>
@@ -277,6 +283,11 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
                   <td className={cell} data-label={t("Status")}>
                     <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold capitalize ${badge[r.status] ?? badge["closed"]}`}>{t(r.status)}</span>
                   </td>
+                  <td className={`whitespace-nowrap ${cell}`} data-label={t("Invoice")}>
+                    {invoices.data?.get(r.id)
+                      ? <Button size="sm" variant="outline" className="rounded-full" onClick={() => setPaper(invoices.data!.get(r.id)!)}><FileText className="me-1.5 h-3.5 w-3.5" aria-hidden />{t("View invoice")}</Button>
+                      : <span className="text-xs text-muted-foreground">{t(invoices.isPending ? "Loading…" : "No invoice yet")}</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -291,6 +302,7 @@ export function QuoteRequests({ artistId }: { artistId: string }) {
             {!isPending && <p className="text-sm text-muted-foreground">{t("Requests from your profile appear here.")}</p>}
           </div>
         )}
+        <ChatInvoiceDialog paper={paper} onClose={() => setPaper(null)} />
         <div className="flex justify-between border-t border-border px-5 py-3 text-xs text-muted-foreground">
           <span>
             {rows.length} / {data.length}

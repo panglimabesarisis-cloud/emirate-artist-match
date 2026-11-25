@@ -1,10 +1,10 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {openSubscription} from './billing.server';
-import {PLAN_LOOKUP_KEYS} from './billing-rules';
+import {PLAN_LOOKUP_KEYS,planOfPrice} from './billing-rules';
 import {testProcessorAmount} from './processor-rules';
 
-const mocks=vi.hoisted(()=>({create:vi.fn(),retrieve:vi.fn(),expire:vi.fn(),prices:vi.fn(),newPrice:vi.fn(),rpc:vi.fn(),save:vi.fn()}));
-vi.mock('./stripe.server',()=>({createStripeClient:()=>({prices:{list:mocks.prices,create:mocks.newPrice},checkout:{sessions:{create:mocks.create,retrieve:mocks.retrieve,expire:mocks.expire}}})}));
+const mocks=vi.hoisted(()=>({create:vi.fn(),retrieve:vi.fn(),expire:vi.fn(),prices:vi.fn(),newPrice:vi.fn(),tag:vi.fn(),rpc:vi.fn(),save:vi.fn()}));
+vi.mock('./stripe.server',()=>({createStripeClient:()=>({prices:{list:mocks.prices,create:mocks.newPrice,update:mocks.tag},checkout:{sessions:{create:mocks.create,retrieve:mocks.retrieve,expire:mocks.expire}}})}));
 vi.mock('./payments.server',()=>({resolveOrCreateCustomer:async()=> 'cus_test_owner'}));
 vi.mock('@/integrations/supabase/client.server',()=>({supabaseAdmin:{
   rpc:mocks.rpc,
@@ -47,13 +47,18 @@ describe('hosted subscription checkout',()=>{
     mocks.prices.mockResolvedValue({data:[]});
     mocks.newPrice.mockResolvedValue({id:'price_new',currency:'idr',unit_amount:testProcessorAmount(20895),recurring:{interval:'month'}});
     await open();
-    expect(mocks.newPrice).toHaveBeenCalledWith({currency:'idr',unit_amount:testProcessorAmount(20895),recurring:{interval:'month'},lookup_key:'medium_monthly',tax_behavior:'inclusive',product_data:{name:'Dealmaker Medium plan (monthly)'}},{idempotencyKey:`plan-price:medium_monthly:${testProcessorAmount(20895)}`});
+    expect(mocks.newPrice).toHaveBeenCalledWith({currency:'idr',unit_amount:testProcessorAmount(20895),recurring:{interval:'month'},lookup_key:'medium_monthly',metadata:{planCode:'medium'},tax_behavior:'inclusive',product_data:{name:'Dealmaker Medium plan (monthly)'}},{idempotencyKey:`plan-price:medium_monthly:${testProcessorAmount(20895)}:new`});
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({line_items:[{price:'price_new',quantity:1}]}),{idempotencyKey:'subscription:attempt-1'});
   });
-  it('still rejects a configured Stripe price that differs from the saved catalog',async()=>{
-    mocks.prices.mockResolvedValue({data:[{id:'price_wrong',currency:'idr',unit_amount:1,recurring:{interval:'month'}}]});
-    await expect(open()).rejects.toThrow('differs from the saved catalog');
-    expect(mocks.newPrice).not.toHaveBeenCalled();
-    expect(mocks.create).not.toHaveBeenCalled();
+  it('sells the new price after an admin changes it, keeping the old one recognisable',async()=>{
+    mocks.prices.mockResolvedValue({data:[{id:'price_old',currency:'idr',unit_amount:1,recurring:{interval:'month'}}]});
+    mocks.newPrice.mockResolvedValue({id:'price_changed'});
+    await open();
+    expect(mocks.tag).toHaveBeenCalledWith('price_old',{metadata:{planCode:'medium'}});
+    expect(mocks.newPrice).toHaveBeenCalledWith(expect.objectContaining({unit_amount:testProcessorAmount(20895),lookup_key:'medium_monthly',transfer_lookup_key:true}),{idempotencyKey:`plan-price:medium_monthly:${testProcessorAmount(20895)}:price_old`});
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({line_items:[{price:'price_changed',quantity:1}]}),{idempotencyKey:'subscription:attempt-1'});
+    expect(planOfPrice({lookup_key:null,metadata:{planCode:'medium'}})).toBe('medium');
+    expect(planOfPrice({lookup_key:'pro_yearly'})).toBe('pro');
+    expect(planOfPrice({lookup_key:'other',metadata:{planCode:'free'}})).toBeNull();
   });
 });

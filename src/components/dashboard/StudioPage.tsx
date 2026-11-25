@@ -40,7 +40,7 @@ export function StudioSection({ title, accent, subtitle, aside, children, classN
 
 export function StudioSoon({ label }: { label: string }) {
   const { t } = useI18n();
-  return <div className="dmr-qe-f studio-soon-field"><Label>{t(label)} <span className="studio-soon"><Clock3 aria-hidden="true" />{t("segera")}</span></Label><Input disabled aria-label={t(label)} placeholder={t("segera")} /></div>;
+  return <div className="dmr-qe-f studio-soon-field"><Label>{t(label)} <span className="studio-soon"><Clock3 aria-hidden="true" />{t("Coming soon")}</span></Label><Input disabled aria-label={t(label)} placeholder={t("Coming soon")} /></div>;
 }
 
 export function StudioEmpty({ title, icon: Icon = Clock3 }: { title: string; icon?: LucideIcon }) {

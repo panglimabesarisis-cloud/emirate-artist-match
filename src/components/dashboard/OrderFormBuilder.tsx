@@ -279,9 +279,9 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
               </li>
             ))}
           </ol>
-          {fields.length === 0 && <div className="rounded-[18px] border border-dashed border-border p-[26px] text-center text-[13.5px] text-muted-foreground">{t("No questions yet. Add one below or start from a template.")}</div>}
-          <div className="flex flex-wrap items-center gap-2.5 rounded-[18px] border border-dashed border-border px-4 py-3.5">
-            <Button type="button" variant="outline" className="rounded-full" disabled={full} onClick={() => addField({ label: "", type: "short", required: false, options: [] })}><Plus className="me-1.5 h-3.5 w-3.5" />{t("Add question")}</Button>
+          {fields.length === 0 && <div className="rounded-[18px] border border-dashed border-[#3b4a75] bg-gradient-to-b from-[#141a2e] to-[#0c1120] p-[26px] text-center text-[13.5px] text-muted-foreground">{t("No questions yet. Add one below or start from a template.")}</div>}
+          <div className="flex flex-wrap items-center gap-2.5 rounded-[18px] border border-dashed border-[#3b4a75] bg-gradient-to-b from-[#141a2e] to-[#0c1120] px-4 py-3.5">
+            <Button type="button" variant="outline" className="rounded-full !border-[#4a5f9e] !bg-[#1a2442] !text-[#dbe4ff] hover:!bg-[#233058]" disabled={full} onClick={() => addField({ label: "", type: "short", required: false, options: [] })}><Plus className="me-1.5 h-3.5 w-3.5" />{t("Add question")}</Button>
             <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><span>{t("Quick add")}</span>
               {QUICK.map(([l, make]) => <button key={l} type="button" disabled={full} onClick={() => addField(make())} className="rounded-full border border-border px-2.5 py-[5px] text-xs font-bold text-foreground transition-colors hover:bg-gradient-gold hover:text-gold-foreground disabled:pointer-events-none disabled:opacity-40">{t(l)}</button>)}</div>
             <span className="ms-auto text-xs text-muted-foreground"><b className={full ? "text-gold" : "text-foreground"}>{fields.length}</b> {t("of")} <b className={full ? "text-gold" : "text-foreground"}>{maxQ}</b> {t("questions on the")} {plan.data?.mine?.name ?? ""} {t("plan")}</span>

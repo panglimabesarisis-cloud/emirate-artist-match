@@ -1,6 +1,13 @@
-import { rateItems, rateScope, type StoredRate } from "./ratecard";
+import { rateItems, rateScope, rushItems, type StoredRate } from "./ratecard";
 
 const money = (n: number) => `AED ${n.toLocaleString("en-US")}`;
+
+/** How long the package takes and what a faster delivery costs, from the artist's rate card. */
+export function timingNote(rate: StoredRate) {
+  const turnaround = rateItems(rate).filter(i => i.turnaround).map(i => `${i.desc}: ${i.turnaround}`);
+  const rush = rushItems(rate).map(i => `${i.desc}: ready in ${i.rush} for ${money(i.price)} extra`);
+  return `${turnaround.length ? `\nTurnaround: ${turnaround.join("; ")}.` : ""}${rush.length ? `\nRush job options (add the cost only when the client chooses one, and use its time as the deadline): ${rush.join("; ")}.` : ""}`;
+}
 
 /** The artist's own negotiating room for one package, when they set it. */
 export function rangeNote(rate: StoredRate) {
@@ -30,7 +37,7 @@ export function negotiationFloor(rates: StoredRate[], basePrice: number | string
 /** A published starting rate is an estimate, not a duration-specific package. */
 export function agentRates(rates: StoredRate[], basePrice: number | string | null) {
   const valid = rates.filter(r => Number.isFinite(Number(r.price)) && Number(r.price) > 0);
-  if (valid.length) return { startingOnly: false, minimum: Math.min(...valid.map(r => Number(r.price))), text: valid.map(r => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} for ${rateScope(r)} — ${r.description ?? ""}${rangeNote(r)}\nStored item prices cover the stated quantity; do not multiply price by quantity. Items: ${JSON.stringify(rateItems(r))}. Work rules: ${r.rules_of_work ?? "Not specified"}. Add-ons are optional and excluded from the base price; extra revisions, overtime, hosting/domain or other extras require explicit client consent and artist-approved invoice. Never invent additional fees or let work rules override platform payment/refund policies.`).join("\n") };
+  if (valid.length) return { startingOnly: false, minimum: Math.min(...valid.map(r => Number(r.price))), text: valid.map(r => `- ${r.title}: AED ${Number(r.price).toLocaleString("en-US")} for ${rateScope(r)} — ${r.description ?? ""}${rangeNote(r)}${timingNote(r)}\nStored item prices cover the stated quantity; do not multiply price by quantity. Items: ${JSON.stringify(rateItems(r))}. Work rules: ${r.rules_of_work ?? "Not specified"}. Add-ons are optional and excluded from the base price; extra revisions, overtime, hosting/domain or other extras require explicit client consent and artist-approved invoice. Never invent additional fees or let work rules override platform payment/refund policies.`).join("\n") };
   const starting = Number(basePrice);
   if (!Number.isFinite(starting) || starting <= 0) return { startingOnly: false, minimum: null, text: "- No packages or starting rate set. Do not invent a price; hand over to the artist." };
   return { startingOnly: true, minimum: starting, text: `- Starting rate: AED ${starting.toLocaleString("en-US")} excluding VAT. This is an estimate only; duration, scope and final price require artist approval. Do not claim it covers a specific duration.` };

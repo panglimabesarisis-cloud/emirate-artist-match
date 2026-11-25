@@ -1,7 +1,7 @@
 import { checkoutUrl, hostedCheckoutSettings, hostedReturnUrls } from './hosted-checkout';
 import {createStripeClient} from './stripe.server';
 import {resolveOrCreateCustomer} from './payments.server';
-import {PLAN_LOOKUP_KEYS,paidPlan,billingInterval,planDirection,verifiedPaidPeriod,type PaidPlan,type BillingInterval} from './billing-rules';
+import {PLAN_LOOKUP_KEYS,paidPlan,billingInterval,planDirection,planOfPrice,verifiedPaidPeriod,type PaidPlan,type BillingInterval} from './billing-rules';
 import {testProcessorAmount} from './processor-rules';
 const db=async()=>(await import('@/integrations/supabase/client.server')).supabaseAdmin;
 const iso=(n:number)=>new Date(n*1000).toISOString();
@@ -11,11 +11,12 @@ async function priceFor(code:PaidPlan,interval:BillingInterval){
  if(error||!t)throw new Error('This plan is not in the saved catalog');
  const amount=testProcessorAmount(Math.round(Number(interval==='year'?t.price_yearly:t.price_monthly)*1.05*100));
  const prices=await stripe.prices.list({lookup_keys:[key],active:true});
- // A test account that has never sold this plan gets its price from the catalog. An existing price is never
- // replaced here: running subscriptions are recognised by its lookup key.
- const price=prices.data[0]??await stripe.prices.create({currency:'idr',unit_amount:amount,recurring:{interval},lookup_key:key,tax_behavior:'inclusive',product_data:{name:`Dealmaker ${t.name} plan (${interval==='year'?'yearly':'monthly'})`}},{idempotencyKey:`plan-price:${key}:${amount}`});
- if(price.currency!=='idr'||price.unit_amount!==amount||price.recurring?.interval!==interval)throw new Error('Stripe plan price differs from the saved catalog; ask an administrator to synchronize prices');
- return price;
+ const current=prices.data[0];
+ if(current&&current.currency==='idr'&&current.unit_amount===amount&&current.recurring?.interval===interval)return current;
+ // The catalog is the price list: a missing or changed plan price is created from it. The old price is tagged
+ // with its plan first, so subscriptions still running on it stay recognised after the key moves.
+ if(current)await stripe.prices.update(current.id,{metadata:{planCode:code}});
+ return stripe.prices.create({currency:'idr',unit_amount:amount,recurring:{interval},lookup_key:key,...(current?{transfer_lookup_key:true}:{}),metadata:{planCode:code},tax_behavior:'inclusive',product_data:{name:`Dealmaker ${t.name} plan (${interval==='year'?'yearly':'monthly'})`}},{idempotencyKey:`plan-price:${key}:${amount}:${current?.id??'new'}`});
 }
 export async function openSubscription(artistId:string,userId:string,email:string|undefined,code:PaidPlan,interval:BillingInterval,returnUrl:string){
  const database=await db();const stripe=createStripeClient('sandbox');
@@ -75,9 +76,8 @@ export async function syncSubscription(id:string){
  const customer=typeof s.customer==='string'?s.customer:s.customer.id;
  const c=await stripe.customers.retrieve(customer);if(c.deleted||c.metadata['userId']!==userId)throw new Error('Subscription customer mismatch');
  const item=s.items.data[0];if(!item||s.items.data.length!==1)throw new Error('Unexpected subscription items');
- const key=item.price.lookup_key;
- const code=key?.startsWith('pro_')?'pro':key?.startsWith('medium_')?'medium':key?.startsWith('basic_')?'basic':null;
- if(!code||!Object.values(PLAN_LOOKUP_KEYS[code]).some(k=>k===key)||item.price.currency!=='idr'||item.quantity!==1)throw new Error('Unknown subscription price');
+ const code=planOfPrice(item.price);
+ if(!code||item.price.currency!=='idr'||item.quantity!==1)throw new Error('Unknown subscription price');
  const interval=billingInterval(item.price.recurring?.interval);
  const invoices=await stripe.invoices.list({subscription:id,limit:100});
  const periods:Array<{line_id:string;subscription_id:string;artist_id:string;plan_code:PaidPlan;period_start:string;period_end:string;priceId:string}>=[];
@@ -92,8 +92,8 @@ export async function syncSubscription(id:string){
    const period=verifiedPaidPeriod({status:i.status,currency:i.currency,livemode:i.livemode,customer:invoiceCustomer,subscription},{currency:l.currency,livemode:l.livemode,amount:l.amount,quantity:l.quantity,subscription:sub,start:l.period.start,end:l.period.end},{customer,subscription:id});
    const priceRef=l.pricing?.price_details?.price;if(!period||!priceRef)continue;
    const price=typeof priceRef==='string'?await stripe.prices.retrieve(priceRef):priceRef;
-   const plan=price.lookup_key?.startsWith('pro_')?'pro':price.lookup_key?.startsWith('medium_')?'medium':key?.startsWith('basic_')?'basic':null;
-   if(!plan||!Object.values(PLAN_LOOKUP_KEYS[plan]).some(k=>k===price.lookup_key)||price.currency!=='idr')continue;
+   const plan=planOfPrice(price);
+   if(!plan||price.currency!=='idr')continue;
    periods.push({line_id:l.id,subscription_id:id,artist_id:artistId,plan_code:plan,period_start:iso(period.start),period_end:iso(period.end),priceId:price.id});
   }
  }

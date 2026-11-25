@@ -25,7 +25,16 @@
 .dmr-rc-fields .dmr-rc-count{padding:2px 9px;border-radius:999px;font-size:10px;font-weight:700;color:var(--gold);background:var(--rc-gold-wash);border:1px solid var(--rc-line-2)}
 
 /* one column template drives the header row and every item row */
-.dmr-rc-fields .dmr-rc-cols,.dmr-rc-fields .dmr-rc-row{display:grid;gap:10px;grid-template-columns:minmax(0,2.4fr) minmax(76px,.7fr) minmax(92px,1fr) minmax(112px,1fr) minmax(132px,1.3fr) 38px}
+.dmr-rc-fields .dmr-rc-cols,.dmr-rc-fields .dmr-rc-row{display:grid;gap:10px;grid-template-columns:minmax(0,2fr) minmax(70px,.6fr) minmax(88px,.9fr) minmax(108px,1fr) minmax(122px,1.1fr) minmax(112px,1fr) 38px}
+.dmr-rc-fields .dmr-rc-rushcols,.dmr-rc-fields .dmr-rc-rush{grid-template-columns:minmax(0,2fr) minmax(130px,1fr) minmax(110px,.9fr) 38px}
+.dmr-rc-fields .dmr-rc-empty{font-size:12px;color:var(--rc-mute)}
+
+/* pickers look like the form's selects and inputs in every place the fields appear */
+.dmr-rc-fields button.dmr-rc-pick{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:40px;padding:8px 12px;border:1px solid var(--rc-line-2);border-radius:12px;background:var(--rc-wash);color:var(--foreground);font-size:13px;text-align:start;cursor:pointer}
+.dmr-rc-fields button.dmr-rc-pick:hover:not(:disabled){border-color:var(--gold)}
+.ratecard-menu .dmr-rc-option{display:block;width:100%;padding:8px 10px;border-radius:8px;text-align:start;font-size:13px;color:var(--foreground)}
+.ratecard-menu .dmr-rc-option:hover,.ratecard-menu .dmr-rc-option:focus-visible{background:color-mix(in oklab, var(--gold) 14%, transparent)}
+.ratecard-menu .dmr-rc-option[aria-selected="true"]{color:var(--gold);font-weight:700}
 .dmr-rc-fields .dmr-rc-cols{padding:0 2px 8px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--rc-mute);border-bottom:1px solid var(--rc-line)}
 .dmr-rc-fields .dmr-rc-cols span:last-child{text-align:end}
 .dmr-rc-fields .dmr-rc-cols em{font-style:normal;color:var(--gold)}
@@ -51,13 +60,13 @@
 
 @media (max-width:900px){
   .dmr-rc-fields .dmr-rc-cols{display:none}
-  .dmr-rc-fields .dmr-rc-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:14px 0}
+  .dmr-rc-fields .dmr-rc-row,.dmr-rc-fields .dmr-rc-rush{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:14px 0}
   .dmr-rc-fields .dmr-rc-row>div:first-child{grid-column:1/-1}
   [data-slot=button].dmr-rc-del{grid-column:1/-1;justify-self:end}
 }
 @media (max-width:620px){
   .dmr-rc-fields .dmr-rc-break{padding:13px}
-  .dmr-rc-fields .dmr-rc-row{grid-template-columns:minmax(0,1fr)}
+  .dmr-rc-fields .dmr-rc-row,.dmr-rc-fields .dmr-rc-rush{grid-template-columns:minmax(0,1fr)}
 }
 
 /* negotiation range: the three prices the AI agent works between */

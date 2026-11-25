@@ -1,5 +1,5 @@
 import { BulkBar, NOT_DELETABLE, RowCheckbox, bookingDeletable, useHideRows, useSelection } from "./BulkSelect";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StudioDonut, StudioHeading } from "./StudioPage";
 import { HourlyDay } from "@/components/site/HourlyDay";
+import { CalendarDetail } from "./CalendarDetail";
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -62,7 +63,6 @@ type Job = {
 };
 const done = (b: Job) => b.status === "completed";
 const payState = (b: Job) => bookingPay(b);
-const STAMP: Record<string, string> = { unpaid: "text-red-400", partial: "text-gold", paid: "text-emerald-400" };
 const PAY_STYLE: Record<string, string> = {
   unpaid: "border-red-400/30 bg-red-500/10 text-red-300", partial: "border-transparent bg-gold/40 text-white", paid: "border-transparent bg-gradient-gold text-gold-foreground",
 };
@@ -78,6 +78,8 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const [focus, setFocus] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); });
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Job | null>(null);
+  // Where the column sits under the calendar, a selection scrolls to it.
+  useEffect(() => { if (open && !window.matchMedia?.("(min-width: 1280px)").matches) document.getElementById("calendar-event")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [open]);
   const [q, setQ] = useState("");
   const [item, setItem] = useState<ScheduleItem | null>(null);
   const [adding, setAdding] = useState(false);
@@ -233,7 +235,8 @@ export function CalendarTab({ artistId }: { artistId: string }) {
       <StudioDonut title={t("Job progress")} subtitle="Done vs waiting" unit="jobs" entries={[{ label: "Done", value: counts.done }, { label: "Waiting", value: counts.waiting }]} />
       <StudioDonut title={t("Payment status")} subtitle="Unpaid, partial and paid jobs" unit="jobs" entries={[{ label: "Unpaid", value: jobs.filter((j) => payState(j) === "unpaid").length }, { label: "Partial", value: jobs.filter((j) => payState(j) === "partial").length }, { label: "Paid", value: jobs.filter((j) => payState(j) === "paid").length }]} />
 
-      <section className="dmr-panel dmr-c-12 overflow-hidden !p-0" aria-label={t("Calendar")}>
+      <div className="dmr-c-12 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,400px)]">
+      <section className="dmr-panel min-w-0 overflow-hidden !p-0" aria-label={t("Calendar")}>
         <div className="grid items-center gap-3 border-b border-border px-5 py-4 md:grid-cols-[1fr_auto_1fr]">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" className="rounded-full" aria-label={t("Previous")} onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
@@ -307,6 +310,28 @@ export function CalendarTab({ artistId }: { artistId: string }) {
           <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-gradient-gold" />{t("Today")}</span>
         </div>
       </section>
+      <aside id="calendar-event" className="dmr-panel min-w-0 space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label={t("Event detail")} aria-live="polite">
+        {open ? <>
+          <div className="space-y-2">
+            <h3 className="font-display text-3xl font-normal leading-tight">{open.client_name} · {open.package_title}</h3>
+            <p className="text-sm text-muted-foreground">{fmtDate(open.event_date)}{open.start_time ? ` · ${hhmm(open.start_time)} – ${hhmm(open.end_time)}` : ""}{durationMin(open.start_time, open.end_time, open.notes) == null ? "" : ` · ${fmtDur(durationMin(open.start_time, open.end_time, open.notes))}`}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`${CHIP} min-w-[104px] ${stageClasses(open).chip}`}>{t(STAGE_LABEL[bookingStage(open)])}</span>
+              <span className={`${CHIP} ${PAY_STYLE[payState(open)]}`}>{t(payState(open) === "paid" ? "Paid" : payState(open) === "partial" ? "Partially paid" : "Unpaid")}</span>
+            </div>
+          </div>
+          <CalendarDetail key={open.id} artistId={artistId} booking={open} />
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+            <Button variant="outline" className="rounded-full border-red-400/40 text-red-300 hover:bg-red-500/10" disabled={!bookingDeletable(open) || hide.busy} title={bookingDeletable(open) ? undefined : t(NOT_DELETABLE)} onClick={() => { void hide.run([open.id], "bookings").then((ok) => { if (ok) setOpen(null); }); }}><Trash2 className="me-1.5 h-4 w-4" />{t("Delete")}</Button>
+            <Button variant="outline" className="rounded-full" onClick={() => setOpen(null)}>{t("Close")}</Button>
+          </div>
+        </> : <div className="grid place-items-center gap-2 py-14 text-center">
+          <CalendarDays className="h-8 w-8 text-gold" aria-hidden />
+          <b className="font-display text-2xl font-normal">{t("Event detail")}</b>
+          <p className="max-w-[28ch] text-sm text-muted-foreground">{t("Select an event on the calendar or in the schedule to see everything about it here.")}</p>
+        </div>}
+      </aside>
+      </div>
 
       <section className="dmr-panel dmr-q-panel dmr-c-12" aria-label={t("Scheduled events")}>
         <div className="dmr-q-tools">
@@ -334,7 +359,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
                 return (
                   <tr key={b.id} className="transition-colors hover:bg-foreground/[.03]">
                     <td className={td}><RowCheckbox label={`${t("Select")} ${b.client_name}`} checked={selection.has(b.id)} disabled={!bookingDeletable(b)} title={bookingDeletable(b) ? undefined : t(NOT_DELETABLE)} onChange={(on) => selection.toggle(b.id, on)} /></td>
-                    <td className={td}><b>{b.client_name}</b></td>
+                    <td className={td}><button type="button" className="font-bold underline-offset-4 hover:text-gold hover:underline" onClick={() => setOpen(b)}>{b.client_name}</button></td>
                     <td className={td}>{b.package_title}</td>
                     <td className={td}><span className={`${CHIP} min-w-[104px] ${stageClasses(b).chip}`}>{t(STAGE_LABEL[bookingStage(b)])}</span></td>
                     <td className={td}>{loc || muted}</td>
@@ -396,28 +421,6 @@ export function CalendarTab({ artistId }: { artistId: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!open} onOpenChange={(o) => { if (!o) setOpen(null); }}>
-        <DialogContent className="max-w-lg rounded-[24px] border-border bg-gradient-to-b from-[#141a2e] to-[#0c1120]">
-          {open && (
-            <>
-              <DialogHeader className="text-start"><DialogTitle className="font-display text-3xl font-normal">{open.client_name} · {open.package_title}</DialogTitle><DialogDescription>{fmtDate(open.event_date)}{open.start_time ? ` · ${hhmm(open.start_time)} – ${hhmm(open.end_time)}` : ""}</DialogDescription></DialogHeader>
-              <div className="flex items-center justify-between gap-3">
-                <span className={`${CHIP} min-w-[104px] ${stageClasses(open).chip}`}>{t(STAGE_LABEL[bookingStage(open)])}</span>
-                <span aria-label={`${t("Payment")}: ${payState(open)}`} className={`inline-flex -rotate-3 flex-col items-center rounded-[10px] border-[3px] border-double border-current px-3.5 py-1 ${STAMP[payState(open)]}`}><b className="text-[15px] font-black leading-none tracking-[.14em]">{payState(open) === "paid" ? "PAID" : payState(open) === "partial" ? "PARTIAL" : "UNPAID"}</b><i className="text-[9px] font-bold not-italic tracking-[.12em]">{payState(open) === "unpaid" ? `AED ${Number(open.total).toLocaleString("en-US")}` : `AED ${Number(open.paid_amount).toLocaleString("en-US")} / ${Number(open.total).toLocaleString("en-US")}`}</i></span>
-              </div>
-              <dl className="grid grid-cols-[130px_1fr] text-sm">
-                {([["Location", locationOf(open.notes) || null], ["Duration perform", durationMin(open.start_time, open.end_time, open.notes) == null ? null : fmtDur(durationMin(open.start_time, open.end_time, open.notes))], ["Total", aed(Number(open.total))], ["Paid", aed(Number(open.paid_amount))], ["Job detail", open.job_detail]] as const).map(([k, v]) => (
-                  <div key={k} className="contents"><dt className="border-b border-border py-3 text-[11px] font-extrabold uppercase tracking-[.1em] text-muted-foreground">{t(k)}</dt><dd className={`whitespace-pre-wrap break-words border-b border-border py-3 ${v ? "" : "text-muted-foreground/60"}`}>{v ?? t("Not set")}</dd></div>
-                ))}
-              </dl>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button variant="outline" className="rounded-full border-red-400/40 text-red-300 hover:bg-red-500/10" disabled={!bookingDeletable(open) || hide.busy} title={bookingDeletable(open) ? undefined : t(NOT_DELETABLE)} onClick={() => { void hide.run([open.id], "bookings").then((ok) => { if (ok) setOpen(null); }); }}><Trash2 className="me-1.5 h-4 w-4" />{t("Delete")}</Button>
-                <Button variant="outline" className="rounded-full" onClick={() => setOpen(null)}>{t("Close")}</Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

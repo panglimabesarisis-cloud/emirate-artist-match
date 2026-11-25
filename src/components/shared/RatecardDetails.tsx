@@ -1,4 +1,4 @@
-import { rateItems, type StoredRate } from "@/lib/ratecard";
+import { rateItems, rushItems, type StoredRate } from "@/lib/ratecard";
 import { aed } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
@@ -9,11 +9,12 @@ export function RatecardDetails({ rate }: { rate: StoredRate }) {
       <div className="min-w-0">
         <span className={`dmr-rc-tag ${item.type === "base" ? "base" : "addon text-gold"}`}>{t(item.type === "base" ? "Base package" : "Add-on / extra")}</span>
         <h4 className="mt-1 break-words font-medium">{item.desc}</h4>
-        <p className="text-xs text-muted-foreground">{item.qty} {t(item.unit)}</p>
+        <p className="text-xs text-muted-foreground">{item.qty} {t(item.unit)}{item.turnaround ? ` · ${t("Ready in")} ${t(item.turnaround)}` : ""}</p>
       </div>
       <b className="whitespace-nowrap" dir="ltr">{aed(item.price)}</b>
     </div>)}</div>
     <div className="dmr-rc-exp-meta space-y-2">
+      {rushItems(rate).map((item, index) => <p key={`rush-${index}`} className="flex flex-wrap justify-between gap-2"><span><b>{t("Rush")} {t(item.rush)}: </b>{item.desc}</span><b className="whitespace-nowrap" dir="ltr">+ {aed(item.price)}</b></p>)}
       {rate.description && <p className="whitespace-pre-wrap"><b>{t("Included")}: </b>{rate.description}</p>}
       {rate.rules_of_work && <p className="whitespace-pre-wrap"><b>{t("Rules of work")}: </b>{rate.rules_of_work}</p>}
     </div>

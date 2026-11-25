@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
-import { accessRoleName, sameAccess, TEAM_PAGES, teamMenus } from "@/lib/team-access";
+import { accessRoleName, OWNER_ONLY_PAGES, sameAccess, TEAM_PAGES, teamMenus } from "@/lib/team-access";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "./StudioPage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -82,8 +82,17 @@ function PageAccessList({ value, onChange }: { value: string[]; onChange: (menus
             </li>
           );
         })}
+        {OWNER_ONLY_PAGES.map((label) => (
+          <li key={label}>
+            <label className="flex cursor-not-allowed items-center gap-2.5 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+              <input type="checkbox" className="size-4 shrink-0" checked={false} disabled readOnly />
+              <span className="min-w-0 flex-1">{t(label)}</span>
+              <small className="text-[11px]">{t("Owner only")}</small>
+            </label>
+          </li>
+        ))}
       </ul>
-      <p className="text-xs text-muted-foreground">{t("Pages not ticked stay hidden from this member. Wallet, Export data, Verification, Account settings and Team are always yours only.")}</p>
+      <p className="text-xs text-muted-foreground">{t("Pages not ticked stay hidden from this member. Pages marked Owner only, and Account settings, are always yours only.")}</p>
     </fieldset>
   );
 }

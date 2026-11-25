@@ -12,6 +12,8 @@ export const TEAM_PAGES = [
   { id: "media", label: "Photos & videos" },
 ] as const;
 export type TeamPage = (typeof TEAM_PAGES)[number]["id"];
+/** The rest of the artist's menu. Listed so the owner sees the whole picture; never grantable. */
+export const OWNER_ONLY_PAGES = ["Overview", "Your AI agent", "Open inquiries", "Wallet", "AI credits", "Export data", "Profile", "Ratecard", "Order form", "Verification", "AI agent", "AI flow", "Team", "Support center"] as const;
 
 /** Known pages only, in menu order. Inbox is always included because the database requires it. */
 export function teamMenus(menus: readonly string[]): TeamPage[] {

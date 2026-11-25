@@ -6,11 +6,14 @@ import { ArrowUpDown, MoreVertical, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
-import { StudioHeading, StudioSoon } from "./StudioPage";
+import { StudioHeading } from "./StudioPage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
-import { createBookingOffer, completeBooking, cancelBookingAsArtist, openDisputeAsArtist } from "@/lib/bookings.functions";
+import { createBookingOffer, completeBooking, cancelBookingAsArtist, openDisputeAsArtist, markWorkReady } from "@/lib/bookings.functions";
+import { offerClients } from "@/lib/offer-clients";
+import { dueDate, rateItems, rushItems, type StoredRate } from "@/lib/ratecard";
+import { dubaiToday } from "@/lib/unpaid-expiry";
 import { canComplete, canDispute, priceBreakdown } from "@/lib/booking-rules";
 import { aed } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -49,13 +52,14 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
   const qc = useQueryClient();
   const offer$ = useServerFn(createBookingOffer);
   const complete$ = useServerFn(completeBooking);
+  const ready$ = useServerFn(markWorkReady);
   const cancel$ = useServerFn(cancelBookingAsArtist);
   const dispute$ = useServerFn(openDisputeAsArtist);
   const [phone, setPhone] = useState(notifyPhone ?? "");
   const key = ["artist-bookings", artistId];
-  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("start_time,end_time,job_detail,notes,paid_amount,deposit_pct,calendar_sync_status,calendar_sync_error,reminder_sent_at,id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
-  const { data: convs } = useQuery({ queryKey: ["offer-convs", artistId], queryFn: async () => (await supabase.from("conversations").select("id, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false }).limit(50)).data ?? [] });
-  const { data: packages } = useQuery({ queryKey: ["offer-packages", artistId], queryFn: async () => (await supabase.from("rate_cards").select("id, title, price").eq("artist_id", artistId).order("sort")).data ?? [] });
+  const { data: bookings } = useQuery({ queryKey: key, queryFn: async () => (await supabase.from("bookings").select("job_kind,work_ready_at,conversation_id,start_time,end_time,job_detail,notes,paid_amount,deposit_pct,calendar_sync_status,calendar_sync_error,reminder_sent_at,id, client_name, client_email, package_title, event_date, amount, total, status, escrow_status, invoice_no, refund_amount, is_seed, artist_key, drafted_by").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).order("created_at", { ascending: false })).data ?? [] });
+  const { data: convs } = useQuery({ queryKey: ["offer-convs", artistId], queryFn: async () => (await supabase.from("conversations").select("id, client_name, client_user_id, entry_source, deleted_at, last_message_at, quote_requests(name, email, event_date, start_time, end_time)").eq("artist_id", artistId).is("deleted_at", null).order("last_message_at", { ascending: false }).limit(300)).data ?? [] });
+  const { data: packages } = useQuery({ queryKey: ["offer-packages", artistId], queryFn: async () => (await supabase.from("rate_cards").select("id, title, price, items, rush_items, job_kind").eq("artist_id", artistId).order("sort")).data ?? [] });
   const emails = [...new Set((bookings ?? []).map((b) => b.client_email?.toLowerCase()).filter(Boolean))] as string[];
   const { data: ratings } = useQuery({ queryKey: ["client-ratings", artistId, emails.join(",")], enabled: emails.length > 0, queryFn: async () => (await supabase.from("client_ratings").select("booking_id, client_email, rating, note, artist_id").in("client_email", emails)).data ?? [] });
   const [rate, setRate] = useState<{ id: string; rating: number; note: string } | null>(null);
@@ -68,10 +72,17 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
     if (error) { toast.error(t("Could not save rating")); return; }
     toast.success(t("Private client rating saved")); setRate(null); qc.invalidateQueries({ queryKey: ["client-ratings"] });
   };
-  const [f, setF] = useState({ conversationId: "", title: "", amount: "", eventDate: "", notes: "" });
+  const emptyOffer = { conversationId: "", title: "", amount: "", eventDate: "", notes: "", startTime: "", endTime: "", rateCardId: "", rush: "" };
+  const [f, setF] = useState(emptyOffer);
   const [trnV, setTrn] = useState(trn ?? "");
   const [busy, setBusy] = useState(false);
-  const p = priceBreakdown(Number(f.amount) || 0);
+  const clients = offerClients(convs ?? [], bookings ?? []);
+  const card = packages?.find((x) => x.id === f.rateCardId);
+  const rushOptions = card ? rushItems(card) : [];
+  const rush = f.rush === "" ? null : rushOptions[Number(f.rush)] ?? null;
+  const deadline = card?.job_kind === "deliverable";
+  const price = (Number(f.amount) || 0) + (rush?.price ?? 0);
+  const p = priceBreakdown(price);
 
   const [page, setPage] = useState(0);
   const selection = useSelection();
@@ -169,7 +180,8 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`${t("Actions")} ${b.client_name}`}><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {b.status === "inquiry" && <DropdownMenuItem asChild><Link to="/approve/$id" params={{ id: b.id }} search={{ k: b.artist_key }}>{t("Review & approve")}</Link></DropdownMenuItem>}
-                          {done && <DropdownMenuItem disabled={busy || Number(b.paid_amount) < Number(b.total) || !canComplete(b.status, b.event_date)} onSelect={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>{t("Mark completed")}</DropdownMenuItem>}
+                          {b.status === "confirmed" && Number(b.paid_amount) < Number(b.total) && <DropdownMenuItem disabled={busy || !!b.work_ready_at} onSelect={() => { if (confirm(t("Tell the client the work is ready and ask them to pay the balance?"))) void run(() => ready$({ data: { id: b.id } }), "Client asked to pay the balance"); }}>{t(b.work_ready_at ? "Balance requested" : "Work ready · ask for balance")}</DropdownMenuItem>}
+                          {done && <DropdownMenuItem disabled={busy || Number(b.paid_amount) < Number(b.total) || !(b.job_kind === "deliverable" ? b.status === "confirmed" : canComplete(b.status, b.event_date))} onSelect={() => run(() => complete$({ data: { id: b.id } }), "Marked completed — escrow released")}>{t("Mark completed")}</DropdownMenuItem>}
                           {canAct && canDispute(b.status, b.escrow_status) && <DropdownMenuItem disabled={busy} onSelect={() => { const r = prompt(t("Describe the problem for the Dealmaker team")); if (r) run(() => dispute$({ data: { id: b.id, reason: r } }), "Dispute opened"); }}>{t("Report problem")}</DropdownMenuItem>}
                           {b.status === "completed" && b.client_email && !rated && <DropdownMenuItem onSelect={() => setRate({ id: b.id, rating: 5, note: "" })}>{t("Rate client")}</DropdownMenuItem>}
                           <DropdownMenuItem onSelect={() => setInfo(b)}>{t("Booking information")}</DropdownMenuItem>
@@ -256,25 +268,33 @@ export function BookingsTab({ artistId, trn, notifyPhone, teamMode = false }: { 
         <div className="dmr-panel dmr-b-card space-y-3">
           <h3 className="font-semibold">{t("Send booking offer")}</h3>
           <div><Label>{t("Conversation")}</Label>
-            <Select value={f.conversationId} onValueChange={(v) => { const c = convs?.find((x) => x.id === v); setF({ ...f, conversationId: v, eventDate: c?.quote_requests?.event_date ?? f.eventDate }); }}>
+            <Select value={f.conversationId} onValueChange={(v) => { const c = clients.find((x) => x.id === v); setF({ ...f, conversationId: v, eventDate: c?.eventDate ?? f.eventDate, startTime: c?.startTime?.slice(0, 5) ?? f.startTime, endTime: c?.endTime?.slice(0, 5) ?? f.endTime }); }}>
               <SelectTrigger><SelectValue placeholder={t("Choose client")} /></SelectTrigger>
-              <SelectContent>{convs?.map((c) => <SelectItem key={c.id} value={c.id}>{c.quote_requests?.name ?? t("Client")}{c.quote_requests?.event_date ? ` · ${c.quote_requests.event_date}` : ""}</SelectItem>)}</SelectContent>
-            </Select></div>
+              <SelectContent>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.eventDate ? ` · ${c.eventDate}` : c.lastMessageAt ? ` · ${t("chat")} ${c.lastMessageAt.slice(0, 10)}` : ""}</SelectItem>)}</SelectContent>
+            </Select><p className="mt-1 text-xs text-muted-foreground">{t("One entry per named client, newest chat first.")}</p></div>
           {packages && packages.length > 0 && <div><Label>{t("From package")}</Label>
-            <Select onValueChange={(v) => { const pk = packages.find((x) => x.id === v); if (pk) setF({ ...f, title: pk.title, amount: String(pk.price) }); }}>
+            <Select value={f.rateCardId} onValueChange={(v) => { const pk = packages.find((x) => x.id === v); if (!pk) return; const due = pk.job_kind === "deliverable" ? dueDate(dubaiToday(), rateItems(pk as unknown as StoredRate).find((i) => i.turnaround)?.turnaround) : null; setF({ ...f, rateCardId: v, rush: "", title: pk.title, amount: String(pk.price), eventDate: due ?? f.eventDate }); }}>
               <SelectTrigger><SelectValue placeholder={t("Optional")} /></SelectTrigger>
               <SelectContent>{packages.map((pk) => <SelectItem key={pk.id} value={pk.id}>{pk.title} · {aed(Number(pk.price))}</SelectItem>)}</SelectContent>
+            </Select></div>}
+          {rushOptions.length > 0 && <div><Label>{t("Rush job")}</Label>
+            <Select value={f.rush === "" ? "none" : f.rush} onValueChange={(v) => { const picked = v === "none" ? null : rushOptions[Number(v)]; setF({ ...f, rush: v === "none" ? "" : v, eventDate: (picked ? dueDate(dubaiToday(), picked.rush) : null) ?? f.eventDate }); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="none">{t("No rush")}</SelectItem>{rushOptions.map((r, i) => <SelectItem key={i} value={String(i)}>{r.rush} · {r.desc} · + {aed(r.price)}</SelectItem>)}</SelectContent>
             </Select></div>}
           <div><Label>{t("Title")}</Label><Input value={f.title} maxLength={120} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-2">
             <div><Label>{t("Price excl. VAT")} (AED)</Label><Input type="number" min={1} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
-            <div><Label>{t("Event date")}</Label><Input type="date" value={f.eventDate} onChange={(e) => setF({ ...f, eventDate: e.target.value })} /></div>
+            <div><Label>{t(deadline ? "Deadline" : "Event date")}</Label><Input type="date" value={f.eventDate} onChange={(e) => setF({ ...f, eventDate: e.target.value })} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3"><StudioSoon label="Start time" /><StudioSoon label="End time" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label htmlFor="offer-start">{t("Start time")}</Label><Input id="offer-start" type="time" value={f.startTime} onChange={(e) => setF({ ...f, startTime: e.target.value })} /></div>
+            <div><Label htmlFor="offer-end">{t("End time")}</Label><Input id="offer-end" type="time" value={f.endTime} onChange={(e) => setF({ ...f, endTime: e.target.value })} /></div>
+          </div>
           <div><Label>{t("Notes")}</Label><Textarea rows={2} maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
-          <div className="dmr-vat"><div><span>{t("Price")}</span><b>{aed(Number(f.amount) || 0)}</b></div><div><span>{t("VAT 5%")}</span><b>{aed(p.vat)}</b></div><div><span>{t("Client pays")}</span><b>{aed(p.total)}</b></div></div>
+          <div className="dmr-vat"><div><span>{t("Price")}</span><b>{aed(price)}</b></div><div><span>{t("VAT 5%")}</span><b>{aed(p.vat)}</b></div><div><span>{t("Client pays")}</span><b>{aed(p.total)}</b></div></div>
           <Button className="w-full" disabled={busy || !f.conversationId || !f.eventDate || !(Number(f.amount) > 0)}
-            onClick={() => run(async () => { await offer$({ data: { ...f, amount: Number(f.amount) } }); setF({ conversationId: "", title: "", amount: "", eventDate: "", notes: "" }); }, "Offer sent to the client's chat")}>{t("Send offer")}</Button>
+            onClick={() => run(async () => { const { rush: _rush, ...offer } = f; await offer$({ data: { ...offer, amount: Number(f.amount), rushIndex: f.rush === "" ? null : Number(f.rush) } }); setF(emptyOffer); }, "Offer sent to the client's chat")}>{t("Send offer")}</Button>
         </div>
         {!teamMode && <><div className="dmr-panel dmr-b-card space-y-2">
           <h3 className="font-semibold">{t("Booking alerts")}</h3>

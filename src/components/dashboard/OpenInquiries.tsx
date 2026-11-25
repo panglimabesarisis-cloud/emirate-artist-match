@@ -126,7 +126,7 @@ export function ArtistOpenInquiries({ artistId, onInbox }: { artistId: string; o
     <Input aria-label={t("Search inquiries")} placeholder={t("Search inquiries")} value={search} onChange={e => setSearch(e.target.value)} />
     {(jobs.error || apps.error) && <p role="alert" className="text-destructive">{t("Could not load inquiries")}</p>}
     {jobs.isPending && <p>{t("Loading…")}</p>}
-    {jobs.data?.length === 0 && <p className="text-muted-foreground">{t("No open inquiries yet")}</p>}
+    {jobs.data?.length === 0 && <div className="rounded-[18px] border border-dashed border-[#3b4a75] bg-gradient-to-b from-[#141a2e] to-[#0c1120] p-8 text-center"><b className="font-display text-2xl font-normal">{t("No open inquiries right now")}</b><p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{t("Inquiries appear here when a client posts a job through Send Job. Closed inquiries and past event dates are not listed.")}</p></div>}
     {jobs.data?.filter(j => `${j.title} ${j.brief} ${j.preferences} ${j.venue}`.toLowerCase().includes(search.toLowerCase())).map(job => {
       const app = apps.data?.find(a => a.job_id === job.id);
       return <article key={job.id} className="space-y-4 border-b border-border py-6"><JobDetails job={job} /><div className="flex flex-wrap items-center gap-3">
