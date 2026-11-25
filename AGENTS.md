@@ -40,7 +40,7 @@ use the editor.
 - Optimistic client chat messages use the same contact mask and reconcile against new stored message IDs, so polling cannot display duplicates.
 - Booking money/policy rules (VAT, refunds, completion) live in `src/lib/booking-rules.ts` with tests; booking state changes go only through `src/lib/bookings.functions.ts` (clients via secret booking link key, artists via auth).
 - Booking notifications use `notify.server.ts` and log every attempt. Server dispatch reads provider/token from admin-only `admin_secrets`; settings return only token presence. Meta retains approved templates and signed status inbox; Fonnte IDs are prefixed and acceptance is not delivery. Artist approval retains its secret link.
-- Artist team access goes through `is_artist_team()` (owner or active `artist_members` row) in RLS and server checks; owner-only areas (profile, credits, AI settings, team, calendar link) use `is_artist_owner()`.
+- Artist team data access uses `artist_team_can(artist_id, page)` in RLS and server checks; `is_artist_team()` is only workspace membership, and unrelated private areas use `is_artist_owner()` so hidden tabs never authorize data.
 - Calendar feeds are served from `/api/public/calendar/<token>.ics`; the token lives in owner-only `artist_calendar` because `artists` rows are publicly readable.
 - Artist photos/videos live in the private `artist-media` bucket (public buckets are blocked by workspace policy); public pages show them via short-lived signed URLs created in `getArtist`.
 - Agent integrations (MCP) live in `src/lib/mcp/` with OAuth via the managed auth issuer; tools query as the caller (RLS applies), never with admin keys. Approval page is `/.lovable/oauth/consent`.

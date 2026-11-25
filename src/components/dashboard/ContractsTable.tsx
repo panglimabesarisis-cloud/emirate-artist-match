@@ -133,6 +133,11 @@ export function ContractsTable({ artistId }: { artistId?: string }) {
   const storageKey = user ? `dm-contracts-hidden:${user.id}:${artistId ?? "admin"}` : null;
   const [selected,setSelected] = useState<string | null>(null);
   const { data = [], isPending, error } = useQuery({queryKey:["contracts",artistId],queryFn:async()=>{
+    if (artistId) {
+      const result = await supabase.rpc("team_contract_bookings", { _artist: artistId });
+      if (result.error) throw result.error;
+      return (result.data ?? []) as unknown as ContractFull[];
+    }
     let query = supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, job_detail, notes, total, paid_amount, escrow_status, contract_accepted_at, contract_template_id, status, invoice_no, artists(stage_name)").in("status",["quoted","confirmed","completed","cancelled","disputed"]).order("created_at",{ascending:false});
     if(artistId)query=query.eq("artist_id",artistId).is("deleted_at",null);
     const result=await query; if(result.error)throw result.error; return result.data ?? [];

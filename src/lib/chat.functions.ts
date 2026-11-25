@@ -232,6 +232,8 @@ export const sendInvoice = createServerFn({ method: "POST" })
     const inv = buildInvoice(no, data.items.map(x => ({ ...x, title: maskContacts(x.title) })), data.due, data.notes ? maskContacts(data.notes) : null);
     const { data: c } = await context.supabase.from("conversations").select("artist_id").eq("id", data.conversationId).single();
     if (!c) throw new Error("Conversation not found");
+    const { data: allowed } = await context.supabase.rpc("artist_team_can", { _artist: c.artist_id, _page: "invoices" });
+    if (!allowed) throw new Error("Invoice access required");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     inv.id = crypto.randomUUID();
     const { error } = await supabaseAdmin.from("service_invoices").insert({ id: inv.id, artist_id: c.artist_id, conversation_id: data.conversationId, number: no, document: JSON.parse(JSON.stringify(inv)), total: inv.total });

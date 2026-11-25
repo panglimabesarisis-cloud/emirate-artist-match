@@ -29,8 +29,10 @@ export const artistChatFiles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data, context }) => {
-    const { data: conversation } = await context.supabase.from("conversations").select("id").eq("id", data.id).single();
+    const { data: conversation } = await context.supabase.from("conversations").select("id, artist_id").eq("id", data.id).single();
     if (!conversation) throw new Error("Forbidden");
+    const { data: allowed } = await context.supabase.rpc("artist_team_can", { _artist: conversation.artist_id, _page: "inbox" });
+    if (!allowed) throw new Error("Inbox access required");
     const { data: messages } = await context.supabase.from("messages").select("id, body").eq("conversation_id", data.id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     return Promise.all((messages ?? []).map(async message => ({ id: message.id, files: await Promise.all(decodeChatMessage(message.body).attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {

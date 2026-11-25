@@ -93,7 +93,7 @@ export function CalendarTab({ artistId }: { artistId: string }) {
   const jobsQ = useQuery({
     queryKey: ["cal-jobs", artistId],
     queryFn: async () => {
-      const res = await supabase.from("bookings").select("id, client_name, package_title, event_date, start_time, end_time, status, total, paid_amount, notes, job_detail, escrow_status").eq("artist_id", artistId).is("deleted_at", null).neq("status", "cancelled").order("event_date").limit(500);
+      const res = await supabase.rpc("team_calendar_bookings", { _artist: artistId });
       if (res.error) throw res.error;
       return (res.data ?? []) as unknown as Job[];
     },

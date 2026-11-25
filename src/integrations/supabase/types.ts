@@ -4290,6 +4290,7 @@ export type Database = {
         Args: { _id: string; _text: string }
         Returns: undefined
       }
+      artist_has_page: { Args: { _page: string }; Returns: boolean }
       artist_public_stats: {
         Args: never
         Returns: {
@@ -4302,6 +4303,10 @@ export type Database = {
           revenue_label: string
           review_count: number
         }[]
+      }
+      artist_team_can: {
+        Args: { _artist: string; _page: string }
+        Returns: boolean
       }
       artist_wallet: {
         Args: { _artist: string }
@@ -4523,6 +4528,7 @@ export type Database = {
         Args: { _artist: string }
         Returns: string[]
       }
+      is_any_artist_owner: { Args: never; Returns: boolean }
       is_any_artist_team: { Args: never; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
@@ -4653,6 +4659,46 @@ export type Database = {
         Args: { _artist: string; _details: Json; _files: Json }
         Returns: Json
       }
+      team_calendar_bookings: {
+        Args: { _artist: string }
+        Returns: {
+          client_name: string
+          end_time: string
+          escrow_status: string
+          event_date: string
+          id: string
+          job_detail: string
+          notes: string
+          package_title: string
+          paid_amount: number
+          start_time: string
+          status: string
+          total: number
+        }[]
+      }
+      team_contract_bookings: {
+        Args: { _artist: string }
+        Returns: {
+          artists: Json
+          client_name: string
+          contract_accepted_at: string
+          contract_template_id: string
+          end_time: string
+          escrow_status: string
+          event_date: string
+          id: string
+          invoice_no: string
+          job_detail: string
+          notes: string
+          package_title: string
+          paid_amount: number
+          start_time: string
+          status: string
+          total: number
+        }[]
+      }
+      team_inbox_context: { Args: { _artist: string }; Returns: Json }
+      team_invoice_context: { Args: { _artist: string }; Returns: Json }
       use_contract_template: {
         Args: { _booking: string; _template: string }
         Returns: undefined

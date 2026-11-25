@@ -24,9 +24,9 @@ async function bookingByKey(id: string, key: string) {
 }
 
 async function assertArtistOwns(supabase: any, userId: string, artistId: string) {
-  // Owner or an active team member (manager/assistant).
+  // Owner or an active member explicitly assigned the Bookings page.
   void userId;
-  const { data } = await supabase.rpc("is_artist_team", { _artist: artistId });
+  const { data } = await supabase.rpc("artist_team_can", { _artist: artistId, _page: "bookings" });
   if (!data) throw new Error("Forbidden");
 }
 

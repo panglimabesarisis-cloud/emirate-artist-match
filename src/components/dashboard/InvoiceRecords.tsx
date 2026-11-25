@@ -30,6 +30,13 @@ export function useInvoiceQuery(artistId?: string) {
       if (artistId) query = query.eq("artist_id", artistId).is("deleted_at", null);
       const result = await query;
       if (result.error) throw result.error;
+      if (artistId) {
+        const context = await supabase.rpc("team_invoice_context", { _artist: artistId });
+        if (context.error) throw context.error;
+        type Link = Pick<NonNullable<typeof result.data>[number], "id" | "bookings" | "conversations">;
+        const links = (context.data as unknown as { links: Link[] }).links;
+        return (result.data ?? []).map(row => ({ ...row, ...links.find(link => link.id === row.id) }));
+      }
       return result.data ?? [];
     },
   });

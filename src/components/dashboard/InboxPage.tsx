@@ -53,9 +53,14 @@ export function Inbox({ artistId }: { artistId: string }) {
   const { data: convos } = useQuery({
     queryKey: ["inbox", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("conversations").select("id, mode, chat_operator_id, ai_replies, last_message_at, label, client_name, quote_requests(name, event_date)").eq("artist_id", artistId).order("last_message_at", { ascending: false });
+      const [{ data, error }, context] = await Promise.all([
+        supabase.from("conversations").select("id, mode, chat_operator_id, ai_replies, last_message_at, label, client_name").eq("artist_id", artistId).order("last_message_at", { ascending: false }),
+        supabase.rpc("team_inbox_context", { _artist: artistId }),
+      ]);
       if (error) throw error;
-      return data ?? [];
+      if (context.error) throw context.error;
+      const quotes = (context.data as unknown as { quotes: { conversation_id: string; name: string; event_date: string | null }[] }).quotes;
+      return (data ?? []).map(c => ({ ...c, quote_requests: quotes.find(q => q.conversation_id === c.id) ?? null }));
     },
     refetchInterval: 10000,
   });
@@ -108,9 +113,9 @@ export function Inbox({ artistId }: { artistId: string }) {
   const { data: bookings } = useQuery({
     queryKey: ["inbox-bookings", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("bookings").select("conversation_id, client_name, status, total, paid_amount, event_date").eq("artist_id", artistId).not("conversation_id", "is", null).is("deleted_at", null);
+      const { data, error } = await supabase.rpc("team_inbox_context", { _artist: artistId });
       if (error) throw error;
-      return data ?? [];
+      return (data as unknown as { bookings: { conversation_id: string; client_name: string; status: string; total: number; paid_amount: number; event_date: string | null }[] }).bookings;
     },
     refetchInterval: 30000,
   });

@@ -74,8 +74,9 @@ function UseTemplateButton({ artistId, template }: { artistId: string; template:
   const { t } = useI18n(); const qc = useQueryClient(); const [open, setOpen] = useState(false);
   const bookings = useQuery({ queryKey: ["contracts", artistId, "template-targets"], enabled: open, ...libraryRefresh,
     queryFn: async () => {
-      const result = await supabase.from("bookings").select("id, package_title, client_name, event_date").eq("artist_id", artistId).is("deleted_at", null).is("contract_accepted_at", null).in("status", ["quoted", "confirmed"]).order("event_date");
-      if (result.error) throw result.error; return result.data ?? [];
+      const result = await supabase.rpc("team_contract_bookings", { _artist: artistId });
+      if (result.error) throw result.error;
+      return (result.data ?? []).filter(row => !row.contract_accepted_at && ["quoted", "confirmed"].includes(row.status)).sort((a,b) => String(a.event_date).localeCompare(String(b.event_date)));
     } });
   const choose = async (bookingId: string) => {
     const result = await supabase.rpc("use_contract_template", { _booking: bookingId, _template: template.id });
