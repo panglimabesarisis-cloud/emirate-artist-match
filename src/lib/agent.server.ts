@@ -4,7 +4,7 @@ import { ensureAgentForm, nextSavedForm, reachableForms } from "./agent-forms";
 import { ensureAgentButtons, reachableButtons } from "./agent-buttons";
 import { calendarWindow } from "./calendar-rules";
 import { decodeInvoice } from "./invoice";
-import { agentRates, negotiationFloor } from "./agent-pricing";
+import { agentRates, negotiationFloor, sellingPoints } from "./agent-pricing";
 import { clientTravelDistance, travelPrompt } from "./travel-rules";
 import { approvalPriceRule, selectedWhatsAppStep } from "./agent-approval";
 import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
@@ -39,7 +39,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   const { data: convo } = await supabaseAdmin.from("conversations").select("*").eq("id", conversationId).single();
   if (!convo || convo.mode !== "ai") return;
 
-  const [{ data: artist }, { data: settings }, { data: wallet }, { data: rates }, { data: quote }, { data: history }] =
+  const [{ data: artist }, { data: settings }, { data: wallet }, { data: rates }, { data: quote }, { data: history }, { data: allStats }, { data: badges }] =
     await Promise.all([
       supabaseAdmin.from("artists").select("user_id, stage_name, bio, base_price, languages, travel_radius_km, travel_surcharge_enabled, travel_step_km, travel_fee_per_step, areas(name), subcategories(name)").eq("id", convo.artist_id).single(),
       supabaseAdmin.from("agent_settings").select("*").eq("artist_id", convo.artist_id).maybeSingle(),
@@ -49,6 +49,8 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
         ? supabaseAdmin.from("quote_requests").select("name, event_date, guests, budget, message, start_time, end_time, perform_minutes, event_types(name), areas(name)").eq("id", convo.quote_request_id).single()
         : Promise.resolve({ data: null }),
       supabaseAdmin.from("messages").select("sender, body").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(100),
+      supabaseAdmin.rpc("artist_public_stats"),
+      supabaseAdmin.from("artist_badges").select("badge").eq("artist_id", convo.artist_id),
     ]);
 
   history?.reverse(); // Retain the latest progress instead of freezing at the first forty messages.
@@ -112,11 +114,13 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   }
   const MODEL = artistAgentModel(settings?.model, { text: decodeChatMessage((history ?? []).slice().reverse().find(m => m.sender === "client")?.body ?? "").text, privateAgent: false, bookingInProgress: !!existingBooking || !!artistDecisionBookingId });
   const promptAddons = await enabledPromptText(convo.artist_id);
+  // A stats or badge read that comes back in an unexpected shape must not end the turn.
+  const track = sellingPoints(Array.isArray(allStats) ? allStats.find(r => r.artist_id === convo.artist_id) ?? null : null, Array.isArray(badges) ? badges.map(b => b.badge) : []);
   const instructions = `You are the AI booking assistant for ${artist.stage_name}, a ${artist.subcategories?.name ?? "performer"} based in ${artist.areas?.name ?? "Dubai"}, UAE. Always say you are an AI assistant if asked.
 Tone: ${settings?.tone ?? "warm and professional"}. ${languageRule(settings?.languages)} ${replyLengthRule(settings?.reply_length)} Write plain text only — no markdown, asterisks or headings. Today is ${new Date().toISOString().slice(0, 10)} (Asia/Dubai); assume the next upcoming occurrence of any date without a year.
 Goal: ${flow ? "Follow the active saved CONVERSATION FLOW, one client-facing step per reply. Do not collect event details, offer packages, or request approval ahead of the card that asks for them. Generic booking goals do not override this flow." : "Collect missing event details following the default conversation flow, one interactive step at a time."}
 PRICING RULES (strict):
-${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}
+${invoiceAction ? "Artist-priced invoice workflow: collect schedule and job_detail, confirm client wants to proceed if available. The artist supplies final prices through their approval link. Do not request price agreement yet or invent a payable total." : pricing.text}\n${track}
 - Only quote the stored prices above, in AED. Prices exclude 5% VAT.
 ${approvalPriceRule(!!action, !!invoiceAction, pricing.startingOnly, pricing.minimum, maxDiscount, floor)}
 ${travelPrompt(artist, clientTravelDistance((history ?? []).filter(m => m.sender === "client").map(m => decodeChatMessage(m.body).text)))}
@@ -222,7 +226,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     if (ex.draft && calendarCheck) {
       const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
       if (!artistApprovalDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
-      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction);
+      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction, pricing.minimum);
     }
     if (wantsHandover) await handover(`I've requested ${artist.stage_name} to take over this conversation.`);
   } catch (e) {
@@ -242,7 +246,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>) {
+async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>, baseRef: number | null = null) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).is("deleted_at", null).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
   if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
@@ -259,6 +263,14 @@ async function createDraft(conversationId: string, artistId: string, d: BookingD
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();
   if (bookingError || !b) throw new Error(bookingError?.message ?? "Could not save approval request");
+  // What the agent asked versus what the floor allowed. Never block a booking on the audit row.
+  if (!invoiceAction) {
+    const { error: auditError } = await supabaseAdmin.from("quote_negotiations").insert({
+      booking_id: b.id, artist_id: artistId, conversation_id: conversationId,
+      quoted: d.amount, final: amount, base: baseRef, floor: Number.isFinite(floor) ? floor : null,
+    });
+    if (auditError) console.error("quote_negotiations insert failed", auditError.message);
+  }
   await addMessage(conversationId, "system", "Your booking is awaiting artist approval. An invoice or payment link will appear here once approved.");
   const c = await artistContact(artistId);
   if (action?.phone) c.phone = action.phone;

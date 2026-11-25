@@ -3114,6 +3114,43 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_negotiations: {
+        Row: {
+          artist_id: string
+          base: number | null
+          booking_id: string
+          clamped: boolean | null
+          conversation_id: string | null
+          created_at: string
+          final: number
+          floor: number | null
+          id: string
+          quoted: number
+        }
+        Insert: {
+          artist_id: string
+          base?: number | null
+          booking_id: string
+          conversation_id?: string | null
+          created_at?: string
+          final: number
+          floor?: number | null
+          id?: string
+          quoted: number
+        }
+        Update: {
+          artist_id?: string
+          base?: number | null
+          booking_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          final?: number
+          floor?: number | null
+          id?: string
+          quoted?: number
+        }
+        Relationships: []
+      }
       quote_requests: {
         Row: {
           area_id: string | null

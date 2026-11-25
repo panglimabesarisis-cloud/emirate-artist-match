@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agentRates, negotiationFloor, rangeNote } from "./agent-pricing";
+import { agentRates, negotiationFloor, rangeNote, sellingPoints } from "./agent-pricing";
 
 describe("AI booking rate fallback", () => {
   it("uses the stored AED 5000 starting rate when Dede has no rate cards", () => {
@@ -46,5 +46,28 @@ describe("negotiation range shown to the agent", () => {
     expect(rangeNote(card(1500, 1000, 2000))).toContain("open near AED 2,000");
     expect(rangeNote(card(1500, 1000, 2000))).toContain("aim for AED 1,500");
     expect(rangeNote(card(1500, 1000, 2000))).toContain("never below AED 1,000");
+  });
+});
+
+describe("track record the agent may cite", () => {
+  const stats = { rating: 4.8, review_count: 23, completed_orders: 41, repeat_clients: 7, response_rate: 95, member_since: "2024-03-01T00:00:00Z" };
+  it("states only figures that came from the stats row", () => {
+    const text = sellingPoints(stats);
+    expect(text).toContain("rated 4.8 from 23 reviews");
+    expect(text).toContain("41 completed bookings");
+    expect(text).toContain("7 returning clients");
+    expect(text).toContain("since 2024");
+  });
+  it("leaves out a zero instead of boasting about it", () => {
+    const text = sellingPoints({ ...stats, repeat_clients: 0, review_count: 0 });
+    expect(text).not.toContain("returning client");
+    expect(text).not.toContain("review");
+  });
+  it("says nothing at all for a brand new artist", () => {
+    expect(sellingPoints(null, [])).toBe("");
+    expect(sellingPoints({ rating: 0, review_count: 0, completed_orders: 0, repeat_clients: 0, response_rate: 0, member_since: "" })).toBe("");
+  });
+  it("tells the agent not to invent figures", () => {
+    expect(sellingPoints(stats)).toContain("never add a figure that is not here");
   });
 });

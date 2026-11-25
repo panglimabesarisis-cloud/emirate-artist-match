@@ -35,3 +35,26 @@ export function agentRates(rates: StoredRate[], basePrice: number | string | nul
   if (!Number.isFinite(starting) || starting <= 0) return { startingOnly: false, minimum: null, text: "- No packages or starting rate set. Do not invent a price; hand over to the artist." };
   return { startingOnly: true, minimum: starting, text: `- Starting rate: AED ${starting.toLocaleString("en-US")} excluding VAT. This is an estimate only; duration, scope and final price require artist approval. Do not claim it covers a specific duration.` };
 }
+
+type PublicStats = { rating: number; review_count: number; completed_orders: number; repeat_clients: number; response_rate: number; member_since: string } | null;
+
+/**
+ * Facts the agent may cite to defend the base price. Everything comes from
+ * artist_public_stats() and the artist's badges, so the agent has no reason to
+ * invent track record. A figure that is zero or missing is simply left out.
+ */
+export function sellingPoints(stats: PublicStats, badges: string[] = []) {
+  const parts: string[] = [];
+  if (stats) {
+    const { rating, review_count, completed_orders, repeat_clients, response_rate, member_since } = stats;
+    if (review_count > 0 && rating > 0) parts.push(`rated ${rating.toFixed(1)} from ${review_count} review${review_count === 1 ? "" : "s"}`);
+    if (completed_orders > 0) parts.push(`${completed_orders} completed booking${completed_orders === 1 ? "" : "s"}`);
+    if (repeat_clients > 0) parts.push(`${repeat_clients} returning client${repeat_clients === 1 ? "" : "s"}`);
+    if (response_rate > 0) parts.push(`replies to ${Math.round(response_rate)}% of enquiries`);
+    const year = new Date(member_since).getFullYear();
+    if (Number.isFinite(year)) parts.push(`on the platform since ${year}`);
+  }
+  for (const badge of badges.slice(0, 4)) parts.push(badge);
+  if (!parts.length) return "";
+  return `TRACK RECORD (use to justify the price; never add a figure that is not here): ${parts.join(" · ")}.`;
+}

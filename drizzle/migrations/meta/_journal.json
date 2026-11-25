@@ -589,6 +589,13 @@
       "when": 1795571640202,
       "tag": "0083_ratecard_negotiation_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795571700202,
+      "tag": "0084_quote_negotiation_audit",
+      "breakpoints": true
     }
   ]
 }
