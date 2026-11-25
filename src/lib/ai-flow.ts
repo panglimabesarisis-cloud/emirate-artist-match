@@ -1,6 +1,6 @@
 /** Visual AI flow: shared types, default master template, and conversion to agent instructions. */
 import { internationalPhone } from "./whatsapp-provider";
-export type FlowKind = "incoming_message" | "incoming_form" | "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge" | "wa_artist" | "wa_client";
+export type FlowKind = "incoming_message" | "incoming_form" | "start" | "message" | "question" | "buttons" | "form" | "calendar" | "package" | "condition" | "negotiate" | "handover" | "booking" | "whatsapp" | "ratecard" | "invoice" | "contract" | "payment" | "knowledge" | "wa_artist" | "wa_client" | "wa_assistant";
 export type UrlButton = { label: string; url: string };
 export type FieldType = "text" | "textarea" | "email" | "phone" | "number" | "date" | "time" | "dropdown";
 export type FormField = { label: string; type: FieldType; saveAs?: string | undefined; options?: string[]; source?: "event_types" };
@@ -33,6 +33,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
   { kind: "message", label: "Send message", hint: "Say something", placeholder: "Tell the client the artist performs across all seven emirates.", group: "Send", color: "--chart-1" },
   { kind: "wa_artist", label: "Send WhatsApp to artist", hint: "Message the artist at this step", placeholder: "New chat update from {client_name}: {event_type} on {event_date}. Please check the chat.", group: "Send", color: "--chart-4" },
   { kind: "wa_client", label: "Send WhatsApp to client", hint: "Message the client at this step", placeholder: "Hi {client_name}, we received your request for {artist_name}. We will keep you updated.", group: "Send", color: "--chart-4" },
+  { kind: "wa_assistant", label: "Send WhatsApp to assistant", hint: "Message your assistant at this step", placeholder: "Please follow up: {client_name} is asking about {event_type} on {event_date}.", group: "Send", color: "--chart-4" },
   { kind: "question", label: "Ask question", hint: "Collect a detail", placeholder: "Ask for the event date and start/end time.", group: "Ask", color: "--chart-2" },
   { kind: "buttons", label: "Buttons", hint: "Quick-reply choices", placeholder: "Ask what type of event it is.", group: "Ask", color: "--chart-2" },
   { kind: "form", label: "Form", hint: "Several fields at once", placeholder: "Please fill in the following details", group: "Ask", color: "--chart-2" },
@@ -50,7 +51,7 @@ export const FLOW_KINDS: { kind: FlowKind; label: string; hint: string; placehol
 ];
 export const FLOW_GROUPS: FlowGroup[] = ["Trigger", "Send", "Ask", "Logic", "Actions"];
 /** Steps that send a saved WhatsApp message and need no answer in the chat. */
-export const isNotice = (k: string) => k === "wa_artist" || k === "wa_client";
+export const isNotice = (k: string) => k === "wa_artist" || k === "wa_client" || k === "wa_assistant";
 export const kindColor = (k: FlowKind) => FLOW_KINDS.find((f) => f.kind === k)?.color ?? "--primary";
 
 /** AI replies may end with [BUTTONS: A | B]; the chat shows them as tappable quick replies. */

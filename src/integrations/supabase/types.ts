@@ -1441,6 +1441,7 @@ export type Database = {
           escrow_released_at: string | null
           escrow_status: string
           event_date: string
+          event_details: Json | null
           event_type_id: string | null
           guests: number | null
           id: string
@@ -1498,6 +1499,7 @@ export type Database = {
           escrow_released_at?: string | null
           escrow_status?: string
           event_date: string
+          event_details?: Json | null
           event_type_id?: string | null
           guests?: number | null
           id?: string
@@ -1555,6 +1557,7 @@ export type Database = {
           escrow_released_at?: string | null
           escrow_status?: string
           event_date?: string
+          event_details?: Json | null
           event_type_id?: string | null
           guests?: number | null
           id?: string

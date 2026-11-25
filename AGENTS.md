@@ -30,6 +30,8 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- A client chat needs a signed-in client: `submitQuote`/`startChat` reject guests, artist pages keep the typed form across Google sign-in (src/lib/booking-draft.ts), and `/chat` shows the sign-in window first. Opening messages to artist and client use src/lib/new-chat-message.ts (English).
+- After a booking payment the server posts the fixed confirmation (src/lib/payment-confirmation.ts) as the next AI message; the model never writes its own.
 - A verified booking or invoice payment posts one `[[RECEIPT]]` system message (id = order id, no contact details) into its chat and returns the payer there (src/lib/payment-proof.server.ts). Render receipts only from `system` messages. The `/booking` page offers no client cancel or dispute cards.
 - Plan checkout creates a missing sandbox recurring price from `plan_tiers` under its `PLAN_LOOKUP_KEYS` key; it never moves a lookup key from an existing price, because subscription sync identifies plans by it.
 - AI flow WhatsApp steps (`wa_artist`, `wa_client`) are silent: the server writes the saved message (src/lib/flow-whatsapp.ts), fires on saved form/button/start/artist-decision edges or the `send_whatsapp` tool, sends once per chat, step and number through notify.server.ts, caps client numbers per day, and never sends from `test` chats. The AI never writes the message or chooses a number.

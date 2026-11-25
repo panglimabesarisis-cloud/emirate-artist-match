@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { approvalAction, whatsappEdges } from "@/lib/ai-flow";
+import { internationalPhone } from "@/lib/whatsapp-provider";
 import { useI18n } from "@/lib/i18n";
 import { CalendarDays, Eye, LayoutGrid, Settings2, Trash2 } from "lucide-react";
 import { FlowChatPreview } from "./FlowChatPreview";
@@ -44,7 +45,7 @@ function StepNode({ data, type, selected }: NodeProps<Node<Data>>) {
         <span className="truncate" title={cardTitle({ type: k, data })}>{cardTitle({ type: k, data })}</span>
       </div>
       <div className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{data.text || t("Click to edit…")}</div>
-      {isNotice(k) && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{k === "wa_client" ? t("To the client's WhatsApp") : t("To the artist's WhatsApp")}</div>}
+      {isNotice(k) && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{k === "wa_client" ? t("To the client's WhatsApp") : k === "wa_assistant" ? data.destinationPhone || t("To the assistant's WhatsApp") : t("To the artist's WhatsApp")}</div>}
       {k === "knowledge" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">{data.knowledgeQA?.length ?? 0} {t("Q&A")}</div>}
       {k === "whatsapp" && <div className="border-t px-3 py-2 text-[11px] text-muted-foreground"><div>{data.destinationPhone || t("Artist's WhatsApp")}</div><div>{t("Approval → Invoice")}</div></div>}
       {data.saveAs && <div className="mx-3 mb-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">→ {"{"}{data.saveAs}{"}"}</div>}
@@ -176,7 +177,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
       if (urls.length) d.urlButtons = urls;
       if (x.data.saveAs) d.saveAs = x.data.saveAs;
       if (x.type === "ratecard") { d.rateDescription = x.data.rateDescription?.trim() ?? ""; d.ratePrice = Math.max(0, Number(x.data.ratePrice) || 0); }
-      if (x.type === "whatsapp") d.destinationPhone = x.data.destinationPhone?.trim() ?? "";
+      if (x.type === "whatsapp" || x.type === "wa_assistant") d.destinationPhone = x.data.destinationPhone?.trim() ?? "";
       const fields = (x.data.fields ?? []).map((f) => ({ ...f, label: f.label.trim() })).filter((f) => f.label);
       if (fields.length) d.fields = fields;
       return { id: x.id, type: x.type as FlowKind, position: { x: Math.round(x.position.x), y: Math.round(x.position.y) }, data: d };
@@ -190,7 +191,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
     setTimeout(() => void rf.fitView({ maxZoom: 1, padding: "48px" }), 60);
   };
   const blocks = FLOW_KINDS.filter((k) => (tab === "All" || k.group === tab) && k.label.toLowerCase().includes(q.toLowerCase()));
-  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge", "wa_artist", "wa_client"].includes(selected.type as string);
+  const canSave = selected && !["start", "message", "handover", "booking", "form", "whatsapp", "knowledge", "wa_artist", "wa_client", "wa_assistant"].includes(selected.type as string);
   const captured = useMemo(() => capturedVariables(nodes as FlowNode[]), [nodes]);
 
   return (
@@ -264,7 +265,8 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
               <Label className="text-xs">{isNotice(selected.type as string) ? t("WhatsApp message") : t("Bot asks / does this")}</Label>
               <RichText variables={variables} disabled={!!readOnly} value={selected.data.text} onChange={(v) => patch(selected.id, (d) => ({ ...d, text: v }))} />
             </div>}
-            {isNotice(selected.type as string) && <p className="text-[11px] text-muted-foreground">{selected.type === "wa_client" ? t("Sent to the client's number from the booking form or chat.") : t("Sent to the artist's saved WhatsApp and manager number.")} {t("Sent once per chat when the conversation reaches this block. Phone numbers, emails and links are hidden.")}</p>}
+            {isNotice(selected.type as string) && <p className="text-[11px] text-muted-foreground">{selected.type === "wa_client" ? t("Sent to the client's number from the booking form or chat.") : selected.type === "wa_assistant" ? t("Sent to the assistant's number below, or the manager number when it is empty.") : t("Sent to the artist's saved WhatsApp and manager number.")} {t("Sent once per chat when the conversation reaches this block. Phone numbers, emails and links are hidden.")}</p>}
+            {selected.type === "wa_assistant" && <div className="space-y-1.5"><Label htmlFor="assistant-phone" className="text-xs">{t("Assistant WhatsApp number")}</Label><Input id="assistant-phone" type="tel" dir="ltr" maxLength={32} placeholder="0501234567 / 971501234567" value={selected.data.destinationPhone ?? ""} disabled={readOnly} onChange={e => patch(selected.id, d => ({ ...d, destinationPhone: e.target.value.replace(/[^+\d\s()-]/g, "") }))} /></div>}
             {canSave && (
               <div className="space-y-1.5">
                 <Label className="text-xs">{t("Save response")}</Label>
@@ -384,6 +386,7 @@ export function FlowBuilder({ artistId, canEdit = true, libraryOnly = false }: {
     if (f.nodes.some(n => isNotice(n.type) && !n.data.text.trim())) { toast.error(t("Write the message of every WhatsApp block")); return; }
     try {
       for (const node of f.nodes.filter(n => n.type === "whatsapp")) approvalAction([node], []);
+      for (const node of f.nodes.filter(n => n.type === "wa_assistant" && n.data.destinationPhone)) internationalPhone(node.data.destinationPhone!);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Invalid WhatsApp number"); return; }
     setSaving(true);
     const payload = { ...(draftSource ? { source_template_id: draftSource.id, source_version: draftSource.version } : {}), nodes: f.nodes, edges: f.edges, enabled, updated_at: new Date().toISOString() };

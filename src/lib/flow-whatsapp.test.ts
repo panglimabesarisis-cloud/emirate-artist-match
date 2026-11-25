@@ -112,6 +112,14 @@ describe("sending a flow step", () => {
     expect(mocks.send).toHaveBeenCalledTimes(2);
   });
 
+  it("messages the assistant's number, or the manager when the block has none", async () => {
+    await notifyFlowSteps(chat, "Sample Singer", [{ nodeId: "help", audience: "assistant", text: "H", phone: "0501234567" }, { nodeId: "other", audience: "assistant", text: "O" }]);
+    expect(mocks.send.mock.calls.map(call => call[0])).toEqual(["+971501234567", "+971500000009"]);
+    mocks.sentToday = 50;
+    await notifyFlowSteps(chat, "Sample Singer", [{ nodeId: "third", audience: "assistant", text: "T" }]);
+    expect(mocks.send).toHaveBeenCalledTimes(2);
+  });
+
   it("stops at the daily limit of a client number and without a number", async () => {
     mocks.sentToday = 5;
     await notifyFlowSteps(chat, "Sample Singer", [{ nodeId: "tell", audience: "client", text: "C" }]);

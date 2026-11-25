@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { readWhatsAppConfig, sendWhatsApp } from "./whatsapp-provider.server";
+import { internationalPhone } from "./whatsapp-provider";
+import { artistInquiry, clientWelcome, type ChatSource } from "./new-chat-message";
 export { WHATSAPP_TEMPLATE } from "./whatsapp-provider.server";
 
 type Target = { email?: string | null; phone?: string | null };
@@ -56,7 +58,7 @@ export function siteOrigin(req: Request | undefined) {
  * Sends the client the private link of their chat. One send per conversation and number, and at most
  * three a day to a number because the booking form is public. The link itself is never stored.
  */
-export async function notifyClientChatLink(conversationId: string, key: string, phone: string, artistName: string) {
+export async function notifyClientChatLink(conversationId: string, key: string, phone: string, source: ChatSource) {
   try {
     const since = new Date(Date.now() - 24 * 3600_000).toISOString();
     const { count, error } = await supabaseAdmin.from("notifications").select("id", { count: "exact", head: true }).eq("kind", "chat_link").eq("recipient", phone).gte("created_at", since);
@@ -65,7 +67,8 @@ export async function notifyClientChatLink(conversationId: string, key: string, 
     const { data: attempt, error: reserveError } = await supabaseAdmin.from("notifications").insert({ conversation_id: conversationId, audience: "client", channel: "whatsapp", kind: "chat_link", recipient: phone, status: "sending" }).select("id").single();
     if (reserveError || !attempt) throw reserveError ?? new Error("Notification reservation failed");
     try {
-      const result = await sendWhatsApp(phone, "Link chat Dealmaker Anda", `Chat booking Anda dengan ${artistName}. Simpan pesan ini untuk membukanya kapan pun:`, `https://dealmakertalent.com/chat/${conversationId}?k=${key}`);
+      const message = clientWelcome(source);
+      const result = await sendWhatsApp(phone, message.headline, message.details, `https://dealmakertalent.com/chat/${conversationId}?k=${key}`, message.footer);
       const { error: saveError } = await supabaseAdmin.from("notifications").update({ status: result.status, error: result.error ?? null, provider_message_id: result.messageId ?? null }).eq("id", attempt.id);
       if (saveError) throw saveError;
     } catch {
@@ -75,27 +78,33 @@ export async function notifyClientChatLink(conversationId: string, key: string, 
 }
 
 /** Persist reservation before send; never blindly replay an ambiguous provider result. */
-export async function notifyConversation(id: string, kind: "booking_inquiry" | "chat_takeover", subject: string, details: string) {
+export async function notifyConversation(id: string, kind: "booking_inquiry" | "chat_takeover", subject: string, details: string, footer?: string) {
   try {
     const { data: c, error } = await supabaseAdmin.from("conversations").select("artist_id, artists(notify_phone,manager_phone)").eq("id", id).single();
     if (error || !c) throw error ?? new Error("Conversation unavailable");
     const phones = [...new Set([c.artists?.notify_phone, c.artists?.manager_phone].filter((p): p is string => !!p))];
     const link = `https://dealmakertalent.com/dashboard/chat/${id}`;
     for (const phone of phones) {
-      await deliverOnce({ conversationId: id, audience: "artist", kind, phone, subject, details, link });
+      await deliverOnce({ conversationId: id, audience: "artist", kind, phone, subject, details, link, footer });
     }
   } catch { console.error("Conversation notification could not be recorded or sent"); }
 }
 
-type Delivery = { conversationId: string; audience: "client" | "artist"; kind: string; phone: string; subject: string; details: string; link: string };
+/** Tells the artist and manager a chat opened, with the link to monitor it. */
+export async function notifyNewInquiry(conversationId: string, source: ChatSource) {
+  const message = artistInquiry(source);
+  await notifyConversation(conversationId, "booking_inquiry", message.headline, message.details, message.footer);
+}
+
+type Delivery = { conversationId: string; audience: "client" | "artist"; kind: string; phone: string; subject: string; details: string; link: string; footer?: string | undefined };
 
 /** At most one message per conversation, kind and number. */
-async function deliverOnce({ conversationId, audience, kind, phone, subject, details, link }: Delivery) {
+async function deliverOnce({ conversationId, audience, kind, phone, subject, details, link, footer }: Delivery) {
   const { data: attempt, error: reserveError } = await supabaseAdmin.from("notifications").insert({ conversation_id: conversationId, audience, channel: "whatsapp", kind, recipient: phone, status: "sending" }).select("id").single();
   if (reserveError?.code === "23505") return;
   if (reserveError || !attempt) throw reserveError ?? new Error("Notification reservation failed");
   try {
-    const result = await sendWhatsApp(phone, subject, details, link);
+    const result = await sendWhatsApp(phone, subject, details, link, ...(footer ? [footer] as const : []));
     const { error: saveError } = await supabaseAdmin.from("notifications").update({ status: result.status, error: result.error ?? null, provider_message_id: result.messageId ?? null }).eq("id", attempt.id);
     if (saveError) throw saveError;
     if (result.messageId && !result.messageId.startsWith("fonnte:")) {
@@ -112,7 +121,10 @@ async function deliverOnce({ conversationId, audience, kind, phone, subject, det
 /** Public chats can name any number, so flow messages to one client number are capped per day. */
 export const FLOW_CLIENT_DAILY_LIMIT = 5;
 
-export type FlowNotice = { nodeId: string; audience: "client" | "artist"; text: string };
+/** A flow may name the assistant's number, so that number is capped too. */
+export const FLOW_ASSISTANT_DAILY_LIMIT = 50;
+
+export type FlowNotice = { nodeId: string; audience: "client" | "artist" | "assistant"; text: string; phone?: string | null | undefined };
 export type FlowChat = { id: string; access_key: string; artist_id: string; client_user_id: string | null; quote_request_id: string | null };
 
 /** The client's number: from the booking form, the verified chat number, or the verified account. */
@@ -131,6 +143,14 @@ async function clientPhone(chat: FlowChat) {
   return profile?.phone_verified_at ? profile.phone : null;
 }
 
+/** Flow messages this number was sent in the last day. */
+async function sentToday(phone: string) {
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const { count, error } = await supabaseAdmin.from("notifications").select("id", { count: "exact", head: true }).eq("recipient", phone).like("kind", "flow:%").gte("created_at", since);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /** Sends the WhatsApp steps an AI flow reached. A failure never ends the chat turn. */
 export async function notifyFlowSteps(chat: FlowChat, artistName: string, notices: FlowNotice[]) {
   for (const notice of notices) {
@@ -144,12 +164,20 @@ export async function notifyFlowSteps(chat: FlowChat, artistName: string, notice
         }
         continue;
       }
+      if (notice.audience === "assistant") {
+        let phone = notice.phone?.trim() ? `+${internationalPhone(notice.phone.trim())}` : null;
+        if (!phone) {
+          const { data: artist, error } = await supabaseAdmin.from("artists").select("manager_phone").eq("id", chat.artist_id).single();
+          if (error) throw error;
+          phone = artist?.manager_phone ?? null;
+        }
+        if (!phone || await sentToday(phone) >= FLOW_ASSISTANT_DAILY_LIMIT) continue;
+        await deliverOnce({ conversationId: chat.id, audience: "artist", kind, phone, subject: "Dealmaker AI Agent", details: notice.text, link: `https://dealmakertalent.com/dashboard/chat/${chat.id}` });
+        continue;
+      }
       const phone = await clientPhone(chat);
       if (!phone) continue;
-      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-      const { count, error } = await supabaseAdmin.from("notifications").select("id", { count: "exact", head: true }).eq("audience", "client").eq("recipient", phone).like("kind", "flow:%").gte("created_at", since);
-      if (error) throw error;
-      if ((count ?? 0) >= FLOW_CLIENT_DAILY_LIMIT) continue;
+      if (await sentToday(phone) >= FLOW_CLIENT_DAILY_LIMIT) continue;
       await deliverOnce({ conversationId: chat.id, audience: "client", kind, phone, subject: `Dealmaker · ${artistName}`, details: notice.text, link: `https://dealmakertalent.com/chat/${chat.id}?k=${chat.access_key}` });
     } catch { console.error("Flow WhatsApp message could not be recorded or sent"); }
   }

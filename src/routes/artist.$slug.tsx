@@ -4,10 +4,13 @@ import { createFileRoute, notFound, useNavigate, useLoaderData } from "@tanstack
 import { useServerFn } from "@tanstack/react-start";
 import { startChat, submitQuote } from "@/lib/chat.functions";
 import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
+import { ClientSignInDialog } from "@/components/shared/ClientSignInDialog";
+import { saveBookingDraft, takeBookingDraft } from "@/lib/booking-draft";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play, Crown } from "lucide-react";
 import { youtubeId } from "@/lib/media";
@@ -190,6 +193,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
   const openChat = async () => {
     if (!chatText.trim() || chatBusy) return;
     if (!whatsapp.ready) { toast.error(t("Verify your WhatsApp number first.")); return; }
+    if (!(await signedIn("chat"))) return;
     setChatBusy(true);
     try { const result = await startChat$({ data: { artistId, text: chatText, phone: f.phone, phoneProof: whatsapp.proof } }); await navigate({ to: "/chat/$id", params: { id: result.conversationId }, search: { k: result.key } }); }
     catch { toast.error(t("Could not open chat. Please try again.")); } finally { setChatBusy(false); }
@@ -210,8 +214,37 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
   const { t } = useI18n();
   const up = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
-  const submit = async (e: React.FormEvent) => {
+  // A chat opens only for a signed-in client. Google leaves the page, so what was typed is kept and sent on return.
+  const { user } = useAuth();
+  const [signIn, setSignIn] = useState<{ send: "form" | "chat"; returnTo: string } | null>(null);
+  const [resume, setResume] = useState<"form" | "chat" | null>(null);
+  const signedIn = async (send: "form" | "chat") => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return true;
+    saveBookingDraft({ artistId, send, state: { f, extra, answers, jobCategory, speciality, chatText, showForm, chatOpen } });
+    setSignIn({ send, returnTo: window.location.pathname + window.location.search });
+    return false;
+  };
+  useEffect(() => {
+    const draft = takeBookingDraft(artistId);
+    if (!draft) return;
+    const saved = draft.state as { f?: Partial<typeof f>; extra?: string[]; answers?: Record<string, string>; jobCategory?: string; speciality?: string; chatText?: string; showForm?: boolean; chatOpen?: boolean };
+    setF((current) => ({ ...current, ...saved.f }));
+    setExtra(saved.extra ?? []); setAnswers(saved.answers ?? {}); setJobCategory(saved.jobCategory ?? ""); setSpeciality(saved.speciality ?? "");
+    setChatText(saved.chatText ?? ""); setShowForm(!!saved.showForm); setChatOpen(!!saved.chatOpen); setResume(draft.send);
+  }, [artistId]);
+  useEffect(() => {
+    // The artist's own questions must be loaded, or their answers would be left out.
+    if (!resume || !user || !whatsapp.ready || !orderForms) return;
+    setResume(null);
+    void (resume === "chat" ? openChat() : sendQuote());
+  }, [resume, user, whatsapp.ready, orderForms]);
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    void sendQuote();
+  };
+  const sendQuote = async () => {
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
     if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
     if (!whatsapp.ready) { toast.error(t("Verify your WhatsApp number first.")); return; }
@@ -219,6 +252,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
     if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
     const extraLines = customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
     const fullMessage = [f.message.trim(), ...extraLines].filter(Boolean).join("\n").slice(0, 2000);
+    if (!(await signedIn("form"))) return;
     setSending(true);
     try {
       const payload = {
@@ -329,6 +363,9 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
       )}
       {chatOpen && <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void openChat(); }}><Label htmlFor="artist-chat-message">{t("Your message")}</Label><Textarea id="artist-chat-message" autoFocus value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><WhatsAppVerify id="chat-whatsapp-number" phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} /><Button variant="gold" type="submit" className="w-full" disabled={chatBusy || !chatText.trim() || !whatsapp.ready}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form>}
       <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
+      <ClientSignInDialog open={!!signIn} returnTo={signIn?.returnTo ?? "/"}
+        onOpenChange={(open) => { if (!open) { takeBookingDraft(artistId); setSignIn(null); } }}
+        onSignedIn={() => { const send = signIn?.send ?? null; takeBookingDraft(artistId); setSignIn(null); setResume(send); }} />
     </aside>
   );
 }

@@ -16,13 +16,13 @@ vi.mock("./whatsapp-provider.server", () => ({ sendWhatsApp: send, readWhatsAppC
 
 import { notifyClientChatLink } from "./notify.server";
 
-const run = () => notifyClientChatLink("c1", "k1", "+971500000000", "Sample Singer");
+const run = () => notifyClientChatLink("c1", "k1", "+971500000000", "chat");
 beforeEach(() => { db.sentToday = 0; db.inserted = []; db.updated = []; send.mockClear(); });
 
 describe("client chat link on WhatsApp", () => {
   it("sends the private link once and records the provider result without storing the link", async () => {
     await run();
-    expect(send).toHaveBeenCalledWith("+971500000000", expect.any(String), expect.stringContaining("Sample Singer"), "https://dealmakertalent.com/chat/c1?k=k1");
+    expect(send).toHaveBeenCalledWith("+971500000000", "DEALMAKER TALENT\nNew Chat Income", expect.stringContaining("view your conversation"), "https://dealmakertalent.com/chat/c1?k=k1", "---\nThank You\nDealmaker Team");
     expect(db.inserted).toEqual([{ conversation_id: "c1", audience: "client", channel: "whatsapp", kind: "chat_link", recipient: "+971500000000", status: "sending" }]);
     expect(db.updated).toEqual([{ status: "accepted", error: null, provider_message_id: "fonnte:1" }]);
     expect(JSON.stringify([db.inserted, db.updated])).not.toContain("k=k1");

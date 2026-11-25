@@ -631,6 +631,13 @@
       "when": 1795572000202,
       "tag": "0089_private_artist_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1795572060202,
+      "tag": "0090_booking_event_details",
+      "breakpoints": true
     }
   ]
 }

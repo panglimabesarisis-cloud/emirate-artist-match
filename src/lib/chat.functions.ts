@@ -62,22 +62,23 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
     packages: (pk ?? []).map((p) => ({ title: p.title, price: Number(p.price) })), note: data.message,
   });
   await addMessage(c.id, "client", maskContacts(summary));
-  const { notifyConversation, notifyClientChatLink } = await import("./notify.server");
+  const { notifyNewInquiry, notifyClientChatLink } = await import("./notify.server");
   await Promise.all([
-    notifyConversation(c.id, "booking_inquiry", "Detail form yang di isi:", `${summary}\n\nClick here if you want monitor Ai Agent Chat :`),
-    data.phone ? notifyClientChatLink(c.id, c.access_key, data.phone, artist.stage_name) : null,
+    notifyNewInquiry(c.id, "form"),
+    data.phone ? notifyClientChatLink(c.id, c.access_key, data.phone, "form") : null,
   ]);
   await runAgent(c.id);
   return { conversationId: c.id, key: c.access_key };
 }
 
-/** Public: stores a quote request; a signed-in visitor's request is linked to their account. */
+/** Stores a signed-in visitor's quote request, linked to their account. */
 export const submitQuote = createServerFn({ method: "POST" })
   .inputValidator(validateQuote)
   .handler(async ({ data }) => {
     const { optionalUserId } = await import("./request-user.server");
     const { requireVerifiedPhone } = await import("./phone-otp.server");
     const userId = await optionalUserId();
+    if (!userId) throw new Error("Sign in to continue");
     return createQuote({ ...data, phone: await requireVerifiedPhone(data.phone, data.phoneProof, userId) }, userId);
   });
 
@@ -221,7 +222,7 @@ export const subscribePlanDemo = createServerFn({ method: "POST" })
     throw new Error('Demo plan switching is disabled. Use verified test subscription checkout.');
   });
 
-/** Public: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
+/** Signed-in visitor: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
 export const startChat = createServerFn({ method: "POST" })
   .inputValidator((i: { artistId: string; text?: string; phone?: string | null; phoneProof?: string | null }) => ({ artistId: uuid(i.artistId), text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH), phone: str(i.phone, 30), phoneProof: str(i.phoneProof, 200) }))
   .handler(async ({ data }) => {
@@ -232,11 +233,13 @@ export const startChat = createServerFn({ method: "POST" })
     const { optionalUserId } = await import("./request-user.server");
     const { requireVerifiedPhone } = await import("./phone-otp.server");
     const userId = await optionalUserId();
+    if (!userId) throw new Error("Sign in to continue");
     const phone = await requireVerifiedPhone(data.phone, data.phoneProof, userId);
     const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_message", artist_id: data.artistId, client_user_id: userId }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
     await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
-    if (phone) { const { notifyClientChatLink } = await import("./notify.server"); await notifyClientChatLink(c.id, c.access_key, phone, artist.stage_name); }
+    const { notifyNewInquiry, notifyClientChatLink } = await import("./notify.server");
+    await Promise.all([notifyNewInquiry(c.id, "chat"), phone ? notifyClientChatLink(c.id, c.access_key, phone, "chat") : null]);
     await runAgent(c.id);
     return { conversationId: c.id, key: c.access_key };
   });

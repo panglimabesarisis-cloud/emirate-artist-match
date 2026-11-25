@@ -17,6 +17,7 @@ import { chatInvoices } from "@/components/chat/shell/billing-split";
 import { decodeInvoice } from "@/lib/invoice";
 import { decodeReceipt } from "@/lib/receipt-message";
 import { ReceiptSheet } from "@/components/site/ReceiptSheet";
+import { LinkedText } from "@/components/chat/LinkedText";
 import { InvoiceBlock } from "@/components/chat/shell/InvoiceSheet";
 import { paperForInvoice, savedInvoice } from "@/lib/chat-invoice";
 import { Button } from "@/components/ui/button";
@@ -123,7 +124,7 @@ export function ArtistChatMonitor({ id }: { id: string }) {
                 <article key={message.id} className={`dmc-msg ${ours ? "me" : "them"}`}>
                   <div className={`flex min-w-0 max-w-full flex-col ${invoice ? "w-full" : ""}`} style={{ alignItems: ours ? "flex-end" : "flex-start" }}>
                     <span className="dmc-who">{t(message.sender === "artist" ? "You" : message.sender === "ai" ? "AI Agent" : "Client")}</span>
-                    {invoice ? <InvoiceBlock paper={paperForInvoice(invoice, invoices.find((row) => row.id === invoice.id), parties)} /> : <p className="tx" dir="auto">{decodeChatMessage(message.body).text}</p>}
+                    {invoice ? <InvoiceBlock paper={paperForInvoice(invoice, invoices.find((row) => row.id === invoice.id), parties)} /> : <p className="tx" dir="auto">{message.sender === "ai" ? <LinkedText text={decodeChatMessage(message.body).text} /> : decodeChatMessage(message.body).text}</p>}
                     <ChatAttachments files={files.data?.find((file) => file.id === message.id)?.files ?? []} />
                     <time className="dmc-time">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
                   </div>

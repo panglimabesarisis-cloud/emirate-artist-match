@@ -5,7 +5,7 @@ export type TemplateFlow = { nodes: FlowNode[]; edges: FlowEdge[] };
 export function copyTemplate(flow: TemplateFlow): TemplateFlow {
   const copy = structuredClone(flow);
   for (const node of copy.nodes) {
-    if (node.type === "whatsapp") node.data.destinationPhone = "";
+    if (node.type === "whatsapp" || node.type === "wa_assistant") node.data.destinationPhone = "";
   }
   return copy;
 }

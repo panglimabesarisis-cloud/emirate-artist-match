@@ -12,7 +12,7 @@ export async function readWhatsAppConfig() {
   };
 }
 
-export async function sendWhatsApp(phone: string, headline: string, details: string, link: string): Promise<WhatsAppSendResult> {
+export async function sendWhatsApp(phone: string, headline: string, details: string, link: string, footer?: string): Promise<WhatsAppSendResult> {
   const to = internationalPhone(phone);
   const config = await readWhatsAppConfig();
   if (config.provider === "fonnte") {
@@ -21,7 +21,7 @@ export async function sendWhatsApp(phone: string, headline: string, details: str
     body.set("target", to);
     body.set("countryCode", "0");
     body.set("connectOnly", "true");
-    body.set("message", [headline, details, link].filter(Boolean).join("\n\n"));
+    body.set("message", [headline, details, link, footer].filter(Boolean).join("\n\n"));
     try {
       const response = await fetch("https://api.fonnte.com/send", {
         method: "POST", headers: { Authorization: config.token }, body,
@@ -43,7 +43,7 @@ export async function sendWhatsApp(phone: string, headline: string, details: str
     headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": wk, "Content-Type": "application/json" },
     body: JSON.stringify({
       messaging_product: "whatsapp", to, type: "template",
-      template: { name: WHATSAPP_TEMPLATE, language: { code: "en_US" }, components: [{ type: "body", parameters: [headline, details, link].map((t) => ({ type: "text", text: t.replace(/\s*\n+\s*/g, " · ").slice(0, 900) })) }] },
+      template: { name: WHATSAPP_TEMPLATE, language: { code: "en_US" }, components: [{ type: "body", parameters: [headline, details, [link, footer].filter(Boolean).join("\n")].map((t) => ({ type: "text", text: t.replace(/\s*\n+\s*/g, " · ").slice(0, 900) })) }] },
     }),
   });
   if (!response.ok) return { status: "failed", error: `Meta request failed (HTTP ${response.status}); check connection and approved template` };

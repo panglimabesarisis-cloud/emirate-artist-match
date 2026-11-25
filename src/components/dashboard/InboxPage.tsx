@@ -11,6 +11,7 @@ import { decodeChatMessage } from "@/lib/chat-attachments";
 import { decodeInvoice } from "@/lib/invoice";
 import { decodeReceipt, receiptSummary } from "@/lib/receipt-message";
 import { ReceiptSheet } from "@/components/site/ReceiptSheet";
+import { LinkedText } from "@/components/chat/LinkedText";
 import { clientNameFromMessages, inboxLabelFor, INBOX_LABELS, type InboxLabel } from "@/lib/chat-client-name";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -294,7 +295,7 @@ export function Inbox({ artistId }: { artistId: string }) {
               return (
                 <div key={m.id} className={`m ${who}`} dir="auto">
                   <span className="who">{t(who === "ai" ? "AI assistant" : who === "you" ? "You" : "Client")}</span>
-                  <div className="bub">{inv ? <InvoiceCard inv={inv} /> : <>{decodeChatMessage(m.body).text}<ChatAttachments files={attachments?.find((item) => item.id === m.id)?.files ?? []} /></>}</div>
+                  <div className="bub">{inv ? <InvoiceCard inv={inv} /> : <>{m.sender === "ai" ? <LinkedText text={decodeChatMessage(m.body).text} /> : decodeChatMessage(m.body).text}<ChatAttachments files={attachments?.find((item) => item.id === m.id)?.files ?? []} /></>}</div>
                   <time>{hhmm(m.created_at)}</time>
                 </div>
               );

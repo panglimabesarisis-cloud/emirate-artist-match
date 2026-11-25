@@ -43,8 +43,9 @@ function AuthPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
-  const jobSignup = search.redirect === "/send-job";
-  const [type, setType] = useState(jobSignup ? "client" : "artist");
+  // Someone on the way to a job post or a chat is booking, not joining as talent.
+  const clientSignup = /^\/(send-job$|artist\/|chat\/)/.test(search.redirect ?? "");
+  const [type, setType] = useState(clientSignup ? "client" : "artist");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -59,7 +60,7 @@ function AuthPage() {
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin + dest, data: { display_name: name, account_type: jobSignup ? "client" : type } },
+        options: { emailRedirectTo: window.location.origin + dest, data: { display_name: name, account_type: clientSignup ? "client" : type } },
       });
       setBusy(false);
       if (error) { toast.error(error.message); return; }
@@ -95,7 +96,7 @@ function AuthPage() {
         <form onSubmit={submit} className="space-y-4">
           {mode === "signup" && (
             <>
-              {!jobSignup && <RadioGroup value={type} onValueChange={setType} className="grid grid-cols-2 gap-2">
+              {!clientSignup && <RadioGroup value={type} onValueChange={setType} className="grid grid-cols-2 gap-2">
                 {([["artist", "I'm talent"], ["client", "I'm booking"]] as const).map(([v, l]) => (
                   <Label key={v} className={`rounded-xl border p-3 cursor-pointer flex items-center gap-2 ${type === v ? "border-gold bg-accent" : ""}`}>
                     <RadioGroupItem value={v} /> {l}

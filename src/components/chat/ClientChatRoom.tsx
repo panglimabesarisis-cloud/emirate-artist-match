@@ -17,6 +17,7 @@ import { useI18n } from "@/lib/i18n";
 import { decodeInvoice, type Invoice } from "@/lib/invoice";
 import { decodeReceipt } from "@/lib/receipt-message";
 import { ReceiptSheet } from "@/components/site/ReceiptSheet";
+import { LinkedText } from "@/components/chat/LinkedText";
 import { paperForInvoice, type InvoiceParties, type SavedInvoice } from "@/lib/chat-invoice";
 import { InvoiceBlock, usePayInvoice } from "@/components/chat/shell/InvoiceSheet";
 import { extractButtons, extractForm } from "@/lib/ai-flow";
@@ -126,7 +127,7 @@ export function ClientChatRoom({ id, k, embedded = false, className = "flex h-[c
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 text-xs font-semibold text-muted-foreground">{m.sender === "ai" ? tr("AI assistant") : a?.stage_name}</div>
                   {decodeInvoice(m.body) ? invoice(decodeInvoice(m.body) as Invoice) : (() => { const f = extractForm(m.body); const { text: body, buttons } = extractButtons(f.text); const last = m.id === data.messages[data.messages.length - 1]?.id; return <>
-                    <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{body}</div>
+                    <div className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{m.sender === "ai" ? <LinkedText text={body} /> : body}</div>
                     {buttons.length > 0 && last && data.mode !== "human" && (
                       <ChatFlowButtons buttons={buttons} busy={busy} onSelect={(value) => send(value)} />
                     )}

@@ -15,6 +15,7 @@ import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRequest } from "@tanstack/react-start/server";
 import { extractDraft, priceBreakdown, type BookingDraft } from "./booking-rules";
+import { eventDetails } from "./payment-confirmation";
 import { notifyBooking, notifyConversation, notifyFlowSteps, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
@@ -61,7 +62,7 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     if (error) throw error;
     if (!changed?.length) return;
     await addMessage(conversationId, "system", why);
-    if (convo.quote_request_id || convo.client_user_id) await notifyConversation(conversationId, "chat_takeover", "Apakah Anda ingin mengambil alih chat?", why);
+    if (convo.quote_request_id || convo.client_user_id) await notifyConversation(conversationId, "chat_takeover", "Would you like to take over this chat?", why);
   };
 
   if (!artist) return;
@@ -95,7 +96,8 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
     const known = { client_name: quote?.name ?? convo.client_name, artist_name: artist.stage_name, event_type: quote?.event_types?.name, event_date: quote?.event_date,
       start_time: quote?.start_time?.slice(0, 5), end_time: quote?.end_time?.slice(0, 5), guest_count: quote?.guests, budget: quote?.budget, venue_area: quote?.areas?.name };
     const read = capturedValues(flow?.nodes as FlowNode[] ?? [], history ?? [], known);
-    const due = notices.filter(node => dueNotices.has(node.id)).map(node => ({ nodeId: node.id, audience: node.type === "wa_client" ? "client" as const : "artist" as const,
+    const due = notices.filter(node => dueNotices.has(node.id)).map(node => ({ nodeId: node.id, audience: node.type === "wa_client" ? "client" as const : node.type === "wa_assistant" ? "assistant" as const : "artist" as const,
+      phone: node.type === "wa_assistant" ? node.data.destinationPhone : null,
       text: fillNotice(node.data.text, { ...dueNotices.get(node.id), ...read }) }));
     dueNotices.clear();
     await notifyFlowSteps(convo, artist.stage_name, due);
@@ -152,7 +154,7 @@ Never share or ask for phone numbers, emails or social handles — all communica
 BOOKING HAND-OFF: ${action ? "when the client selects the saved choice leading to Send to WhatsApp (for example Book Now), immediately request artist review, without asking for price agreement. Use all previously supplied event/venue details; do not ask again for an area when a venue/address already identifies it" : invoiceAction ? "once the client explicitly agrees to proceed with the schedule (verified available or subject to artist confirmation) (artist will supply invoice prices next)" : "once the client has agreed to a package price (or explicitly accepted the disclosed starting-rate estimate when there are no packages)"} AND you know the event date, area, timing and guest count, call check_calendar on this turn, then tell them you are requesting ${artist.stage_name}'s approval (do not claim WhatsApp delivery), and end your reply with exactly:
 [BOOKING_READY {"title":"<package name>","amount":<agreed price in AED excl. VAT, number>,"date":"YYYY-MM-DD","clientName":"<client name>","jobDetail":"<all client job details>","notes":"<event type, area/venue, timing, guests, special requests>","organizing":"<client or organizer>","clientOccupation":"<organization or occupation>","venueName":"<venue name>","venueAddress":"<venue address>","eventType":"<event name/category>","indoorOutdoor":"<indoor or outdoor>","performDuration":"<artist performance duration>","wardrobe":"<wardrobe>","dresscode":"<dress code>","wardrobeRequest":"<wardrobe request>","preEventMeeting":"<pre-event meeting details>","rehearsalDate":"<rehearsal date>","rehearsalStart":"<rehearsal start time>","rehearsalEnd":"<rehearsal end time>","rehearsalLocation":"<rehearsal location>"}]
 The keys organizing, clientOccupation, venueName, venueAddress, eventType, indoorOutdoor, performDuration, wardrobe, dresscode, wardrobeRequest, preEventMeeting, rehearsalDate, rehearsalStart, rehearsalEnd and rehearsalLocation are OPTIONAL strings. Fill each only from details the client already gave in this conversation, including saved form answers. Omit a key when unknown; never invent a value or ask extra questions to fill these optional keys. Keep title, amount, date, clientName, jobDetail and notes.
-Use this token only once per conversation. ${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
+Use this token only once per conversation. ${Number(existingBooking?.paid_amount ?? 0) > 0 ? "This booking has a verified payment and the server already posted the payment confirmation in this chat: never write your own payment confirmation or repeat amounts; answer the client's question briefly. " : ""}${existingBooking ? `Current server booking state: ${JSON.stringify(existingBooking)}. Do not emit BOOKING_READY again. Await artist invoice when inquiry, direct client to existing invoice/contract when quoted, acknowledge actual paid amount only when confirmed.` : ''}
 QUICK REPLIES (strict): When reaching a saved Buttons step, call show_buttons with its nodeId and write only that card's question. The server displays its exact saved choices. NEVER turn choices into a prose list, merge in later event questions, or advance before the client selects an option. If no tool call is used, put the exact [BUTTONS: ...] token on the last line. Available saved buttons: ${JSON.stringify(buttons.map(node => ({ nodeId: node.id, choices: node.data.buttons })))}.
 INTERACTIVE FORMS (strict): When reaching a saved Form step, call show_form with its nodeId and write only a brief introduction. The server displays the saved fields. NEVER rewrite the fields as a list of questions or ask for them in plain text. If no tool call is used, append the exact [FORM: ...] token from that step on the final line. A Form is an interactive step, not a prose instruction. Pause for its submission; skip it only if ALL its fields have already been supplied, not just a name or one known detail. Do not show disconnected forms or forms on an unchosen branch. Available saved forms: ${JSON.stringify(forms.map(node => ({ nodeId: node.id, fields: node.data.fields })))}.
 VARIABLES: {name} in a flow step means the value the client gave earlier (e.g. {client_name}); write the actual value, never the braces.
@@ -302,6 +304,12 @@ async function createDraft(conversationId: string, artistId: string, d: BookingD
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();
   if (bookingError || !b) throw new Error(bookingError?.message ?? "Could not save approval request");
+  // Kept for the payment confirmation; a failed write never blocks the booking.
+  const details = eventDetails(d);
+  if (Object.keys(details).length) {
+    const { error: detailError } = await supabaseAdmin.from("bookings").update({ event_details: details }).eq("id", b.id);
+    if (detailError) console.error("Event details not saved", detailError.message);
+  }
   // What the agent asked versus what the floor allowed. Never block a booking on the audit row.
   if (!invoiceAction) {
     const { error: auditError } = await supabaseAdmin.from("quote_negotiations").insert({
