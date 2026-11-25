@@ -28,3 +28,15 @@ export function agentTaskTier(task: TaskContext): keyof typeof TASK_MODELS {
 export function agentTaskModel(task: TaskContext) {
   return TASK_MODELS[agentTaskTier(task)];
 }
+
+export type AgentTier = keyof typeof TASK_MODELS;
+/** The model card the artist saved. Null and legacy model ids mean automatic routing. */
+export function chosenTier(choice: string | null | undefined): AgentTier | null {
+  return choice === "fast" || choice === "balanced" || choice === "advanced" ? choice : null;
+}
+
+/** Public booking and test chats: the artist's card wins, otherwise the task decides. */
+export function artistAgentModel(choice: string | null | undefined, task: TaskContext) {
+  const tier = chosenTier(choice);
+  return tier ? TASK_MODELS[tier] : agentTaskModel(task);
+}

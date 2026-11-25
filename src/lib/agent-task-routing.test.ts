@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { agentTaskModel } from "./agent-task-routing";
+import { agentTaskModel, artistAgentModel } from "./agent-task-routing";
+
+describe("artist model choice", () => {
+  const greeting = { text: "Hi!", privateAgent: false };
+  it("uses the card the artist saved, whatever the task", () => {
+    expect(artistAgentModel("advanced", greeting)).toBe("openai/gpt-6-astra");
+    expect(artistAgentModel("balanced", greeting)).toBe("openai/gpt-5.6-luna");
+    expect(artistAgentModel("fast", { text: "Are you available for my booking?", privateAgent: false })).toBe("openai/gpt-5.4-mini");
+  });
+  it("routes by task when the choice is automatic or a legacy model id", () => {
+    for (const choice of [null, undefined, "", "openai/gpt-5.5", "toString"]) expect(artistAgentModel(choice, greeting)).toBe("openai/gpt-5.4-mini");
+  });
+});
 
 describe("automatic task model routing", () => {
   it("uses Fast for a greeting", () => {

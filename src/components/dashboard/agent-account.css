@@ -4,13 +4,20 @@ html.dm-dash .agent-section{margin-top:24px}
 html.dm-dash .agent-section:first-child{margin-top:0}
 html.dm-dash .agent-section>legend,html.dm-dash .agent-section-title{display:flex;justify-content:space-between;gap:12px;width:100%;font-size:11px;font-weight:800;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
 html.dm-dash .agent-models{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-html.dm-dash .agent-model{display:flex;flex-direction:column;align-items:start;justify-content:start;gap:8px;white-space:normal;text-align:start;padding:16px;height:auto;min-height:130px;border-radius:16px;border:1px solid var(--studio-line-2);background:var(--studio-wash)}
-html.dm-dash .agent-model b{font-family:var(--font-display);font-size:25px;font-weight:400}
+html.dm-dash .agent-model{display:flex;flex-direction:column;align-items:start;justify-content:start;gap:6px;white-space:normal;text-align:start;padding:14px;min-width:0;min-height:176px;border-radius:16px;border:1px solid var(--studio-line-2);background:transparent;color:var(--foreground);cursor:pointer;transition:border-color .25s,background .25s}
+html.dm-dash .agent-model b{font-family:var(--font-display);font-size:22px;font-weight:400;line-height:1;text-transform:uppercase}
 html.dm-dash .agent-model span{font-size:12px;color:var(--muted-foreground)}
-html.dm-dash .agent-model[aria-checked=true]{border-color:var(--gold);background:var(--studio-gold-wash)}
+html.dm-dash .agent-model:hover{border-color:var(--studio-gold-line)}
+html.dm-dash .agent-model[aria-checked=true]{border-color:var(--gold);background:var(--studio-gold-wash);box-shadow:0 0 0 3px var(--studio-gold-wash)}
+html.dm-dash .agent-model:disabled{opacity:.55;cursor:wait}
+html.dm-dash .agent-model-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+html.dm-dash .agent-model-head .agent-section-title{width:auto;margin:0}
+html.dm-dash .agent-model .agent-model-cost{color:var(--foreground)}
+html.dm-dash .agent-model-note{font-size:12px;color:var(--muted-foreground);margin-top:10px}
 html.dm-dash .agent-pills{display:flex;gap:8px;flex-wrap:wrap}
 html.dm-dash .studio-reference .agent-pills button{border-radius:999px;font-size:12px;height:32px;padding:0 14px;background:transparent;color:var(--foreground);border:1px solid var(--studio-line-2);box-shadow:none;min-width:0;transition:translate .2s,border-color .2s}
 html.dm-dash .agent-pills button:hover{translate:0 -1px;border-color:var(--gold)}
+html.dm-dash .agent-pills button{text-transform:capitalize}
 html.dm-dash .studio-reference .agent-pills button[aria-checked=true],html.dm-dash .studio-reference .agent-pills button[aria-pressed=true]{background:var(--gradient-gold);color:var(--gold-foreground);border-color:transparent}
 html.dm-dash .agent-handoff{display:grid;gap:12px}
 html.dm-dash .agent-handoff label{display:flex;align-items:center;gap:10px;font-size:13px}
@@ -73,7 +80,6 @@ html.dm-dash .account-modal-footer{border-top:1px solid var(--studio-line);paddi
 /* Uploaded AI Agent reference: compact controls, stable model cards and an uninterrupted settings/test row. */
 html.dm-dash .agent-header-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 html.dm-dash .agent-header-actions>a,html.dm-dash .agent-header-actions>button{font-size:12px}
-html.dm-dash .agent-model{min-height:190px;padding:14px;gap:7px;font-weight:400}
 html.dm-dash .agent-model small{color:var(--muted-foreground);font-size:11px;overflow-wrap:anywhere}
 html.dm-dash .agent-model .agent-model-description{flex:1;line-height:1.5}
 html.dm-dash .agent-model-speed{display:flex;gap:3px}
@@ -91,6 +97,6 @@ html.dm-dash .agent-own-saved article{display:flex;align-items:start;gap:12px;pa
 html.dm-dash .agent-own-saved p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;margin:8px 0}
 html.dm-dash .agent-own-saved small{color:var(--muted-foreground);font-size:11px}
 @media(min-width:1000px){html.dm-dash .studio-reference .dmr-agpage .studio-agent-settings{grid-column:span 7}html.dm-dash .studio-reference .dmr-agpage .studio-agent-test{grid-column:span 5}}
-@media(max-width:700px){html.dm-dash .agent-prompt-pagination{flex-wrap:wrap}html.dm-dash .agent-model{min-height:140px}}
+@media(max-width:700px){html.dm-dash .agent-prompt-pagination{flex-wrap:wrap}}
 html.dm-dash .dmr-agpage .studio-agent-test{align-self:stretch;display:flex;flex-direction:column}
 html.dm-dash .dmr-agpage .studio-agent-chat{flex:1;min-height:280px}

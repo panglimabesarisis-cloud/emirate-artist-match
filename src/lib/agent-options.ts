@@ -12,10 +12,21 @@ export function agentModel(choice: string | null | undefined): AgentModel {
 }
 const LENGTH: Record<string, string> = { short: "Keep replies under 60 words.", medium: "Keep replies under 120 words.", detailed: "Keep replies under 220 words." };
 export const replyLengthRule = (v: string | null | undefined) => LENGTH[v ?? "medium"] ?? "Keep replies under 120 words.";
-export function languageRule(langs: string[] | null | undefined) {
-  const list = (langs ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 10);
-  return list.length ? `Reply in the client's language when it is one of: ${list.join(", ")}; otherwise reply in ${list[0]}.` : "Reply in the client's language (English or Arabic).";
+/** Value saved in agent_settings.languages when the artist picks every language. No choice means the same. */
+export const ALL_LANGUAGES = "All Languages";
+export function repliesInAllLanguages(langs: string[] | null | undefined) {
+  const list = (langs ?? []).map((l) => l.trim().toLowerCase()).filter(Boolean);
+  return !list.length || list.includes(ALL_LANGUAGES.toLowerCase());
 }
+/** The server matches saved choices and tokens literally, so translation must leave them untouched. */
+const KEEP_LITERAL = "Keep package names, saved button choices, AED amounts, YYYY-MM-DD dates, JSON keys and every bracketed token exactly as written.";
+export function languageRule(langs: string[] | null | undefined) {
+  if (repliesInAllLanguages(langs)) return `You can reply in all languages. Reply in the language and script of the client's latest message, whichever it is; when that message has no clear language (a number, date, name or button choice), keep the language used earlier in the conversation, or English at the start. Translate saved flow questions, introductions and artist knowledge into that language. ${KEEP_LITERAL}`;
+  const list = (langs ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 10);
+  return `Reply in the client's language when it is one of: ${list.join(", ")}; otherwise reply in ${list[0]}. ${KEEP_LITERAL}`;
+}
+/** The private assistant talks to the artist, so the client-language choice never limits it. */
+export const ARTIST_LANGUAGE_RULE = "You can reply in all languages. Reply in the language and script of the artist's latest message, whichever it is. Keep AED amounts, IDs and tool arguments in the exact format the tools require.";
 export function handoffRule(h: unknown) {
   const o = (h && typeof h === "object" ? h : {}) as Record<string, unknown>;
   const on = (k: string) => o[k] !== false;
