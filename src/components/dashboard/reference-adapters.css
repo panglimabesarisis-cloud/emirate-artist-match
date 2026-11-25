@@ -27,6 +27,12 @@ html.dm-dash .studio-reference :is(input,textarea):disabled{opacity:.45;cursor:n
 html.dm-dash .studio-reference input::placeholder{color:var(--studio-mute-2)}
 html.dm-dash .studio-reference label{font-size:12px;line-height:1.5;font-weight:600;color:var(--muted-foreground)}
 html.dm-dash .studio-reference [data-slot=button]:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){height:auto;min-height:38px;padding:9px 14px;border-radius:999px;font-size:12px;white-space:normal;line-height:1.5}
+/* The unit picker is a Popover trigger, not a Select, so the pill button rule
+   above would otherwise give it a transparent round shape beside the Item type
+   select. Match the field treatment, the way .reference-join already does. */
+html.dm-dash .studio-reference [data-slot=button].ratecard-field:not(.studio-thread):not(.studio-calendar-day):not(.studio-flow-block){display:inline-flex;align-items:center;justify-content:space-between;text-align:start;width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--studio-line-2);border-radius:12px;background:var(--studio-wash);color:var(--foreground);font-family:var(--font-sans);font-size:13px;font-weight:400;box-shadow:none}
+html.dm-dash .studio-reference [data-slot=button].ratecard-field:not(.studio-thread):hover{background:var(--studio-wash);border-color:var(--gold);color:var(--foreground)}
+html.dm-dash .studio-reference [data-slot=button].ratecard-field svg{opacity:.55}
 html.dm-dash .studio-reference [data-slot=button][data-variant=default]{background:var(--gradient-gold);color:var(--gold-foreground);box-shadow:var(--studio-gold-shadow)}
 html.dm-dash .studio-reference [data-slot=button][data-variant=outline]{background:transparent;border-color:var(--studio-line-2)}
 html.dm-dash .studio-reference [data-slot=button][data-variant=outline]:hover{border-color:var(--gold);color:var(--gold)}

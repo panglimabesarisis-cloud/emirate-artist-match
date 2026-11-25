@@ -32,7 +32,6 @@
 .dmr-rc-fields .dmr-rc-row{align-items:end;padding:12px 0;border-bottom:1px solid var(--rc-line)}
 .dmr-rc-fields .dmr-rc-row:last-of-type{border-bottom:0;padding-bottom:4px}
 .dmr-rc-fields .dmr-rc-row label{display:block;margin-bottom:5px}
-.dmr-rc-fields .dmr-rc-row :is(input,[data-slot=select-trigger],.ratecard-field){min-height:40px;font-size:12.5px}
 [data-slot=button].dmr-rc-del{min-height:40px;width:38px;padding:0;border-radius:10px;color:var(--muted-foreground)}
 [data-slot=button].dmr-rc-del:hover:not(:disabled){color:var(--destructive);background:var(--rc-wash, transparent)}
 
