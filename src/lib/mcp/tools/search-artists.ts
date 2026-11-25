@@ -5,7 +5,7 @@ import { supabaseForUser } from "../supabase";
 export default defineTool({
   name: "search_artists",
   title: "Search artists",
-  description: "Search approved Dealmaker talent by name, category slug or emirate slug, with starting price in AED.",
+  description: "Search approved Dealmaker talent by name, category slug or emirate slug, Artist rates are not public; they are given in the booking chat and on invoices.",
   inputSchema: {
     query: z.string().max(100).optional().describe("Part of the stage name, e.g. 'falcon'."),
     category: z.string().max(60).optional().describe("Category slug, e.g. 'djs', 'musicians'."),
@@ -17,7 +17,7 @@ export default defineTool({
     const sb = supabaseForUser(ctx);
     let q = sb
       .from("artists")
-      .select("slug, stage_name, tagline, base_price, categories!inner(slug, name), emirates!inner(slug, name)")
+      .select("slug, stage_name, tagline, categories!inner(slug, name), emirates!inner(slug, name)")
       .eq("status", "approved")
       .limit(limit ?? 20);
     if (query) q = q.ilike("stage_name", `%${query.replace(/[%_]/g, "")}%`);
@@ -27,7 +27,6 @@ export default defineTool({
     if (error) throw new ToolError(error.message);
     const artists = (data ?? []).map((a) => ({
       slug: a.slug, name: a.stage_name, tagline: a.tagline ?? "",
-      from_aed: a.base_price === null ? null : Number(a.base_price),
       category: a.categories?.name ?? "", emirate: a.emirates?.name ?? "",
     }));
     return { content: [{ type: "text", text: JSON.stringify(artists) }], structuredContent: { artists } };

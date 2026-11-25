@@ -157,7 +157,6 @@ export function Browse() {
                 <h3>{a.stage_name}</h3>
                 <p>{[a.category?.name, a.emirate?.name].filter(Boolean).join(" · ") || t("UAE")}</p>
                 <div className="cp-artist-foot">
-                  <b style={{ fontSize: 12 }}>{moneyShort(a.base_price)} <small className="cp-muted">{t("starting")}</small></b>
                   <span className="cp-row" style={{ gap: 6 }}>
                     <Link to="/artist/$slug" params={{ slug: a.slug }} className="cp-tiny-btn">{t("Profile")}</Link>
                     <button type="button" className="cp-tiny-btn" onClick={() => openModal({ type: "new-booking", artistId: a.id })}>{t("Book artist")}</button>

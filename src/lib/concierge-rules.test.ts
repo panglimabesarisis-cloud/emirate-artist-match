@@ -3,7 +3,7 @@ import { conciergeInput, publicConciergeText, resolveConciergeReply } from "./co
 
 describe("public concierge boundaries", () => {
   it("only returns profile records present in the public approved catalog", () => {
-    const artist = { slug: "real-singer", name: "Singer", specialty: "Wedding singer", location: "Dubai", startingPrice: 500, rating: null };
+    const artist = { slug: "real-singer", name: "Singer", specialty: "Wedding singer", location: "Dubai", rating: null };
     expect(resolveConciergeReply({ paragraphs: ["Artists"], artistSlugs: ["private-artist", "real-singer", "real-singer"], pages: [] }, [artist]).artists).toEqual([artist]);
   });
   it("rejects model supplied private or external destinations", () => {

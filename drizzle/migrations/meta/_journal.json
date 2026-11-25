@@ -624,6 +624,13 @@
       "when": 1795571940202,
       "tag": "0088_whatsapp_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1795572000202,
+      "tag": "0089_private_artist_rates",
+      "breakpoints": true
     }
   ]
 }

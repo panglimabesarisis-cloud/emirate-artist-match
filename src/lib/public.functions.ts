@@ -23,7 +23,6 @@ export type ArtistCard = {
   slug: string;
   stage_name: string;
   tagline: string | null;
-  base_price: number;
   languages: string[];
   event_type_slugs: string[];
   featured: boolean;
@@ -69,7 +68,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
   let q = sb
     .from("artists")
     .select(
-      "id, slug, stage_name, tagline, base_price, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(id,slug,name,name_ar), subcategory:subcategories(id,slug,name), emirate:emirates(slug,name,name_ar), area:areas(slug,name), artist_badges(badge)",
+      "id, slug, stage_name, tagline, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(id,slug,name,name_ar), subcategory:subcategories(id,slug,name), emirate:emirates(slug,name,name_ar), area:areas(slug,name), artist_badges(badge)",
     )
     .eq("status", "approved");
   if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
@@ -93,7 +92,6 @@ async function loadCards(filter?: { artistSlug?: string }) {
       slug: a.slug,
       stage_name: a.stage_name,
       tagline: a.tagline,
-      base_price: Number(a.base_price ?? 0),
       languages: a.languages ?? [],
       event_type_slugs: a.event_type_slugs ?? [],
       featured: a.featured,
@@ -156,11 +154,10 @@ export type SearchInput = {
   area?: string | undefined;
   event?: string | undefined;
   lang?: string | undefined;
-  maxPrice?: number | undefined;
   minRating?: number | undefined;
   verified?: boolean | undefined;
   top?: boolean | undefined;
-  sort?: "recommended" | "rating" | "price_asc" | "price_desc" | "bookings" | undefined;
+  sort?: "recommended" | "rating" | "bookings" | undefined;
 };
 
 export const searchArtists = createServerFn({ method: "GET" })
@@ -174,7 +171,6 @@ export const searchArtists = createServerFn({ method: "GET" })
     if (data.area) cards = cards.filter((c) => c.area?.slug === data.area);
     if (data.event) cards = cards.filter((c) => c.event_type_slugs.includes(data.event!));
     if (data.lang) cards = cards.filter((c) => c.languages.includes(data.lang!));
-    if (data.maxPrice) cards = cards.filter((c) => c.base_price <= data.maxPrice!);
     if (data.minRating) cards = cards.filter((c) => (c.stats.rating ?? 0) >= data.minRating!);
     if (data.verified) cards = cards.filter((c) => c.badges.some((b) => b.startsWith("verified")));
     if (data.top) cards = cards.filter((c) => c.badges.includes("top_performer"));
@@ -187,8 +183,6 @@ export const searchArtists = createServerFn({ method: "GET" })
     const sorters: Record<string, (a: ArtistCard, b: ArtistCard) => number> = {
       recommended: (a, b) => score(b) - score(a),
       rating: (a, b) => (b.stats.rating ?? 0) - (a.stats.rating ?? 0),
-      price_asc: (a, b) => a.base_price - b.base_price,
-      price_desc: (a, b) => b.base_price - a.base_price,
       bookings: (a, b) => (b.stats.completed_orders ?? 0) - (a.stats.completed_orders ?? 0),
     };
     return cards.sort(sorters[data.sort ?? "recommended"]);
@@ -204,12 +198,13 @@ export const getArtist = createServerFn({ method: "GET" })
       .filter((c) => c.id !== card.id && c.category?.slug === card.category?.slug)
       .sort((x, y) => Number(x.emirate?.slug !== card.emirate?.slug) - Number(y.emirate?.slug !== card.emirate?.slug) || (y.stats.rating ?? 0) - (x.stats.rating ?? 0))
       .slice(0, 4)
-      .map((c) => ({ id: c.id, slug: c.slug, stage_name: c.stage_name, base_price: c.base_price, rating: c.stats.rating }));
+      .map((c) => ({ id: c.id, slug: c.slug, stage_name: c.stage_name, rating: c.stats.rating }));
     const { publicClient } = await import("./public-client.server");
     const sb = publicClient();
     const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }, { data: portfolioRows }, { data: clientRows }] = await Promise.all([
       sb.from("artists").select("bio, travel_radius_km, photo_path, skills, body, category_ids, specialty_ids").eq("id", card.id).single(),
-      sb.from("rate_cards").select("id, title, description, price, price_low, price_high, job_kind, deposit_pct, duration_minutes, unit_label, rules_of_work, items").eq("artist_id", card.id).order("sort"),
+      // Rates are private to the chat and the invoice: only what the booking form needs leaves the server, never a price.
+      import("@/integrations/supabase/client.server").then(({ supabaseAdmin: admin }) => admin.from("rate_cards").select("id, title, job_kind").eq("artist_id", card.id).order("sort")),
       sb
         .from("reviews")
         .select("id, client_name, event_label, rating, rating_performance, rating_punctuality, rating_communication, body, reply, created_at")

@@ -22,7 +22,7 @@ export const Route = createFileRoute("/$category/$emirate/$area")({
     return {
       meta: [
         { title: `${t} | Dealmaker` },
-        { name: "description", content: `Hire ${t.toLowerCase()} and nearby areas. Verified talent with AED pricing.` },
+        { name: "description", content: `Hire ${t.toLowerCase()} and nearby areas. Verified talent with instant quotes.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} and nearby.` },
         { property: "og:type", content: "website" },

@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
     { title: "Dealmaker — Book Dubai's best event talent" },
     { name: "description", content: "Discover singers, DJs and cultural acts across Dubai and the UAE. Browse talent and request a quote from each artist's AI booking agent." },
     { property: "og:title", content: "Dealmaker — Book Dubai's best event talent" },
-    { property: "og:description", content: "Find performers for weddings, corporate events and private parties with AED pricing and AI-assisted booking." },
+    { property: "og:description", content: "Find performers for weddings, corporate events and private parties with AI-assisted booking and quotes in AED." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),

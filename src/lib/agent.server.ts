@@ -7,7 +7,8 @@ import { decodeInvoice } from "./invoice";
 import { agentRates, negotiationFloor, sellingPoints } from "./agent-pricing";
 import { clientTravelDistance, travelPrompt } from "./travel-rules";
 import { approvalPriceRule, selectedWhatsAppStep } from "./agent-approval";
-import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
+import { GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
+import { aiResponse } from "./ai-provider.server";
 import { checkGoogleAvailability } from "./calendar-availability.server";
 import { artistApprovalDraft, type CalendarCheck } from "./calendar-rules";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -163,7 +164,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
       ...(buttons.length ? [{ type: "function" as const, name: "show_buttons", description: "Display the current saved Buttons step with exact choices. Stop and wait for selection; never merge later questions.", strict: true, parameters: { type: "object", properties: { nodeId: { type: "string", enum: buttons.map(node => node.id) } }, required: ["nodeId"], additionalProperties: false } }] : [])];
     assertAgentTaskContext(input, instructions, tools);
     taskId = (await reserveAgentTask(convo.artist_id, conversationId, MODEL, input, instructions, 600)).taskId;
-    let res = await generateResponse({ model: MODEL, reasoning: { effort: "low" }, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+    let res = await aiResponse({ model: MODEL, reasoning: { effort: "low" }, instructions: resolvedForm ? `${instructions}\nSERVER-RESOLVED FORM: Display only saved form ${JSON.stringify(resolvedForm.id)}. Do not ask its fields individually or run Calendar before submission.` : instructions, input, tools, ...(resolvedForm ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
     addUsage(usage, res);
     for (let round = 0; round < 3; round++) {
       const calls = res.output?.filter(item => item.type === "function_call") ?? [];
@@ -200,7 +201,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
         input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
       }
       assertAgentTaskContext(input, instructions, tools);
-      res = await generateResponse({ model: MODEL, reasoning: { effort: "low" }, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
+      res = await aiResponse({ model: MODEL, reasoning: { effort: "low" }, instructions, input, tools, ...(round === 2 || requestedFormId || requestedButtonsId ? { tool_choice: "none" as const } : {}), max_output_tokens: 600 });
       addUsage(usage, res);
     }
     let text = "";

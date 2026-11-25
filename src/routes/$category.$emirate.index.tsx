@@ -19,7 +19,7 @@ export const Route = createFileRoute("/$category/$emirate/")({
     return {
       meta: [
         { title: `${t} | Dealmaker` },
-        { name: "description", content: `Book ${t.toLowerCase()}: verified profiles, AED pricing and instant quotes.` },
+        { name: "description", content: `Book ${t.toLowerCase()}: verified profiles and instant quotes.` },
         { property: "og:title", content: t },
         { property: "og:description", content: `Verified ${t.toLowerCase()} with real reviews.` },
         { property: "og:type", content: "website" },

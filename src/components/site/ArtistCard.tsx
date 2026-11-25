@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star, BadgeCheck, Trophy, MapPin, Crown } from "lucide-react";
 import type { ArtistCard as Card } from "@/lib/public.functions";
-import { aed, initials } from "@/lib/format";
+import { initials } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
@@ -65,9 +65,6 @@ export function ArtistCardView({ a, compact = false }: { a: Card; compact?: bool
         <div className="mt-auto pt-4 flex items-end justify-between">
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> {a.area?.name}
-          </span>
-          <span className="text-sm">
-            {t("from")} <span className="font-bold text-base">{aed(a.base_price)}</span>
           </span>
         </div>
         {compact && <Button asChild variant="secondary" className="home-book mt-4 w-full"><span>{t("Book Artist")}</span></Button>}

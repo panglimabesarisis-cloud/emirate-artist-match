@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppSettings } from "./WhatsAppSettings";
+import { GoogleBackupTest } from "./GoogleBackupTest";
 import { StripeConnectionCheck } from "./StripeConnectionCheck";
 
 type Obj = Record<string, unknown>;
@@ -56,7 +57,7 @@ export function AdminSettings() {
         <TabsContent value="pages"><Pages /></TabsContent>
         <TabsContent value="menu"><Menu /></TabsContent>
         <TabsContent value="locale"><Locale /></TabsContent>
-        <TabsContent value="ai"><Secrets title="AI agent" fields={[["openai_api_key", "OpenAI API key (optional)", "Leave empty to keep using the built-in AI included with the platform."], ["ai_model", "Model name", "e.g. gpt-5-mini"]]} /></TabsContent>
+        <TabsContent value="ai"><div className="space-y-4"><Secrets title="AI backup (Google Gemini)" fields={[["google_api_key", "Google Gemini API key", "Used only when the built-in AI refuses, for example when its credits run out. Chat text is then sent to Google and billed to this key."], ["google_model", "Gemini model", "Leave empty for gemini-3.8-flash."]]} /><GoogleBackupTest /></div></TabsContent>
         <TabsContent value="payments"><Payments /></TabsContent>
         <TabsContent value="invoice"><Invoice /></TabsContent>
         <TabsContent value="whatsapp"><WhatsAppSettings /></TabsContent>

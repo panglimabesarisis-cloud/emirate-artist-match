@@ -21,9 +21,9 @@ import { ALL, ALL_CATEGORY, searchText } from "@/lib/artist-search";
 export type Filters = {
   q?: string | undefined;
   sub?: string | undefined; event?: string | undefined; lang?: string | undefined;
-  maxPrice?: number | undefined; minRating?: number | undefined;
+  minRating?: number | undefined;
   verified?: boolean | undefined; top?: boolean | undefined;
-  sort?: "recommended" | "rating" | "price_asc" | "price_desc" | "bookings" | undefined;
+  sort?: "recommended" | "rating" | "bookings" | undefined;
 };
 
 type Catalog = {
@@ -48,11 +48,11 @@ export function SearchPage(props: {
   const [shown, setShown] = useState(12);
   useWebMCP({
     name: "list_shown_artists",
-    description: "List the talent currently shown on this search page with their starting price in AED.",
+    description: "List the talent currently shown on this search page. Rates are given only in the booking chat and on invoices.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     execute: () => runWebMCPTool("list_shown_artists", () => {
       const list = results.slice(0, shown);
-      return list.length === 0 ? "No artists shown." : list.map((a) => `${a.slug}: ${a.stage_name} — from AED ${a.base_price}`).join("\n");
+      return list.length === 0 ? "No artists shown." : list.map((a) => `${a.slug}: ${a.stage_name}`).join("\n");
     }),
   });
   const { t, lang } = useI18n();
@@ -115,16 +115,6 @@ export function SearchPage(props: {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>{t("Budget (starting price)")}</Label>
-            <Select value={String(filters.maxPrice ?? "any")} onValueChange={(v) => set({ maxPrice: v === "any" ? undefined : Number(v) })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">{t("Any budget")}</SelectItem>
-                {[1000, 2500, 5000, 10000].map((p) => <SelectItem key={p} value={String(p)}>{t("Up to")} AED {p.toLocaleString()}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label>{t("Language")}</Label>
             <Select value={filters.lang ?? "any"} onValueChange={(v) => set({ lang: v === "any" ? undefined : v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -166,7 +156,7 @@ export function SearchPage(props: {
 
         <div>
           <div className="listing-filter-chips">{Object.entries(filters).filter(([key, value]) => key !== "sort" && value !== undefined && value !== false).map(([key, value]) => <Button key={key} variant="ghost" onClick={() => set({ [key]: undefined })} aria-label={`${t("Remove")} ${key}`}>
-            {key === "q" ? `“${value}”` : key === "sub" ? catalog.subcategories.find(s => s.slug === value)?.name ?? String(value) : key === "event" ? catalog.eventTypes.find(e => e.slug === value)?.name ?? String(value) : key === "maxPrice" ? `${t("Up to")} AED ${value}` : key === "minRating" ? `${value}+ ${t("rating")}` : key === "verified" ? t("Verified only") : key === "top" ? t("Top Performers") : String(value)}<X className="h-3 w-3" />
+            {key === "q" ? `“${value}”` : key === "sub" ? catalog.subcategories.find(s => s.slug === value)?.name ?? String(value) : key === "event" ? catalog.eventTypes.find(e => e.slug === value)?.name ?? String(value) : key === "minRating" ? `${value}+ ${t("rating")}` : key === "verified" ? t("Verified only") : key === "top" ? t("Top Performers") : String(value)}<X className="h-3 w-3" />
           </Button>)}</div>
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">{results.length} {t("artists found")}</p>
@@ -176,8 +166,6 @@ export function SearchPage(props: {
                 <SelectItem value="recommended">{t("Recommended")}</SelectItem>
                 <SelectItem value="rating">{t("Highest rated")}</SelectItem>
                 <SelectItem value="bookings">{t("Most booked")}</SelectItem>
-                <SelectItem value="price_asc">{t("Price: low to high")}</SelectItem>
-                <SelectItem value="price_desc">{t("Price: high to low")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -206,11 +194,11 @@ export function SearchPage(props: {
 export function validateFilters(s: Record<string, unknown>): Filters {
   const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
   const num = (v: unknown) => (v != null && !isNaN(Number(v)) ? Number(v) : undefined);
-  const sorts = ["recommended", "rating", "price_asc", "price_desc", "bookings"];
+  const sorts = ["recommended", "rating", "bookings"];
   return {
     q: searchText(s["q"]),
     sub: str(s["sub"]), event: str(s["event"]), lang: str(s["lang"]),
-    maxPrice: num(s["maxPrice"]), minRating: num(s["minRating"]),
+    minRating: num(s["minRating"]),
     verified: s["verified"] === true || s["verified"] === "true" ? true : undefined,
     top: s["top"] === true || s["top"] === "true" ? true : undefined,
     sort: sorts.includes(String(s["sort"])) ? (s["sort"] as Filters["sort"]) : undefined,

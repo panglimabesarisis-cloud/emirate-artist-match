@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Model calls go through `aiResponse` (src/lib/ai-provider.server.ts): Lovable's gateway first, then Google Gemini with the admin-entered `google_api_key` (admin_secrets) only when the gateway refuses before doing work. The owner chose this fallback over the gateway-only default; artists keep the selected model's credit rate, and the key never reaches client chat code.
 - Migrations may be hand-written under `drizzle/migrations/` when Lovable credits are unavailable: add the next numbered file, apply it in the Supabase SQL editor, update `src/integrations/supabase/types.ts` to match, and ask Lovable to re-sync the schema once credits return. `drizzle/schema.ts` stays untouched.
 - Custom AI Flow variables use the shared selector and are derived from saved node/field saveAs names; this preserves existing names and carries custom variables through templates and reloads without a separate catalog.
 - Public pages read data through `createServerFn` in `src/lib/public.functions.ts` using a publishable-key client; signed-in dashboards use the browser client under `_authenticated` so RLS enforces ownership.

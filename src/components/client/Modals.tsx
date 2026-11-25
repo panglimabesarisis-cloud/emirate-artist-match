@@ -353,7 +353,6 @@ function NewBooking({ artistId, onClose }: { artistId?: string | undefined; onCl
   const [busy, setBusy] = useState(false);
   useEffect(() => { setV((x) => ({ ...x, phone: x.phone || profile.data?.phone || "" })); }, [profile.data?.phone]);
   const artist = artists.data?.find((a) => a.id === v.artistId);
-  useEffect(() => { if (artist && !v.budget && artist.base_price) setV((x) => ({ ...x, budget: String(artist.base_price) })); }, [artist, v.budget]);
   const areasByEmirate = useMemo(() => (catalog.data?.emirates ?? []).map((e) => ({ e, areas: (catalog.data?.areas ?? []).filter((a) => a.emirate_id === e.id) })).filter((g) => g.areas.length), [catalog.data]);
   const budget = Number(v.budget);
   const phoneBad = !!v.phone && !/^\+[1-9]\d{7,14}$/.test(v.phone);
@@ -385,7 +384,7 @@ function NewBooking({ artistId, onClose }: { artistId?: string | undefined; onCl
         <Field label="Start time" htmlFor="cp-n-start" bad={timeBad} hint={timeBad ? "Add both start and end time." : null}><input id="cp-n-start" type="time" value={v.start} onChange={(e) => setV({ ...v, start: e.target.value })} /></Field>
         <Field label="End time" htmlFor="cp-n-end"><input id="cp-n-end" type="time" value={v.end} onChange={(e) => setV({ ...v, end: e.target.value })} /></Field>
         <Field label="Guests" htmlFor="cp-n-guests"><input id="cp-n-guests" type="number" min={1} max={100000} inputMode="numeric" value={v.guests} onChange={(e) => setV({ ...v, guests: e.target.value })} /></Field>
-        <Field label="Budget (AED)" htmlFor="cp-n-budget" hint={artist?.base_price ? `${t("Starting price")} ${money(artist.base_price)}` : null}><input id="cp-n-budget" type="number" min={1} step="1" inputMode="decimal" required value={v.budget} onChange={(e) => setV({ ...v, budget: e.target.value })} /></Field>
+        <Field label="Budget (AED)" htmlFor="cp-n-budget"><input id="cp-n-budget" type="number" min={1} step="1" inputMode="decimal" required value={v.budget} onChange={(e) => setV({ ...v, budget: e.target.value })} /></Field>
         <Field label="WhatsApp" htmlFor="cp-n-phone" bad={phoneBad} hint={phoneBad ? "Use the international format, for example +971501234567." : null} full><WhatsAppVerify id="cp-n-phone" phone={v.phone} accountPhone={accountPhone} onChange={(phone) => setV((x) => ({ ...x, phone }))} onVerified={() => void account.refetch()} /></Field>
         <Field label="Details for the artist" htmlFor="cp-n-msg" full><textarea id="cp-n-msg" maxLength={1800} value={v.message} onChange={(e) => setV({ ...v, message: e.target.value })} placeholder={t("Venue, dress code, set length, special requests…")} /></Field>
       </div>

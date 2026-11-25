@@ -56,7 +56,7 @@ export function PublicConciergeChat() {
         {turns.map(turn => <Message from={turn.role} key={turn.id}><MessageContent className={turn.role === "user" ? "concierge-question" : "concierge-answer"}>
           <span className="concierge-sender">{turn.role === "user" ? t("You") : "Dealmaker"}</span>
           <p className="concierge-text">{turn.text}</p>
-          {!!turn.reply?.artists.length && <ul className="concierge-artists">{turn.reply.artists.map(artist => <li key={artist.slug}><a href={`/artist/${encodeURIComponent(artist.slug)}`}><strong>{artist.name}</strong><span>{artist.specialty} · {artist.location}</span><span>{t("Starting from")} AED {artist.startingPrice.toLocaleString()} {artist.rating !== null ? `· ★ ${artist.rating.toFixed(1)}` : ""}</span><ArrowRight size={16} aria-hidden="true" /></a></li>)}</ul>}
+          {!!turn.reply?.artists.length && <ul className="concierge-artists">{turn.reply.artists.map(artist => <li key={artist.slug}><a href={`/artist/${encodeURIComponent(artist.slug)}`}><strong>{artist.name}</strong><span>{artist.specialty} · {artist.location}</span>{artist.rating !== null && <span>★ {artist.rating.toFixed(1)}</span>}<ArrowRight size={16} aria-hidden="true" /></a></li>)}</ul>}
           {!!turn.reply?.links.length && <div className="concierge-links">{turn.reply.links.map(link => <a key={link.href} href={link.href}>{t(link.label)}<ArrowRight size={14} aria-hidden="true" /></a>)}</div>}
         </MessageContent></Message>)}
         {busy && <Message from="assistant"><MessageContent className="concierge-answer"><span role="status">{t("Dealmaker is thinking…")}</span></MessageContent></Message>}

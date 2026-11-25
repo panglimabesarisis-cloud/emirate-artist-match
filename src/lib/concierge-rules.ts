@@ -31,7 +31,7 @@ export function publicConciergeText(text: string) {
     .replace(/\b[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|io|app|ae)\b(?:\/\S*)?/gi, "[contact hidden]");
 }
 
-export type ConciergeArtist = { slug: string; name: string; specialty: string; location: string; startingPrice: number; rating: number | null };
+export type ConciergeArtist = { slug: string; name: string; specialty: string; location: string; rating: number | null };
 
 export function resolveConciergeReply(value: unknown, artists: ConciergeArtist[]) {
   const parsed = conciergeOutput.parse(value);

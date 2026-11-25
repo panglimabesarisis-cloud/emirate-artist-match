@@ -2,7 +2,7 @@ import { bookingStage, STAGE_LABEL } from "./booking-stage";
 import { BOOKING_STAGES_RULE, CAPABILITIES_RULE, VERIFICATION_GUIDE } from "./my-agent-knowledge";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateResponse, GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
+import { GatewayError, type ResponsesInputItem } from "@lovable.dev/ai-gateway";
 import { decodeAgentBody, encodeAgentBody } from "./my-agent-rules";
 import {
   replyLengthRule,
@@ -204,11 +204,12 @@ ${JSON.stringify({ today: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dub
     let reply = "";
     const usage = newUsage();
     const { reserveAgentTask, settleAgentTask } = await import("./agent-task-billing.server");
+    const { aiResponse } = await import("./ai-provider.server");
     let taskId: string | undefined;
     try {
       assertAgentTaskContext(input, instructions, AGENT_TOOLS);
       taskId = (await reserveAgentTask(artistId, userMsg.id, model, input, instructions, 1200)).taskId;
-      let res = await generateResponse({
+      let res = await aiResponse({
         model,
         reasoning: { effort: "low" },
         instructions,
@@ -243,7 +244,7 @@ ${JSON.stringify({ today: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dub
           });
         }
         assertAgentTaskContext(input, instructions, AGENT_TOOLS);
-        res = await generateResponse({
+        res = await aiResponse({
           model,
           reasoning: { effort: "low" },
           instructions,

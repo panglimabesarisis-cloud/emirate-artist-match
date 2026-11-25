@@ -18,7 +18,7 @@ export const Route = createFileRoute("/$category/")({
     return {
       meta: [
         { title: `${name} for hire in the UAE | Dealmaker` },
-        { name: "description", content: `Compare verified ${name.toLowerCase()} across Dubai and the UAE. Prices in AED, real reviews, instant AI quotes.` },
+        { name: "description", content: `Compare verified ${name.toLowerCase()} across Dubai and the UAE. Real reviews and instant AI quotes.` },
         { property: "og:title", content: `${name} for hire in the UAE` },
         { property: "og:description", content: `Verified ${name.toLowerCase()} with real reviews and instant AI quotes.` },
         { property: "og:type", content: "website" },

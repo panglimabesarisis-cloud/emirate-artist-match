@@ -17,7 +17,7 @@ import { ReferenceTheme } from "@/components/shared/ReferenceTheme";
 import { SceneBackground } from "@/components/shared/SceneBackground";
 import "@/components/site/artist-profile.css";
 import { ArtistAvatar } from "@/components/site/ArtistCard";
-import { aed, BADGE_LABELS } from "@/lib/format";
+import { BADGE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +26,6 @@ import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { recoverPublicRead } from "@/lib/public-read-recovery";
 import { ErrorComponent } from "./__root";
-import { type StoredRate } from "@/lib/ratecard";
 import { ArtistProfileDetails } from "@/components/site/ArtistProfileDetails";
 
 export const Route = createFileRoute("/artist/$slug")({
@@ -157,19 +156,19 @@ export function ArtistPage() {
           )}
         </div>
         <div className="space-y-6">
-          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} categories={a.categories} specialties={a.specialties} />
+          <QuoteForm artistId={a.id} artistName={a.stage_name} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} categories={a.categories} specialties={a.specialties} />
         </div>
       </div>
     </PublicLayout></ReferenceTheme>
   );
 }
 
-type Similar = { id: string; slug: string; stage_name: string; base_price: number; rating: number | null };
+type Similar = { id: string; slug: string; stage_name: string; rating: number | null };
 type Sent = { name: string; conversationId: string; key: string };
 
-function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, similar, packages, categories, specialties }: {
-  artistId: string; artistName: string; basePrice: number; blocked: string[]; busy: BusySlot[]; similar: Similar[];
-  packages: (StoredRate & { id: string })[];
+function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, packages, categories, specialties }: {
+  artistId: string; artistName: string; blocked: string[]; busy: BusySlot[]; similar: Similar[];
+  packages: { id: string; job_kind?: string | null }[];
   categories: { id?: string; slug: string; name: string }[];
   specialties: { id?: string; slug: string; name: string }[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
@@ -179,13 +178,6 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
   const [extra, setExtra] = useState<string[]>([]);
   // An artist whose every package is deliverable work is booked to a deadline, not a date.
   const deliverable = packages.length > 0 && packages.every((p) => (p as { job_kind?: string }).job_kind === "deliverable");
-  // Start is the lowest the artist agreed to take; base is their standard price.
-  const priceRange = (() => {
-    const bases = packages.map((p) => Number(p.price)).filter((n) => Number.isFinite(n) && n > 0);
-    const base = bases.length ? Math.min(...bases) : basePrice;
-    const lows = packages.map((p) => (p.price_low == null ? Number(p.price) : Number(p.price_low))).filter((n) => Number.isFinite(n) && n > 0);
-    return { start: lows.length ? Math.min(...lows) : base, base };
-  })();
   const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
   const [showForm, setShowForm] = useState(false);
@@ -254,8 +246,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
 
   return (
     <aside className="artist-profile-panel artist-profile-booking">
-      <div className="text-sm text-muted-foreground">{t("Starting from")}</div>
-      <div className="font-display text-3xl font-semibold">{aed(basePrice)}</div>
+      <div className="font-display text-2xl font-semibold">{t("Request a quote")}</div>
+      <p className="mt-1 text-sm text-muted-foreground">{t("The rate is shared in your chat and on your invoice.")}</p>
       {sent ? (
         <div className="mt-5 space-y-3">
           <div className="font-semibold">{t("Your quote requests were sent")}</div>
@@ -323,18 +315,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
                   <input type="checkbox" className="accent-gold" checked={extra.includes(s.id)} disabled={!extra.includes(s.id) && extra.length >= 2}
                     onChange={(e) => setExtra(e.target.checked ? [...extra, s.id] : extra.filter((x) => x !== s.id))} />
                   <span className="flex-1">{s.stage_name}</span>
-                  <span className="text-xs text-muted-foreground">{t("from")} {aed(s.base_price)}</span>
                 </label>
               ))}
-            </div>
-          )}
-          {packages.length > 0 && (
-            <div className="rounded-xl border p-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-semibold">{t("Rate range")}</span>
-                <b dir="ltr" className="text-gold">{priceRange.start === priceRange.base ? aed(priceRange.base) : `${aed(priceRange.start)} – ${aed(priceRange.base)}`}</b>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{t("Start rate is the lowest this artist will take; the base rate is their standard price. The final figure is agreed with the artist.")}</p>
             </div>
           )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
