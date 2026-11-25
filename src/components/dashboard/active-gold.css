@@ -1,0 +1,14 @@
+/* One rule for the artist dashboard: whatever button is active (tab, filter, segment, toggle) is gold.
+   !important on purpose: the active styles it replaces come from per-page classes and Tailwind utilities.
+   Excluded: .support-ticket, a list row that keeps its soft gold highlight. */
+html.dm-dash :is(.studio-app,.studio-account-page,[role=dialog]) :is(
+  button[aria-pressed=true]:not(.support-ticket),
+  [role=radio][aria-checked=true]:not([data-state]),
+  [role=tab][aria-selected=true],
+  [role=tab][data-state=active]
+),
+html.dm-dash .studio-app .studio-workspaces [aria-current=page]{
+  background:var(--gradient-gold) !important;
+  color:var(--gold-foreground) !important;
+  border-color:transparent !important;
+}

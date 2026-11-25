@@ -223,7 +223,7 @@ function Canvas({ initial, readOnly, onSave, saving }: { initial: { nodes: FlowN
           </ReactFlow>
         </div>
         <div className="studio-flow-inspector space-y-4">
-          <div className="grid grid-cols-2 gap-1 border-b pb-3"><Button size="sm" variant={panel === "edit" ? "secondary" : "ghost"} onClick={() => setPanel("edit")}><Settings2 className="size-4" />{t("Edit block")}</Button><Button size="sm" variant={panel === "preview" ? "secondary" : "ghost"} onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Preview")}</Button></div>
+          <div className="grid grid-cols-2 gap-1 border-b pb-3"><Button size="sm" variant={panel === "edit" ? "secondary" : "ghost"} aria-pressed={panel === "edit"} onClick={() => setPanel("edit")}><Settings2 className="size-4" />{t("Edit block")}</Button><Button size="sm" variant={panel === "preview" ? "secondary" : "ghost"} aria-pressed={panel === "preview"} onClick={() => setPanel("preview")}><Eye className="size-4" />{t("Preview")}</Button></div>
           {panel === "preview" ? <FlowChatPreview key={sel ?? "start"} nodes={nodes as FlowNode[]} edges={edges} selectedId={sel} /> : selectedEdge ? <div className="space-y-3">
             <h3 className="text-sm font-semibold">{t("Connection")}</h3>
             <div className="space-y-2 text-sm"><div className="break-words"><span className="text-muted-foreground">{t("From")}: </span>{kindLabel((nodes.find(node => node.id === selectedEdge.source)?.type ?? "message") as FlowKind)}</div><div className="break-words"><span className="text-muted-foreground">{t("To")}: </span>{kindLabel((nodes.find(node => node.id === selectedEdge.target)?.type ?? "message") as FlowKind)}</div></div>

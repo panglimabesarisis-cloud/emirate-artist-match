@@ -32,6 +32,7 @@ import { useI18n } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/components/dashboard/studio.css";
+import "@/components/dashboard/active-gold.css";
 import { YourAgent } from "@/components/dashboard/YourAgent";
 import { ClientsSection, LanguagesField, PhysicalFields, PortfolioSection, ProfilePhoto, SkillsField } from "@/components/dashboard/ProfileExtras";
 import type { Json } from "@/integrations/supabase/types";
