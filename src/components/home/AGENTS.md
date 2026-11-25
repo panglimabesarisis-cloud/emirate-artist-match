@@ -1,5 +1,9 @@
 # Homepage animation boundaries
+- Demo boxes use showcase/LightBox: an outer shell holds the glow and glitter while the inner frame stays opaque; the light is projected onto the edge (light.ts) and its canvas runs only while on screen.
+- showcase/ demos (agent inbox and calendar, practice workflow board, invoice steps, pay link) use local state and sample data only; one shared script runner pauses them offscreen and in hidden tabs, visitor input stops the script, and the checkout picture has no real inputs.
 - Featured artist choreography uses a page-scoped GSAP/ScrollTrigger timeline with reversible transform-only stages; this keeps the letter entrance, circular orbit and grid landing on one scroll driver without altering catalog data.
 - After first completion, release the pin while preserving the visible grid position and keep the deck landed; this lets visitors scroll back to every row without re-locking cards. Reduced-motion exposes profile links directly.
 - Artist reveal turns are separate from scroll transforms, with the scroll scene inert until landing; this prevents keyboard or pointer actions from exposing moving cards prematurely.
-- Phone story examples are isolated presentation data with a scoped GSAP timeline paused offscreen, on focus/hover and in hidden tabs; reduced motion exposes the whole selected story without autoplay so illustrative chat never submits bookings or shares real conversations.
+- The phone story is isolated sample data (phone-stories.ts steps plus a pure reducer) played by the shared showcase runner, with chapter jumps and pause; reduced motion shows each chapter's final screen without autoplay, so the illustrative chat never submits bookings or shares real conversations.
+- Showcase openings are scroll-driven and pinned (ScrollIntro): the home root uses overflow-x: clip because hidden would break the pinning, and demos hold until their panel has arrived.
+- The agent inbox story (showcase/agent-script.ts) and the practice workflow share one booking order, so change them together; the Featured timeline re-measures when the demos above it change height.

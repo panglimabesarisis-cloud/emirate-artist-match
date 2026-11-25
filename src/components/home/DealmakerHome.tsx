@@ -5,13 +5,17 @@ import { Button } from "@/components/ui/button";
 import { useI18n, localName } from "@/lib/i18n";
 import { HomeHero } from "./HomeHero";
 import { FeaturedTalents } from "./FeaturedTalents";
-import { HomeStory } from "./HomeStories";
+import { AgentShowcase } from "./showcase/AgentShowcase";
+import { WorkflowShowcase } from "./showcase/WorkflowShowcase";
+import { InvoiceJourney } from "./showcase/InvoiceJourney";
+import { PayLinkDemo } from "./showcase/PayLinkDemo";
 import { HomeWhy } from "./HomeWhy";
 import { HomeArtists } from "./HomeArtists";
 import { HomeFooter } from "./HomeFooter";
 import { useHomeAnimations } from "./useHomeAnimations";
 import type { HomeData } from "./types";
 import "./home.css";
+import "./showcase/showcase.css";
 import { HideForArtist } from "@/components/shared/HideForArtist";
 
 export function DealmakerHome({ catalog, featured }: HomeData) {
@@ -23,9 +27,11 @@ export function DealmakerHome({ catalog, featured }: HomeData) {
     <main id="home-main">
       <HomeHero catalog={catalog} />
       <div className="marquee"><div className="mq-track">{[0, 1].map((copy) => <div key={copy} className="mq-copy" aria-hidden={copy === 1}>{catalog.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} tabIndex={copy === 1 ? -1 : undefined}>{localName(lang, c)}</Link>)}</div>)}</div></div>
-      <HomeStory />
+      <AgentShowcase />
+      <WorkflowShowcase />
+      <InvoiceJourney />
       <HomeWhy />
-      <HomeStory artists {...(featured[0] ? { profileSlug: featured[0].slug } : {})} />
+      <PayLinkDemo />
       <HomeArtists />
       <FeaturedTalents artists={featured} />
       <section className="doors">

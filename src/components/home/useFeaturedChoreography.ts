@@ -78,7 +78,15 @@ export function useFeaturedChoreography(ref: RefObject<HTMLDivElement | null>, c
         void document.fonts.ready.then(() => { if (!cancelled) ScrollTrigger.refresh(); });
         const observer = new ResizeObserver(() => ScrollTrigger.refresh());
         observer.observe(scene);
-        return () => { observer.disconnect(); scene.inert = false; delete root.dataset["animated"]; delete root.dataset["landed"]; };
+        // Demos above this section can change height as they play: re-measure when the section has moved.
+        let top = Math.round(root.getBoundingClientRect().top + window.scrollY);
+        const moved = new ResizeObserver(() => {
+          const now = Math.round(root.getBoundingClientRect().top + window.scrollY);
+          if (!released && Math.abs(now - top) > 2) { top = now; ScrollTrigger.refresh(); }
+        });
+        const main = root.closest("main");
+        if (main) moved.observe(main);
+        return () => { moved.disconnect(); observer.disconnect(); scene.inert = false; delete root.dataset["animated"]; delete root.dataset["landed"]; };
       });
       dispose = () => media.revert();
     });

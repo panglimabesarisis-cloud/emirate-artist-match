@@ -11,9 +11,12 @@
 .dm-home .talent-front .pr { white-space: nowrap; }
 .dm-home .talent-cover { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 8px; border: 1px solid var(--dm-gold); background: var(--dm-ink); color: var(--dm-gold); display: flex; flex-direction: column; justify-content: center; gap: 20px; box-shadow: var(--dm-shadow-4); z-index: 2; overflow: hidden; padding: 18px; }
 .dm-home .talent-cover::before { content: ""; position: absolute; inset: 9px; border: 1px solid var(--dm-line); border-radius: 3px; pointer-events: none; }
-.dm-home .talent-cover span { font-family: var(--dm-serif); font-size: 34px; line-height: 1; letter-spacing: 0; }
-.dm-home .talent-cover svg { width: 26px; height: 26px; transition: transform .5s var(--dm-ease); }
-.dm-home .talent-cover:hover svg { transform: rotate(45deg); }
+.dm-home .talent-cover { align-items: center; text-align: center; white-space: normal; gap: 12px; }
+.dm-home .talent-cover .talent-brand { font-family: var(--dm-serif); font-size: 34px; line-height: 1; letter-spacing: 0; padding-bottom: 14px; border-bottom: 1px solid var(--dm-gold); }
+.dm-home .talent-cover .talent-name { max-width: 100%; font-family: var(--dm-serif); font-size: 28px; line-height: 1.08; color: var(--dm-cream); overflow-wrap: anywhere; }
+.dm-home .talent-cover .talent-category { font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--dm-gold); }
+.dm-home .talent-cover .talent-specialties { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
+.dm-home .talent-cover .talent-specialties span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--dm-line); font-size: 11px; font-weight: 600; color: var(--dm-cream); }
 .dm-home .talent-cover:active { scale: .98; }
 .dm-home .talent-cover:focus-visible { outline: 3px solid var(--dm-gold); outline-offset: 5px; }
 .dm-home .talent-word { position: absolute; inset-inline: 0; top: calc((100svh - var(--site-header-height, 74px)) / 2); translate: 0 -50%; z-index: 5; display: none; align-items: center; justify-content: center; gap: 24px; font-family: var(--dm-serif); font-size: 150px; line-height: 1; color: var(--dm-gold); pointer-events: none; direction: ltr; }
@@ -23,5 +26,5 @@
 .dm-home .talent-flipper[data-revealed="true"] .talent-cover { visibility: hidden; }
 .dm-home [data-animated="true"] .talent-slot { will-change: transform, opacity; }
 @media (max-width: 1100px) { .dm-home .talent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dm-home .talent-word { font-size: 96px; gap: 14px; } }
-@media (max-width: 640px) { .dm-home .talent-grid { gap: 12px; } .dm-home .talent-word { font-size: 44px; gap: 6px; } .dm-home .talent-cover span { font-size: 24px; } .dm-home .talent-front .v { height: 170px; } .dm-home .talent-front .b { padding: 14px 12px; } .dm-home .talent-front h3 { font-size: 25px; overflow-wrap: anywhere; } .dm-home .talent-front .cta { padding: 12px; font-size: 12px; gap: 5px; } .dm-home .talent-front .badges { left: 6px; top: 8px; flex-wrap: wrap; gap: 3px; } .dm-home .talent-front .tag { font-size: 8px; padding: 3px 5px; } .dm-home .talent-front .rank { right: 9px; top: 43px; font-size: 30px; } }
+@media (max-width: 640px) { .dm-home .talent-grid { gap: 12px; } .dm-home .talent-word { font-size: 44px; gap: 6px; } .dm-home .talent-cover { gap: 8px; padding: 12px; } .dm-home .talent-cover .talent-brand { font-size: 22px; padding-bottom: 8px; } .dm-home .talent-cover .talent-name { font-size: 20px; } .dm-home .talent-cover .talent-category { font-size: 10px; } .dm-home .talent-cover .talent-specialties { gap: 4px; } .dm-home .talent-cover .talent-specialties span { font-size: 9px; padding: 3px 7px; } .dm-home .talent-front .v { height: 170px; } .dm-home .talent-front .b { padding: 14px 12px; } .dm-home .talent-front h3 { font-size: 25px; overflow-wrap: anywhere; } .dm-home .talent-front .cta { padding: 12px; font-size: 12px; gap: 5px; } .dm-home .talent-front .badges { left: 6px; top: 8px; flex-wrap: wrap; gap: 3px; } .dm-home .talent-front .tag { font-size: 8px; padding: 3px 5px; } .dm-home .talent-front .rank { right: 9px; top: 43px; font-size: 30px; } }
 @media (prefers-reduced-motion: reduce) { .dm-home .talent-word { display: none !important; } .dm-home .talent-cover { display: none; } .dm-home .talent-flipper[data-revealed="false"] .talent-front { visibility: visible; } }
