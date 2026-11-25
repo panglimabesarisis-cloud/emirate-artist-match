@@ -1,81 +1,43 @@
-/* Admin-only presentation: shared data modules retain their existing contracts. */
-html.dm-admin .admin-control { grid-template-columns:274px minmax(0,1fr); }
-html.dm-admin .admin-control .studio-side { background:var(--background); gap:14px; padding:20px 14px; }
-html.dm-admin .admin-control .studio-brand { font-size:26px; }
-html.dm-admin .admin-control .studio-me { border-radius:8px; padding:14px 12px; }
-html.dm-admin .admin-control .studio-group { font-size:11px; color:var(--muted-foreground); padding-top:20px; }
-html.dm-admin .admin-control .studio-nav-item { border-radius:6px; font-size:12px; min-height:38px; padding:8px 12px; }
-html.dm-admin .admin-control .studio-nav-item[aria-current="page"] { background:var(--studio-gold-wash); color:var(--gold); box-shadow:none; border-inline-start:2px solid var(--gold); }
-html.dm-admin .admin-control .studio-active-pill { display:none; }
-html.dm-admin .admin-control .studio-top { background:var(--background); backdrop-filter:none; padding:16px 28px; }
-html.dm-admin .admin-control .studio-content { padding:26px 28px 60px; }
-html.dm-admin .admin-control .admin-breadcrumb { color:var(--muted-foreground); font-size:12px; }
-html.dm-admin .admin-control .admin-breadcrumb b { color:var(--foreground); font-weight:500; }
-html.dm-admin .admin-control .admin-title { display:flex; gap:20px; justify-content:space-between; align-items:center; margin-bottom:26px; }
-html.dm-admin .admin-control .admin-title h1 { font-size:42px; line-height:1; }
-html.dm-admin .admin-control .admin-title p { color:var(--muted-foreground); margin-top:8px; font-size:13px; max-width:65ch; }
-html.dm-admin .admin-control .admin-caption { color:var(--gold); font-size:11px; text-transform:uppercase; }
-html.dm-admin .admin-control .admin-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border-block:1px solid var(--border); margin-bottom:28px; }
-html.dm-admin .admin-control .admin-metric { padding:22px 18px; min-width:0; border-inline-end:1px solid var(--border); }
-html.dm-admin .admin-control .admin-metric:last-child { border-inline-end:0; }
-html.dm-admin .admin-control .admin-metric small { display:block; color:var(--muted-foreground); font-size:12px; }
-html.dm-admin .admin-control .admin-metric strong { display:block; font-family:var(--font-display); font-size:32px; line-height:1.2; overflow-wrap:anywhere; margin-block:10px 4px; }
-html.dm-admin .admin-control .admin-queues { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
-html.dm-admin .admin-control .admin-queues button { border-radius:6px; font-size:12px; }
-html.dm-admin .admin-control .admin-queues b { color:var(--gold); }
-html.dm-admin .admin-control .admin-chart-section { border-top:1px solid var(--border); padding-top:20px; min-width:0; }
-html.dm-admin .admin-control .admin-chart-section h2 { font-size:24px; margin-bottom:18px; }
-html.dm-admin .admin-control .admin-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px; }
-html.dm-admin .admin-control .admin-toolbar input { max-width:280px; }
-html.dm-admin .admin-control .admin-table-wrap { position:relative; overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--card); }
-html.dm-admin .admin-control table { width:100%; min-width:780px; font-size:12px; border-collapse:collapse; }
-html.dm-admin .admin-control th { color:var(--muted-foreground); background:var(--popover); font-size:11px; font-weight:600; text-align:start; }
-html.dm-admin .admin-control td,html.dm-admin .admin-control th { padding:14px 16px; border-bottom:1px solid var(--border); }
-html.dm-admin .admin-control tbody tr:last-child td { border-bottom:0; }
-html.dm-admin .admin-control tbody tr:hover { background:var(--studio-wash); }
+/* Master admin wears the artist dashboard theme (studio.css and reference-adapters.css);
+   only what the dashboard has no equivalent for is styled here. */
+html.dm-admin .admin-control .admin-breadcrumb { color:var(--muted-foreground); font-size:12.5px; padding:8px 16px; border:1px solid var(--studio-line); background:var(--studio-wash); border-radius:999px; white-space:nowrap; }
+html.dm-admin .admin-control .admin-breadcrumb b { color:var(--foreground); font-weight:600; }
+html.dm-admin .admin-control .admin-search { color:var(--muted-foreground); font-size:12.5px; gap:10px; }
+html.dm-admin .admin-control .admin-logout { margin-top:auto; border-top:1px solid var(--studio-line); padding-top:14px; }
+html.dm-admin .admin-control .admin-title { margin-bottom:24px; }
+html.dm-admin .admin-control .admin-caption { color:var(--gold); }
+html.dm-admin .admin-control .admin-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:20px; }
+/* Fields fill a form but sit side by side in a filter row; the class pair outranks the shared field rule. */
+html.dm-dash.dm-admin .admin-control .studio-reference :is(.admin-toolbar, .admin-performance-filters, .admin-overview-toolbar) :is(input:not([type=checkbox]):not([type=radio]), [role=combobox]) { width:auto; flex:0 1 auto; }
+html.dm-dash.dm-admin .admin-control .studio-reference :is(.admin-toolbar, .admin-performance-filters, .admin-overview-toolbar) input:not([type=checkbox]):not([type=radio]) { flex-basis:300px; max-width:320px; }
+html.dm-dash.dm-admin .admin-control .studio-reference :is(.admin-toolbar, .admin-performance-filters, .admin-overview-toolbar) [role=combobox] { min-width:180px; }
 html.dm-admin .admin-control .admin-money { font-variant-numeric:tabular-nums; white-space:nowrap; }
+html.dm-admin .admin-control .admin-row-detail { color:var(--muted-foreground); font-size:11px; margin-top:3px; }
 html.dm-admin .admin-control .admin-page-foot { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:18px; font-size:12px; color:var(--muted-foreground); }
 html.dm-admin .admin-control .admin-foot-actions { display:flex; gap:8px; }
-html.dm-admin .admin-control .admin-logout { margin-top:auto; border-top:1px solid var(--border); padding-top:18px; }
-html.dm-admin .admin-control .admin-search { color:var(--muted-foreground); font-size:12px; gap:10px; border-radius:6px; }
-html.dm-admin .admin-control .rounded-xl,html.dm-admin .admin-control .rounded-lg { border-radius:8px; }
-html.dm-admin .admin-control .admin-row-detail { color:var(--muted-foreground); font-size:11px; margin-top:3px; }
+/* The overview keeps the hero artwork, with the artist count where the moon would be. */
+html.dm-admin .admin-control .admin-overview-intro .studio-moon { display:none; }
+/* Boxes the shared admin modules draw with utility classes become dashboard panels. */
+html.dm-admin .admin-control .studio-content :is(.rounded-xl.border, .rounded-xl.bg-card, .admin-table-wrap) { border:1px solid var(--studio-line); border-radius:20px; background:var(--studio-panel-gradient); box-shadow:none; }
+html.dm-admin .admin-control .studio-content :is(.rounded-lg.border, .rounded-lg.bg-card) { border-color:var(--studio-line); border-radius:14px; box-shadow:none; }
+html.dm-admin .admin-control .admin-table-wrap { position:relative; overflow-x:auto; }
+html.dm-admin .admin-control .admin-table-wrap table { min-width:780px; }
+html.dm-admin [role="dialog"] { border-radius:22px; border-color:var(--studio-line-2); background:var(--studio-panel-gradient); }
 html.dm-admin .admin-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 html.dm-admin .admin-detail-grid dt { font-size:12px; color:var(--muted-foreground); margin-bottom:5px; }
 html.dm-admin .admin-detail-grid dd { font-size:15px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-html.dm-admin [role="dialog"] { border-radius:8px; }
-html.dm-admin .admin-control button svg { transition:translate .25s var(--studio-ease); }
-@media(hover:hover) { html.dm-admin .admin-control button:hover svg { translate:0 -1px; } }
-@media(max-width:980px) {
- html.dm-admin .admin-control { grid-template-columns:1fr; }
- html.dm-admin .admin-control .studio-content { padding:22px 18px 50px; }
- html.dm-admin .admin-control .studio-top { padding:12px 18px; }
- html.dm-admin .admin-control .admin-title h1 { font-size:36px; }
- html.dm-admin .admin-control .admin-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
- html.dm-admin .admin-control .admin-metric:nth-child(2) { border-inline-end:0; }
- html.dm-admin .admin-control .admin-metric:nth-child(-n+2) { border-bottom:1px solid var(--border); }
-}
+@media(max-width:980px) { html.dm-admin .admin-control .admin-breadcrumb { display:none; } }
 @media(max-width:620px) {
- html.dm-admin .admin-control .admin-search span,html.dm-admin .admin-control .admin-breadcrumb>span { display:none; }
+ html.dm-admin .admin-control .admin-search span { display:none; }
  html.dm-admin .admin-control .admin-search { width:40px; padding:0; }
- html.dm-admin .admin-control .admin-title { align-items:start; }
- html.dm-admin .admin-control .admin-title h1 { font-size:32px; }
- html.dm-admin .admin-control .admin-metric { padding:18px 10px; }
- html.dm-admin .admin-control .admin-metric strong { font-size:27px; }
  html.dm-admin .admin-detail-grid { grid-template-columns:1fr; }
 }
-@media(prefers-reduced-motion:reduce) { html.dm-admin .admin-control button svg { transition:none; translate:none!important; } }
 
-/* Overview mirrors the reference's midnight-blue operational dashboard. */
+/* Overview: the dashboard's hero, KPI cards and panels. */
 html.dm-admin .admin-overview { display:grid; gap:16px; min-width:0; }
-html.dm-admin .admin-overview-intro { position:relative; isolation:isolate; padding:28px; background:var(--admin-overview-intro-gradient); border-block:1px solid var(--studio-gold-line-soft); display:flex; align-items:center; justify-content:space-between; gap:24px; overflow:hidden; }
-html.dm-admin .admin-overview-intro::after { content:""; position:absolute; z-index:-1; inset-inline-end:-85px; top:-150px; width:360px; height:360px; rotate:45deg; border:1px solid var(--studio-gold-line-soft); background:var(--studio-wash); pointer-events:none; }
-html.dm-admin .admin-overview-intro h2 { font-size:40px; line-height:1.05; margin-block:10px; text-wrap:balance; max-width:650px; }
-html.dm-admin .admin-overview-intro h2 span { color:var(--gold); }
-html.dm-admin .admin-overview-intro p { color:var(--muted-foreground); font-size:13px; max-width:580px; }
-html.dm-admin .admin-overview-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:18px; }
-html.dm-admin .admin-overview-actions button { font-size:12px; min-height:36px; height:auto; padding:9px 12px; white-space:normal; text-align:start; background:var(--studio-wash); border-color:var(--studio-line-2); }
-html.dm-admin .admin-overview-actions .admin-overview-primary { background:var(--gradient-gold); color:var(--gold-foreground); border:0; }
+html.dm-admin .admin-overview-intro { grid-template-columns:minmax(0,1fr) auto; flex-direction:row; align-items:center; justify-content:space-between; gap:24px; }
+html.dm-admin .admin-overview-intro h2 { font-family:var(--font-display); font-size:58px; line-height:.98; margin-top:12px; text-wrap:balance; max-width:680px; }
+html.dm-admin .admin-overview-intro p { color:var(--muted-foreground); margin-top:12px; max-width:560px; }
 html.dm-admin .admin-overview-emblem { min-width:145px; text-align:end; display:grid; gap:8px; }
 html.dm-admin .admin-overview-emblem strong { color:var(--gold); font:64px/1 var(--font-display); }
 html.dm-admin .admin-overview-emblem span { font-size:12px; text-transform:uppercase; }
@@ -83,20 +45,20 @@ html.dm-admin .admin-overview-emblem small { color:var(--success); font-size:11p
 html.dm-admin .admin-overview-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; flex-wrap:wrap; }
 html.dm-admin .admin-overview-toolbar button { font-size:12px; }
 html.dm-admin .admin-overview-muted { color:var(--muted-foreground); }
-html.dm-admin .admin-overview-period { width:170px; background:var(--admin-overview-surface); }
+html.dm-admin .admin-overview-period { width:170px; }
 html.dm-admin .admin-overview-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-html.dm-admin .admin-overview-kpi { position:relative; min-width:0; min-height:116px; border:1px solid var(--studio-line); border-radius:8px; padding:16px; background:var(--admin-overview-panel-gradient); display:flex; flex-direction:column; gap:9px; }
-html.dm-admin .admin-overview-kpi>svg { position:absolute; top:12px; inset-inline-end:12px; width:26px; height:26px; padding:6px; background:var(--studio-gold-wash); color:var(--gold); border-radius:6px; }
-html.dm-admin .admin-overview-kpi small { font-size:11px; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; padding-inline-end:28px; }
-html.dm-admin .admin-overview-kpi strong { font:28px/1.15 var(--font-display); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-html.dm-admin .admin-overview-kpi p { margin-top:auto; font-size:11px; color:var(--muted-foreground); }
+html.dm-admin .admin-overview-kpi { position:relative; min-width:0; min-height:150px; border:1px solid var(--studio-line); border-radius:20px; padding:20px 20px 18px; background:var(--studio-kpi-gradient); display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto 1fr; align-content:start; column-gap:10px; row-gap:8px; transition:border-color .4s,translate .5s var(--studio-ease); }
+html.dm-admin .admin-overview-kpi>svg { width:30px; height:30px; padding:7px; background:var(--studio-gold-wash); color:var(--gold); border-radius:10px; }
+html.dm-admin .admin-overview-kpi small { align-self:center; font-size:11.5px; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; }
+html.dm-admin .admin-overview-kpi strong { grid-column:1/-1; font:400 46px/1 var(--font-display); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; margin-top:6px; }
+html.dm-admin .admin-overview-kpi p { grid-column:1/-1; align-self:end; font-size:12.5px; color:var(--muted-foreground); }
 html.dm-admin .admin-overview-charts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
 html.dm-admin .admin-overview-distributions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-html.dm-admin .admin-overview-panel { min-width:0; padding:20px; background:var(--admin-overview-panel-gradient); border-block:1px solid var(--studio-line); }
+html.dm-admin .admin-overview-panel { min-width:0; padding:22px 22px 20px; border:1px solid var(--studio-line); border-radius:20px; background:var(--studio-panel-gradient); }
 html.dm-admin .admin-overview-panel>header { display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:18px; }
-html.dm-admin .admin-overview-panel h2 { font-size:24px; line-height:1.1; }
-html.dm-admin .admin-overview-panel header p { font-size:11px; color:var(--muted-foreground); margin-top:5px; }
-html.dm-admin .admin-overview-badge { border:1px solid var(--studio-line-2); background:var(--admin-overview-surface-raised); border-radius:5px; padding:4px 7px; font-size:10px; white-space:nowrap; }
+html.dm-admin .admin-overview-panel h2 { font-size:28px; line-height:1; }
+html.dm-admin .admin-overview-panel header p { font-size:12.5px; color:var(--muted-foreground); margin-top:6px; }
+html.dm-admin .admin-overview-badge { border:1px solid var(--studio-line-2); background:var(--studio-wash); color:var(--muted-foreground); border-radius:999px; padding:4px 10px; font-size:10.5px; font-weight:700; white-space:nowrap; }
 html.dm-admin .admin-overview-chart { height:230px; min-width:0; }
 html.dm-admin .admin-overview-distribution { display:grid; gap:14px; }
 html.dm-admin .admin-overview-distribution-row>div { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:12px; margin-bottom:6px; }
@@ -114,32 +76,31 @@ html.dm-admin .admin-overview-queue button { width:100%; min-height:54px; height
 html.dm-admin .admin-overview-queue button:last-child { border-bottom:0; }
 html.dm-admin .admin-overview-queue button>span:nth-child(2) { flex:1; }
 html.dm-admin .admin-overview-queue b { color:var(--gold); }
-html.dm-admin .admin-overview-queue-icon { display:grid; place-items:center; color:var(--gold); background:var(--studio-gold-wash); width:30px; height:30px; border-radius:6px; flex-shrink:0; }
+html.dm-admin .admin-overview-queue-icon { display:grid; place-items:center; color:var(--gold); background:var(--studio-gold-wash); width:30px; height:30px; border-radius:10px; flex-shrink:0; }
 html.dm-admin .admin-overview-funds { display:grid; gap:16px; }
 html.dm-admin .admin-overview-funds>div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px solid var(--studio-line); padding-bottom:12px; }
 html.dm-admin .admin-overview-funds dt { font-size:12px; color:var(--muted-foreground); }
 html.dm-admin .admin-overview-funds dd { font:23px/1.2 var(--font-display); font-variant-numeric:tabular-nums; }
 html.dm-admin .admin-overview-empty { color:var(--muted-foreground); font-size:12px; padding-block:22px; }
 html.dm-admin .admin-overview-error { padding:24px; color:var(--chart-4); }
-@media(hover:hover) { html.dm-admin .admin-overview-actions button:hover { translate:0 -1px; border-color:var(--gold); } html.dm-admin .admin-overview-queue button:hover { background:var(--studio-wash); } }
-@media(max-width:1200px) { html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } html.dm-admin .admin-overview-intro h2 { font-size:34px; } }
-@media(max-width:700px) { html.dm-admin .admin-overview-intro { padding:22px 18px; display:block; } html.dm-admin .admin-overview-emblem { display:none; } html.dm-admin .admin-overview-intro h2 { font-size:32px; } html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } html.dm-admin .admin-overview-kpi { padding:14px 12px; } html.dm-admin .admin-overview-kpi strong { font-size:25px; } html.dm-admin .admin-overview-charts,html.dm-admin .admin-overview-distributions { grid-template-columns:1fr; } html.dm-admin .admin-overview-panel { padding:18px 14px; } }
-@media(prefers-reduced-motion:reduce) { html.dm-admin .admin-overview button { transition:none; translate:none!important; } }
+@media(hover:hover) { html.dm-admin .admin-overview-kpi:hover { border-color:var(--studio-gold-line); translate:0 -3px; } html.dm-admin .admin-overview-queue button:hover { background:var(--studio-wash); } }
+@media(max-width:1200px) { html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } html.dm-admin .admin-overview-intro h2 { font-size:46px; } }
+@media(max-width:700px) { html.dm-admin .admin-overview-intro { display:flex; flex-direction:column; align-items:stretch; } html.dm-admin .admin-overview-emblem { display:none; } html.dm-admin .admin-overview-intro h2 { font-size:38px; } html.dm-admin .admin-overview-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } html.dm-admin .admin-overview-kpi { padding:14px 12px; } html.dm-admin .admin-overview-kpi strong { font-size:34px; } html.dm-admin .admin-overview-charts,html.dm-admin .admin-overview-distributions { grid-template-columns:1fr; } html.dm-admin .admin-overview-panel { padding:18px 14px; } }
+@media(prefers-reduced-motion:reduce) { html.dm-admin .admin-overview button, html.dm-admin .admin-overview-kpi { transition:none; translate:none!important; } }
 
 /* Performance uses the same reference-blue surfaces, with restrained data-first composition. */
 html.dm-admin .admin-performance { display:grid; gap:18px; min-width:0; }
 html.dm-admin .admin-performance-toolbar,html.dm-admin .admin-performance-filters { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
 html.dm-admin .admin-performance-toolbar { justify-content:space-between; }
 html.dm-admin .admin-performance-toolbar button { font-size:12px; }
-html.dm-admin .admin-performance-artist { width:240px; background:var(--admin-overview-surface); }
+html.dm-admin .admin-performance-artist { width:240px; }
 html.dm-admin .admin-performance-artist>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html.dm-admin .admin-performance-dateline { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--muted-foreground); font-size:11px; padding-bottom:4px; }
 html.dm-admin .admin-performance-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-html.dm-admin .admin-performance-kpis .admin-overview-kpi { border-top:2px solid var(--studio-gold-line-soft); min-height:124px; }
-html.dm-admin .admin-performance-kpis small { padding-inline-end:0; }
+html.dm-admin .admin-performance-kpis .admin-overview-kpi { grid-template-columns:minmax(0,1fr); min-height:140px; }
 html.dm-admin .admin-performance-kpis .admin-overview-kpi:first-child strong { color:var(--gold); }
 html.dm-admin .admin-performance-reports { display:grid; grid-template-columns:minmax(270px,0.8fr) minmax(0,1.2fr); gap:16px; align-items:start; }
-html.dm-admin .admin-performance .admin-overview-panel { background:var(--admin-overview-panel-gradient); padding:20px; }
+html.dm-admin .admin-performance .admin-overview-panel { padding:22px 22px 20px; }
 html.dm-admin .admin-performance-bars { display:grid; gap:20px; }
 html.dm-admin .admin-performance-bar-row>div { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:8px; font-size:12px; }
 html.dm-admin .admin-performance-bar-row>div>span { display:flex; gap:8px; }
@@ -162,7 +123,7 @@ html.dm-admin .admin-performance-table tbody th { color:var(--foreground); font-
 html.dm-admin .admin-performance-rank { color:var(--muted-foreground); font-variant-numeric:tabular-nums; }
 html.dm-admin .admin-performance-name { display:flex; align-items:center; gap:9px; }
 html.dm-admin .admin-performance-name small { display:block; font-size:10px; color:var(--muted-foreground); margin-top:4px; font-weight:400; }
-html.dm-admin .admin-performance-avatar { display:grid; place-items:center; width:30px; height:30px; flex:0 0 30px; border:1px solid var(--studio-gold-line-soft); background:var(--studio-gold-wash); color:var(--gold); border-radius:6px; font-family:var(--font-display); font-size:16px; }
+html.dm-admin .admin-performance-avatar { display:grid; place-items:center; width:32px; height:32px; flex:0 0 32px; background:var(--gradient-gold); color:var(--gold-foreground); border-radius:50%; font-family:var(--font-display); font-size:16px; }
 html.dm-admin .admin-performance-completed-total { display:grid; text-align:end; gap:4px; }
 html.dm-admin .admin-performance-completed-total strong { font:32px/1 var(--font-display); color:var(--gold); }
 html.dm-admin .admin-performance-completed-total span { font-size:10px; color:var(--muted-foreground); }
@@ -180,5 +141,6 @@ html.dm-admin .admin-performance-daily summary { width:fit-content; cursor:point
 html.dm-admin .admin-performance-daily summary:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
 html.dm-admin .admin-performance-daily summary:hover { color:var(--gold); }
 html.dm-admin .admin-performance-daily .admin-performance-table { max-height:330px; margin-top:12px; }
-@media(max-width:1200px) { html.dm-admin .admin-performance-reports { grid-template-columns:1fr; } html.dm-admin .admin-performance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:1450px) { html.dm-admin .admin-performance-reports { grid-template-columns:1fr; } }
+@media(max-width:1200px) { html.dm-admin .admin-performance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:620px) { html.dm-admin .admin-performance .admin-overview-panel { padding:18px 14px; } html.dm-admin .admin-performance-filters { width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); } html.dm-admin .admin-performance-filters>button { width:100%; min-width:0; } html.dm-admin .admin-performance-kpis { gap:10px; } html.dm-admin .admin-performance-area { height:270px; } }

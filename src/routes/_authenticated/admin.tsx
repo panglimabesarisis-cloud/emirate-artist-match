@@ -2,12 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import "@/components/dashboard/studio.css";
+import "@/components/dashboard/active-gold.css";
+import "@/components/dashboard/reference-pages.css";
+import "@/components/dashboard/reference-adapters.css";
 import "@/components/admin/admin-control.css";
 import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
+import { Accent } from "@/components/admin/Accent";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
@@ -165,7 +169,7 @@ function Admin() {
           </div>
         </header>
         <main id="admin-content" className="studio-content studio-reference" tabIndex={-1}>
-          <div className="admin-title"><div><h1 className="font-display">{current.label}</h1><p>{section === "overview" ? "Talent, bookings and payment oversight across Dealmaker." : section === "performance" ? "Artist activity, client conversations and completed jobs across Dealmaker." : section === "allocations" ? "Artist entitlement, platform fees and client rewards, separately recorded for every booking." : `${current.group} / ${current.label}`}</p></div><Badge variant="outline">Master admin</Badge></div>
+          <header className="dmr-q-head admin-title"><div><h1 className="dmr-serif"><Accent text={current.label} /></h1><p>{section === "overview" ? "Talent, bookings and payment oversight across Dealmaker." : section === "performance" ? "Artist activity, client conversations and completed jobs across Dealmaker." : section === "allocations" ? "Artist entitlement, platform fees and client rewards, separately recorded for every booking." : `${current.group} / ${current.label}`}</p></div><Badge variant="outline">Master admin</Badge></header>
           {section === "overview" && <AdminOverview onOpen={openSection} />}
           {section === "performance" && <AdminPerformance />}
           {section === "bookings" && <AdminFinance key="bookings" bookings />}

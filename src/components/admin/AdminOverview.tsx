@@ -1,3 +1,5 @@
+import { DashboardArtwork } from "@/components/dashboard/DashboardArtwork";
+import { Accent } from "./Accent";
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -44,13 +46,14 @@ export function AdminOverview({ onOpen }: { onOpen?: (section: Destination) => v
 
   return (
     <div className="admin-overview" aria-busy={query.isPending}>
-      <section className="admin-overview-intro" aria-labelledby="control-heading">
-        <div>
-          <span className="admin-caption">Dealmaker talent · master admin</span>
-          <h2 id="control-heading">Central marketplace <span>control center.</span></h2>
+      <section className="studio-hello admin-overview-intro" aria-labelledby="control-heading">
+        <DashboardArtwork />
+        <div className="studio-greeting">
+          <small>Dealmaker talent · master admin</small>
+          <h2 id="control-heading">Central marketplace <span className="it">control center.</span></h2>
           <p>Artist approvals, bookings, payments and support across the artist and client portals.</p>
-          <div className="admin-overview-actions">
-            <Button className="admin-overview-primary" onClick={() => onOpen?.("requests")}><UserCheck />Review artist requests ({number(data?.pendingArtists)})</Button>
+          <div className="studio-quick mt-6">
+            <Button onClick={() => onOpen?.("requests")}><UserCheck />Review artist requests ({number(data?.pendingArtists)})</Button>
             <Button variant="outline" onClick={() => onOpen?.("payouts")}><Banknote />Artist payouts ({number(data?.pendingArtistPayouts)})</Button>
             <Button variant="outline" onClick={() => onOpen?.("client-payouts")}><Wallet />Client payouts ({number(data?.pendingClientPayouts)})</Button>
           </div>
@@ -97,7 +100,7 @@ export function AdminOverview({ onOpen }: { onOpen?: (section: Destination) => v
 }
 
 function Panel({ title, subtitle, badge, children }: { title: string; subtitle: string; badge?: string; children: ReactNode }) {
-  return <section className="admin-overview-panel"><header><div><h2>{title}</h2><p>{subtitle}</p></div>{badge && <span className="admin-overview-badge">{badge}</span>}</header>{children}</section>;
+  return <section className="admin-overview-panel"><header><div><h2 className="dmr-serif"><Accent text={title} /></h2><p>{subtitle}</p></div>{badge && <span className="admin-overview-badge">{badge}</span>}</header>{children}</section>;
 }
 
 function MonthlyChart({ months, metric, label }: { months: { m: string; bookings: number; revenue: number; quotes: number }[]; metric: "revenue" | "bookings"; label: string }) {
