@@ -1406,6 +1406,8 @@ export type Database = {
       }
       bookings: {
         Row: {
+          job_kind: string
+          release_rule: string
           access_key: string
           amount: number
           artist_id: string
@@ -1461,6 +1463,8 @@ export type Database = {
           vat_amount: number
         }
         Insert: {
+          job_kind?: string
+          release_rule?: string
           access_key?: string
           amount: number
           artist_id: string
@@ -1516,6 +1520,8 @@ export type Database = {
           vat_amount?: number
         }
         Update: {
+          job_kind?: string
+          release_rule?: string
           access_key?: string
           amount?: number
           artist_id?: string
@@ -3247,6 +3253,8 @@ export type Database = {
       }
       rate_cards: {
         Row: {
+          deposit_pct: number
+          job_kind: string
           artist_id: string
           description: string | null
           duration_minutes: number | null
@@ -3261,6 +3269,8 @@ export type Database = {
           unit_label: string
         }
         Insert: {
+          deposit_pct?: number
+          job_kind?: string
           artist_id: string
           description?: string | null
           duration_minutes?: number | null
@@ -3275,6 +3285,8 @@ export type Database = {
           unit_label?: string
         }
         Update: {
+          deposit_pct?: number
+          job_kind?: string
           artist_id?: string
           description?: string | null
           duration_minutes?: number | null

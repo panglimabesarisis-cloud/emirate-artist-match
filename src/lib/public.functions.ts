@@ -192,7 +192,7 @@ export const getArtist = createServerFn({ method: "GET" })
     const sb = publicClient();
     const [{ data: full }, { data: rates }, { data: reviews }, { data: blocked }, { data: mediaRows }, { data: portfolioRows }, { data: clientRows }] = await Promise.all([
       sb.from("artists").select("bio, travel_radius_km, photo_path, skills, body, category_ids, specialty_ids").eq("id", card.id).single(),
-      sb.from("rate_cards").select("id, title, description, price, price_low, price_high, duration_minutes, unit_label, rules_of_work, items").eq("artist_id", card.id).order("sort"),
+      sb.from("rate_cards").select("id, title, description, price, price_low, price_high, job_kind, deposit_pct, duration_minutes, unit_label, rules_of_work, items").eq("artist_id", card.id).order("sort"),
       sb
         .from("reviews")
         .select("id, client_name, event_label, rating, rating_performance, rating_punctuality, rating_communication, body, reply, created_at")

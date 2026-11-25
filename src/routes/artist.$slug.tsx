@@ -58,7 +58,7 @@ export const Route = createFileRoute("/artist/$slug")({
   notFoundComponent: () => <PublicLayout><div className="mx-auto max-w-7xl px-4 py-16"><h1 className="text-2xl font-semibold">Artist unavailable</h1></div></PublicLayout>,
 });
 
-function ArtistPage() {
+export function ArtistPage() {
   const { artist: a, catalog } = Route.useLoaderData();
   const s = a.stats;
   const { t } = useI18n();
@@ -170,6 +170,8 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "", start: "", end: "", duration: "" });
   const [sending, setSending] = useState(false);
   const [extra, setExtra] = useState<string[]>([]);
+  // An artist whose every package is deliverable work is booked to a deadline, not a date.
+  const deliverable = packages.length > 0 && packages.every((p) => (p as { job_kind?: string }).job_kind === "deliverable");
   // Start is the lowest the artist agreed to take; base is their standard price.
   const priceRange = (() => {
     const bases = packages.map((p) => Number(p.price)).filter((n) => Number.isFinite(n) && n > 0);
@@ -286,14 +288,14 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
             <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
           </Select>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">{t("Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
+            <div><Label className="text-xs">{t(deliverable ? "Deadline" : "Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
             <div><Label className="text-xs">{t("Guests")}</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
           </div>
-          <div className="grid grid-cols-3 gap-2 items-end">
+          {!deliverable && <div className="grid grid-cols-3 gap-2 items-end">
             <div><Label className="text-xs">{t("Start")}</Label><Input type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value, duration: f.duration || autoDuration(e.target.value, f.end) })} /></div>
             <div><Label className="text-xs">{t("End")}</Label><Input type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value, duration: f.duration || autoDuration(f.start, e.target.value) })} /></div>
             <div><Label className="text-xs">{t("Duration")}</Label><Input type="number" placeholder={t("min")} min={1} max={1440} value={f.duration} onChange={up("duration")} /></div>
-          </div>
+          </div>}
           <Select value={f.area} onValueChange={(v) => setF({ ...f, area: v })}>
             <SelectTrigger><SelectValue placeholder={t("Venue area")} /></SelectTrigger>
             <SelectContent>{catalog.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>

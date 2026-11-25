@@ -74,6 +74,32 @@ export function RatecardFields({ value, onChange, units = [], disabled = false }
 
     <div className="dmr-rc-nego">
       <div className="dmr-rc-nego-h">
+        <h3>{t("How this job runs")}</h3>
+        <p>{t("Stage work is booked for a date and paid after you perform. Deliverable work has a deadline and is paid in full before you hand the files over.")}</p>
+      </div>
+      <div className="dmr-rc-nego-grid">
+        <div>
+          <Label>{t("Job type")}</Label>
+          <Select value={value.job_kind} onValueChange={v => onChange({ ...value, job_kind: v === "deliverable" ? "deliverable" : "stage" })}>
+            <SelectTrigger className="ratecard-field w-full" aria-label={t("Job type")}><SelectValue /></SelectTrigger>
+            <SelectContent className="ratecard-menu">
+              <SelectItem value="stage">{t("Stage — booked for a date")}</SelectItem>
+              <SelectItem value="deliverable">{t("Deliverable — has a deadline")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <small>{value.job_kind === "deliverable" ? t("The client sees a deadline instead of an event date.") : t("The client picks a date and time.")}</small>
+        </div>
+        <div>
+          <Label htmlFor={`${id}-dep`}>{t("Deposit (%)")}</Label>
+          <Input id={`${id}-dep`} type="number" min="10" max="100" step="1" value={value.deposit_pct} onChange={e => onChange({ ...value, deposit_pct: e.target.value })} />
+          <small>{value.job_kind === "deliverable" ? t("The balance falls due before you hand anything over.") : t("100% means the client pays the whole fee up front.")}</small>
+        </div>
+        <div />
+      </div>
+    </div>
+
+    <div className="dmr-rc-nego">
+      <div className="dmr-rc-nego-h">
         <h3>{t("Negotiation range")}</h3>
         <p>{t("What your AI agent may ask and may accept. It opens near the highest price, aims for the base, and never goes below the lowest.")}</p>
       </div>

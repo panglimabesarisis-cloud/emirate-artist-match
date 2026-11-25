@@ -16,25 +16,27 @@ export const ratecardSchema = z.object({
   rules_of_work: z.string().trim().max(600),
   price_low: negotiationPrice,
   price_high: negotiationPrice,
+  job_kind: z.enum(["stage","deliverable"]),
+  deposit_pct: z.coerce.number().int().min(10).max(100),
   items: z.array(rateItemSchema).min(1).max(20),
 }).refine(v => v.items.some(i => i.type === "base" && i.price > 0), "Add at least one priced base item.");
 export type RateItem = z.infer<typeof rateItemSchema>;
-export type RateDraft = { title: string; unit_label: string; description: string; rules_of_work: string; price_low: string; price_high: string; items: { desc: string; qty: string; price: string; type: "base" | "addon"; unit: string }[] };
-export type StoredRate = { title: string; price: number | string; duration_minutes: number | null; description: string | null; unit_label?: string; rules_of_work?: string | null; price_low?: number | null; price_high?: number | null; items?: unknown };
-export const emptyRate = (): RateDraft => ({ title: "", unit_label: "Project", description: "", rules_of_work: "", price_low: "", price_high: "", items: [{ desc: "", qty: "1", price: "", type: "base", unit: "Project" }] });
+export type RateDraft = { title: string; unit_label: string; description: string; rules_of_work: string; price_low: string; price_high: string; job_kind: "stage" | "deliverable"; deposit_pct: string; items: { desc: string; qty: string; price: string; type: "base" | "addon"; unit: string }[] };
+export type StoredRate = { title: string; price: number | string; duration_minutes: number | null; description: string | null; unit_label?: string; rules_of_work?: string | null; price_low?: number | null; price_high?: number | null; job_kind?: string | null; deposit_pct?: number | null; items?: unknown };
+export const emptyRate = (): RateDraft => ({ title: "", unit_label: "Project", description: "", rules_of_work: "", price_low: "", price_high: "", job_kind: "stage", deposit_pct: "100", items: [{ desc: "", qty: "1", price: "", type: "base", unit: "Project" }] });
 export function rateItems(rate: StoredRate): RateItem[] {
   const parsed = z.array(rateItemSchema).safeParse(rate.items);
   if (parsed.success && parsed.data.length) return parsed.data;
   return [{ desc: rate.description || rate.title, qty: rate.duration_minutes || 1, price: Number(rate.price), type: "base", unit: rate.duration_minutes ? "Minutes Perform" : rate.unit_label || "Project" }];
 }
 export function rateDraft(rate: StoredRate): RateDraft {
-  return { title: rate.title, unit_label: rate.unit_label || (rate.duration_minutes ? "Minutes Perform" : "Project"), description: rate.description || "", rules_of_work: rate.rules_of_work || "", price_low: rate.price_low == null ? "" : String(rate.price_low), price_high: rate.price_high == null ? "" : String(rate.price_high), items: rateItems(rate).map(i => ({ ...i, qty: String(i.qty), price: String(i.price) })) };
+  return { title: rate.title, unit_label: rate.unit_label || (rate.duration_minutes ? "Minutes Perform" : "Project"), description: rate.description || "", rules_of_work: rate.rules_of_work || "", price_low: rate.price_low == null ? "" : String(rate.price_low), price_high: rate.price_high == null ? "" : String(rate.price_high), job_kind: rate.job_kind === "deliverable" ? "deliverable" : "stage", deposit_pct: String(rate.deposit_pct ?? 100), items: rateItems(rate).map(i => ({ ...i, qty: String(i.qty), price: String(i.price) })) };
 }
 export function restoreRateDraft(value: unknown): RateDraft {
   if (!value || typeof value !== "object") return emptyRate();
   const v = value as Record<string, unknown>;
   if (Array.isArray(v['items'])) {
-    const draft = { title: String(v['title'] ?? ""), unit_label: String(v['unit_label'] ?? "Project"), description: String(v['description'] ?? ""), rules_of_work: String(v['rules_of_work'] ?? ""), price_low: String(v['price_low'] ?? ""), price_high: String(v['price_high'] ?? ""), items: v['items'].slice(0, 20).filter((i): i is Record<string, unknown> => !!i && typeof i === "object").map(i => ({ desc: String(i['desc'] ?? ""), qty: String(i['qty'] ?? "1"), price: String(i['price'] ?? ""), type: i['type'] === "addon" ? "addon" as const : "base" as const, unit: String(i['unit'] ?? v['unit_label'] ?? "Project") })) };
+    const draft = { title: String(v['title'] ?? ""), unit_label: String(v['unit_label'] ?? "Project"), description: String(v['description'] ?? ""), rules_of_work: String(v['rules_of_work'] ?? ""), price_low: String(v['price_low'] ?? ""), price_high: String(v['price_high'] ?? ""), job_kind: v['job_kind'] === "deliverable" ? "deliverable" as const : "stage" as const, deposit_pct: String(v['deposit_pct'] ?? "100"), items: v['items'].slice(0, 20).filter((i): i is Record<string, unknown> => !!i && typeof i === "object").map(i => ({ desc: String(i['desc'] ?? ""), qty: String(i['qty'] ?? "1"), price: String(i['price'] ?? ""), type: i['type'] === "addon" ? "addon" as const : "base" as const, unit: String(i['unit'] ?? v['unit_label'] ?? "Project") })) };
     return draft.items.length ? draft : { ...draft, items: emptyRate().items };
   }
   return rateDraft({ title: String(v['title'] ?? ""), description: String(v['description'] ?? ""), price: String(v['price'] ?? ""), duration_minutes: Number(v['duration']) || 60 });
@@ -80,6 +82,8 @@ export const RATE_PRESETS: { label: string; draft: RateDraft }[] = [
     label: "Event host / MC",
     draft: {
       title: "Event hosting & MC",
+      job_kind: "stage",
+      deposit_pct: "100",
       price_low: "3400",
       price_high: "5000",
       unit_label: "Minutes Perform",
@@ -95,6 +99,8 @@ export const RATE_PRESETS: { label: string; draft: RateDraft }[] = [
     label: "DJ set",
     draft: {
       title: "DJ set",
+      job_kind: "stage",
+      deposit_pct: "50",
       price_low: "3000",
       price_high: "4500",
       unit_label: "Hours",
@@ -110,6 +116,8 @@ export const RATE_PRESETS: { label: string; draft: RateDraft }[] = [
     label: "Photo / video",
     draft: {
       title: "Event photography",
+      job_kind: "deliverable",
+      deposit_pct: "50",
       price_low: "2400",
       price_high: "3600",
       unit_label: "Hours",

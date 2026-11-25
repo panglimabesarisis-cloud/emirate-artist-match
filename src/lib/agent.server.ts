@@ -226,7 +226,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
     if (ex.draft && calendarCheck) {
       const fresh = ownerUserId ? await checkGoogleAvailability(ownerUserId, { date: ex.draft.date, startTime: calendarCheck.window.startTime, endTime: calendarCheck.window.endTime }) : calendarCheck;
       if (!artistApprovalDraft(ex.draft.date, fresh)) await handover("Google Calendar no longer confirms this slot is available. The artist will review the schedule personally.");
-      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction, pricing.minimum);
+      else await createDraft(convo.id, convo.artist_id, ex.draft, floor, action, fresh, invoiceAction, pricing.minimum, rates ?? []);
     }
     if (wantsHandover) await handover(`I've requested ${artist.stage_name} to take over this conversation.`);
   } catch (e) {
@@ -246,7 +246,7 @@ Original request: ${JSON.stringify(quote ?? {})}`;
 }
 
 /** AI-drafted booking: stored as an inquiry that the artist must approve before the client can pay. */
-async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>, baseRef: number | null = null) {
+async function createDraft(conversationId: string, artistId: string, d: BookingDraft, floor: number, action: ReturnType<typeof approvalAction>, calendar: CalendarCheck, invoiceAction: ReturnType<typeof invoiceWorkflow>, baseRef: number | null = null, rates: { title: string; job_kind?: string | null; deposit_pct?: number | null }[] = []) {
   const { count } = await supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).is("deleted_at", null).in("status", ["inquiry", "quoted", "confirmed"]);
   if ((count ?? 0) > 0) return;
   if (!invoiceAction && !Number.isFinite(floor)) throw new Error("Artist pricing requires personal review");
@@ -254,11 +254,16 @@ async function createDraft(conversationId: string, artistId: string, d: BookingD
   const { data: convo } = await supabaseAdmin.from("conversations").select("client_user_id, quote_requests(name, email, phone, event_type_id, guests, client_user_id)").eq("id", conversationId).single();
   const q = convo?.quote_requests;
   const p = priceBreakdown(amount);
+  // Deliverable work is paid before handover, so it never waits on a performance.
+  const card = rates.find(r => r.title.trim().toLowerCase() === (d.title ?? "").trim().toLowerCase());
+  const deliverable = card?.job_kind === "deliverable";
+  const depositPct = invoiceAction ? 20 : Math.min(100, Math.max(10, card?.deposit_pct ?? 100));
   const { data: b, error: bookingError } = await supabaseAdmin.from("bookings").insert({
     artist_id: artistId, conversation_id: conversationId, client_user_id: convo?.client_user_id ?? q?.client_user_id ?? null, client_name: q?.name ?? maskContacts(d.clientName || "Client"), client_email: q?.email ?? null, client_phone: q?.phone ?? null,
     event_type_id: q?.event_type_id ?? null, guests: q?.guests ?? null, event_date: d.date, package_title: d.title,
     notes: maskContacts([d.notes, d.organizing ? `Client entity type: ${d.organizing}` : null, d.clientOccupation ? `Organization: ${d.clientOccupation}` : null, d.venueName ? `Venue: ${d.venueName}` : null, d.venueAddress ? `Venue address: ${d.venueAddress}` : null, d.performDuration ? `Performance duration: ${d.performDuration}` : null].filter(Boolean).join("\n")) || null,
-    start_time: calendar.window.startTime, end_time: calendar.window.endTime, job_detail: maskContacts(d.jobDetail || d.notes), artist_invoice_required: !!invoiceAction, deposit_pct: invoiceAction ? 20 : 100,
+    start_time: calendar.window.startTime, end_time: calendar.window.endTime, job_detail: maskContacts(d.jobDetail || d.notes), artist_invoice_required: !!invoiceAction, deposit_pct: depositPct,
+    job_kind: deliverable ? "deliverable" : "stage", release_rule: deliverable ? "on_delivery" : "on_performance",
     invoice_items: invoiceAction ? [{title:maskContacts(invoiceAction.description),qty:1,price:invoiceAction.price}] : [],
     amount: p.subtotal, vat_amount: p.vat, total: p.total, status: "inquiry", drafted_by: "ai", send_invoice_after_approval: action?.sendInvoice ?? false,
   }).select("id, artist_key").single();

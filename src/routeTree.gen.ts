@@ -35,6 +35,7 @@ import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as JoinPaymentRouteImport } from './routes/join_.payment'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as ProfessionalSlugRouteImport } from './routes/professional.$slug'
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -180,6 +181,11 @@ const PSlugRoute = PSlugRouteImport.update({
   path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfessionalSlugRoute = ProfessionalSlugRouteImport.update({
+  id: '/professional/$slug',
+  path: '/professional/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryEmirateIndexRoute = CategoryEmirateIndexRouteImport.update({
   id: '/$category/$emirate/',
   path: '/$category/$emirate/',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/chat/$id': typeof ChatIdRoute
   '/join/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
+  '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/chat/$id': typeof ChatIdRoute
   '/join/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
+  '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/chat/$id': typeof ChatIdRoute
   '/join_/payment': typeof JoinPaymentRoute
   '/p/$slug': typeof PSlugRoute
+  '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/join/payment'
     | '/p/$slug'
+    | '/professional/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/join/payment'
     | '/p/$slug'
+    | '/professional/$slug'
     | '/$category'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
     | '/chat/$id'
     | '/join_/payment'
     | '/p/$slug'
+    | '/professional/$slug'
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
@@ -535,6 +547,7 @@ export interface RootRouteChildren {
   ChatIdRoute: typeof ChatIdRoute
   JoinPaymentRoute: typeof JoinPaymentRoute
   PSlugRoute: typeof PSlugRoute
+  ProfessionalSlugRoute: typeof ProfessionalSlugRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -734,6 +747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/professional/$slug': {
+      id: '/professional/$slug'
+      path: '/professional/$slug'
+      fullPath: '/professional/$slug'
+      preLoaderRoute: typeof ProfessionalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$category/$emirate/': {
       id: '/$category/$emirate/'
       path: '/$category/$emirate'
@@ -878,6 +898,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatIdRoute: ChatIdRoute,
   JoinPaymentRoute: JoinPaymentRoute,
   PSlugRoute: PSlugRoute,
+  ProfessionalSlugRoute: ProfessionalSlugRoute,
   CategoryIndexRoute: CategoryIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
