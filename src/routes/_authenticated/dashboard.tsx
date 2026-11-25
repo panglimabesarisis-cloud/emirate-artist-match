@@ -44,6 +44,7 @@ import { TravelSettings } from "@/components/dashboard/TravelSettings";
 import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 import { usePendingSpecialties } from "@/hooks/use-pending-specialties";
+import { SignupPlanGate } from "@/components/dashboard/SignupPlanGate";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -70,7 +71,7 @@ function Dashboard() {
   const [workspace,setWorkspace]=useState('own');
   const { t } = useI18n();
   if (loading || !user) return <PublicLayout><div className="p-16 text-center text-muted-foreground">{t("Loading…")}</div></PublicLayout>;
-  return <><div hidden className={`studio-workspace-access ${isArtist && workspace === "own" ? "studio-workspace-own" : ""}`}>{isArtist&&<><Button size="sm" variant={workspace==='own'?'default':'outline'} onClick={()=>setWorkspace('own')}>{t("My talent workspace")}</Button><Button size="sm" variant={workspace==='teams'?'default':'outline'} onClick={()=>setWorkspace('teams')}>{t("Invited teams & my requests")}</Button></>}<Button asChild size="sm" variant="ghost"><Link to="/account">{t("Account settings")}</Link></Button></div>{isArtist&&workspace==='own'?<ArtistDash userId={user.id} email={user.email??''}/>:<PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id}/></div></PublicLayout>}</>;
+  return <><div hidden className={`studio-workspace-access ${isArtist && workspace === "own" ? "studio-workspace-own" : ""}`}>{isArtist&&<><Button size="sm" variant={workspace==='own'?'default':'outline'} onClick={()=>setWorkspace('own')}>{t("My talent workspace")}</Button><Button size="sm" variant={workspace==='teams'?'default':'outline'} onClick={()=>setWorkspace('teams')}>{t("Invited teams & my requests")}</Button></>}<Button asChild size="sm" variant="ghost"><Link to="/account">{t("Account settings")}</Link></Button></div>{isArtist&&workspace==='own'?<SignupPlanGate userId={user.id} email={user.email??''}><ArtistDash userId={user.id} email={user.email??''}/></SignupPlanGate>:<PublicLayout><div className="mx-auto max-w-6xl px-4 py-10"><MemberOrClient userId={user.id}/></div></PublicLayout>}</>;
 }
 
 /** Managers/assistants invited by an artist get a reduced artist workspace. */

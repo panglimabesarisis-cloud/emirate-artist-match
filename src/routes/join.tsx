@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { slugify } from "@/lib/format";
 import { specialtyLimit } from "@/lib/join-rules";
+import { SIGNUP_PLAN_KEY } from "@/lib/signup-plan";
 import { readPending, splitSpecialties } from "@/lib/signup-specialties";
 import { AddableLocation } from "@/components/shared/AddableLocation";
 import { X } from "lucide-react";
@@ -84,7 +85,7 @@ function JoinPage() {
       <div className="reference-wrap reference-join-grid">
         <header className="reference-join-side"><span className="reference-eyebrow">For artists · Dealmaker</span>
         <h1 className="text-3xl font-semibold">Talent register</h1>
-        <p className="mt-1 text-muted-foreground">Choose a plan, then six quick steps. Our team reviews every profile before it goes live.</p>
+        <p className="mt-1 text-muted-foreground">Choose a plan, then seven quick steps. Our team reviews every profile before it goes live.</p>
         <ol className="reference-stepper">
           {STEPS.map((s, i) => (
             <li key={s} aria-current={i === shown ? "step" : undefined}>
@@ -237,7 +238,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       let allowedNow=specialtyLimit('free');
       if(existing){const current=await supabase.rpc('effective_artist_plan',{_artist:existing.id});const paid=current.data?await supabase.from('plan_tiers').select('max_specialties').eq('code',current.data).maybeSingle():null;allowedNow=paid?.data?.max_specialties??allowedNow;}
       const chosen=splitSpecialties(specs,allowedNow);
-      const waiting=await supabase.auth.updateUser({data:{pending_specialties:chosen.later.length?{category_id:categoryId,ids:chosen.later}:null}});
+      const waiting=await supabase.auth.updateUser({data:{pending_specialties:chosen.later.length?{category_id:categoryId,ids:chosen.later}:null,[SIGNUP_PLAN_KEY]:{status:'choose'}}});
       if(waiting.error)throw waiting.error;
       const profile={
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,

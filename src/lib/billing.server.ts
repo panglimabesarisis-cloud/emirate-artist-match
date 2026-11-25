@@ -44,6 +44,18 @@ export async function reconcileSubscriptionSession(sessionId:string,artistId:str
  const database=await db();const {data:sub}=await database.from('artist_subscriptions').select('paid_until').eq('id',subId).single();
  return {status:sub?.paid_until&&Date.parse(sub.paid_until)>Date.now()?'paid':'pending'};
 }
+/** Drops an unpaid checkout so another plan, or Free, can be chosen. */
+export async function cancelPendingCheckout(artistId:string){
+ const database=await db();const {data:r,error}=await database.from('subscription_checkouts').select('session_id,attempt_key').eq('artist_id',artistId).maybeSingle();
+ if(error)throw new Error(error.message);
+ if(!r)return {status:'cancelled' as const};
+ if(r.session_id){const stripe=createStripeClient('sandbox');const s=await stripe.checkout.sessions.retrieve(r.session_id);
+  if(s.status==='complete'){const result=await reconcileSubscriptionSession(s.id,artistId);return {status:result.status==='paid'?'paid' as const:'pending' as const};}
+  if(s.status==='open')await stripe.checkout.sessions.expire(s.id);
+ }
+ const gone=await database.from('subscription_checkouts').delete().eq('artist_id',artistId).eq('attempt_key',r.attempt_key);if(gone.error)throw new Error(gone.error.message);
+ return {status:'cancelled' as const};
+}
 export async function syncSubscription(id:string){
  const stripe=createStripeClient('sandbox');const s=await stripe.subscriptions.retrieve(id);
  if(s.livemode)throw new Error('Live billing is disabled');

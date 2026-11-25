@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignupRatecards } from "./SignupRatecards";
 import { ratePayload, restoreRateDraft, type RateDraft } from "@/lib/ratecard";
+import { readSignupPlan, SIGNUP_PLAN_KEY } from "@/lib/signup-plan";
 
 /** Last registration step, opened once the deposit is paid: starting price and rate cards. */
 export function JoinRateStep({ artistId, userId, onDone }: { artistId: string; userId: string; onDone: () => void }) {
@@ -42,7 +43,10 @@ export function JoinRateStep({ artistId, userId, onDone }: { artistId: string; u
       if (saved.error) throw saved.error;
       localStorage.removeItem(key);
       localStorage.removeItem(`join_rate_editor:${userId}`);
-      toast.success("Rate card saved. Welcome to your dashboard.");
+      // The subscription step comes next; a choice already made or finished is left as it is.
+      const { data: auth } = await supabase.auth.getUser();
+      if (!readSignupPlan(auth.user?.user_metadata?.[SIGNUP_PLAN_KEY])) await supabase.auth.updateUser({ data: { [SIGNUP_PLAN_KEY]: { status: "choose" } } });
+      toast.success("Rate card saved. Next: your subscription.");
       onDone();
     } catch (failure) { toast.error(`${(failure as Error).message} — your rate card draft is kept.`); }
     finally { setBusy(false); }
@@ -55,7 +59,7 @@ export function JoinRateStep({ artistId, userId, onDone }: { artistId: string; u
       <div><Label htmlFor="join-base-price">Starting price (AED)</Label><Input id="join-base-price" type="number" min={0} value={basePrice} onChange={(e) => setBasePrice(e.target.value)} /></div>
       {/* Mounted after the saved packages are back, so a half-edited package reopens on the right row. */}
       {restored && <SignupRatecards packages={pkgs} onChange={setPkgs} draftKey={`join_rate_editor:${userId}`} onPending={setPending} />}
-      <div className="flex justify-end pt-4"><Button type="button" disabled={busy || blocked !== null} onClick={() => void submit()} className="bg-gradient-gold text-gold-foreground">{busy ? "Saving…" : "Save & go to dashboard"}</Button></div>
+      <div className="flex justify-end pt-4"><Button type="button" disabled={busy || blocked !== null} onClick={() => void submit()} className="bg-gradient-gold text-gold-foreground">{busy ? "Saving…" : "Save & choose subscription"}</Button></div>
     </div>
   );
 }
