@@ -131,7 +131,8 @@ describe.skipIf(!db)('private artist columns', () => {
     before = await snapshot();
     await apply(migrations.filter(name => name.startsWith('0095_')));
     step1 = await snapshot();
-    await apply(migrations.filter(name => name >= '0096'));
+    // Only the column change: later migrations add their own tables and rules.
+    await apply(migrations.filter(name => name.startsWith('0096_')));
     after = await snapshot();
   }, 240_000);
   afterAll(async () => { await db?.end(); });

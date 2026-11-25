@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DollarSign, Printer, ShoppingCart, X } from "lucide-react";
+import { DollarSign, Download, Printer, ShoppingCart, X } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
@@ -8,6 +8,8 @@ import { ItemCheckoutDialog } from "./ItemCheckoutDialog";
 import "./invoice-print.css";
 import "./contract-pages.css";
 import { paginateContract } from "./contract-pagination";
+import { downloadContract } from "@/lib/contract-pdf";
+import { toast } from "sonner";
 
 export type ContractDoc = {
   number: string;
@@ -91,6 +93,7 @@ export function ContractPreviewDialog({ doc, title, locked = false, purchaseRequ
           <div className="ivp-bar contract-preview-bar sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border px-[22px] py-4 backdrop-blur">
             <DialogTitle className="font-display text-[26px] font-normal leading-none tracking-normal">{title}</DialogTitle>
             <div className="flex flex-wrap gap-2.5">
+              <Button type="button" variant="outline" className="rounded-full" disabled={locked || !doc} onClick={() => { try { if (doc) downloadContract(doc, t); } catch (error) { toast.error(error instanceof Error ? error.message : t("Could not create the file")); } }}><Download className="me-2 h-4 w-4" />{t("Download PDF")}</Button>
               <Button type="button" variant="outline" className="rounded-full" onClick={print} disabled={locked}><Printer className="me-2 h-4 w-4" />{t("Print / PDF")}</Button>
               {locked && purchaseRequired && templateId && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setPaying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")} · AED {(priceAed * 1.05).toFixed(2)}</Button>}
               {locked && !purchaseRequired && <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" onClick={() => setBuying(true)}><ShoppingCart className="me-2 h-4 w-4" />{t("Buy contract")}</Button>}

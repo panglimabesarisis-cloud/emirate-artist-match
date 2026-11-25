@@ -40,6 +40,78 @@ export type Database = {
           },
         ]
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          at: string
+          browser: string | null
+          email: string | null
+          id: number
+          ip: string | null
+          module: string | null
+          security: string
+          target: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          at?: string
+          browser?: string | null
+          email?: string | null
+          id?: number
+          ip?: string | null
+          module?: string | null
+          security?: string
+          target?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          at?: string
+          browser?: string | null
+          email?: string | null
+          id?: number
+          ip?: string | null
+          module?: string | null
+          security?: string
+          target?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_permissions: {
+        Row: {
+          can_delete: boolean
+          can_edit: boolean
+          can_read: boolean
+          module: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_read?: boolean
+          module: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_read?: boolean
+          module?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_secrets: {
         Row: {
           key: string
@@ -4365,6 +4437,79 @@ export type Database = {
           total_job: number
         }[]
       }
+      admin_can: {
+        Args: { _action: string; _module: string }
+        Returns: boolean
+      }
+      admin_client_commissions: {
+        Args: never
+        Returns: {
+          artist_name: string
+          booking_id: string
+          client_name: string
+          commission: number
+          commission_status: string
+          fee: number
+          happened_at: string
+          job: string
+          job_status: string
+          paid_amount: number
+          rate: number
+          reference: string
+          revenue: number
+          total: number
+        }[]
+      }
+      admin_credit_usage: {
+        Args: { _days: number }
+        Returns: Json
+      }
+      admin_ledger: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          account: string
+          credit: number
+          debit: number
+          entry_date: string
+          journal: string
+          memo: string
+          reference: string
+        }[]
+      }
+      admin_subscription_usage: {
+        Args: { _artist: string }
+        Returns: Json
+      }
+      admin_subscriptions: {
+        Args: never
+        Returns: {
+          ai_balance: number
+          ai_used_30d: number
+          artist_id: string
+          artist_name: string
+          artist_status: string
+          billing_interval: string
+          cancels: boolean
+          paid_until: string
+          plan_code: string
+          subscription_status: string
+        }[]
+      }
+      admin_users: {
+        Args: never
+        Returns: {
+          email: string
+          is_owner: boolean
+          joined_at: string
+          name: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
+      log_admin_view: {
+        Args: { _module: string; _url: string }
+        Returns: undefined
+      }
       admin_client_accounts: {
         Args: never
         Returns: {
@@ -4416,7 +4561,7 @@ export type Database = {
       }
       admin_control_snapshot: { Args: never; Returns: Json }
       admin_finance_page: {
-        Args: { _page?: number; _search?: string; _status?: string }
+        Args: { _page?: number; _paid_only?: boolean; _search?: string; _status?: string }
         Returns: Json
       }
       admin_flow_template_content: {

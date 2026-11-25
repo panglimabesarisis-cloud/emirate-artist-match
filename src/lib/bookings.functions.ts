@@ -384,19 +384,20 @@ export const openDisputeAsArtist = createServerFn({ method: "POST" })
     return openDispute(data.id, "artist", data.reason);
   });
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!data) throw new Error("Forbidden");
+/** The signed-in admin needs this permission on the module (Admin → Users & roles). */
+async function assertAdmin(supabase: any, module: "finance" | "operations", action: "read" | "edit") {
+  const { data } = await supabase.rpc("admin_can", { _module: module, _action: action });
+  if (data !== true) throw new Error("You do not have permission for this");
 }
 
 /** Admin: escrow overview (also releases holds older than 48h without a dispute). */
 export const adminEscrow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.supabase, "finance", "read");
     const db = await admin();
     await db.rpc("release_due_escrow");
-    const { data: rows } = await db.from("bookings").select("id, client_name, package_title, event_date, total, paid_amount, refund_amount, status, escrow_status, invoice_no, completed_at, artists(stage_name), disputes(id, opened_by, reason, status, resolution, refund_amount, admin_note, created_at, resolved_at)").neq("escrow_status", "none").eq("is_seed", false).order("created_at", { ascending: false }).limit(200);
+    const { data: rows } = await db.from("bookings").select("id, client_name, client_email, vat_amount, amount, invoice_items, package_title, event_date, total, paid_amount, refund_amount, status, escrow_status, invoice_no, completed_at, artists(stage_name), disputes(id, opened_by, reason, status, resolution, refund_amount, admin_note, created_at, resolved_at)").neq("escrow_status", "none").eq("is_seed", false).order("created_at", { ascending: false }).limit(200);
     const { data: notes } = await db.from("notifications").select("id, channel, audience, kind, recipient, status, error, created_at").order("created_at", { ascending: false }).limit(50);
     return { bookings: rows ?? [], notifications: notes ?? [] };
   });
@@ -405,9 +406,11 @@ export const adminReleaseEscrow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string }) => ({ id: uuid(i.id) }))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.supabase, "finance", "edit");
     const db = await admin();
     await db.from("bookings").update({ escrow_status: "released" }).eq("id", data.id).eq("status", "completed").eq("escrow_status", "release_pending");
+    const { recordAdminAction } = await import("./admin-audit.server");
+    await recordAdminAction(context.userId, "Released escrow", "finance", data.id, "high");
     return { ok: true };
   });
 
@@ -418,7 +421,7 @@ export const adminResolveDispute = createServerFn({ method: "POST" })
     return { disputeId: uuid(i.disputeId), resolution: i.resolution, refund: Math.max(0, Number(i.refund ?? 0)), note: String(i.note ?? "").slice(0, 1000) || null };
   })
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.supabase, "operations", "edit");
     const db = await admin();
     const { data: d } = await db.from("disputes").select("id, status, booking_id, bookings(paid_amount, completed_at)").eq("id", data.disputeId).single();
     if (!d || d.status !== "open") throw new Error("Dispute already resolved");
@@ -430,6 +433,8 @@ export const adminResolveDispute = createServerFn({ method: "POST" })
     await db.from("bookings").update(refund >= paid
       ? { status: "cancelled", cancelled_at: now, cancelled_by: "admin", cancel_reason: "Dispute resolved: full refund", refund_amount: refund, escrow_status: "refunded" }
       : { status: "completed", completed_at: d.bookings?.completed_at ?? now, refund_amount: refund, escrow_status: refund > 0 ? "partially_refunded" : "released" }).eq("id", d.booking_id);
+    const { recordAdminAction } = await import("./admin-audit.server");
+    await recordAdminAction(context.userId, `Resolved dispute: ${data.resolution.replace(/_/g, " ")}`, "operations", d.id, "high");
     return { ok: true };
   });
 

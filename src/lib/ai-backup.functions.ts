@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const testGoogleBackup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: admin, error } = await context.supabase.rpc("admin_can", { _module: "settings", _action: "edit" });
     if (error || !admin) throw new Error("Admin access required");
     const { geminiResponse, readGoogleBackup } = await import("./ai-provider.server");
     const backup = await readGoogleBackup();

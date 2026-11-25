@@ -6,7 +6,10 @@ html.dm-admin .adm-cover { position:relative; display:grid; place-items:center; 
 html.dm-admin .adm-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 25%; }
 html.dm-admin .adm-initials { display:grid; place-items:center; width:76px; height:76px; border-radius:50%; font:30px/1 var(--font-display); background:var(--gradient-gold); color:var(--gold-foreground); }
 html.dm-admin .adm-cover-tags { position:absolute; inset-inline:10px; bottom:10px; display:flex; flex-wrap:wrap; gap:6px; }
-html.dm-admin .adm-ribbon { position:absolute; top:16px; inset-inline-end:-38px; width:150px; rotate:45deg; padding:5px 0; text-align:center; background:var(--gradient-gold); color:var(--gold-foreground); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+html.dm-admin .adm-ribbon { position:absolute; z-index:1; top:17px; inset-inline-end:-40px; width:150px; rotate:45deg; padding:5px 0; text-align:center; background:#ffffff; color:#000000; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+html.dm-admin .adm-ribbon.is-basic { background:#5aa2ff; color:#000000; }
+html.dm-admin .adm-ribbon.is-medium { background:linear-gradient(135deg,#8a6410,#5f4308); color:#ffffff; }
+html.dm-admin .adm-ribbon.is-pro { background:linear-gradient(135deg,#ffe58a 0%,#f5c13d 55%,#e0a010 100%); color:#000000; }
 html[dir="rtl"].dm-admin .adm-ribbon { rotate:-45deg; }
 html.dm-admin .adm-title { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; }
 html.dm-admin .adm-card .adm-title h2 { font-family:var(--font-display); font-size:26px; font-weight:400; line-height:1.1; letter-spacing:0; overflow-wrap:anywhere; }
@@ -61,3 +64,20 @@ html.dm-admin .adm-matrix input { height:32px; text-align:end; font-variant-nume
 @media(max-width:980px) { html.dm-admin .adm-split { grid-template-columns:1fr; } }
 @media(hover:hover) { html.dm-admin article.adm-card:hover { border-color:var(--studio-gold-line); translate:0 -3px; } }
 @media(prefers-reduced-motion:reduce) { html.dm-admin article.adm-card { transition:none; translate:none!important; } }
+html.dm-admin .adm-about { display:grid; grid-template-columns:240px minmax(0,1fr); gap:20px; align-items:start; }
+html.dm-admin .adm-photo { display:grid; place-items:center; width:240px; height:240px; overflow:hidden; border:1px solid var(--studio-line); border-radius:20px; background:var(--studio-wash); color:var(--muted-foreground); font-size:12px; }
+html.dm-admin button.adm-photo { cursor:zoom-in; transition:border-color .3s; }
+html.dm-admin button.adm-photo:hover, html.dm-admin button.adm-photo:focus-visible { border-color:var(--gold); }
+html.dm-admin .adm-photo img { width:100%; height:100%; object-fit:cover; }
+@media(max-width:640px) { html.dm-admin .adm-about { grid-template-columns:1fr; } html.dm-admin .adm-photo { width:100%; height:auto; aspect-ratio:1; } }
+
+/* Users & roles: the permission checklist in the side panel. */
+.adm-perm { width:100%; border-collapse:collapse; font-size:13.5px; }
+.adm-perm th, .adm-perm td { padding:10px 6px; border-bottom:1px solid var(--studio-line,var(--border)); text-align:center; vertical-align:middle; }
+.adm-perm thead th { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted-foreground); }
+.adm-perm th:first-child { text-align:start; }
+.adm-perm tbody th { font-weight:400; }
+.adm-perm tbody th b { display:block; }
+.adm-perm tbody th small { display:block; font-size:11.5px; color:var(--muted-foreground); }
+.admin-table-wrap tfoot td { border-top:1px solid var(--studio-line,var(--border)); }
+html.dm-admin .adm-grid.is-kpi { grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); }

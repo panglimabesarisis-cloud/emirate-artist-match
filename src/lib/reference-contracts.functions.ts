@@ -6,7 +6,7 @@ import type { Json } from "@/integrations/supabase/types";
 export const importReferenceContracts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const role = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const role = await context.supabase.rpc("admin_can", { _module: "library", _action: "edit" });
     if (role.error || role.data !== true) throw new Error("Admin access required");
     // Kept inside the handler: restricted clauses must never ship in browser bundles.
     const { default: referenceContracts } = await import("./reference-contracts.json");

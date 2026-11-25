@@ -687,6 +687,13 @@
       "when": 1795572480202,
       "tag": "0097_security_findings",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1795572540202,
+      "tag": "0098_admin_permissions_finance_audit",
+      "breakpoints": true
     }
   ]
 }

@@ -7,7 +7,7 @@ export const translateCategoryName = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ name: z.string().trim().min(1).max(120) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: admin, error } = await context.supabase.rpc("admin_can", { _module: "artists", _action: "edit" });
     if (error) throw new Error("Unable to verify admin access");
     requireCatalogAdmin(admin);
     const { aiResponse } = await import("./ai-provider.server");

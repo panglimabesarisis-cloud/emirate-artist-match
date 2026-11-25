@@ -65,7 +65,7 @@ export function ArtistDirectory() {
             const names = categoryIdsOf(a).flatMap((id) => cats.find((c) => c.id === id)?.name ?? []);
             return (
               <article key={a.id} className="adm-card">
-                <Cover artist={a} photo={photos.get(a.id)}>
+                <Cover artist={a} photo={photos.get(a.id)} plan={s?.plan_code ?? a.plan}>
                   <Badges badges={badges.filter((b) => b.artist_id === a.id).map((b) => b.badge)} />
                   {a.featured && <span className="adm-pill is-badge">Featured</span>}
                 </Cover>
@@ -122,6 +122,7 @@ function EditArtist({ artist, onClose }: { artist: AdminArtist; onClose: () => v
 
 export function ArtistRequests() {
   const query = useArtists();
+  const stats = useArtistStats().data;
   const cats = useCategories().data ?? [];
   const specialities = useSpecialities().data ?? [];
   const update = useUpdateArtist();
@@ -165,7 +166,7 @@ export function ArtistRequests() {
             }) : null;
             return (
               <article key={a.id} className="adm-card">
-                <Cover artist={a} photo={photos.get(a.id)} />
+                <Cover artist={a} photo={photos.get(a.id)} plan={stats?.get(a.id)?.plan_code ?? a.plan} />
                 <div className="adm-body">
                   <div className="adm-title"><h2>{a.stage_name}</h2><StatusPill status={a.status} /></div>
                   <p className="adm-meta">Requested {dateLabel(a.created_at)}</p>

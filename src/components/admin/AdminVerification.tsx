@@ -57,7 +57,7 @@ export function AdminVerification() {
             const app = latest(a.id), requirements = requirementsOf(app), done = requirements.filter((r) => r.ok).length;
             return (
               <article key={a.id} className="adm-card">
-                <Cover artist={a} photo={photos.get(a.id)}><Badges badges={badgesOf(a.id)} /></Cover>
+                <Cover artist={a} photo={photos.get(a.id)} plan={stats?.get(a.id)?.plan_code ?? a.plan}><Badges badges={badgesOf(a.id)} /></Cover>
                 <div className="adm-body">
                   <div className="adm-title"><h2>{a.stage_name}</h2>{app ? <StatusPill status={app.status} /> : <span className="adm-pill">Not submitted</span>}</div>
                   <p className="adm-meta">Plan <b className="capitalize">{stats?.get(a.id)?.plan_code ?? a.plan}</b> · <b>{stats?.get(a.id)?.job_done ?? 0}</b> jobs done</p>

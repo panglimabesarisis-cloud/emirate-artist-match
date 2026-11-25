@@ -75,6 +75,7 @@ export function ArtistProfileDialog({ artist, onClose, extra, actions }: { artis
     await qc.invalidateQueries({ queryKey: ["admin-artist-profile", artist.id] });
   };
   const body = publicPhysicalDetails(artist.body);
+  const [zoom, setZoom] = useState(false);
   const photo = artist.photo_path ? d?.links.get(artist.photo_path) : undefined;
 
   return (
@@ -86,7 +87,18 @@ export function ArtistProfileDialog({ artist, onClose, extra, actions }: { artis
         </DialogHeader>
         <div className="grid min-h-0 gap-4 overflow-y-auto p-5">
           {query.error ? <p role="alert" className="text-destructive">Could not load this profile. {query.error.message}</p> : !d ? <p role="status">Loading profile…</p> : <>
-            <div className="grid gap-3">
+            <section className="grid gap-3" aria-label="About">
+              <h3 className="adm-heading">About</h3>
+              <div className="adm-about">
+                {photo ? <button type="button" className="adm-photo" aria-label={`Enlarge the photo of ${artist.stage_name}`} onClick={() => setZoom(true)}><img src={photo} alt={`${artist.stage_name} profile photo`} /></button> : <div className="adm-photo">No photo</div>}
+                <dl className="adm-dl min-w-0">
+                  <Field label="Stage name">{artist.stage_name}</Field>
+                  <Field label="Tagline">{artist.tagline}</Field>
+                  <Field label="Bio" wide>{artist.bio}</Field>
+                </dl>
+              </div>
+            </section>
+            <div className="adm-section">
               <div className="flex items-center justify-between gap-3 text-sm"><b>Profile {profilePercent(checks)}% complete</b><span className="text-muted-foreground">{missing.length ? `${missing.length} missing` : "Nothing missing"}</span></div>
               <div className="adm-bar" aria-hidden="true"><i style={{ width: `${profilePercent(checks)}%` }} /></div>
               <ul className="adm-checks sm:grid-cols-2">{checks.map(([label, ok]) => <li key={label} className={ok ? "ok" : ""}>{label}<span className="sr-only">{ok ? " done" : " missing"}</span></li>)}</ul>
@@ -104,16 +116,6 @@ export function ArtistProfileDialog({ artist, onClose, extra, actions }: { artis
                 <Field label="Contract accepted">{artist.contract_accepted_at ? dateLabel(artist.contract_accepted_at) : null}</Field>
                 <Field label="Plan chosen / current">{`${artist.intended_plan ?? "—"} / ${artist.plan}`}</Field>
               </dl>
-            </Section>
-            <Section title="About">
-              <div className="flex flex-wrap items-start gap-4">
-                {photo ? <img src={photo} alt={`${artist.stage_name} profile photo`} className="size-28 rounded-lg object-cover" /> : <div className="grid size-28 place-items-center rounded-lg border text-xs text-muted-foreground">No photo</div>}
-                <dl className="adm-dl min-w-0 flex-1">
-                  <Field label="Stage name">{artist.stage_name}</Field>
-                  <Field label="Tagline">{artist.tagline}</Field>
-                  <Field label="Bio" wide>{artist.bio}</Field>
-                </dl>
-              </div>
             </Section>
             <Section title="What they do">
               <dl className="adm-dl">
@@ -165,6 +167,13 @@ export function ArtistProfileDialog({ artist, onClose, extra, actions }: { artis
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>
+      {zoom && photo && <Dialog open onOpenChange={setZoom}>
+        <DialogContent className="w-auto max-w-[calc(100vw-24px)] p-3">
+          <DialogTitle className="sr-only">Photo of {artist.stage_name}</DialogTitle>
+          <DialogDescription className="sr-only">Full size profile photo</DialogDescription>
+          <img src={photo} alt={`${artist.stage_name} profile photo, full size`} className="max-h-[85vh] max-w-full rounded-xl object-contain" />
+        </DialogContent>
+      </Dialog>}
     </Dialog>
   );
 }

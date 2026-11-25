@@ -1,0 +1,36 @@
+html.dm-admin [role="dialog"].a4-dialog { border-radius:24px; }
+.a4-bar { position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; border-bottom:1px solid var(--studio-line,var(--border)); background:var(--popover); }
+.a4-sheet { display:flex; flex-direction:column; width:100%; max-width:794px; aspect-ratio:210/297; margin-inline:auto; overflow:hidden; border-radius:6px; background:#fbf7ef; color:#1a1712; padding:6% 6.5% 4%; font-size:13px; line-height:1.55; box-shadow:0 30px 70px rgba(0,0,0,.45); border-top:6px solid #d4842a; }
+.a4-sheet header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.a4-sheet .a4-brand { display:block; font-family:var(--font-display); font-size:34px; font-weight:400; line-height:1; letter-spacing:.04em; }
+.a4-sheet header small { display:block; margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.24em; text-transform:uppercase; color:#7a7062; }
+.a4-head-right { display:grid; justify-items:end; gap:4px; text-align:end; }
+.a4-sheet h2 { margin:0; font-family:var(--font-display); font-size:34px; font-weight:400; line-height:1; color:#1a1712; }
+.a4-sheet h3 { margin:0 0 4px; font-family:var(--font-sans); font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#7a7062; }
+.a4-sheet p { margin:0; overflow-wrap:anywhere; }
+.a4-sheet .strong { font-weight:700; }
+.a4-sheet .muted { color:#7a7062; font-size:12px; }
+.a4-stamp { margin-top:8px; transform:rotate(-5deg); border:3px double currentColor; border-radius:8px; padding:3px 14px; font-style:normal; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+.a4-stamp.is-paid { color:#2f7a45; } .a4-stamp.is-unpaid { color:#b4302a; } .a4-stamp.is-partial { color:#b07a1f; }
+.a4-parties { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin:22px 0; padding:16px 0; border-block:1px solid #e7dcc6; }
+.a4-sheet table { width:100%; min-width:0; border-collapse:collapse; }
+.a4-sheet th { padding:0 0 8px; border-bottom:1.5px solid #1a1712; background:transparent; color:#7a7062; font-size:10px; font-weight:800; letter-spacing:.14em; text-align:start; text-transform:uppercase; }
+.a4-sheet td { padding:12px 0; border-bottom:1px solid #e7dcc6; vertical-align:top; color:#1a1712; }
+.a4-sheet th:last-child, .a4-sheet td:last-child { text-align:end; white-space:nowrap; padding-inline-start:12px; }
+.a4-sheet td small { display:block; color:#7a7062; font-size:11.5px; }
+.a4-totals { align-self:flex-end; width:min(100%,320px); margin:18px 0 0; }
+.a4-totals div { display:flex; justify-content:space-between; gap:16px; padding:5px 0; }
+.a4-totals dt { color:#7a7062; } .a4-totals dd { margin:0; font-variant-numeric:tabular-nums; }
+.a4-totals .grand { margin-top:6px; padding-top:10px; border-top:1.5px solid #1a1712; font-size:17px; font-weight:800; }
+.a4-totals .grand dt { color:#1a1712; }
+.a4-sheet footer { margin-top:auto; padding-top:14px; border-top:1px solid #e7dcc6; color:#7a7062; font-size:11px; }
+@media(max-width:560px) { .a4-sheet { aspect-ratio:auto; padding:22px 18px; } .a4-parties { grid-template-columns:1fr; } }
+@media print { body.inv-printing [data-noprint] { display:none !important; } body.inv-printing .a4-sheet { box-shadow:none; border-radius:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+.a4-sheet.is-ledger { aspect-ratio:auto; min-height:520px; }
+.a4-ledger { margin-top:22px; overflow-x:auto; }
+.a4-sheet.is-ledger table { font-size:11px; }
+.a4-sheet.is-ledger th, .a4-sheet.is-ledger td { padding:7px 4px; text-align:end; }
+.a4-sheet.is-ledger th:nth-child(-n+2), .a4-sheet.is-ledger td:nth-child(-n+2) { text-align:start; }
+.a4-sheet.is-ledger tfoot td:first-child { text-align:start; }
+.a4-sheet.is-ledger tfoot td { border-top:1.5px solid #1a1712; }
+.a4-sheet.is-ledger footer { margin-top:24px; }

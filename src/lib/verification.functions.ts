@@ -29,7 +29,7 @@ export const submitVerification = createServerFn({ method: 'POST' }).middleware(
 export const openVerificationFile = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .inputValidator((data: { applicationId: string; fileId?: string }) => z.object({ applicationId: z.uuid(), fileId: z.uuid().optional() }).parse(data))
   .handler(async ({ data, context }) => {
-    const role = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
+    const role = await context.supabase.rpc('admin_can', { _module: 'artists', _action: 'read' });
     if (role.error || role.data !== true) throw new Error('forbidden');
     const app = await context.supabase.from('verification_applications').select('doc_path,decided_at,privacy_purged_at,artist_id').eq('id', data.applicationId).maybeSingle();
     if (app.error) throw new Error('Unable to open verification file');
@@ -50,6 +50,8 @@ export const openVerificationFile = createServerFn({ method: 'POST' }).middlewar
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const logged = await supabaseAdmin.from('verification_access_log').insert({ application_id: data.applicationId, file_id: fileId, admin_id: context.userId });
     if (logged.error) throw new Error('access_log_failed');
+    const { recordAdminAction } = await import('./admin-audit.server');
+    await recordAdminAction(context.userId, 'Opened verification document', 'artists', data.applicationId, 'high');
     const signed = await supabaseAdmin.storage.from('verification-docs').createSignedUrl(path, 120);
     if (signed.error || !signed.data) throw new Error('file_unavailable');
     return { url: signed.data.signedUrl, expires_in: 120 };
@@ -57,7 +59,7 @@ export const openVerificationFile = createServerFn({ method: 'POST' }).middlewar
 export const decideVerification = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .inputValidator((data: { applicationId: string; status: 'approved' | 'rejected' | 'needs_more_info'; reasons: string[]; admin_note: string }) => z.object({ applicationId: z.uuid(), status: z.enum(['approved', 'rejected', 'needs_more_info']), reasons: z.array(z.string().trim().min(1).max(250)).max(10), admin_note: z.string().max(2000) }).parse(data))
   .handler(async ({ data, context }) => {
-    const role = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
+    const role = await context.supabase.rpc('admin_can', { _module: 'artists', _action: 'edit' });
     if (role.error || role.data !== true) throw new Error('forbidden');
     if (data.status !== 'approved' && !data.reasons.length) return { ok: false as const, error: 'reasons_required' as const };
     const updated = await context.supabase.from('verification_applications').update({ status: data.status, reasons: data.reasons, admin_note: data.admin_note || null }).eq('id', data.applicationId).select('id,status,decided_at').maybeSingle();

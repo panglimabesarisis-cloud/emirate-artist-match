@@ -1,4 +1,6 @@
 import { ClientTierSettings } from "@/components/admin/ClientTierSettings";
+import { ClientCommissionTransactions, TopClientsChart } from "@/components/admin/ClientFinance";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SupportWorkspace } from "@/components/support/SupportWorkspace";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,31 +109,61 @@ export function ClientWithdrawals() {
     toast.success(status === "paid" ? "Marked as paid" : status === "approved" ? "Approved" : "Rejected");
     await Promise.all([qc.invalidateQueries({ queryKey: ["admin-client-withdrawals"] }), qc.invalidateQueries({ queryKey: ["admin-client-accounts"] })]);
   };
+  const clients = useQuery({
+    queryKey: ["admin-client-accounts"],
+    queryFn: async () => {
+      const r = await supabase.rpc("admin_client_accounts");
+      if (r.error) throw new Error("Unable to load client accounts");
+      return r.data ?? [];
+    },
+  });
+  const [openId, setOpenId] = useState<string | null>(null);
+  const clientOf = (userId: string) => clients.data?.find((c) => c.user_id === userId);
+  const snapshot = (value: unknown) => { const s = (value ?? {}) as Record<string, unknown>; return (key: string) => String(s[key] ?? ""); };
+  const open = list.data?.find((r) => r.id === openId);
+  const actions = (r: { id: string; status: string }) => <>
+    {r.status === "submitted" && <Button size="sm" onClick={() => decide(r.id, "approved")}>Approve</Button>}
+    {r.status === "approved" && <Button size="sm" onClick={() => decide(r.id, "paid")}>Mark paid</Button>}
+    {(r.status === "submitted" || r.status === "approved") && <Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>Reject</Button>}
+  </>;
+  const badge = (status: string) => <Badge variant={status === "paid" ? "default" : status === "rejected" ? "destructive" : "secondary"}>{status}</Badge>;
   return (
     <div className="space-y-6">
+      <TopClientsChart />
       <ClientTierSettings />
-      <StudioSection title="Client" accent="withdrawals" subtitle="Approve, then mark paid after the transfer. Demo mode: no real money moves.">
+      <StudioSection title="Client" accent="withdrawals" subtitle="Select a request ID for its details. Approve, then mark paid after the transfer. Demo mode: no real money moves.">
         {list.error ? <p className="p-4 text-sm text-destructive">Unable to load withdrawals.</p> : (list.data ?? []).length === 0 ? <StudioEmpty title="No withdrawal requests yet" icon={Banknote} /> : (
-          <div className="divide-y rounded-xl border">
+          <div className="admin-table-wrap"><table><thead><tr><th>Request ID</th><th>Client</th><th>Payout bank</th><th className="text-end">Amount</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody>
             {(list.data ?? []).map((r) => {
-              const s = (r.account_snapshot ?? {}) as Record<string, unknown>;
+              const s = snapshot(r.account_snapshot);
               return (
-                <div key={r.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{r.reference} · {aed(r.amount)}</div>
-                    <div className="text-xs text-muted-foreground" dir="ltr">{String(s["holder_name"] ?? "")} · {String(s["bank_name"] ?? "")} · {String(s["iban"] ?? "")}{s["swift"] ? ` · ${String(s["swift"])}` : ""}</div>
-                    <div className="text-xs text-muted-foreground">Requested {when(r.created_at)}{r.paid_at ? ` · paid ${when(r.paid_at)}` : r.decided_at ? ` · decided ${when(r.decided_at)}` : ""}{r.admin_note ? ` · ${r.admin_note}` : ""}</div>
-                  </div>
-                  <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
-                  {r.status === "submitted" && <Button size="sm" onClick={() => decide(r.id, "approved")}>Approve</Button>}
-                  {r.status === "approved" && <Button size="sm" onClick={() => decide(r.id, "paid")}>Mark paid</Button>}
-                  {(r.status === "submitted" || r.status === "approved") && <Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>Reject</Button>}
-                </div>
+                <tr key={r.id}>
+                  <td><button type="button" className="adm-link font-bold" aria-label={`Open request ${r.reference}`} onClick={() => setOpenId(r.id)}>{r.reference}</button></td>
+                  <td>{clientOf(r.user_id)?.display_name || s("holder_name") || "Client"}</td>
+                  <td dir="ltr">{s("bank_name")} · •••• {s("iban").slice(-4)}</td>
+                  <td className="admin-money text-end"><b>{aed(r.amount)}</b></td>
+                  <td>{when(r.created_at)}</td>
+                  <td>{badge(r.status)}</td>
+                  <td><div className="adm-actions">{actions(r)}{r.status !== "submitted" && r.status !== "approved" && <span className="adm-meta">Closed</span>}</div></td>
+                </tr>
               );
             })}
-          </div>
+          </tbody></table></div>
         )}
       </StudioSection>
+      <ClientCommissionTransactions />
+      <Dialog open={!!open} onOpenChange={(value) => { if (!value) setOpenId(null); }}>
+        <DialogContent className="max-h-[calc(100dvh-32px)] max-w-lg overflow-y-auto">
+          <DialogHeader><DialogTitle>{open?.reference ?? "Withdrawal request"}</DialogTitle><DialogDescription>Client commission withdrawal request</DialogDescription></DialogHeader>
+          {open && (() => { const s = snapshot(open.account_snapshot); const c = clientOf(open.user_id); return <>
+            <div className="flex flex-wrap items-center justify-between gap-3"><b className="font-display text-4xl font-normal">{aed(open.amount)}</b>{badge(open.status)}</div>
+            <dl className="admin-detail-grid">
+              {[["Client", c?.display_name || "Client"], ["Email", c?.email], ["Phone", c?.phone], ["Account holder", s("holder_name")], ["Bank", s("bank_name")], ["IBAN", s("iban")], ["SWIFT", s("swift")], ["Country", s("country")], ["Requested", when(open.created_at)], ["Decided", when(open.decided_at)], ["Paid", when(open.paid_at)], ["Admin note", open.admin_note], ["Commission available now", c ? aed(c.commission_available) : null], ["Withdrawn to date", c ? aed(c.withdrawn) : null]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="break-words">{value || "—"}</dd></div>)}
+            </dl>
+            <div className="flex flex-wrap justify-end gap-2">{actions(open)}</div>
+          </>; })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

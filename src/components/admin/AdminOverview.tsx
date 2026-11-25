@@ -99,7 +99,7 @@ export function AdminOverview({ onOpen }: { onOpen?: (section: Destination) => v
   );
 }
 
-function Panel({ title, subtitle, badge, children }: { title: string; subtitle: string; badge?: string; children: ReactNode }) {
+export function Panel({ title, subtitle, badge, children }: { title: string; subtitle: string; badge?: string; children: ReactNode }) {
   return <section className="admin-overview-panel"><header><div><h2 className="dmr-serif"><Accent text={title} /></h2><p>{subtitle}</p></div>{badge && <span className="admin-overview-badge">{badge}</span>}</header>{children}</section>;
 }
 
@@ -107,7 +107,7 @@ function MonthlyChart({ months, metric, label }: { months: { m: string; bookings
   return <div className="admin-overview-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={months} margin={{ top: 25, right: 8, bottom: 0, left: 8 }} accessibilityLayer><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} /><Tooltip cursor={{ fill: "var(--studio-wash)" }} contentStyle={{ background: "var(--admin-overview-surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }} formatter={(value: unknown) => metric === "revenue" ? formatAED(Number(value)) : Number(value).toLocaleString("en-US")} /><Bar dataKey={metric} name={label} fill={metric === "revenue" ? "var(--gold)" : "var(--chart-2)"} radius={[4, 4, 0, 0]} maxBarSize={44} isAnimationActive={false}><LabelList dataKey={metric} position="top" fill={metric === "revenue" ? "var(--gold)" : "var(--chart-2)"} fontSize={10} formatter={(value: unknown) => Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 })} /></Bar></BarChart></ResponsiveContainer></div>;
 }
 
-function Distribution({ items, total, loading, variant = "gold" }: { items: { name: string; value: number }[]; total: number; loading: boolean; variant?: "gold" | "status" }) {
+export function Distribution({ items, total, loading, variant = "gold" }: { items: { name: string; value: number }[]; total: number; loading: boolean; variant?: "gold" | "status" }) {
   if (loading) return <p className="admin-overview-empty">Loading records…</p>;
   if (items.length === 0) return <p className="admin-overview-empty">No records yet.</p>;
   return <div className="admin-overview-distribution">{items.map(item => { const percent = total > 0 ? Math.round(item.value / total * 100) : 0; return <div key={item.name} className={`admin-overview-distribution-row ${variant === "status" ? `status-${item.name}` : ""}`}><div><span>{item.name.replace(/_/g, " ")}</span><small>{item.value.toLocaleString("en-US")} ({percent}%)</small></div><meter min={0} max={Math.max(total, 1)} value={item.value} aria-label={`${item.name}: ${item.value}`} /></div>; })}</div>;

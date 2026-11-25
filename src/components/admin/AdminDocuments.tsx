@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { expiryState, maskNumber } from "@/lib/admin-artists";
 import { ArtistProfileDialog } from "./artists/ArtistProfileDialog";
-import { dateLabel, useArtistPhotos, useArtists } from "./artists/data";
+import { dateLabel, useArtistPhotos, useArtists, useArtistStats } from "./artists/data";
 import { Cover, ListState, StatusPill, usePaged } from "./artists/parts";
 import { detailsOf, requirementsOf, useApplications, VerificationPanel, waiting } from "./artists/VerificationPanel";
 
@@ -16,6 +16,7 @@ const FILTERS = [["all", "All artists"], ["waiting", "Waiting for review"], ["ex
 export function AdminDocuments() {
   const query = useArtists();
   const applications = useApplications();
+  const stats = useArtistStats().data;
   const log = useQuery({
     queryKey: ["admin-document-opens"],
     queryFn: async () => {
@@ -56,7 +57,7 @@ export function AdminDocuments() {
             const opened = log.data?.find((entry) => entry.application_id === app?.id);
             return (
               <article key={a.id} className="adm-card">
-                <Cover artist={a} photo={photos.get(a.id)} />
+                <Cover artist={a} photo={photos.get(a.id)} plan={stats?.get(a.id)?.plan_code ?? a.plan} />
                 <div className="adm-body">
                   <div className="adm-title"><h2>{a.stage_name}</h2>{app ? <StatusPill status={app.status} /> : <span className="adm-pill">Not submitted</span>}</div>
                   <dl className="adm-stats">

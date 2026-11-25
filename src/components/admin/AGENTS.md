@@ -8,3 +8,7 @@
 - Allocation reports use frozen artist rates and the existing client commission resolver; client rewards come from platform fees and never reduce artist entitlement again.
 - Records views are read-only under caller RLS; role assignment, payment settlement and disputed escrow remain on their existing protected paths.
 - The admin wears the artist dashboard theme: reuse `studio.css` and `reference-*.css` classes and tokens (panels, pills, headings via `Accent`); `admin-control.css` styles only what the dashboard has no equivalent for.
+- Admin access is per module: the database decides with `admin_can(module, action)` (0098); a new admin table, RPC or server function asks it, and a new section is mapped in `SECTION_MODULE`. Hiding a menu entry is never the protection. Owners cannot be restricted.
+- Every admin "View" of money opens an A4 document through `documents/A4Dialog`; figures come from recorded rows, and screen-only details carry `data-noprint`.
+- The ledger is derived by `admin_ledger` (double entry, every journal balances); show debit and credit in separate columns and group by account. Never type or store ledger entries.
+- `admin_audit_log` is written only by database triggers and server functions (`recordAdminAction`); it records who, where and which record, never saved values.

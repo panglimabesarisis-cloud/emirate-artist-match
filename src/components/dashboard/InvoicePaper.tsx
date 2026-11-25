@@ -3,6 +3,7 @@ import { issuerLines } from "@/lib/site-settings";
 import { invoiceMoney as aed } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/hooks/use-site-settings";
+import type { SiteSettings } from "@/lib/site-settings";
 
 export type PaperStatus = "draft" | "unpaid" | "partial" | "paid" | "expired" | "none";
 
@@ -35,10 +36,11 @@ const STAMP: Record<PaperStatus, { color: string; word: string }> = {
 };
 
 /** The cream invoice sheet from the design reference. Used for the live preview, the sent-invoice popup and the PDF. */
-export function InvoicePaper({ data, tall = false, a4 = false }: { data: PaperData; tall?: boolean; /** Always the 794px A4 layout, whatever the screen: the caller scales it. */ a4?: boolean }) {
+export function InvoicePaper({ data, tall = false, a4 = false, issuer: draft }: { data: PaperData; tall?: boolean; /** Always the 794px A4 layout, whatever the screen: the caller scales it. */ a4?: boolean; /** Unsaved issuer settings, for the admin preview. */ issuer?: SiteSettings["invoice"] }) {
   const { t } = useI18n();
   const { status } = data;
-  const issuer = useSiteSettings().invoice;
+  const saved = useSiteSettings().invoice;
+  const issuer = draft ?? saved;
   const paid = Math.min(data.total, data.paid ?? 0);
   const balance = Math.max(0, data.total - paid);
   const stamp = STAMP[status];

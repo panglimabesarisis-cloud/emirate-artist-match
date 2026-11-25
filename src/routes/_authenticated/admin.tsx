@@ -6,7 +6,7 @@ import "@/components/dashboard/active-gold.css";
 import "@/components/dashboard/reference-pages.css";
 import "@/components/dashboard/reference-adapters.css";
 import "@/components/admin/admin-control.css";
-import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, BookOpen, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,13 @@ import { Accent } from "@/components/admin/Accent";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
+import { AdminPayouts } from "@/components/admin/AdminPayouts";
+import { AdminCredits } from "@/components/admin/AdminCredits";
+import { AdminSubscriptions } from "@/components/admin/AdminSubscriptions";
+import { AdminLedger } from "@/components/admin/AdminLedger";
+import { AdminUsers } from "@/components/admin/AdminUsers";
+import { AdminAudit } from "@/components/admin/AdminAudit";
+import { permissionFor } from "@/lib/admin-documents";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminPerformance } from "@/components/admin/AdminPerformance";
 import { ArtistDirectory, ArtistRequests, EventTypeManager } from "@/components/admin/AdminArtists";
@@ -62,24 +69,33 @@ const NAV = [
   { id: "escrow", label: "Escrow & disputes", group: "Finance" },
   { id: "payouts", label: "Artist payouts", group: "Finance" },
   { id: "client-payouts", label: "Client commission & payouts", group: "Finance" },
+  { id: "ledger", label: "Financial reports & ledger", group: "Finance" },
   { id: "plans", label: "Artist packages", group: "Subscriptions" },
+  { id: "subscriptions", label: "Subscription management", group: "Subscriptions" },
   { id: "credits", label: "Credit ledger", group: "Subscriptions" },
   { id: "flow", label: "AI flow builder", group: "AI & Automation" },
   { id: "model-rates", label: "Model pricing", group: "AI & Automation" },
   { id: "library", label: "Templates & prompts", group: "Master Library" },
-  { id: "settings", label: "Settings", group: "System" },
-  { id: "roles", label: "Users & roles", group: "Administration" },
+  { id: "settings", label: "System settings", group: "System" },
+  { id: "roles", label: "Users, roles & permissions", group: "Administration" },
   { id: "notifications", label: "Notification delivery", group: "Administration" },
-  { id: "audit", label: "Library audit", group: "Administration" },
+  { id: "audit", label: "System audit logs", group: "Administration" },
 ] as const;
 type Section = (typeof NAV)[number]["id"];
 const NAV_ICONS: Record<Section, LucideIcon> = {
   overview: Gauge, performance: ChartNoAxesCombined, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
   library: Layers, flow: Workflow, settings: SettingsIcon, clients: UsersIcon, "client-payouts": Banknote, support: LifeBuoy,
-  documents: FileSignature, bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
+  documents: FileSignature, ledger: BookOpen, subscriptions: Package, bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
 };
-
+/** The permission module behind each section, matching what its data asks for in the database. */
+const SECTION_MODULE: Record<Section, string | null> = {
+  overview: null, performance: "artists", artists: "artists", requests: "artists", categories: "artists", verify: "artists", ratecards: "artists", documents: "artists",
+  bookings: "finance", clients: "operations", reviews: "operations", catalog: "operations", support: "operations", contracts: "operations",
+  invoices: "finance", transactions: "finance", allocations: "finance", escrow: "finance", payouts: "finance", "client-payouts": "finance", ledger: "finance",
+  plans: "subscriptions", subscriptions: "subscriptions", credits: "subscriptions", flow: "automation", "model-rates": "automation", notifications: "automation",
+  library: "library", settings: "settings", roles: "administration", audit: "administration",
+};
 
 function Admin() {
   const { isAdmin, loading, user } = useAuth();
@@ -110,6 +126,20 @@ function Admin() {
   }, [isAdmin, menu]);
   useEffect(() => { if (menu) sidebar.current?.querySelector<HTMLElement>('a[href]')?.focus(); }, [menu]);
   const pending = useQuery({ queryKey: ["admin-pending-count"], enabled: isAdmin, queryFn: async () => (await supabase.from("artists").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0 }).data ?? 0;
+  // Sections without read permission are hidden. The database refuses their data either way.
+  const limits = useQuery({
+    queryKey: ["admin-permissions", "mine", user?.id], enabled: isAdmin && !!user,
+    queryFn: async () => (await supabase.from("admin_permissions").select("module, can_read, can_edit, can_delete").eq("user_id", user!.id)).data ?? [],
+  });
+  const mayOpen = (id: Section) => { const module = SECTION_MODULE[id]; return !module || permissionFor(limits.data ?? [], module).can_read; };
+  const visible = NAV.filter((n) => mayOpen(n.id));
+  const allowed = mayOpen(section);
+  useEffect(() => { if (!allowed) setSection("overview"); }, [allowed]);
+  const ready = isAdmin && !limits.isPending && allowed;
+  useEffect(() => {
+    if (!ready) return;
+    void supabase.rpc("log_admin_view", { _url: `/admin#${section}`, _module: SECTION_MODULE[section] ?? "overview" });
+  }, [ready, section]);
   if (loading) return <div className="p-16 text-center text-muted-foreground">Loading…</div>;
   if (!isAdmin) return <PublicLayout><div className="p-16 text-center">You don't have access to the admin area.</div></PublicLayout>;
   const current = NAV.find((n) => n.id === section) ?? NAV[0];
@@ -139,7 +169,7 @@ function Admin() {
         </div>
         <nav className="studio-menu" aria-label="Sections">
           <span className="studio-active-pill" aria-hidden="true" />
-          {NAV.map((n) => {
+          {visible.map((n) => {
             const g = "group" in n ? n.group : undefined;
             const header = g && g !== lastGroup ? <div className="studio-group">{g}</div> : null;
             lastGroup = g;
@@ -174,7 +204,12 @@ function Admin() {
           {section === "performance" && <AdminPerformance />}
           {section === "bookings" && <AdminFinance key="bookings" bookings />}
           {section === "allocations" && <AdminFinance key="allocations" />}
-          {(section === "transactions" || section === "credits" || section === "notifications" || section === "roles" || section === "audit") && <AdminRecords key={section} kind={section} />}
+          {(section === "transactions" || section === "notifications") && <AdminRecords key={section} kind={section} />}
+          {section === "credits" && <AdminCredits />}
+          {section === "subscriptions" && <AdminSubscriptions />}
+          {section === "ledger" && <AdminLedger />}
+          {section === "roles" && <AdminUsers />}
+          {section === "audit" && <AdminAudit />}
           {section === "model-rates" && <AdminModelRates />}
           {section === "artists" && <ArtistDirectory />}
           {section === "requests" && <ArtistRequests />}
@@ -186,7 +221,7 @@ function Admin() {
           {section === "contracts" && <ContractsTable />}
           {section === "plans" && <AdminPlans />}
           {section === "escrow" && <AdminEscrow />}
-          {section === "payouts" && <PayoutQueue />}
+          {section === "payouts" && <AdminPayouts />}
           {section === "reviews" && <ReviewQueue />}
           {section === "catalog" && <EventTypeManager />}
           {section === "library" && <AdminLibrary />}
@@ -197,38 +232,7 @@ function Admin() {
           {section === "flow" && <FlowBuilder artistId={null} />}
         </main>
       </div>
-      <Dialog open={command} onOpenChange={setCommand}><DialogContent className="p-0 overflow-hidden"><DialogTitle className="sr-only">Find admin section</DialogTitle><DialogDescription className="sr-only">Choose an area of the Dealmaker master control center.</DialogDescription><Command><CommandInput placeholder="Find bookings, artists, commissions…" /><CommandList><CommandEmpty>No section found.</CommandEmpty>{[...new Set(NAV.map(n => n.group))].map(group => <CommandGroup key={group} heading={group}>{NAV.filter(n => n.group === group).map(n => { const Icon = NAV_ICONS[n.id]; return <CommandItem key={n.id} value={`${n.group} ${n.label}`} onSelect={() => openSection(n.id)}><Icon />{n.label}</CommandItem>; })}</CommandGroup>)}</CommandList></Command></DialogContent></Dialog>
-    </div>
-  );
-}
-
-function PayoutQueue() {
-  const qc = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["admin-payouts"],
-    queryFn: async () => (await supabase.from("payout_requests").select("*, artists(stage_name)").order("created_at", { ascending: false })).data ?? [],
-  });
-  const decide = async (id: string, status: "paid" | "rejected") => {
-    const note = status === "rejected" ? prompt("Reason for rejecting?") ?? "" : "";
-    const { error } = await supabase.from("payout_requests").update({ status, admin_note: note || null }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(status === "paid" ? "Marked as paid" : "Rejected");
-    qc.invalidateQueries({ queryKey: ["admin-payouts"] });
-  };
-  return (
-    <div className="rounded-xl border bg-card divide-y">
-      {data?.length === 0 && <p className="p-4 text-sm text-muted-foreground">No withdrawal requests yet.</p>}
-      {data?.map((r) => (
-        <div key={r.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
-          <div className="min-w-0 flex-1">
-            <div className="font-medium">{r.artists?.stage_name} · AED {Number(r.amount).toLocaleString("en-US")}</div>
-            <div className="whitespace-pre-line text-xs text-muted-foreground">{r.bank_details}</div>
-            <div className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("en-GB")}</div>
-          </div>
-          <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
-          {r.status === "pending" && <><Button size="sm" onClick={() => decide(r.id, "paid")}>Mark paid</Button><Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>Reject</Button></>}
-        </div>
-      ))}
+      <Dialog open={command} onOpenChange={setCommand}><DialogContent className="p-0 overflow-hidden"><DialogTitle className="sr-only">Find admin section</DialogTitle><DialogDescription className="sr-only">Choose an area of the Dealmaker master control center.</DialogDescription><Command><CommandInput placeholder="Find bookings, artists, commissions…" /><CommandList><CommandEmpty>No section found.</CommandEmpty>{[...new Set(visible.map(n => n.group))].map(group => <CommandGroup key={group} heading={group}>{visible.filter(n => n.group === group).map(n => { const Icon = NAV_ICONS[n.id]; return <CommandItem key={n.id} value={`${n.group} ${n.label}`} onSelect={() => openSection(n.id)}><Icon />{n.label}</CommandItem>; })}</CommandGroup>)}</CommandList></Command></DialogContent></Dialog>
     </div>
   );
 }

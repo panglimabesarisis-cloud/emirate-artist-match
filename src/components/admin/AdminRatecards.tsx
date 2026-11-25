@@ -88,7 +88,7 @@ export function AdminRatecards() {
             const plan = plans.find((p) => p.code === (s?.plan_code ?? a.plan))?.name;
             return (
               <article key={a.id} className="adm-card">
-                <Cover artist={a} photo={photos.get(a.id)} ribbon={plan} />
+                <Cover artist={a} photo={photos.get(a.id)} plan={s?.plan_code ?? a.plan} />
                 <div className="adm-body">
                   <div className="adm-title"><h2>{a.stage_name}</h2><span className="adm-meta">{own.length} rate card{own.length === 1 ? "" : "s"}</span></div>
                   <p className="adm-meta">{a.categories?.name ?? "No category"} · Subscription <b>{plan ?? "—"}</b></p>

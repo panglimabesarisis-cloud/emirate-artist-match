@@ -6,7 +6,7 @@ import { internationalPhone, requireWhatsAppAdmin } from "./whatsapp-provider";
 export const getWhatsAppSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data, error } = await context.supabase.rpc("admin_can", { _module: "settings", _action: "read" });
     if (error) throw new Error("Unable to verify admin access");
     requireWhatsAppAdmin(data);
     const { readWhatsAppConfig } = await import("./whatsapp-provider.server");
@@ -18,7 +18,7 @@ export const saveWhatsAppSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ provider: z.enum(["meta", "fonnte"]), token: z.string().trim().max(4096).optional() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: admin, error } = await context.supabase.rpc("admin_can", { _module: "settings", _action: "edit" });
     if (error) throw new Error("Unable to verify admin access");
     requireWhatsAppAdmin(admin);
     const { readWhatsAppConfig } = await import("./whatsapp-provider.server");
@@ -34,7 +34,7 @@ export const saveWhatsAppSettings = createServerFn({ method: "POST" })
 export const testWhatsAppSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: admin, error } = await context.supabase.rpc("admin_can", { _module: "settings", _action: "edit" });
     if (error) throw new Error("Unable to verify admin access");
     requireWhatsAppAdmin(admin);
     // The test goes to the admin's own verified number, so it can never contact someone who did not ask.

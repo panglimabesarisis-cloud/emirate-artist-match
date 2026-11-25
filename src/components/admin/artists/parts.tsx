@@ -4,11 +4,12 @@ import { initials } from "@/lib/format";
 import { BADGE_NAMES, type AdminArtist } from "./data";
 import "./admin-artists.css";
 
-export function Cover({ artist, photo, ribbon, children }: { artist: Pick<AdminArtist, "stage_name">; photo?: string | undefined; ribbon?: string | undefined; children?: ReactNode }) {
+/** The corner ribbon shows the subscription: white Free, blue Basic, dark gold Medium, gold Pro. */
+export function Cover({ artist, photo, plan, children }: { artist: Pick<AdminArtist, "stage_name">; photo?: string | undefined; plan?: string | undefined; children?: ReactNode }) {
   return (
     <div className="adm-cover">
       {photo ? <img src={photo} alt={`${artist.stage_name} photo`} loading="lazy" /> : <span className="adm-initials" aria-hidden="true">{initials(artist.stage_name)}</span>}
-      {ribbon && <span className="adm-ribbon">{ribbon}</span>}
+      {plan && <span className={`adm-ribbon is-${plan}`}><span className="sr-only">Subscription </span>{plan}</span>}
       {children && <div className="adm-cover-tags">{children}</div>}
     </div>
   );

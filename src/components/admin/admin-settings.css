@@ -1,0 +1,13 @@
+/* System settings: two columns of cards, each with its own heading, and a live A4 preview for invoices. */
+.adm-set-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+.adm-set-grid > .max-w-3xl, .adm-set-grid > * .max-w-3xl { max-width:none; }
+html.dm-admin .adm-set-card, html.dm-admin .adm-settings .adm-set-grid > section.rounded-xl { display:grid; gap:16px; align-content:start; min-width:0; border:1px solid var(--studio-line); border-radius:20px; background:var(--studio-panel-gradient); padding:22px; }
+.adm-set-card.is-wide { grid-column:1 / -1; }
+.adm-set-card header h2 { margin:0; font-family:var(--font-display); font-size:28px; font-weight:400; line-height:1.1; }
+.adm-set-card header p { margin:4px 0 0; font-size:13px; color:var(--muted-foreground); }
+.adm-set-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.adm-set-fields > .is-full { grid-column:1 / -1; }
+.adm-set-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding-top:4px; border-top:1px solid var(--studio-line); padding-block-start:14px; }
+.adm-set-invoice { display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:16px; align-items:start; }
+@media(max-width:1100px) { .adm-set-invoice { grid-template-columns:minmax(0,1fr); } .adm-set-invoice > .adm-set-card { order:-1; } }
+@media(max-width:760px) { .adm-set-grid, .adm-set-fields { grid-template-columns:minmax(0,1fr); } }
