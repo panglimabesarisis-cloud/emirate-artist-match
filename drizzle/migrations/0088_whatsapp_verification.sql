@@ -85,6 +85,10 @@ CREATE TRIGGER guard_profile_phone_verified BEFORE INSERT OR UPDATE ON public.pr
 -- "since" marks which accounts are new; earlier ones are not asked at sign-in.
 INSERT INTO public.site_settings(key, value) VALUES ('whatsapp_otp', jsonb_build_object('required', true, 'since', now()))
 ON CONFLICT (key) DO NOTHING;
+-- Site settings are private by default; the forms must read this one to know whether to ask for a code.
+DROP POLICY IF EXISTS "settings public read whatsapp otp" ON public.site_settings;
+CREATE POLICY "settings public read whatsapp otp" ON public.site_settings FOR SELECT TO anon, authenticated
+  USING (key = 'whatsapp_otp' AND jsonb_typeof(value) = 'object' AND (value - ARRAY['required', 'since']) = '{}'::jsonb);
 CREATE OR REPLACE FUNCTION public.whatsapp_otp_required() RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT coalesce((SELECT value->>'required' FROM public.site_settings WHERE key = 'whatsapp_otp'), 'true') <> 'false'
