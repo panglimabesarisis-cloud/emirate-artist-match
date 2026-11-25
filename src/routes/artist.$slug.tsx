@@ -25,8 +25,7 @@ import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { recoverPublicRead } from "@/lib/public-read-recovery";
 import { ErrorComponent } from "./__root";
-import { rateScope, type StoredRate } from "@/lib/ratecard";
-import { RatecardDetails } from "@/components/shared/RatecardDetails";
+import { type StoredRate } from "@/lib/ratecard";
 import { ArtistProfileDetails } from "@/components/site/ArtistProfileDetails";
 
 export const Route = createFileRoute("/artist/$slug")({
@@ -151,7 +150,7 @@ function ArtistPage() {
           )}
         </div>
         <div className="space-y-6">
-          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} />
+          <QuoteForm artistId={a.id} artistName={a.stage_name} basePrice={a.base_price} catalog={catalog} blocked={a.blockedDates} busy={a.busy} similar={a.similar} packages={a.rateCards} categories={a.categories} specialties={a.specialties} />
         </div>
       </div>
     </PublicLayout></ReferenceTheme>
@@ -161,16 +160,23 @@ function ArtistPage() {
 type Similar = { id: string; slug: string; stage_name: string; base_price: number; rating: number | null };
 type Sent = { name: string; conversationId: string; key: string };
 
-function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, similar, packages }: {
+function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, similar, packages, categories, specialties }: {
   artistId: string; artistName: string; basePrice: number; blocked: string[]; busy: BusySlot[]; similar: Similar[];
   packages: (StoredRate & { id: string })[];
+  categories: { id?: string; slug: string; name: string }[];
+  specialties: { id?: string; slug: string; name: string }[];
   catalog: { eventTypes: { id: string; slug: string; name: string }[]; areas: { id: string; name: string }[] };
 }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", event: "", date: "", area: "", guests: "", budget: "", message: "", start: "", end: "", duration: "" });
   const [sending, setSending] = useState(false);
   const [extra, setExtra] = useState<string[]>([]);
-  const [picked, setPicked] = useState<string[]>([]);
-  const pickedPkgs = packages.filter((p) => picked.includes(p.id));
+  // Start is the lowest the artist agreed to take; base is their standard price.
+  const priceRange = (() => {
+    const bases = packages.map((p) => Number(p.price)).filter((n) => Number.isFinite(n) && n > 0);
+    const base = bases.length ? Math.min(...bases) : basePrice;
+    const lows = packages.map((p) => (p.price_low == null ? Number(p.price) : Number(p.price_low))).filter((n) => Number.isFinite(n) && n > 0);
+    return { start: lows.length ? Math.min(...lows) : base, base };
+  })();
   const [sent, setSent] = useState<Sent[] | null>(null);
   const submit$ = useServerFn(submitQuote);
   const [showForm, setShowForm] = useState(false);
@@ -185,11 +191,17 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
     try { const result = await startChat$({ data: { artistId, text: chatText } }); await navigate({ to: "/chat/$id", params: { id: result.conversationId }, search: { k: result.key } }); }
     catch { toast.error(t("Could not open chat. Please try again.")); } finally { setChatBusy(false); }
   };
-  const { data: orderForm } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
-    const { data } = await (supabase as any).from("artist_order_forms").select("title, description, fields, enabled").eq("artist_id", artistId).maybeSingle();
-    return data as { title: string; description: string | null; fields: OrderField[]; enabled: boolean } | null;
+  const [jobCategory, setJobCategory] = useState("");
+  const [speciality, setSpeciality] = useState("");
+  const { data: orderForms } = useQuery({ queryKey: ["order-form", artistId], queryFn: async () => {
+    const { data } = await (supabase as any).from("artist_order_forms").select("title, description, fields, enabled, subcategory_id").eq("artist_id", artistId).eq("enabled", true);
+    return (data ?? []) as { title: string; description: string | null; fields: OrderField[]; enabled: boolean; subcategory_id: string | null }[];
   } });
-  const customFields = orderForm?.enabled ? orderForm.fields ?? [] : [];
+  // The speciality's own questions when the artist wrote them, otherwise their fallback form.
+  const orderForm = (orderForms ?? []).find(form => form.subcategory_id === speciality && speciality)
+    ?? (orderForms ?? []).find(form => form.subcategory_id === null)
+    ?? null;
+  const customFields = orderForm?.fields ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -208,7 +220,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
       const payload = {
         clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
-        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null, packageIds: pickedPkgs.map((p) => p.id),
+        guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null, packageIds: [],
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
       };
       const r = await submit$({ data: { ...payload, artistId } });
@@ -251,7 +263,24 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
-          <div className="font-semibold">{t("Job Detail")}</div>
+          <div className="font-semibold">{t("Job Categories")}</div>
+          <Select value={jobCategory} onValueChange={(v) => { setJobCategory(v); setSpeciality(""); }}>
+            <SelectTrigger><SelectValue placeholder={t("What do you need?")} /></SelectTrigger>
+            <SelectContent>{categories.map((c) => <SelectItem key={c.slug} value={c.id ?? c.slug}>{t(c.name)}</SelectItem>)}</SelectContent>
+          </Select>
+          {jobCategory && (
+            <Select value={speciality} onValueChange={setSpeciality}>
+              <SelectTrigger><SelectValue placeholder={t("Speciality")} /></SelectTrigger>
+              <SelectContent>{specialties.map((sp) => <SelectItem key={sp.slug} value={sp.id ?? sp.slug}>{t(sp.name)}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          {speciality && customFields.length > 0 && (
+            <div className="rounded-xl border-t-4 border-gold bg-background p-3">
+              <div className="font-semibold">{orderForm?.title}</div>
+              {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
+              <div className="mt-3"><OrderFormFields fields={customFields} values={answers} onChange={(id, v) => setAnswers({ ...answers, [id]: v })} /></div>
+            </div>
+          )}
           <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
             <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
             <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
@@ -274,13 +303,6 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
           <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
           <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
           <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
-          {customFields.length > 0 && (
-            <div className="rounded-xl border-t-4 border-gold bg-background p-3">
-              <div className="font-semibold">{orderForm?.title}</div>
-              {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
-              <div className="mt-3"><OrderFormFields fields={customFields} values={answers} onChange={(id, v) => setAnswers({ ...answers, [id]: v })} /></div>
-            </div>
-          )}
           {similar.length > 0 && (
             <div className="rounded-lg border p-3 space-y-2">
               <div className="text-xs font-semibold">{t("Also ask up to 2 similar artists")}</div>
@@ -295,22 +317,12 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
             </div>
           )}
           {packages.length > 0 && (
-            <div className="space-y-2">
-              <div className="font-semibold">{t("Packages")}</div>
-              {packages.map((p) => {
-                const on = picked.includes(p.id);
-                return (
-                  <label key={p.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${on ? "border-gold bg-gold/10" : "hover:border-gold/50"}`}>
-                    <input type="checkbox" className="mt-1 accent-gold" checked={on} onChange={(e) => setPicked(e.target.checked ? [...picked, p.id] : picked.filter((x) => x !== p.id))} />
-                    <span className="flex-1">
-                      <span className="flex justify-between gap-2 text-sm font-semibold"><span>{p.title}</span><span dir="ltr">{aed(Number(p.price))}</span></span>
-                      <span className="block text-xs text-muted-foreground">{rateScope(p)}{p.description ? ` · ${p.description}` : ""}</span>
-                      <details className="mt-2 text-xs" onClick={e => e.stopPropagation()}><summary className="cursor-pointer text-gold">{t("Items & work rules")}</summary><div className="mt-3"><RatecardDetails rate={p} /></div></details>
-                    </span>
-                  </label>
-                );
-              })}
-              {pickedPkgs.length > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("Estimated total (excl. VAT)")}</span><b dir="ltr">{aed(pickedPkgs.reduce((n, p) => n + Number(p.price), 0))}</b></div>}
+            <div className="rounded-xl border p-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-semibold">{t("Rate range")}</span>
+                <b dir="ltr" className="text-gold">{priceRange.start === priceRange.base ? aed(priceRange.base) : `${aed(priceRange.start)} – ${aed(priceRange.base)}`}</b>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{t("Start rate is the lowest this artist will take; the base rate is their standard price. The final figure is agreed with the artist.")}</p>
             </div>
           )}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">

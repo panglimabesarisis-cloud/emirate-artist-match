@@ -906,32 +906,41 @@ export type Database = {
       }
       artist_order_forms: {
         Row: {
+          category_id: string | null
           artist_id: string
           description: string | null
+          id: string
           enabled: boolean
           fields: Json
           source_template_id: string | null
           source_version: number | null
+          subcategory_id: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           artist_id: string
           description?: string | null
+          id?: string
           enabled?: boolean
           fields?: Json
           source_template_id?: string | null
           source_version?: number | null
+          subcategory_id?: string | null
           title?: string
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           artist_id?: string
           description?: string | null
+          id?: string
           enabled?: boolean
           fields?: Json
           source_template_id?: string | null
           source_version?: number | null
+          subcategory_id?: string | null
           title?: string
           updated_at?: string
         }

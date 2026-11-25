@@ -1,5 +1,6 @@
 import { FormTemplates } from "./FormTemplates";
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, Check, Copy, Plus, Trash2, X } from "lucide-react";
@@ -31,7 +32,11 @@ const QUICK: [string, () => Omit<OrderField, "id">][] = [
   ["Event type", () => ({ label: "Event type", type: "dropdown", required: true, options: ["Wedding", "Corporate", "Birthday", "Other"] })],
   ["Phone", () => ({ label: "Phone (WhatsApp)", type: "short", required: false, options: [] })],
   ["Notes", () => ({ label: "Anything else we should know?", type: "paragraph", required: false, options: [] })],
+  ["Requirement", () => ({ label: "Can you meet these requirements?", type: "checkbox", required: true, options: ["Sound system and microphone provided", "Secure changing room", "Parking on site", "Meal during the booking"] })],
 ];
+/** The fallback form, used for any speciality the artist did not write one for. */
+const ALL = "all";
+type SavedForm = { id: string; title: string; description: string | null; fields: OrderField[]; enabled: boolean; subcategory_id: string | null };
 const label = "text-[11px] font-extrabold uppercase tracking-[.12em] text-muted-foreground";
 const paperInput = "w-full rounded-[10px] border border-[#d9d0bd] bg-white px-3 py-2.5 text-sm text-[#14172a] outline-none focus:outline-2 focus:outline-[#e8b04a]";
 
@@ -108,10 +113,19 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const key = ["order-form", artistId];
   const plan = useArtistPlan(artistId);
-  const { data, isLoading } = useQuery({ queryKey: key, queryFn: async () => {
-    const { data } = await (supabase as any).from("artist_order_forms").select("*").eq("artist_id", artistId).maybeSingle();
-    return data as { title: string; description: string | null; fields: OrderField[]; enabled: boolean } | null;
+  const { data: forms, isLoading } = useQuery({ queryKey: key, queryFn: async () => {
+    const { data } = await (supabase as any).from("artist_order_forms").select("*").eq("artist_id", artistId);
+    return (data ?? []) as SavedForm[];
   } });
+  // The category and specialities the artist already chose on their profile.
+  const scopeQ = useQuery({ queryKey: ["form-scope", artistId], queryFn: async () => {
+    const { data: a } = await supabase.from("artists").select("category_id, specialty_ids, categories(name)").eq("id", artistId).maybeSingle();
+    const ids = a?.specialty_ids ?? [];
+    const { data: subs } = ids.length ? await supabase.from("subcategories").select("id, name").in("id", ids) : { data: [] };
+    return { categoryId: a?.category_id ?? null, categoryName: a?.categories?.name ?? null, specialities: (subs ?? []) as { id: string; name: string }[] };
+  } });
+  const [scope, setScope] = useState<string>(ALL);
+  const current = (forms ?? []).find(f => (f.subcategory_id ?? ALL) === scope) ?? null;
   const limitQ = useQuery({ queryKey: ["form-limit", artistId, plan.data?.code], enabled: !!plan.data, queryFn: async () => (await supabase.from("plan_tiers").select("max_form_questions").eq("code", plan.data?.code ?? "free").maybeSingle()).data?.max_form_questions ?? 20 });
   const maxQ = Math.min(limitQ.data ?? 20, 40);
   const [title, setTitle] = useState("Booking details");
@@ -125,10 +139,11 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
 
   useEffect(() => {
     if (isLoading) return;
-    const f = data?.fields ?? [];
-    setTitle(data?.title ?? "Booking details"); setDesc(data?.description ?? ""); setEnabled(data?.enabled ?? false); setFields(f);
-    setBase(JSON.stringify({ title: (data?.title ?? "Booking details").trim(), desc: (data?.description ?? "").trim(), enabled: data?.enabled ?? false, fields: f }));
-  }, [data, isLoading]);
+    const f = current?.fields ?? [];
+    setTitle(current?.title ?? "Booking details"); setDesc(current?.description ?? ""); setEnabled(current?.enabled ?? false); setFields(f);
+    setBase(JSON.stringify({ title: (current?.title ?? "Booking details").trim(), desc: (current?.description ?? "").trim(), enabled: current?.enabled ?? false, fields: f }));
+    setErrors({});
+  }, [current, isLoading]);
   const dirty = base !== "" && snapshot !== base;
 
   const patch = (id: string, p: Partial<OrderField>) => setFields((fs) => fs.map((f) => (f.id === id ? { ...f, ...p } : f)));
@@ -162,7 +177,11 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
     if (Object.keys(e).length) { toast.error(Object.values(e)[0]!); return; }
     const clean = fields.map((f) => ({ ...f, label: f.label.trim().slice(0, 120), options: hasOptions(f.type) ? f.options.map((o) => o.trim()).filter(Boolean).slice(0, 20) : [] }));
     setSaving(true);
-    const { error } = await (supabase as any).from("artist_order_forms").upsert({ artist_id: artistId, title: title.trim(), description: desc.trim() || null, fields: clean, enabled, updated_at: new Date().toISOString() });
+    const row = { title: title.trim(), description: desc.trim() || null, fields: clean, enabled, updated_at: new Date().toISOString() };
+    // Partial unique indexes make ON CONFLICT unreliable here, so pick the write explicitly.
+    const { error } = current
+      ? await (supabase as any).from("artist_order_forms").update(row).eq("id", current.id)
+      : await (supabase as any).from("artist_order_forms").insert({ ...row, artist_id: artistId, category_id: scopeQ.data?.categoryId ?? null, subcategory_id: scope === ALL ? null : scope });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("Order form saved"));
@@ -184,6 +203,33 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
       </StudioHeading>
       <p className="dmr-c-12 -mt-2 text-sm text-muted-foreground">{t("The questions a client answers when they book you. Edit on the left, see exactly what they see on the right, or start from a ready made template below.")}</p>
       {errors["show"] && <p role="alert" className="dmr-c-12 text-sm text-[#ff8a7a]">{errors["show"]}</p>}
+
+      <section className="dmr-panel dmr-c-12" aria-label={t("Which booking this form is for")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className={label} htmlFor="of-cat">{t("Category")}</label>
+            <Input id="of-cat" readOnly value={scopeQ.data?.categoryName ? t(scopeQ.data.categoryName) : t("Not set yet")} className="h-11 rounded-xl" />
+            <p className="text-xs text-muted-foreground">
+              {t("Taken from your profile.")}{" "}
+              <Link to="/dashboard" search={{ tab: "profile" }} className="font-bold text-gold underline underline-offset-2">{t("Change it in your profile")}</Link>
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className={label} htmlFor="of-spec">{t("Speciality")}</label>
+            <Select value={scope} onValueChange={setScope}>
+              <SelectTrigger id="of-spec" className="h-11 rounded-xl" aria-label={t("Speciality this form is for")}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t("All specialities (fallback)")}</SelectItem>
+                {(scopeQ.data?.specialities ?? []).map(sp => <SelectItem key={sp.id} value={sp.id}>{t(sp.name)}{(forms ?? []).some(f => f.subcategory_id === sp.id) ? "" : ` — ${t("no form yet")}`}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {scope === ALL ? t("Used for any speciality without a form of its own.") : t("Clients booking this speciality see these questions.")}{" "}
+              <Link to="/dashboard" search={{ tab: "profile" }} className="font-bold text-gold underline underline-offset-2">{t("Add a speciality in your profile")}</Link>
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div className="dmr-c-12 grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="flex min-w-0 flex-col gap-3.5">
