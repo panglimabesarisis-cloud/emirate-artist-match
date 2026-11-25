@@ -58,7 +58,8 @@ export async function geminiResponse(params: unknown, backup: GoogleBackup): Pro
   const response = await fetch(ENDPOINT, {
     method: "POST",
     headers: { Authorization: `Bearer ${backup.key}`, "Content-Type": "application/json" },
-    redirect: "error",
+    // The edge runtime has no "error" mode; a redirect is not followed and fails the status check below.
+    redirect: "manual",
     signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({
       model: backup.model,

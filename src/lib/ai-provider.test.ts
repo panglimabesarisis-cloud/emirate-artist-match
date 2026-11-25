@@ -38,6 +38,8 @@ describe("AI backup", () => {
     const [url, init] = mocks.fetch.mock.calls[0] as [string, { headers: Record<string, string> }];
     expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions");
     expect(init.headers["Authorization"]).toBe("Bearer test-google-key");
+    // The published server runs at the edge, which rejects redirect: "error" before sending anything.
+    expect((init as { redirect?: string }).redirect).toBe("manual");
     expect(sent()).toMatchObject({ model: "gemini-3.8-flash", messages: [{ role: "system", content: "Be brief." }, { role: "user", content: "Free on Friday?" }], tools: [{ type: "function", function: { name: "check_calendar" } }] });
     expect(JSON.stringify(sent())).not.toContain("strict");
   });
