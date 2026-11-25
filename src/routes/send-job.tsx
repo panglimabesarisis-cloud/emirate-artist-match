@@ -1,3 +1,4 @@
+import { AccountPhoneIfNeeded } from "@/components/shared/AccountWhatsApp";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -160,6 +161,7 @@ function SendJobPage() {
           </>}
         </fieldset>
         {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}
+        {step === 3 && user && <AccountPhoneIfNeeded userId={user.id} />}
         <div className="send-job-actions flex items-center justify-between gap-3 border-t border-border pt-6">
           <Button type="button" variant="outline" disabled={busy || step === 0} onClick={() => void move(step - 1)}><ArrowLeft size={16} />{t("Back")}</Button>
           <Button type="submit" disabled={busy} className="min-h-11 bg-gradient-gold text-gold-foreground">{busy ? <LoaderCircle size={16} className="animate-spin" /> : step === 3 ? <Send size={16} /> : null}{t(busy ? "Please wait…" : step === 3 ? "Submit & post job" : "Continue")}{step < 3 && <ArrowRight size={16} />}</Button>

@@ -10,6 +10,8 @@ export const postOpenJob = createServerFn({ method: "POST" }).middleware([requir
     const { data: existing } = await context.supabase.from("open_jobs").select("id").eq("id", data.submissionId).eq("client_user_id", context.userId).maybeSingle();
     if (existing) return existing;
   }
+  const { requireVerifiedAccount } = await import("./phone-otp.server");
+  await requireVerifiedAccount(context.userId);
   const { data: job, error } = await context.supabase.from("open_jobs").insert({
     ...(data.submissionId ? { id: data.submissionId } : {}),
     client_user_id: context.userId, title: maskContacts(data.title), brief: maskContacts(data.brief), preferences: maskContacts(data.preferences), category_id: data.categoryId,

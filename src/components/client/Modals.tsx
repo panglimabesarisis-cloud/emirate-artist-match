@@ -7,6 +7,8 @@ import { CheckCircle2, CreditCard, ExternalLink, MessageSquare } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { getCatalog, searchArtists } from "@/lib/public.functions";
 import { submitClientQuote } from "@/lib/chat.functions";
+import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
+import { useAccountPhone } from "@/components/shared/AccountWhatsApp";
 import { acceptAndPay, acceptBookingOffer, cancelBookingAsClient, confirmBookingCompletion, getBooking, openDisputeAsClient, submitBookingReview } from "@/lib/bookings.functions";
 import { bookingPayment } from "@/lib/booking-payment-rules";
 import { CONTRACT_TERMS, ESCROW_HOLD_HOURS, canClientConfirm, canDispute, refundAmount, refundShare } from "@/lib/booking-rules";
@@ -356,12 +358,16 @@ function NewBooking({ artistId, onClose }: { artistId?: string | undefined; onCl
   const budget = Number(v.budget);
   const phoneBad = !!v.phone && !/^\+[1-9]\d{7,14}$/.test(v.phone);
   const timeBad = !!v.start !== !!v.end;
-  const problems = [!v.artistId && "Choose an artist.", !(budget > 0) && "Enter your budget.", phoneBad && "Check the WhatsApp number.", timeBad && "Add both start and end time."].filter(Boolean) as string[];
+  const whatsapp = useWhatsAppProof(v.phone);
+  const account = useAccountPhone(uid);
+  const accountPhone = account.data?.verified ? account.data.phone : null;
+  const unverified = whatsapp.required && !whatsapp.proof && !(accountPhone && accountPhone === v.phone);
+  const problems = [!v.artistId && "Choose an artist.", !(budget > 0) && "Enter your budget.", phoneBad && "Check the WhatsApp number.", unverified && "Verify your WhatsApp number first.", timeBad && "Add both start and end time."].filter(Boolean) as string[];
   const run = async () => {
     if (problems.length) { toast.error(t(problems[0]!)); return; }
     setBusy(true);
     try {
-      const r = await send({ data: { artistId: v.artistId, eventTitle: v.title || null, eventTypeId: v.eventTypeId || null, eventDate: v.date || null, startTime: v.start || null, endTime: v.end || null, areaId: v.areaId || null, guests: v.guests ? Number(v.guests) : null, budget, phone: v.phone || null, message: v.message || null } });
+      const r = await send({ data: { phoneProof: whatsapp.proof, artistId: v.artistId, eventTitle: v.title || null, eventTypeId: v.eventTypeId || null, eventDate: v.date || null, startTime: v.start || null, endTime: v.end || null, areaId: v.areaId || null, guests: v.guests ? Number(v.guests) : null, budget, phone: v.phone || null, message: v.message || null } });
       toast.success(t("Request sent. The artist's booking manager is replying in Messages."));
       await refresh("quotes", "threads");
       onClose();
@@ -380,7 +386,7 @@ function NewBooking({ artistId, onClose }: { artistId?: string | undefined; onCl
         <Field label="End time" htmlFor="cp-n-end"><input id="cp-n-end" type="time" value={v.end} onChange={(e) => setV({ ...v, end: e.target.value })} /></Field>
         <Field label="Guests" htmlFor="cp-n-guests"><input id="cp-n-guests" type="number" min={1} max={100000} inputMode="numeric" value={v.guests} onChange={(e) => setV({ ...v, guests: e.target.value })} /></Field>
         <Field label="Budget (AED)" htmlFor="cp-n-budget" hint={artist?.base_price ? `${t("Starting price")} ${money(artist.base_price)}` : null}><input id="cp-n-budget" type="number" min={1} step="1" inputMode="decimal" required value={v.budget} onChange={(e) => setV({ ...v, budget: e.target.value })} /></Field>
-        <Field label="WhatsApp" htmlFor="cp-n-phone" bad={phoneBad} hint={phoneBad ? "Use the international format, for example +971501234567." : null}><input id="cp-n-phone" type="tel" dir="ltr" placeholder="+971501234567" value={v.phone} onChange={(e) => setV({ ...v, phone: e.target.value.replace(/[^+\d]/g, "") })} /></Field>
+        <Field label="WhatsApp" htmlFor="cp-n-phone" bad={phoneBad} hint={phoneBad ? "Use the international format, for example +971501234567." : null} full><WhatsAppVerify id="cp-n-phone" phone={v.phone} accountPhone={accountPhone} onChange={(phone) => setV((x) => ({ ...x, phone }))} onVerified={() => void account.refetch()} /></Field>
         <Field label="Details for the artist" htmlFor="cp-n-msg" full><textarea id="cp-n-msg" maxLength={1800} value={v.message} onChange={(e) => setV({ ...v, message: e.target.value })} placeholder={t("Venue, dress code, set length, special requests…")} /></Field>
       </div>
       <p className="cp-muted cp-small">{t("Your request opens a chat with the artist's booking manager. You only pay after you accept a quotation.")}</p>

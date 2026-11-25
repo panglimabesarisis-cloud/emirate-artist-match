@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getWhatsAppSettings, saveWhatsAppSettings, testWhatsAppSettings } from "@/lib/whatsapp-settings.functions";
 import { whatsappProvider, type WhatsAppProvider } from "@/lib/whatsapp-provider";
@@ -64,5 +66,36 @@ export function WhatsAppSettings() {
       <Button variant="outline" onClick={sendTest} disabled={busy || dirty || !phone.trim()}><Send className="size-4" />Send test</Button>
       {result && <p role="status" className="text-sm break-words">{result}</p>}
     </div>
+    <OtpRequirement />
+  </div>;
+}
+
+/** The emergency switch for the one-time code, for when WhatsApp cannot send. */
+export function OtpRequirement() {
+  const qc = useQueryClient();
+  const setting = useQuery({
+    queryKey: ["whatsapp-otp-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "whatsapp_otp").maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data?.value ?? {}) as { required?: boolean; since?: string };
+    },
+  });
+  const [busy, setBusy] = useState(false);
+  const required = setting.data?.required !== false;
+  const change = async (next: boolean) => {
+    setBusy(true);
+    const value = { required: next, since: setting.data?.since ?? new Date().toISOString() };
+    const { error } = await supabase.from("site_settings").upsert({ key: "whatsapp_otp", value, updated_at: new Date().toISOString() });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "WhatsApp verification is required" : "WhatsApp verification is switched off");
+    await Promise.all([qc.invalidateQueries({ queryKey: ["whatsapp-otp-admin"] }), qc.invalidateQueries({ queryKey: ["whatsapp-otp"] })]);
+  };
+  return <div className="space-y-2 border-t pt-5">
+    <h3 className="font-medium">Verification codes (OTP)</h3>
+    <div className="flex items-center gap-3"><Switch id="wa-otp" checked={required} disabled={busy || setting.isPending || setting.isError} onCheckedChange={(next) => void change(next)} /><Label htmlFor="wa-otp">Require a WhatsApp code for new talent, bookings and chats</Label></div>
+    <p className="text-sm text-muted-foreground">Switch this off only while WhatsApp cannot send, so people can still register and book. Codes are sent through Fonnte.</p>
+    {setting.isError && <p role="alert" className="text-sm text-destructive">Unable to load this setting.</p>}
   </div>;
 }

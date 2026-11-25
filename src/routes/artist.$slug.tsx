@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { startChat, submitQuote } from "@/lib/chat.functions";
+import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
@@ -193,10 +194,12 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
   const [chatText, setChatText] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const startChat$ = useServerFn(startChat);
+  const whatsapp = useWhatsAppProof(f.phone);
   const openChat = async () => {
     if (!chatText.trim() || chatBusy) return;
+    if (!whatsapp.ready) { toast.error(t("Verify your WhatsApp number first.")); return; }
     setChatBusy(true);
-    try { const result = await startChat$({ data: { artistId, text: chatText } }); await navigate({ to: "/chat/$id", params: { id: result.conversationId }, search: { k: result.key } }); }
+    try { const result = await startChat$({ data: { artistId, text: chatText, phone: f.phone, phoneProof: whatsapp.proof } }); await navigate({ to: "/chat/$id", params: { id: result.conversationId }, search: { k: result.key } }); }
     catch { toast.error(t("Could not open chat. Please try again.")); } finally { setChatBusy(false); }
   };
   const [jobCategory, setJobCategory] = useState("");
@@ -219,6 +222,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
     e.preventDefault();
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
     if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
+    if (!whatsapp.ready) { toast.error(t("Verify your WhatsApp number first.")); return; }
     const missing = customFields.find((c) => c.required && !(answers[c.id] ?? "").trim());
     if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
     const extraLines = customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
@@ -226,7 +230,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
     setSending(true);
     try {
       const payload = {
-        clientUserId: null, name: f.name, email: f.email, phone: f.phone || null,
+        clientUserId: null, name: f.name, email: f.email, phone: f.phone || null, phoneProof: whatsapp.proof,
         eventTypeId: f.event || null, eventDate: f.date || null, areaId: f.area || null,
         guests: f.guests ? Number(f.guests) : null, budget: Number(f.budget), message: fullMessage || null, packageIds: [],
         startTime: f.start || null, endTime: f.end || null, performMinutes: f.duration ? Number(f.duration) : null,
@@ -309,7 +313,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
           <div><Label className="text-xs">{t("Budget (AED)")} *</Label><Input type="number" min={1} required value={f.budget} onChange={up("budget")} /></div>
           <Input placeholder={t("Your name")} value={f.name} onChange={up("name")} maxLength={120} />
           <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
-          <Input placeholder={t("Phone (+971…)")} value={f.phone} onChange={up("phone")} maxLength={30} />
+          <WhatsAppVerify phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} />
           <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
           {similar.length > 0 && (
             <div className="rounded-lg border p-3 space-y-2">
@@ -341,7 +345,7 @@ function QuoteForm({ artistId, artistName, basePrice, catalog, blocked, busy, si
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>
         </form>
       )}
-      {chatOpen && <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void openChat(); }}><Label htmlFor="artist-chat-message">{t("Your message")}</Label><Textarea id="artist-chat-message" autoFocus value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><Button variant="gold" type="submit" className="w-full" disabled={chatBusy || !chatText.trim()}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form>}
+      {chatOpen && <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void openChat(); }}><Label htmlFor="artist-chat-message">{t("Your message")}</Label><Textarea id="artist-chat-message" autoFocus value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><WhatsAppVerify id="chat-whatsapp-number" phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} /><Button variant="gold" type="submit" className="w-full" disabled={chatBusy || !chatText.trim() || !whatsapp.ready}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form>}
       <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
     </aside>
   );

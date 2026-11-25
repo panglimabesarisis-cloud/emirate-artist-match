@@ -617,6 +617,13 @@
       "when": 1795571880202,
       "tag": "0087_client_commission_tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1795571940202,
+      "tag": "0088_whatsapp_verification",
+      "breakpoints": true
     }
   ]
 }

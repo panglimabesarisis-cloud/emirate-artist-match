@@ -1664,6 +1664,45 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          provider_message_id: string | null
+          requester_hash: string | null
+          send_status: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone: string
+          provider_message_id?: string | null
+          requester_hash?: string | null
+          send_status?: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          provider_message_id?: string | null
+          requester_hash?: string | null
+          send_status?: string
+        }
+        Relationships: []
+      }
       client_payout_accounts: {
         Row: {
           bank_name: string
@@ -3135,6 +3174,7 @@ export type Database = {
           display_name: string | null
           id: string
           phone: string | null
+          phone_verified_at: string | null
         }
         Insert: {
           account_type?: string | null
@@ -3144,6 +3184,7 @@ export type Database = {
           display_name?: string | null
           id: string
           phone?: string | null
+          phone_verified_at?: string | null
         }
         Update: {
           account_type?: string | null
@@ -3153,6 +3194,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           phone?: string | null
+          phone_verified_at?: string | null
         }
         Relationships: []
       }
@@ -4557,6 +4599,14 @@ export type Database = {
           enabled: boolean
           min_withdrawal: number
         }[]
+      }
+      check_phone_otp: {
+        Args: { _hash: string; _id: string }
+        Returns: Json
+      }
+      reserve_phone_otp: {
+        Args: { _hash: string; _id: string; _phone: string; _requester: string }
+        Returns: Json
       }
       client_tier_of: {
         Args: { _user: string; _without?: string }

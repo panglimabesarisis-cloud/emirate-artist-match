@@ -18,13 +18,15 @@ export type QuoteInput = {
   artistId: string; clientUserId: string | null; name: string; email: string; phone: string | null;
   eventTypeId: string | null; eventDate: string | null; areaId: string | null; guests: number | null; budget: number | null; message: string | null;
   startTime?: string | null; endTime?: string | null; performMinutes?: number | null; packageIds?: string[];
+  /** Shows the WhatsApp number was verified with a one-time code. */
+  phoneProof?: string | null;
 };
 
 function validateQuote(i: QuoteInput): QuoteInput {
   const email = str(i.email, 255, true)!;
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Invalid email");
   return {
-    artistId: uuid(i.artistId), clientUserId: null, name: str(i.name, 120, true)!, email, phone: str(i.phone, 30),
+    artistId: uuid(i.artistId), clientUserId: null, name: str(i.name, 120, true)!, email, phone: str(i.phone, 30), phoneProof: str(i.phoneProof, 200),
     eventTypeId: i.eventTypeId ? uuid(i.eventTypeId) : null, eventDate: i.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(i.eventDate) ? i.eventDate : null,
     areaId: i.areaId ? uuid(i.areaId) : null, guests: i.guests ? Math.min(Math.max(1, Math.round(Number(i.guests))), 100000) : null,
     budget: (() => { const b = Number(i.budget); if (!(b > 0)) throw new Error("Budget is required"); return Math.min(b, 10_000_000); })(), message: str(i.message, 2000),
@@ -74,7 +76,9 @@ export const submitQuote = createServerFn({ method: "POST" })
   .inputValidator(validateQuote)
   .handler(async ({ data }) => {
     const { optionalUserId } = await import("./request-user.server");
-    return createQuote(data, await optionalUserId());
+    const { requireVerifiedPhone } = await import("./phone-otp.server");
+    const userId = await optionalUserId();
+    return createQuote({ ...data, phone: await requireVerifiedPhone(data.phone, data.phoneProof, userId) }, userId);
   });
 
 export type ClientRequestInput = Omit<QuoteInput, "clientUserId" | "name" | "email"> & { eventTitle?: string | null };
@@ -96,7 +100,9 @@ export const submitClientQuote = createServerFn({ method: "POST" })
     const email = user.user?.email;
     if (!email) throw new Error("Add an email address to your account first");
     const name = (profile?.display_name ?? "").trim() || email.split("@")[0] || "Client";
-    return createQuote({ ...data, name: name.slice(0, 120), email, phone: data.phone ?? profile?.phone ?? null }, context.userId);
+    const { requireVerifiedPhone } = await import("./phone-otp.server");
+    const phone = await requireVerifiedPhone(data.phone ?? profile?.phone, data.phoneProof, context.userId);
+    return createQuote({ ...data, name: name.slice(0, 120), email, phone }, context.userId);
   });
 
 async function verifyKey(conversationId: string, key: string) {
@@ -217,16 +223,20 @@ export const subscribePlanDemo = createServerFn({ method: "POST" })
 
 /** Public: opens a chat with no booking form so the AI follows the artist's AI flow from the start. */
 export const startChat = createServerFn({ method: "POST" })
-  .inputValidator((i: { artistId: string; text?: string }) => ({ artistId: uuid(i.artistId), text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH) }))
+  .inputValidator((i: { artistId: string; text?: string; phone?: string | null; phoneProof?: string | null }) => ({ artistId: uuid(i.artistId), text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH), phone: str(i.phone, 30), phoneProof: str(i.phoneProof, 200) }))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { addMessage, runAgent } = await import("./agent.server");
-    const { data: artist } = await supabaseAdmin.from("artists").select("id, status").eq("id", data.artistId).single();
+    const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
     if (!artist || artist.status !== "approved") throw new Error("Artist not available");
     const { optionalUserId } = await import("./request-user.server");
-    const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_message", artist_id: data.artistId, client_user_id: await optionalUserId() }).select("id, access_key").single();
+    const { requireVerifiedPhone } = await import("./phone-otp.server");
+    const userId = await optionalUserId();
+    const phone = await requireVerifiedPhone(data.phone, data.phoneProof, userId);
+    const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_message", artist_id: data.artistId, client_user_id: userId }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
     await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
+    if (phone) { const { notifyClientChatLink } = await import("./notify.server"); await notifyClientChatLink(c.id, c.access_key, phone, artist.stage_name); }
     await runAgent(c.id);
     return { conversationId: c.id, key: c.access_key };
   });

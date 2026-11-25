@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { slugify } from "@/lib/format";
 import { specialtyLimit } from "@/lib/join-rules";
 import { SIGNUP_PLAN_KEY } from "@/lib/signup-plan";
+import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
+import { normalizeVerificationPhone } from "@/lib/verification-rules";
 import { readPending, splitSpecialties } from "@/lib/signup-specialties";
 import { AddableLocation } from "@/components/shared/AddableLocation";
 import { X } from "lucide-react";
@@ -204,6 +206,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   const [languages, setLanguages] = useState("English"); const [radius, setRadius] = useState("30");
   const [trn, setTrn] = useState(""); const [agree, setAgree] = useState(false); const [busy, setBusy] = useState(false);
   const [restored,setRestored]=useState(false);const [savedPhotos,setSavedPhotos]=useState(0);
+  const whatsapp = useWhatsAppProof(phone);
   useEffect(()=>{let alive=true;const restore=async()=>{
    try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);if(Array.isArray(d.pkgs)&&d.pkgs.length&&!localStorage.getItem(`join_rate_draft:${user.id}`))localStorage.setItem(`join_rate_draft:${user.id}`,JSON.stringify({basePrice:d.basePrice??'',pkgs:d.pkgs}));setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');/* Drafts saved before the rate card moved counted it as step 2. */const savedStep=Number.isInteger(d.step)?(d.v===2||d.step<3?d.step:d.step-1):0;setStep(Math.min(3,Math.max(0,savedStep)));}}
    catch{localStorage.removeItem(`join_draft:${user.id}`);}
@@ -215,6 +218,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
 
   const validate = (): string | null => {
     if (step === 0 && (!name.trim() || !/^\+?[0-9 ]{8,16}$/.test(phone))) return "Enter your name and a valid WhatsApp number.";
+    if ((step === 0 || step === 3) && !whatsapp.ready) return "Verify your WhatsApp number in step 1.";
     if (step === 1 && !categoryId) return "Choose your talent category.";
     if (step === 1 && specs.length > limit) return `Your plan allows up to ${limit} specialties.`;
     if (step === 1 && photos.length+savedPhotos !== 5) return "Upload exactly 5 photos in total; saved photos are retained.";
@@ -244,7 +248,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         user_id: user.id, stage_name: stage.trim(), tagline: tagline || null, bio: bio || null,
         category_id: categoryId, subcategory_id: chosen.now[0] ?? null, specialty_ids: chosen.now, emirate_id: emirateId, area_id: areaId || null,
         languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
-        travel_radius_km: Number(radius) || null, notify_phone: phone.replace(/\s/g, ""), trn: trn || null,
+        travel_radius_km: Number(radius) || null, notify_phone: normalizeVerificationPhone(phone) ?? phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
         intended_plan:plan,onboarding_complete:false,
         slug: `${slugify(stage)}-${Math.random().toString(36).slice(2, 6)}`, hue: Math.floor(Math.random() * 360),
@@ -278,7 +282,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         <h2 className="text-xl font-semibold">Step 1 · Account</h2>
         <div><Label>Full name</Label><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></div>
         <div><Label>Email</Label><Input value={user.email} disabled /></div>
-        <div><Label>WhatsApp number</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 123 4567" /><p className="mt-1 text-xs text-muted-foreground">Booking approvals are sent here.</p></div>
+        <div><Label htmlFor="join-whatsapp">WhatsApp number</Label><WhatsAppVerify id="join-whatsapp" phone={phone} onChange={setPhone} /><p className="mt-1 text-xs text-muted-foreground">Booking approvals are sent here.</p></div>
       </>}
       {step === 1 && <>
         <h2 className="text-xl font-semibold">Step 2 · Talent category & photos</h2>
