@@ -659,6 +659,13 @@
       "when": 1795572240202,
       "tag": "0093_invoice_prefix_and_menu",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1795572300202,
+      "tag": "0094_admin_artist_center",
+      "breakpoints": true
     }
   ]
 }

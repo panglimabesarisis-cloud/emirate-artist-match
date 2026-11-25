@@ -1,176 +1,190 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { slugify } from "@/lib/format";
+import { slugify, aed } from "@/lib/format";
+import { categoryIdsOf, inCategory, specialityIdsOf } from "@/lib/admin-artists";
+import { missingProfileItems, profileChecks, profilePercent } from "@/lib/profile-completeness";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { CategoryEditor, type CategoryDraft } from "./CategoryEditor";
-import { SpecialitiesManager } from "./SpecialitiesManager";
+import { ArtistProfileDialog } from "./artists/ArtistProfileDialog";
+import { dateLabel, useArtistPhotos, useArtists, useArtistStats, useBadges, useCategories, usePlans, useSpecialities, useUpdateArtist, type AdminArtist } from "./artists/data";
+import { Badges, Cover, ListState, StatusPill, usePaged } from "./artists/parts";
 
-type Patch = { status?: string; featured?: boolean; plan?: string; category_id?: string };
-
-function useArtists() {
-  return useQuery({
-    queryKey: ["admin-artists"],
-    queryFn: async () => (await supabase.from("artists").select("id, slug, stage_name, status, plan, featured, created_at, base_price, category_id, bio, tagline, categories(name), emirates(name)").order("created_at", { ascending: false })).data ?? [],
-  });
-}
-function useUpdate() {
-  const qc = useQueryClient();
-  return async (id: string, patch: Patch) => {
-    const { error } = await supabase.from("artists").update(patch).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Saved");
-    qc.invalidateQueries({ queryKey: ["admin-artists"] });
-    qc.invalidateQueries({ queryKey: ["admin-overview"] });
-  };
-}
-export function useCategories() {
-  return useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await supabase.from("categories").select("*").order("sort")).data ?? [] });
-}
-
-const statusVariant = (s: string) => (s === "approved" ? "default" : s === "pending" ? "secondary" : "outline") as "default" | "secondary" | "outline";
+const STATUSES = ["approved", "pending", "rejected", "suspended"];
 
 export function ArtistDirectory() {
-  const { data } = useArtists();
+  const query = useArtists();
+  const artists = query.data ?? [];
   const cats = useCategories().data ?? [];
-  const update = useUpdate();
+  const specialities = useSpecialities().data ?? [];
+  const badges = useBadges().data ?? [];
+  const stats = useArtistStats().data;
+  const update = useUpdateArtist();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [cat, setCat] = useState("all");
-  const rows = (data ?? []).filter((a) =>
-    (status === "all" || a.status === status) && (cat === "all" || a.category_id === cat) && a.stage_name.toLowerCase().includes(q.toLowerCase()));
+  const [badge, setBadge] = useState("all");
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const needle = q.trim().toLowerCase();
+  const rows = artists.filter((a) =>
+    (status === "all" || a.status === status) && (cat === "all" || inCategory(a, cat)) && (badge === "all" || badges.some((b) => b.artist_id === a.id && b.badge === badge)) &&
+    [a.stage_name, a.emirates?.name, a.areas?.name, ...specialityIdsOf(a).map((id) => specialities.find((s) => s.id === id)?.name)].join(" ").toLowerCase().includes(needle));
+  const { slice, pager, first } = usePaged(rows);
+  const photos = useArtistPhotos(slice);
+  const viewed = artists.find((a) => a.id === viewing);
+  const edited = artists.find((a) => a.id === editing);
+  const filter = (set: (value: string) => void) => (value: string) => { set(value); first(); };
+  const setStatusOf = (a: AdminArtist, next: "approved" | "suspended") => {
+    if (next === "suspended" && !confirm(`Suspend ${a.stage_name}? The profile leaves search and cannot be booked.`)) return;
+    void update(a.id, { status: next }, next === "approved" ? `${a.stage_name} is active` : `${a.stage_name} is suspended`);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <Input className="max-w-xs" placeholder="Search artist…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>{["all", "approved", "pending", "rejected", "suspended"].map((s) => <SelectItem key={s} value={s}>{s === "all" ? "All status" : s}</SelectItem>)}</SelectContent></Select>
-        <Select value={cat} onValueChange={setCat}><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">All categories</SelectItem>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-        <span className="ms-auto self-center text-sm text-muted-foreground">{rows.length} artists</span>
+      <div className="admin-toolbar">
+        <Input aria-label="Search artists" placeholder="Search name, speciality or city…" value={q} onChange={(e) => { setQ(e.target.value); first(); }} />
+        <Select value={status} onValueChange={filter(setStatus)}><SelectTrigger className="w-40" aria-label="Status"><SelectValue /></SelectTrigger>
+          <SelectContent>{["all", ...STATUSES].map((s) => <SelectItem key={s} value={s}>{s === "all" ? "All status" : s}</SelectItem>)}</SelectContent></Select>
+        <Select value={cat} onValueChange={filter(setCat)}><SelectTrigger className="w-48" aria-label="Category"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All categories ({cats.length})</SelectItem>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+        <Select value={badge} onValueChange={filter(setBadge)}><SelectTrigger className="w-48" aria-label="Verification badge"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All badges</SelectItem>{[...new Set(badges.map((b) => b.badge))].map((b) => <SelectItem key={b} value={b}><span className="capitalize">{b.replace(/_/g, " ")}</span></SelectItem>)}</SelectContent></Select>
+        <span className="ms-auto text-sm text-muted-foreground">Showing {slice.length} of {rows.length} artists</span>
       </div>
-      <div className="rounded-xl border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader><TableRow><TableHead>Artist</TableHead><TableHead>Category</TableHead><TableHead>Emirate</TableHead><TableHead>Plan</TableHead><TableHead>Status</TableHead><TableHead>Joined</TableHead><TableHead className="text-end">Actions</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {rows.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.stage_name}{a.featured && <Badge className="ms-2" variant="secondary">Featured</Badge>}</TableCell>
-                <TableCell>
-                  <Select value={a.category_id ?? ""} onValueChange={(v) => update(a.id, { category_id: v })}><SelectTrigger className="h-8 w-36"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-                </TableCell>
-                <TableCell>{a.emirates?.name ?? "—"}</TableCell>
-                <TableCell>
-                  <Select value={a.plan} onValueChange={(v) => update(a.id, { plan: v })}><SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
-                    <SelectContent>{["free", "medium", "pro"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                </TableCell>
-                <TableCell><Badge variant={statusVariant(a.status)}>{a.status}</Badge></TableCell>
-                <TableCell className="text-muted-foreground text-sm">{new Date(a.created_at).toLocaleDateString("en-GB")}</TableCell>
-                <TableCell className="text-end whitespace-nowrap space-x-1">
-                  {a.status === "approved" && <Button asChild size="sm" variant="ghost"><Link to="/artist/$slug" params={{ slug: a.slug }}>View</Link></Button>}
-                  <Button size="sm" variant="outline" onClick={() => update(a.id, { featured: !a.featured })}>{a.featured ? "Unfeature" : "Feature"}</Button>
-                  {a.status === "approved"
-                    ? <Button size="sm" variant="ghost" onClick={() => update(a.id, { status: "suspended" })}>Suspend</Button>
-                    : <Button size="sm" onClick={() => update(a.id, { status: "approved" })}>Approve</Button>}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <ListState pending={query.isPending} error={query.error} empty={rows.length ? null : "No artist matches these filters."}>
+        <div className="adm-grid">
+          {slice.map((a) => {
+            const s = stats?.get(a.id);
+            const names = categoryIdsOf(a).flatMap((id) => cats.find((c) => c.id === id)?.name ?? []);
+            return (
+              <article key={a.id} className="adm-card">
+                <Cover artist={a} photo={photos.get(a.id)}>
+                  <Badges badges={badges.filter((b) => b.artist_id === a.id).map((b) => b.badge)} />
+                  {a.featured && <span className="adm-pill is-badge">Featured</span>}
+                </Cover>
+                <div className="adm-body">
+                  <div className="adm-title"><h2>{a.stage_name}</h2><StatusPill status={a.status} /></div>
+                  <p className="adm-meta">{[names.join(", ") || "No category", a.emirates?.name ?? "No emirate"].join(" · ")}</p>
+                  <p className="adm-meta"><b>{s?.job_done ?? 0}</b> jobs done · Plan: <b className="capitalize">{s?.plan_code ?? a.plan}</b> · Joined {dateLabel(a.created_at)}</p>
+                  <div className="adm-foot">
+                    <span className="adm-money text-sm font-bold">{a.base_price ? aed(Number(a.base_price)) : "No price"}</span>
+                    <div className="adm-actions">
+                      <Button size="sm" onClick={() => setViewing(a.id)} aria-label={`Profile of ${a.stage_name}`}>Profile</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditing(a.id)} aria-label={`Edit ${a.stage_name}`}>Edit</Button>
+                      {a.status === "approved"
+                        ? <Button size="sm" variant="ghost" onClick={() => setStatusOf(a, "suspended")}>Suspend</Button>
+                        : <Button size="sm" variant="ghost" onClick={() => setStatusOf(a, "approved")}>{a.status === "suspended" ? "Activate" : "Approve"}</Button>}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </ListState>
+      {pager}
+      {viewed && <ArtistProfileDialog artist={viewed} onClose={() => setViewing(null)} />}
+      {edited && <EditArtist artist={edited} onClose={() => setEditing(null)} />}
     </div>
+  );
+}
+
+function EditArtist({ artist, onClose }: { artist: AdminArtist; onClose: () => void }) {
+  const cats = useCategories().data ?? [];
+  const plans = usePlans().data ?? [];
+  const update = useUpdateArtist();
+  const [draft, setDraft] = useState({ category_id: artist.category_id ?? "", plan: artist.plan, featured: artist.featured });
+  const save = async () => {
+    const patch = { ...(draft.category_id && draft.category_id !== artist.category_id ? { category_id: draft.category_id } : {}), plan: draft.plan, featured: draft.featured };
+    if (await update(artist.id, patch)) onClose();
+  };
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit {artist.stage_name}</DialogTitle><DialogDescription>Category, profile plan and homepage feature.</DialogDescription></DialogHeader>
+        <div className="grid gap-4">
+          <div><Label>Main category</Label><Select value={draft.category_id} onValueChange={(category_id) => setDraft({ ...draft, category_id })}><SelectTrigger aria-label="Main category"><SelectValue placeholder="Choose category" /></SelectTrigger><SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label>Profile plan</Label><Select value={draft.plan} onValueChange={(plan) => setDraft({ ...draft, plan })}><SelectTrigger aria-label="Profile plan"><SelectValue /></SelectTrigger><SelectContent>{plans.map((p) => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}</SelectContent></Select><p className="mt-1 text-xs text-muted-foreground">Limits and commission follow the paid subscription.</p></div>
+          <label className="flex items-center justify-between gap-3 text-sm">Featured on the homepage<Switch checked={draft.featured} onCheckedChange={(featured) => setDraft({ ...draft, featured })} /></label>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>Close</Button><Button onClick={() => void save()}>Save</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export function ArtistRequests() {
-  const { data } = useArtists();
-  const update = useUpdate();
-  const rows = (data ?? []).filter((a) => a.status === "pending");
-  if (!rows.length) return <p className="text-muted-foreground">No pending artist requests.</p>;
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {rows.map((a) => (
-        <div key={a.id} className="rounded-xl border bg-card p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div><div className="font-semibold">{a.stage_name}</div><div className="text-sm text-muted-foreground">{a.categories?.name ?? "No category"} · {a.emirates?.name ?? "—"} · {a.plan}</div></div>
-            <Badge variant="secondary">pending</Badge>
-          </div>
-          {a.tagline && <p className="mt-2 text-sm">{a.tagline}</p>}
-          {a.bio && <p className="mt-1 text-sm text-muted-foreground line-clamp-3">{a.bio}</p>}
-          <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={() => update(a.id, { status: "approved" })}>Approve</Button>
-            <Button size="sm" variant="outline" onClick={() => update(a.id, { status: "rejected" })}>Reject</Button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-type Cat = CategoryDraft;
-export function CategoryManager() {
-  const qc = useQueryClient();
+  const query = useArtists();
   const cats = useCategories().data ?? [];
-  const artists = useArtists().data ?? [];
-  const [edit, setEdit] = useState<Cat | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
-  const refresh = () => Promise.all(["admin-categories", "admin-specialities", "join-catalog", "catalog-client"].map((key) => qc.invalidateQueries({ queryKey: [key] })));
-  const remove = async (id: string, count: number) => {
-    if (count > 0) { toast.error(`Move the ${count} artist(s) to another category first.`); return; }
-    if (!confirm("Delete this category?")) return;
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    refresh();
+  const specialities = useSpecialities().data ?? [];
+  const update = useUpdateArtist();
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const rows = (query.data ?? []).filter((a) => a.status === "pending");
+  const photos = useArtistPhotos(rows);
+  const ids = rows.map((a) => a.id);
+  // The two profile-strength items kept in their own tables.
+  const counts = useQuery({
+    queryKey: ["admin-request-counts", ids], enabled: ids.length > 0,
+    queryFn: async () => {
+      const [works, clients] = await Promise.all([supabase.from("artist_portfolio").select("artist_id").in("artist_id", ids), supabase.from("artist_clients").select("artist_id").in("artist_id", ids)]);
+      if (works.error || clients.error) throw new Error("Unable to load profile details");
+      return { works: works.data, clients: clients.data };
+    },
+  }).data;
+  const decide = async (a: AdminArtist, status: "approved" | "rejected") => {
+    if (status === "rejected" && !confirm(`Reject ${a.stage_name}'s request?`)) return;
+    setBusy(a.id);
+    // An approved or rejected request leaves this list as soon as the artists reload.
+    if (await update(a.id, { status }, status === "approved" ? `${a.stage_name} approved` : `${a.stage_name} rejected`)) setViewing(null);
+    setBusy(null);
   };
+  const decisions = (a: AdminArtist) => <>
+    <Button size="sm" disabled={busy === a.id} onClick={() => void decide(a, "approved")}>Approve</Button>
+    <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => void decide(a, "rejected")}>Reject</Button>
+  </>;
+  const viewed = rows.find((a) => a.id === viewing);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Button onClick={() => setEdit({ name: "", name_ar: "", slug: "", icon: "", description: "", sort: 100 })}>+ Add category</Button></div>
-      <div className="rounded-xl border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Arabic</TableHead><TableHead>Slug</TableHead><TableHead>Artists</TableHead><TableHead className="text-end">Actions</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {cats.map((c) => {
-              const list = artists.filter((a) => a.category_id === c.id);
-              return (
-                <Fragment key={c.id}>
-                  <TableRow>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell dir="rtl">{c.name_ar ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">/{c.slug}</TableCell>
-                    <TableCell><Button size="sm" variant="ghost" onClick={() => setOpen(open === c.id ? null : c.id)}>{list.length} {open === c.id ? "▲" : "▼"}</Button></TableCell>
-                    <TableCell className="text-end space-x-1 whitespace-nowrap">
-                      <Button size="sm" variant="outline" onClick={() => setEdit(c)}>Edit</Button>
-                      <Button size="sm" variant="ghost" onClick={() => remove(c.id, list.length)}>Delete</Button>
-                    </TableCell>
-                  </TableRow>
-                  {open === c.id && (
-                    <TableRow><TableCell colSpan={5} className="bg-muted/40">
-                      <div className="flex flex-wrap gap-1.5">{list.length ? list.map((a) => <Badge key={a.id} variant={statusVariant(a.status)}>{a.stage_name}</Badge>) : <span className="text-sm text-muted-foreground">No artists</span>}</div>
-                    </TableCell></TableRow>
-                  )}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-      <SpecialitiesManager categories={cats} />
-      <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{edit?.id ? "Edit category" : "New category"}</DialogTitle></DialogHeader>
-          {edit && <CategoryEditor initial={edit} onSaved={() => { setEdit(null); refresh(); }} />}
-        </DialogContent>
-      </Dialog>
+      <ListState pending={query.isPending} error={query.error} empty={rows.length ? null : "No pending artist requests."}>
+        <div className="adm-grid">
+          {rows.map((a) => {
+            const categoryNames = categoryIdsOf(a).flatMap((id) => cats.find((c) => c.id === id)?.name ?? []);
+            const specialityNames = specialityIdsOf(a).flatMap((id) => specialities.find((s) => s.id === id)?.name ?? []);
+            const checks = counts ? profileChecks({
+              stageName: a.stage_name, tagline: a.tagline, bio: a.bio, basePrice: a.base_price, languages: a.languages, skills: a.skills, body: a.body, photoPath: a.photo_path,
+              categories: categoryNames, specialities: specialityNames, area: a.areas?.name ?? "", portfolio: counts.works.filter((w) => w.artist_id === a.id).length, clients: counts.clients.filter((c) => c.artist_id === a.id).length,
+            }) : null;
+            return (
+              <article key={a.id} className="adm-card">
+                <Cover artist={a} photo={photos.get(a.id)} />
+                <div className="adm-body">
+                  <div className="adm-title"><h2>{a.stage_name}</h2><StatusPill status={a.status} /></div>
+                  <p className="adm-meta">Requested {dateLabel(a.created_at)}</p>
+                  <p className="adm-meta">Category: <b>{categoryNames.join(", ") || "Not chosen"}</b></p>
+                  <p className="adm-meta">Speciality: <b>{specialityNames.join(", ") || "Not chosen"}</b></p>
+                  <p className="adm-meta">{[a.areas?.name, a.emirates?.name].filter(Boolean).join(", ") || "No location"} · {a.base_price ? `From ${aed(Number(a.base_price))}` : "No price"} · Plan <b className="capitalize">{a.intended_plan ?? a.plan}</b></p>
+                  <p className="adm-meta">Form {a.onboarding_complete ? "finished" : "not finished"} · Deposit {a.registration_paid_at ? "paid" : "not paid"}</p>
+                  {checks && <div className="grid gap-1.5"><p className="adm-meta">Profile {profilePercent(checks)}% complete · {missingProfileItems(checks).length} missing</p><div className="adm-bar" aria-hidden="true"><i style={{ width: `${profilePercent(checks)}%` }} /></div></div>}
+                  <div className="adm-foot">
+                    <Button size="sm" variant="secondary" onClick={() => setViewing(a.id)} aria-label={`View profile of ${a.stage_name}`}>View profile</Button>
+                    <div className="adm-actions">{decisions(a)}</div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </ListState>
+      {viewed && <ArtistProfileDialog artist={viewed} onClose={() => setViewing(null)} actions={decisions(viewed)} />}
     </div>
   );
 }

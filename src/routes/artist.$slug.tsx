@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, notFound, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { startChat, submitQuote } from "@/lib/chat.functions";
+import { recordProfileView } from "@/lib/profile-views.functions";
 import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
 import { ClientSignInDialog } from "@/components/shared/ClientSignInDialog";
 import { saveBookingDraft, takeBookingDraft } from "@/lib/booking-draft";
@@ -68,6 +69,10 @@ const useShownProfile = useLoaderData as unknown as (options: { strict: false })
 export function ArtistPage() {
   // Also the page of /professional/$slug, so the data comes from whichever of the two routes is showing.
   const { artist: a, catalog } = useShownProfile({ strict: false });
+  const countView = useServerFn(recordProfileView);
+  const { isAdmin, loading: authLoading } = useAuth();
+  // The admin looking at a profile is not a visitor.
+  useEffect(() => { if (!authLoading && !isAdmin) void Promise.resolve(countView({ data: { slug: a.slug } })).catch(() => {}); }, [a.slug, authLoading, isAdmin, countView]);
   const s = a.stats;
   const { t } = useI18n();
   const bars = [

@@ -1045,6 +1045,70 @@ export type Database = {
           },
         ]
       }
+      artist_profile_reminders: {
+        Row: {
+          artist_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          missing: string[]
+          resolved_at: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          missing?: string[]
+          resolved_at?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          missing?: string[]
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_profile_reminders_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_profile_views: {
+        Row: {
+          artist_id: string
+          day: string
+          visitor: string
+        }
+        Insert: {
+          artist_id: string
+          day?: string
+          visitor: string
+        }
+        Update: {
+          artist_id?: string
+          day?: string
+          visitor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_profile_views_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_subscriptions: {
         Row: {
           artist_id: string
@@ -4275,6 +4339,32 @@ export type Database = {
           id: string
         }[]
       }
+      admin_artist_account: {
+        Args: { _artist: string }
+        Returns: {
+          email: string
+          full_name: string
+          phone: string
+          phone_verified_at: string
+          registered_at: string
+        }[]
+      }
+      admin_artist_stats: {
+        Args: never
+        Returns: {
+          artist_id: string
+          chat_income: number
+          form_income: number
+          invoice_paid: number
+          invoice_sent: number
+          invoice_unpaid: number
+          job_done: number
+          plan_code: string
+          profile_views: number
+          revenue: number
+          total_job: number
+        }[]
+      }
       admin_client_accounts: {
         Args: never
         Returns: {
@@ -4775,6 +4865,7 @@ export type Database = {
         Args: { _artist: string; _hash: string; _id: string; _phone: string }
         Returns: Json
       }
+      resolve_profile_reminder: { Args: { _id: string }; Returns: boolean }
       resolve_booking_contract: {
         Args: {
           _booking: Database["public"]["Tables"]["bookings"]["Row"]

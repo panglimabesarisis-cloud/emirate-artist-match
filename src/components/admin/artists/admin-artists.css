@@ -1,0 +1,61 @@
+/* Master admin artist pages. Dialogs render outside the admin shell, so these hang off html.dm-admin. */
+html.dm-admin .adm-grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); }
+html.dm-admin .adm-card { display:flex; flex-direction:column; min-width:0; overflow:hidden; border:1px solid var(--border); border-radius:8px; background:var(--card); }
+html.dm-admin .adm-body { display:flex; flex:1; flex-direction:column; gap:10px; padding:14px; min-width:0; }
+html.dm-admin .adm-cover { position:relative; display:grid; place-items:center; aspect-ratio:16/9; overflow:hidden; background:var(--studio-wash); }
+html.dm-admin .adm-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 25%; }
+html.dm-admin .adm-initials { font:44px/1 var(--font-display); color:var(--gold); }
+html.dm-admin .adm-cover-tags { position:absolute; inset-inline:10px; bottom:10px; display:flex; flex-wrap:wrap; gap:6px; }
+html.dm-admin .adm-ribbon { position:absolute; top:16px; inset-inline-end:-38px; width:150px; rotate:45deg; padding:5px 0; text-align:center; background:var(--gradient-gold); color:var(--gold-foreground); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+html[dir="rtl"].dm-admin .adm-ribbon { rotate:-45deg; }
+html.dm-admin .adm-title { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; }
+html.dm-admin .adm-card .adm-title h2 { font-family:var(--font-sans); font-size:16px; font-weight:700; letter-spacing:0; text-transform:none; overflow-wrap:anywhere; }
+html.dm-admin .adm-meta { font-size:12px; color:var(--muted-foreground); overflow-wrap:anywhere; }
+html.dm-admin .adm-meta b { color:var(--foreground); }
+html.dm-admin .adm-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid var(--border); }
+html.dm-admin .adm-actions { display:flex; flex-wrap:wrap; gap:6px; }
+html.dm-admin .adm-pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--border); background:var(--popover); padding:2px 9px; font-size:11px; font-weight:600; text-transform:capitalize; white-space:nowrap; }
+html.dm-admin .adm-pill.is-approved, html.dm-admin .adm-pill.is-paid, html.dm-admin .adm-pill.is-valid { color:#7bd88f; border-color:rgba(123,216,143,.4); }
+html.dm-admin .adm-pill.is-pending, html.dm-admin .adm-pill.is-submitted, html.dm-admin .adm-pill.is-under_review, html.dm-admin .adm-pill.is-needs_more_info, html.dm-admin .adm-pill.is-partial, html.dm-admin .adm-pill.is-soon { color:#e8b04a; border-color:rgba(232,176,74,.4); }
+html.dm-admin .adm-pill.is-rejected, html.dm-admin .adm-pill.is-suspended, html.dm-admin .adm-pill.is-unpaid, html.dm-admin .adm-pill.is-expired { color:#f09a9a; border-color:rgba(240,154,154,.4); }
+html.dm-admin .adm-pill.is-badge { color:var(--gold); border-color:var(--studio-gold-line-soft); text-transform:none; }
+html.dm-admin .adm-stats { display:grid; gap:0; margin:0; border-block:1px solid var(--border); padding-block:6px; }
+html.dm-admin .adm-stats div { display:flex; justify-content:space-between; gap:10px; padding-block:3px; font-size:12px; }
+html.dm-admin .adm-stats dt { color:var(--muted-foreground); }
+html.dm-admin .adm-stats dd { margin:0; font-weight:700; font-variant-numeric:tabular-nums; }
+html.dm-admin .adm-heading { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); }
+html.dm-admin .adm-checks { display:grid; gap:4px; margin:0; padding:0; list-style:none; font-size:12px; }
+html.dm-admin .adm-checks li { display:flex; gap:8px; align-items:flex-start; color:var(--muted-foreground); }
+html.dm-admin .adm-checks li::before { content:"✕"; color:#f09a9a; font-weight:700; }
+html.dm-admin .adm-checks li.ok { color:var(--foreground); }
+html.dm-admin .adm-checks li.ok::before { content:"✓"; color:#7bd88f; }
+html.dm-admin .adm-bar { height:6px; border-radius:99px; background:var(--studio-wash); overflow:hidden; }
+html.dm-admin .adm-bar i { display:block; height:100%; background:var(--gradient-gold); }
+html.dm-admin .adm-empty { padding:28px 16px; text-align:center; color:var(--muted-foreground); font-size:13px; border:1px dashed var(--border); border-radius:8px; }
+html.dm-admin .adm-pager { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:18px; font-size:12px; color:var(--muted-foreground); }
+html.dm-admin .adm-section { display:grid; gap:10px; border-top:1px solid var(--border); padding-top:16px; min-width:0; }
+html.dm-admin .adm-dl { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr)); gap:12px 18px; margin:0; }
+html.dm-admin .adm-dl dt { font-size:11px; color:var(--muted-foreground); margin-bottom:3px; }
+html.dm-admin .adm-dl dd { margin:0; font-size:13px; overflow-wrap:anywhere; white-space:pre-wrap; }
+html.dm-admin .adm-dl .wide { grid-column:1/-1; }
+html.dm-admin .adm-thumbs { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+html.dm-admin .adm-thumbs a { position:relative; display:grid; place-items:center; aspect-ratio:1; overflow:hidden; border:1px solid var(--border); border-radius:6px; background:var(--studio-wash); font-size:12px; color:var(--gold); text-align:center; padding:6px; overflow-wrap:anywhere; }
+html.dm-admin .adm-thumbs img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+html.dm-admin .adm-split { display:grid; gap:18px; grid-template-columns:minmax(0,5fr) minmax(0,7fr); align-items:start; }
+html.dm-admin .adm-panel { display:grid; gap:14px; align-content:start; min-width:0; border:1px solid var(--border); border-radius:8px; background:var(--card); padding:16px; }
+html.dm-admin .adm-panel h2 { font-size:22px; }
+html.dm-admin .adm-chips { display:flex; flex-wrap:wrap; gap:6px; }
+html.dm-admin .adm-chip { display:inline-flex; align-items:center; gap:4px; border:1px solid var(--border); border-radius:999px; background:var(--popover); padding:3px 4px 3px 10px; font-size:12px; }
+html.dm-admin .adm-chip button { display:grid; place-items:center; width:24px; height:24px; border-radius:99px; color:var(--muted-foreground); }
+html.dm-admin .adm-chip button:hover, html.dm-admin .adm-chip button:focus-visible { color:var(--gold); background:var(--studio-wash); }
+html.dm-admin .adm-cat { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+html.dm-admin .adm-cat-head { display:flex; align-items:center; gap:8px; padding:8px 10px; }
+html.dm-admin .adm-cat-head .adm-link { flex:1; font-size:14px; font-weight:700; }
+html.dm-admin .adm-link { text-align:start; min-width:0; overflow-wrap:anywhere; text-underline-offset:4px; }
+html.dm-admin .adm-link:hover, html.dm-admin .adm-link:focus-visible { color:var(--gold); text-decoration:underline; }
+html.dm-admin .adm-cat table { min-width:0; width:100%; }
+html.dm-admin .adm-money { font-variant-numeric:tabular-nums; white-space:nowrap; }
+html.dm-admin .adm-matrix { display:grid; gap:0; }
+html.dm-admin .adm-matrix label { display:grid; grid-template-columns:minmax(0,1fr) 96px; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid var(--border); font-size:12px; }
+html.dm-admin .adm-matrix input { height:32px; text-align:end; font-variant-numeric:tabular-nums; }
+@media(max-width:980px) { html.dm-admin .adm-split { grid-template-columns:1fr; } }

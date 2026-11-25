@@ -1,83 +1,81 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { AI_MODELS, PLAN_LIMITS, planProblem } from "@/lib/admin-artists";
+import { useArtistStats, usePlans } from "./artists/data";
+import { ListState } from "./artists/parts";
 
-type Plan = { code: string; name: string; price_monthly: number; price_yearly: number; ai_credits: number; max_photos: number; max_videos: number; max_specialties:number; max_team_members:number; commission_pct: number; features: string[]; max_categories: number; max_portfolio: number; max_clients: number; max_flow_blocks: number; max_form_questions: number; max_active_prompts: number; max_own_prompts: number; allowed_models: string[] };
+type Row = NonNullable<ReturnType<typeof usePlans>["data"]>[number];
+type Plan = Omit<Row, "features" | "allowed_models"> & { features: string[]; allowed_models: string[] };
+const toPlan = (row: Row): Plan => ({ ...row, features: Array.isArray(row.features) ? (row.features as string[]) : [], allowed_models: Array.isArray(row.allowed_models) ? row.allowed_models : [] });
+const GROUPS = [...new Set(PLAN_LIMITS.map((l) => l.group))];
 
+/** Every package with all of its entitlements, edited and saved on its own card. */
 export function AdminPlans() {
-  const { data } = useQuery({ queryKey: ["admin-plans"], queryFn: async () => (await supabase.from("plan_tiers").select("*").order("sort")).data ?? [] });
-  const counts = useQuery({ queryKey: ["admin-plan-counts"], queryFn: async () => (await supabase.from("artists").select("plan")).data ?? [] }).data ?? [];
+  const query = usePlans();
+  const stats = useArtistStats().data;
+  const subscribers = (code: string) => (stats ? [...stats.values()].filter((s) => s.plan_code === code).length : null);
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-      {data?.map((p) => <PlanCard key={p.code} plan={{ ...p, features: Array.isArray(p.features) ? (p.features as string[]) : [], allowed_models: Array.isArray(p.allowed_models) ? p.allowed_models : [] }} count={counts.filter((c) => c.plan === p.code).length} />)}
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Saved values apply to the artist dashboard, registration and checkout. New AI credit amounts start with the next monthly allocation.</p>
+      <ListState pending={query.isPending} error={query.error} empty={query.data?.length ? null : "No package found."}>
+        <div className="adm-grid">{query.data?.map((row) => <PlanCard key={row.code} plan={toPlan(row)} count={subscribers(row.code)} />)}</div>
+      </ListState>
     </div>
   );
 }
 
-function PlanCard({ plan, count }: { plan: Plan; count: number }) {
+function PlanCard({ plan, count }: { plan: Plan; count: number | null }) {
   const qc = useQueryClient();
+  const saved = JSON.stringify(plan);
   const [p, setP] = useState(plan);
-  const [feat, setFeat] = useState("");
-  const [models, setModels] = useState(plan.allowed_models.join(", "));
-  useEffect(() => { setP(plan); setModels(plan.allowed_models.join(", ")); }, [plan]);
-  const num = (k: keyof Plan) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
+  const [feature, setFeature] = useState("");
+  const [busy, setBusy] = useState(false);
+  // A reload replaces the form only when the stored package actually changed.
+  useEffect(() => { setP(JSON.parse(saved) as Plan); }, [saved]);
+  const dirty = JSON.stringify(p) !== saved;
+  const addFeature = () => { if (!feature.trim()) return; setP({ ...p, features: [...p.features, feature.trim()] }); setFeature(""); };
+  const number = (key: "price_monthly" | "price_yearly" | (typeof PLAN_LIMITS)[number]["key"], label: string, min: number) => (
+    <label key={key}>{label}<Input type="number" min={min} value={Number.isNaN(p[key]) ? "" : p[key]} onChange={(e) => setP({ ...p, [key]: e.target.value === "" ? Number.NaN : Number(e.target.value) })} /></label>
+  );
   const save = async () => {
-    const { code, ...rest } = p;
-    const allowed_models = models.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
-    if (!allowed_models.length) { toast.error("Allow at least one AI model"); return; }
-    const { error } = await supabase.from("plan_tiers").update({ ...rest, allowed_models, updated_at: new Date().toISOString() }).eq("code", code);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${p.name} saved`); qc.invalidateQueries({ queryKey: ["admin-plans"] });
+    const next = { ...p, name: p.name.trim(), features: p.features.map((f) => f.trim()).filter(Boolean) };
+    const problem = planProblem(next);
+    if (problem) { toast.error(problem); return; }
+    setBusy(true);
+    const { code, sort: _sort, updated_at: _updated, ...values } = next;
+    // The returned row proves the change was stored; a refused update returns none.
+    const { data, error } = await supabase.from("plan_tiers").update({ ...values, updated_at: new Date().toISOString() }).eq("code", code).select("code");
+    setBusy(false);
+    if (error || !data?.length) { toast.error(error?.message ?? "The package was not saved"); return; }
+    toast.success(`${next.name} saved`);
+    await Promise.all(["admin-plans", "join-plans", "join-plan-limit", "plan-limits"].map((key) => qc.invalidateQueries({ queryKey: [key] })));
   };
   return (
-    <div className="rounded-xl border bg-card p-5 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <Input className="text-lg font-semibold max-w-[60%]" value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} />
-        <span className="text-xs text-muted-foreground">{count} artists</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <F label="Monthly (AED)"><Input type="number" value={p.price_monthly} onChange={num("price_monthly")} /></F>
-        <F label="Yearly (AED)"><Input type="number" value={p.price_yearly} onChange={num("price_yearly")} /></F>
-        <F label="AI credits / month"><Input type="number" value={p.ai_credits} onChange={num("ai_credits")} /></F>
-        <F label="Commission %"><Input type="number" value={p.commission_pct} onChange={num("commission_pct")} /></F>
-        <F label="Max photos"><Input type="number" value={p.max_photos} onChange={num("max_photos")} /></F>
-        <F label="Max videos"><Input type="number" value={p.max_videos} onChange={num("max_videos")} /></F>
-        <F label="Max specialties"><Input type="number" min={1} value={p.max_specialties} onChange={num("max_specialties")} /></F>
-        <F label="Max team members (-1 unlimited)"><Input type="number" min={-1} value={p.max_team_members} onChange={num("max_team_members")} /></F>
-        <F label="Max categories"><Input type="number" min={1} value={p.max_categories} onChange={num("max_categories")} /></F>
-        <F label="Max portfolio items"><Input type="number" min={0} value={p.max_portfolio} onChange={num("max_portfolio")} /></F>
-        <F label="Max past clients"><Input type="number" min={0} value={p.max_clients} onChange={num("max_clients")} /></F>
-        <F label="Max flow blocks"><Input type="number" min={1} value={p.max_flow_blocks} onChange={num("max_flow_blocks")} /></F>
-        <F label="Max form questions"><Input type="number" min={1} value={p.max_form_questions} onChange={num("max_form_questions")} /></F>
-        <F label="Max active prompts"><Input type="number" min={0} value={p.max_active_prompts} onChange={num("max_active_prompts")} /></F>
-        <F label="Max own prompts"><Input type="number" min={0} value={p.max_own_prompts} onChange={num("max_own_prompts")} /></F>
-      </div>
-      <div>
-        <Label className="text-xs" htmlFor={`models-${p.code}`}>Allowed AI models (comma separated)</Label>
-        <Input id={`models-${p.code}`} value={models} onChange={(e) => setModels(e.target.value)} placeholder="fast, balanced, advanced" />
-      </div>
-      <div>
-        <Label className="text-xs">Features</Label>
-        <ul className="mt-1 space-y-1">
-          {p.features.map((f, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm">
-              <span className="text-gold">✓</span>
-              <Input className="h-8" value={f} onChange={(e) => setP({ ...p, features: p.features.map((x, j) => (j === i ? e.target.value : x)) })} />
-              <Button size="sm" variant="ghost" onClick={() => setP({ ...p, features: p.features.filter((_, j) => j !== i) })}>✕</Button>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-2 flex gap-2">
-          <Input className="h-8" placeholder="Add feature…" value={feat} onChange={(e) => setFeat(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && feat.trim()) { setP({ ...p, features: [...p.features, feat.trim()] }); setFeat(""); } }} />
-          <Button size="sm" variant="outline" onClick={() => { if (feat.trim()) { setP({ ...p, features: [...p.features, feat.trim()] }); setFeat(""); } }}>Add</Button>
+    <section className="adm-card" aria-label={`${plan.name} package`}>
+      <div className="adm-body">
+        <div className="adm-title"><span className="adm-heading">{p.code}</span><span className="adm-pill is-badge">{count === null ? "…" : count} artists</span></div>
+        <Input aria-label="Package name" className="font-display !text-2xl" value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} />
+        <div className="adm-matrix">
+          {number("price_monthly", "Price per month (AED)", 0)}
+          {number("price_yearly", "Price per year (AED)", 0)}
+          {GROUPS.map((group) => <Fragment key={group}><h3 className="adm-heading pt-3">{group}</h3>{PLAN_LIMITS.filter((l) => l.group === group).map((l) => number(l.key, l.label, l.min))}</Fragment>)}
+          <h3 className="adm-heading pt-3">AI models</h3>
+          {AI_MODELS.map((model) => <label key={model}><span className="capitalize">{model} model</span><span className="justify-self-end"><Switch checked={p.allowed_models.includes(model)} onCheckedChange={(on) => setP({ ...p, allowed_models: AI_MODELS.filter((m) => (m === model ? on : p.allowed_models.includes(m))) })} aria-label={`${model} model`} /></span></label>)}
+        </div>
+        <h3 className="adm-heading pt-2">Features shown to artists</h3>
+        <ul className="grid gap-1.5">{p.features.map((text, i) => <li key={i} className="flex items-center gap-1.5"><Input className="h-8" aria-label={`Feature ${i + 1}`} value={text} onChange={(e) => setP({ ...p, features: p.features.map((x, j) => (j === i ? e.target.value : x)) })} /><Button size="icon" variant="ghost" aria-label={`Remove feature ${i + 1}`} onClick={() => setP({ ...p, features: p.features.filter((_, j) => j !== i) })}><X className="size-4" /></Button></li>)}</ul>
+        <div className="flex gap-2"><Input className="h-8" aria-label="New feature" placeholder="Add feature…" value={feature} onChange={(e) => setFeature(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addFeature(); }} /><Button size="sm" variant="outline" onClick={addFeature}>Add</Button></div>
+        <div className="adm-foot">
+          <span className="adm-meta" aria-live="polite">{dirty ? "Unsaved changes" : "Saved"}</span>
+          <div className="adm-actions"><Button size="sm" variant="ghost" disabled={!dirty || busy} onClick={() => setP(plan)}>Discard</Button><Button size="sm" disabled={!dirty || busy} onClick={() => void save()}>Save {plan.name}</Button></div>
         </div>
       </div>
-      <Button className="mt-auto" onClick={save}>Save {p.name}</Button>
-    </div>
+    </section>
   );
 }
-const F = ({ label, children }: { label: string; children: React.ReactNode }) => <div><Label className="text-xs">{label}</Label>{children}</div>;

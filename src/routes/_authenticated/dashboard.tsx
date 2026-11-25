@@ -42,6 +42,7 @@ import { ClientsSection, LanguagesField, PhysicalFields, PortfolioSection, Profi
 import type { Json } from "@/integrations/supabase/types";
 import { StudioHeading, StudioSection, StudioSoon, StudioEmpty } from "@/components/dashboard/StudioPage";
 import { ProfileSide } from "@/components/dashboard/ProfileSide";
+import { ProfileReminder } from "@/components/dashboard/ProfileReminder";
 import { TravelSettings } from "@/components/dashboard/TravelSettings";
 import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import { LogoutButton } from "@/components/shared/LogoutButton";
@@ -248,7 +249,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         </nav>
         <div className="studio-side-foot">
           <b>{tr("More credits,")} <span className="it">{tr("more replies.")}</span></b>
-          <p>{tr("Medium gives 200 AI credits and calendar sync. Pro gives 500 credits and featured eligibility.")}</p>
+          <PlanCreditsNote />
           <Button size="sm" className="studio-button studio-button-gold" onClick={() => { setSection("overview"); setMenu(false); }}>{tr("See plans")} <span className="studio-arrow" aria-hidden="true">→</span></Button>
         </div>
       </aside>
@@ -269,6 +270,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           </div>
         </header>
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>
+          <ProfileReminder artistId={artist.id} onOpenProfile={() => setSection("profile")} />
           {section === "youragent" && <YourAgent artistId={artist.id} stageName={artist.stage_name} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
@@ -294,6 +296,14 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
       </div>
     </div>
   );
+}
+
+/** The AI credits each paid package includes today, as saved in Admin → Artist packages. */
+function PlanCreditsNote() {
+  const { t } = useI18n();
+  const { data = [] } = useQuery({ queryKey: ["plan-credits"], queryFn: async () => (await supabase.from("plan_tiers").select("name,ai_credits,price_monthly").gt("price_monthly", 0).order("sort")).data ?? [] });
+  if (!data.length) return null;
+  return <p>{data.map((p) => `${p.name}: ${p.ai_credits} ${t("AI credits")}`).join(" · ")}</p>;
 }
 
 type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; category_ids?: string[]; subcategory_id: string | null; specialty_ids?: string[]; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };

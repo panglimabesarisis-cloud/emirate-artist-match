@@ -8,14 +8,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PublicLayout } from "@/components/site/PublicLayout";
-import { BADGE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminPerformance } from "@/components/admin/AdminPerformance";
-import { ArtistDirectory, ArtistRequests, CategoryManager, EventTypeManager } from "@/components/admin/AdminArtists";
+import { ArtistDirectory, ArtistRequests, EventTypeManager } from "@/components/admin/AdminArtists";
+import { CategoryManager } from "@/components/admin/AdminCategories";
+import { AdminVerification } from "@/components/admin/AdminVerification";
+import { AdminDocuments } from "@/components/admin/AdminDocuments";
 import { AdminPlans } from "@/components/admin/AdminPlans";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { AdminRatecards } from "@/components/admin/AdminRatecards";
@@ -29,9 +30,6 @@ import { AdminModelRates } from "@/components/admin/AdminMarketplace";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ClientAccounts, ClientWithdrawals, SupportInbox } from "@/components/admin/AdminClients";
-import { useServerFn } from "@tanstack/react-start";
-import { decideVerification, openVerificationFile } from "@/lib/verification.functions";
-import { VERIFICATION_REASONS } from "@/lib/verification-rules";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -44,9 +42,10 @@ const NAV = [
   { id: "performance", label: "Performance Analytics", group: "Dashboard" },
   { id: "artists", label: "Artist directory", group: "Artists" },
   { id: "requests", label: "Artist requests", group: "Artists" },
-  { id: "categories", label: "Categories", group: "Artists" },
-  { id: "verify", label: "Verification", group: "Artists" },
+  { id: "categories", label: "Category & speciality", group: "Artists" },
+  { id: "verify", label: "Verification & badges", group: "Artists" },
   { id: "ratecards", label: "Ratecards", group: "Artists" },
+  { id: "documents", label: "Legal & tax documents", group: "Artists" },
   { id: "bookings", label: "Booking management", group: "Operations" },
   { id: "clients", label: "Client accounts", group: "Operations" },
   { id: "reviews", label: "Review moderation", group: "Operations" },
@@ -74,7 +73,7 @@ const NAV_ICONS: Record<Section, LucideIcon> = {
   overview: Gauge, performance: ChartNoAxesCombined, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
   library: Layers, flow: Workflow, settings: SettingsIcon, clients: UsersIcon, "client-payouts": Banknote, support: LifeBuoy,
-  bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
+  documents: FileSignature, bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
 };
 
 
@@ -176,7 +175,8 @@ function Admin() {
           {section === "artists" && <ArtistDirectory />}
           {section === "requests" && <ArtistRequests />}
           {section === "categories" && <CategoryManager />}
-          {section === "verify" && <VerifyQueue />}
+          {section === "verify" && <AdminVerification />}
+          {section === "documents" && <AdminDocuments />}
           {section === "ratecards" && <AdminRatecards />}
           {section === "invoices" && <InvoiceRecords />}
           {section === "contracts" && <ContractsTable />}
@@ -223,70 +223,6 @@ function PayoutQueue() {
           </div>
           <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>{r.status}</Badge>
           {r.status === "pending" && <><Button size="sm" onClick={() => decide(r.id, "paid")}>Mark paid</Button><Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>Reject</Button></>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function VerifyQueue() {
-  const qc = useQueryClient();
-  const openFile = useServerFn(openVerificationFile);
-  const saveDecision = useServerFn(decideVerification);
-  const { data } = useQuery({
-    queryKey: ["admin-verif"],
-    queryFn: async () => {
-      const result = await supabase.from("verification_applications").select("*, artists(stage_name), verification_details(*), verification_files(*)").order("created_at", { ascending: false });
-      if (result.error) throw new Error("Unable to load verification applications");
-      return result.data ?? [];
-    },
-  });
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const decide = async (id: string, status: "approved" | "rejected" | "needs_more_info", savedReasons: string[], savedNote: string | null) => {
-    setBusy(id);
-    try {
-      const result = await saveDecision({ data: { applicationId: id, status, reasons: (reasons[id] ?? savedReasons.join("\n")).split("\n").map((s) => s.trim()).filter(Boolean), admin_note: notes[id] ?? savedNote ?? "" } });
-      if (!result.ok) { toast.error(result.error); return; }
-      toast.success(`Marked ${status.replace(/_/g, " ")}`);
-      await qc.invalidateQueries({ queryKey: ["admin-verif"] });
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save decision"); }
-    finally { setBusy(null); }
-  };
-  const view = async (applicationId: string, fileId?: string) => {
-    const popup = window.open("", "_blank");
-    if (popup) popup.opener = null;
-    try {
-      const result = await openFile({ data: fileId ? { applicationId, fileId } : { applicationId } });
-      if (popup) popup.location.href = result.url;
-      else toast.error("Allow pop-ups to view verification documents");
-    } catch (error) { popup?.close(); toast.error(error instanceof Error ? error.message : "Could not open document"); }
-  };
-  return (
-    <div className="space-y-3">
-      {data?.length === 0 && <p className="text-muted-foreground">No applications yet.</p>}
-      {data?.map((a) => (
-        <div key={a.id} className="rounded-xl bg-card p-4 shadow-card">
-          <div className="flex justify-between"><span className="font-semibold">{a.artists?.stage_name} — {BADGE_LABELS[a.badge_type]}</span><Badge variant="secondary">{a.status.replace(/_/g, " ")}</Badge></div>
-          {a.note && <p className="text-sm text-muted-foreground mt-1">{a.note}</p>}
-          {a.verification_details && <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-            {Object.entries(a.verification_details).filter(([key]) => !["application_id", "created_at"].includes(key)).map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key.replace(/_/g, " ")}</dt><dd className="break-words">{value === null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}
-          </dl>}
-          <div className="mt-3 flex flex-wrap gap-2">{a.verification_files.map((file) => <Button key={file.id} size="sm" variant="outline" disabled={Boolean(a.privacy_purged_at)} onClick={() => view(a.id, file.id)}>{file.kind.replace(/_/g, " ")}</Button>)}</div>
-          {a.doc_path && !a.verification_files.some((file) => file.storage_path === a.doc_path) && <Button size="sm" variant="outline" disabled={Boolean(a.privacy_purged_at)} onClick={() => view(a.id)}>Legacy document</Button>}
-          {a.privacy_purged_at && <p className="mt-2 text-sm text-muted-foreground">Documents deleted under the 30-day privacy rule.</p>}
-          <div className="mt-3 space-y-2">
-            <label className="block text-sm" htmlFor={`reasons-${a.id}`}>What went wrong</label>
-            <div className="flex flex-wrap gap-2">{VERIFICATION_REASONS.map((reason) => <Button key={reason} size="sm" variant="outline" className="h-auto whitespace-normal text-start" onClick={() => setReasons((previous) => ({ ...previous, [a.id]: [...new Set([...(previous[a.id] ?? a.reasons.join("\n")).split("\n").filter(Boolean), reason])].join("\n") }))}>{reason}</Button>)}</div>
-            <textarea id={`reasons-${a.id}`} className="w-full rounded-md border border-input bg-background p-2 text-sm" rows={3} placeholder="Choose a reason above or type one per line" value={reasons[a.id] ?? a.reasons.join("\n")} onChange={(e) => setReasons({ ...reasons, [a.id]: e.target.value })} />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 items-center">
-            <Input className="max-w-xs" placeholder="Note to artist" value={notes[a.id] ?? a.admin_note ?? ""} onChange={(e) => setNotes({ ...notes, [a.id]: e.target.value })} />
-            <Button size="sm" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "approved", a.reasons, a.admin_note)}>Approve</Button>
-            <Button size="sm" variant="outline" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "needs_more_info", a.reasons, a.admin_note)}>Need more info</Button>
-            <Button size="sm" variant="ghost" disabled={busy === a.id || Boolean(a.privacy_purged_at)} onClick={() => decide(a.id, "rejected", a.reasons, a.admin_note)}>Reject</Button>
-          </div>
         </div>
       ))}
     </div>

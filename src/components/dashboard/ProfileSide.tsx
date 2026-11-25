@@ -5,6 +5,7 @@ import { initials } from "@/lib/format";
 import { useArtistPlan } from "./PromptLibrary";
 import { toInvoiceRows, useInvoiceQuery } from "./InvoiceRecords";
 import { useProfilePhoto } from "@/hooks/use-profile-photo";
+import { profileChecks, profilePercent } from "@/lib/profile-completeness";
 
 type Live = {
   stage_name?: string | null; tagline?: string | null; bio?: string | null; base_price?: number | null; travel_radius_km?: number | null;
@@ -41,14 +42,11 @@ export function ProfileSide({ artistId, v, photoPath, names }: { artistId: strin
   const bioLen = (v.bio ?? "").trim().length;
   const nameOk = (v.stage_name ?? "").trim().length >= 2;
   const isModel = names.categories.some((name) => /model/i.test(name));
-  const checks: [string, boolean, string][] = [
-    ["Profile photo", !!photoPath, "#pf-photo"], ["Tagline", (v.tagline ?? "").trim().length >= 5, "#pf-tagline"], ["Bio of 150 characters or more", bioLen >= 150, "#pf-bio"],
-    ["A speciality", names.specialities.length > 0, "#pf-sp"], ["Three or more skills", (v.skills ?? []).length >= 3, "#pf-sk"], ["Starting price and location", !!v.base_price && !!names.area, "#pf-price"],
-    ["Languages", (v.languages ?? []).length > 0, "#pf-lg"], ["One work in your portfolio", (works.data?.length ?? 0) > 0, "#pf-po-s"], ["One client", (clients.data?.length ?? 0) > 0, "#pf-cl-s"],
-  ];
-  if (isModel) checks.splice(6, 0, ["Height, weight and hair color", !!(body["height_cm"] && body["weight_kg"] && body["hair"]), "#body-height_cm"]);
-  const done = checks.filter((c) => c[1]).length;
-  const pct = Math.round((done / checks.length) * 100);
+  const checks = profileChecks({
+    stageName: v.stage_name, tagline: v.tagline, bio: v.bio, basePrice: v.base_price, languages: v.languages, skills: v.skills, body: v.body, photoPath,
+    categories: names.categories, specialities: names.specialities, area: names.area, portfolio: works.data?.length ?? 0, clients: clients.data?.length ?? 0,
+  });
+  const pct = profilePercent(checks);
   const go = (sel: string) => { const el = document.querySelector<HTMLElement>(sel); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); window.setTimeout(() => el.focus?.({ preventScroll: true }), 350); } };
 
   const no = <span className="dmr-no">{t("Not set")}</span>;
