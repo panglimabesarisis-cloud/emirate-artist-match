@@ -2,7 +2,7 @@
 -- validate_ratecard_items() from the base items; low and high are the artist's
 -- own floor and opening anchor. Both stay NULL until the artist sets them, so
 -- existing ratecards keep the derived max_discount_pct floor.
-ALTER TABLE public.rate_cards ADD COLUMN price_low numeric, ADD COLUMN price_high numeric;
+ALTER TABLE public.rate_cards ADD COLUMN IF NOT EXISTS price_low numeric, ADD COLUMN IF NOT EXISTS price_high numeric;
 
 CREATE OR REPLACE FUNCTION public.validate_ratecard_items() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$
 DECLARE item jsonb; base_total numeric:=0; minutes numeric:=0; all_time boolean:=true; has_base boolean:=false; qty numeric; item_price numeric;

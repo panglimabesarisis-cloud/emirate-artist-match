@@ -2,19 +2,27 @@
 -- but the table held one form per artist. Scope each form to a speciality and
 -- keep the existing row as the fallback used when a speciality has none.
 ALTER TABLE public.artist_order_forms
-  ADD COLUMN id uuid NOT NULL DEFAULT gen_random_uuid(),
-  ADD COLUMN category_id uuid REFERENCES public.categories(id) ON DELETE CASCADE,
-  ADD COLUMN subcategory_id uuid REFERENCES public.subcategories(id) ON DELETE CASCADE;
+  ADD COLUMN IF NOT EXISTS id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS category_id uuid REFERENCES public.categories(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS subcategory_id uuid REFERENCES public.subcategories(id) ON DELETE CASCADE;
 
-ALTER TABLE public.artist_order_forms DROP CONSTRAINT artist_order_forms_pkey;
-ALTER TABLE public.artist_order_forms ADD CONSTRAINT artist_order_forms_pkey PRIMARY KEY (id);
+DO $pk$ BEGIN
+ IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname='artist_order_forms_pkey' AND conrelid='public.artist_order_forms'::regclass
+            AND (SELECT array_agg(attname ORDER BY attname) FROM pg_attribute WHERE attrelid=conrelid AND attnum=ANY(conkey)) <> ARRAY['id']) THEN
+  ALTER TABLE public.artist_order_forms DROP CONSTRAINT artist_order_forms_pkey;
+ END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='artist_order_forms_pkey' AND conrelid='public.artist_order_forms'::regclass) THEN
+  ALTER TABLE public.artist_order_forms ADD CONSTRAINT artist_order_forms_pkey PRIMARY KEY (id);
+ END IF;
+END $pk$;
 
 -- One fallback per artist, and one form per speciality. Both are partial so a
 -- NULL speciality keeps meaning "use this when nothing more specific exists".
-CREATE UNIQUE INDEX artist_order_forms_fallback_key ON public.artist_order_forms(artist_id) WHERE subcategory_id IS NULL;
-CREATE UNIQUE INDEX artist_order_forms_speciality_key ON public.artist_order_forms(artist_id, subcategory_id) WHERE subcategory_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS artist_order_forms_fallback_key ON public.artist_order_forms(artist_id) WHERE subcategory_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS artist_order_forms_speciality_key ON public.artist_order_forms(artist_id, subcategory_id) WHERE subcategory_id IS NOT NULL;
 
 -- A form must stay inside the artist's own category tree.
+ALTER TABLE public.artist_order_forms DROP CONSTRAINT IF EXISTS artist_order_forms_scope_ck;
 ALTER TABLE public.artist_order_forms ADD CONSTRAINT artist_order_forms_scope_ck
   CHECK (subcategory_id IS NULL OR category_id IS NOT NULL);
 
@@ -37,6 +45,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.use_order_form_template(uuid) FROM PUBLIC,anon;
 
-CREATE INDEX artist_order_forms_lookup_idx ON public.artist_order_forms(artist_id, subcategory_id) WHERE enabled;
+CREATE INDEX IF NOT EXISTS artist_order_forms_lookup_idx ON public.artist_order_forms(artist_id, subcategory_id) WHERE enabled;
 
 COMMENT ON COLUMN public.artist_order_forms.subcategory_id IS 'Speciality this form asks about. NULL is the fallback for specialities with no form of their own.';
