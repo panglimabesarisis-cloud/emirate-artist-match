@@ -32,6 +32,7 @@ export type ArtistCard = {
   category: { slug: string; name: string; name_ar?: string | null } | null;
   subcategory: { slug: string; name: string } | null;
   specialty_slugs?:string[];
+  category_slugs?: string[];
   specialty_names?: string[];
   emirate: { slug: string; name: string; name_ar?: string | null } | null;
   area: { slug: string; name: string } | null;
@@ -68,7 +69,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
   let q = sb
     .from("artists")
     .select(
-      "id, slug, stage_name, tagline, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category:categories(id,slug,name,name_ar), subcategory:subcategories(id,slug,name), emirate:emirates(slug,name,name_ar), area:areas(slug,name), artist_badges(badge)",
+      "id, slug, stage_name, tagline, languages, event_type_slugs, featured, plan, hue, photo_path, specialty_ids, category_ids, category:categories(id,slug,name,name_ar), subcategory:subcategories(id,slug,name), emirate:emirates(slug,name,name_ar), area:areas(slug,name), artist_badges(badge)",
     )
     .eq("status", "approved");
   if (filter?.artistSlug) q = q.eq("slug", filter.artistSlug);
@@ -83,6 +84,8 @@ async function loadCards(filter?: { artistSlug?: string }) {
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
   const subscribers = await paidSubscriberIds(supabaseAdmin, (artists ?? []).map((a) => a.id));
   const {data:specialties}=await sb.from('subcategories').select('id,slug,name');
+  const {data:categoryRows}=await sb.from('categories').select('id,slug');
+  const categorySlugs=new Map((categoryRows??[]).map(c=>[c.id,c.slug]));
   const slugMap=new Map((specialties??[]).map(s=>[s.id,s.slug]));
   const nameMap=new Map((specialties??[]).map(s=>[s.id,s.name]));
   return (artists ?? []).map((a): ArtistCard => {
@@ -102,6 +105,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
       subcategory: a.subcategory,
       specialty_slugs:(a.specialty_ids??[]).flatMap(id=>{const slug=slugMap.get(id);return slug?[slug]:[];}),
       specialty_names: (a.specialty_ids ?? []).flatMap(id => { const name = nameMap.get(id); return name ? [name] : []; }),
+      category_slugs: (a.category_ids ?? []).flatMap(id => { const slug = categorySlugs.get(id); return slug ? [slug] : []; }),
       emirate: a.emirate,
       area: a.area,
       badges: (a.artist_badges ?? []).map((b) => b.badge),
@@ -165,7 +169,7 @@ export const searchArtists = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     let cards = await loadCards();
     if (data.q) cards = cards.filter((c) => matchesSearch(c, data.q));
-    if (data.category && data.category !== ALL) cards = cards.filter((c) => c.category?.slug === data.category);
+    if (data.category && data.category !== ALL) cards = cards.filter((c) => c.category?.slug === data.category || c.category_slugs?.includes(data.category!));
     if (data.sub) cards = cards.filter((c) => c.subcategory?.slug === data.sub||c.specialty_slugs?.includes(data.sub??''));
     if (data.emirate) cards = cards.filter((c) => c.emirate?.slug === data.emirate);
     if (data.area) cards = cards.filter((c) => c.area?.slug === data.area);

@@ -124,7 +124,7 @@ function ChoosePlan({ artist, onChanged }: { artist: Artist; onChanged: () => Pr
             <span className="block text-xl font-semibold">{t(x.name)}</span>
             <span className="mt-1 block text-lg">AED {priceOf(x, interval).toLocaleString("en-US")}<span className="text-sm text-muted-foreground">/{t(interval === "year" ? "yr" : "mo")} + 5% {t("VAT")}</span></span>
             <span className="mt-3 block space-y-1 text-sm text-muted-foreground">
-              <span className="block">{x.max_specialties ?? specialtyLimit(x.code)} {t("specialties")}</span>
+              <span className="block">{x.max_categories} {t("categories")} · {x.max_specialties ?? specialtyLimit(x.code)} {t("specialties")}</span>
               <span className="block">{x.ai_credits} {t("AI credits")}</span>
               <span className="block">{x.max_photos} {t("photos")} · {x.max_videos} {t("videos")}</span>
               <span className="block">{Number(x.commission_pct)}% {t("commission")}</span>

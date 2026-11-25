@@ -18,6 +18,8 @@ import { memberCan, type TeamPage } from "@/lib/team-access";
 import { RateCardTable } from "@/components/dashboard/RateCardTable";
 import { OrderFormBuilder } from "@/components/dashboard/OrderFormBuilder";
 import { MediaTab } from "@/components/dashboard/MediaTab";
+import { usePlanLimits } from "@/hooks/use-plan-limits";
+import { pickCategories, pickSpecialities, selectedIds } from "@/lib/profile-categories";
 import { QuoteRequests } from "@/components/dashboard/QuoteRequests";
 import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { TeamTab } from "@/components/dashboard/TeamTabs";
@@ -294,15 +296,16 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
   );
 }
 
-type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; subcategory_id: string | null; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
+type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; category_ids?: string[]; subcategory_id: string | null; specialty_ids?: string[]; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
 
-function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode }) {
+function ArtistFields({ v, set, photo, limits }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode; /** From the paid plan; one of each without it. */ limits?: { max_categories: number; max_specialties: number } | undefined }) {
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   const bio = (v.bio ?? "").trim().length, tag = v.tagline ?? "", name = v.stage_name ?? "";
-  const catName = cat?.categories.find((c) => c.id === v.category_id)?.name;
-  const specName = cat?.subcategories.find((x) => x.id === v.subcategory_id)?.name;
-  const specs = (cat?.subcategories ?? []).filter((x) => !v.category_id || x.category_id === v.category_id).map((x) => ({ n: x.name, g: cat?.categories.find((c) => c.id === x.category_id)?.name ?? "" }));
+  const categoryIds = selectedIds(v.category_id, v.category_ids);
+  const catNames = categoryIds.flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []);
+  const specNames = selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []);
+  const specs = (cat?.subcategories ?? []).filter((x) => !categoryIds.length || categoryIds.includes(x.category_id)).map((x) => ({ n: x.name, g: cat?.categories.find((c) => c.id === x.category_id)?.name ?? "" }));
   return <div className="studio-profile-fields">
     <StudioSection className="dmr-pf-sec" title="About" accent="you" subtitle="Your photo, name and a short line that sells you.">
       <div className="dmr-pf-id">
@@ -319,10 +322,11 @@ function ArtistFields({ v, set, photo }: { v: Partial<ArtistRow>; set: (p: Parti
     </StudioSection>
     <StudioSection className="dmr-pf-sec" title="What you" accent="do" subtitle="Add your category and speciality, then the skills clients search for. Type, choose from the list, press comma to add another.">
       <div className="dmr-a-grid">
-        <ChipInput id="pf-cat" label={t("Categories")} values={catName ? [catName] : []} strict max={1} noun="category" plural="categories" placeholder={t("e.g. Comedians")} source={(cat?.categories ?? []).map((c) => ({ n: c.name }))}
-          onChange={(x) => { const hit = cat?.categories.find((c) => c.name === x[0]); set({ category_id: hit?.id ?? null, subcategory_id: null }); }} />
-        <ChipInput id="pf-sp" label={t("Specialities")} values={specName ? [specName] : []} strict max={1} noun="speciality" plural="specialities" placeholder={t("Start typing, e.g. Stand-up")} source={specs}
-          onChange={(x) => { const hit = cat?.subcategories.find((s) => s.name === x[0] && (!v.category_id || s.category_id === v.category_id)); set(hit ? { subcategory_id: hit.id, category_id: hit.category_id } : { subcategory_id: null }); }} />
+        <ChipInput id="pf-cat" label={t("Categories")} values={catNames} strict max={limits?.max_categories ?? 1} noun="category" plural="categories" placeholder={t("e.g. Comedians")} source={(cat?.categories ?? []).map((c) => ({ n: c.name }))}
+          onChange={(x) => set(pickCategories(x, cat?.categories ?? [], cat?.subcategories ?? [], v))} />
+        <ChipInput id="pf-sp" label={t("Specialities")} values={specNames} strict max={limits?.max_specialties ?? 1} noun="speciality" plural="specialities" placeholder={t("Start typing, e.g. Stand-up")} source={specs}
+          onChange={(x) => set(pickSpecialities(x, cat?.subcategories ?? [], v))} />
+        {limits && <p className="dmr-f-hint dmr-full">{catNames.length} {t("of")} {limits.max_categories} {t("categories")} · {specNames.length} {t("of")} {limits.max_specialties} {t("specialities")}</p>}
         <SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} />
       </div>
     </StudioSection>
@@ -425,6 +429,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
   const [v, setV] = useState<Partial<ArtistRow>>(artist);
   const [base, setBase] = useState<Partial<ArtistRow>>(artist);
   const { data: plan } = useQuery({ queryKey: ["effective-plan", artist.id], queryFn: async () => ((await supabase.rpc("effective_artist_plan", { _artist: artist.id })).data as string | null) ?? "free" });
+  const limits = usePlanLimits(artist.id).data;
   const dirty = JSON.stringify(v) !== JSON.stringify(base);
   const bioLen = (v.bio ?? "").trim().length;
   const save = async () => {
@@ -441,7 +446,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     const { id: _id, ...rest } = v as ArtistRow;
     const { error } = await supabase.from("artists").update({
       stage_name: rest.stage_name, tagline: rest.tagline, bio: rest.bio, base_price: rest.base_price, languages: rest.languages,
-      skills: rest.skills ?? [], body: rest.body ?? {}, travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, subcategory_id: rest.subcategory_id, emirate_id: rest.emirate_id, area_id: rest.area_id,
+      skills: rest.skills ?? [], body: rest.body ?? {}, travel_radius_km: rest.travel_radius_km, category_id: rest.category_id, category_ids: selectedIds(rest.category_id, rest.category_ids), subcategory_id: rest.subcategory_id, specialty_ids: selectedIds(rest.subcategory_id, rest.specialty_ids), emirate_id: rest.emirate_id, area_id: rest.area_id,
       travel_surcharge_enabled: rest.travel_surcharge_enabled ?? false, travel_step_km: rest.travel_step_km ?? 10, travel_fee_per_step: rest.travel_fee_per_step ?? 0,
     }).eq("id", artist.id);
     if (error) { toast.error(error.message); return; }
@@ -450,7 +455,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     onSaved();
   };
   const planName = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "";
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ category: cat?.categories.find((c) => c.id === v.category_id)?.name ?? "", speciality: cat?.subcategories.find((x) => x.id === v.subcategory_id)?.name ?? "", emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} limits={limits} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ categories: selectedIds(v.category_id, v.category_ids).flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []), specialities: selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []), emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {

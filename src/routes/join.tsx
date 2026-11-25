@@ -129,7 +129,7 @@ function PlanStep({ onPick }: { onPick: (p: string) => void }) {
             <div className="reference-plan-name">{t.name}</div>
             <div className="reference-plan-price">AED {Number(t.price_monthly).toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
             <ul className="mt-3 flex-1 space-y-1 text-sm text-muted-foreground">
-              <li>{specialtyLimit(t.code)} {specialtyLimit(t.code) === 1 ? "specialty" : "specialties"}</li>
+              <li>{t.max_categories} {t.max_categories === 1 ? "category" : "categories"} · {t.max_specialties} {t.max_specialties === 1 ? "specialty" : "specialties"}</li>
               <li>{t.ai_credits} AI credits</li>
               <li>{t.max_photos} photos · {t.max_videos} videos</li>
               <li>{Number(t.commission_pct)}% platform commission</li>

@@ -10,7 +10,7 @@ type Live = {
   stage_name?: string | null; tagline?: string | null; bio?: string | null; base_price?: number | null; travel_radius_km?: number | null;
   languages?: string[] | null; skills?: string[] | null; body?: unknown;
 };
-export type ProfileNames = { category: string; speciality: string; emirate: string; area: string };
+export type ProfileNames = { categories: string[]; specialities: string[]; emirate: string; area: string };
 
 const aed = (n: number) => `AED ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const n0 = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -40,10 +40,10 @@ export function ProfileSide({ artistId, v, photoPath, names }: { artistId: strin
 
   const bioLen = (v.bio ?? "").trim().length;
   const nameOk = (v.stage_name ?? "").trim().length >= 2;
-  const isModel = /model/i.test(names.category);
+  const isModel = names.categories.some((name) => /model/i.test(name));
   const checks: [string, boolean, string][] = [
     ["Profile photo", !!photoPath, "#pf-photo"], ["Tagline", (v.tagline ?? "").trim().length >= 5, "#pf-tagline"], ["Bio of 150 characters or more", bioLen >= 150, "#pf-bio"],
-    ["A speciality", !!names.speciality, "#pf-sp"], ["Three or more skills", (v.skills ?? []).length >= 3, "#pf-sk"], ["Starting price and location", !!v.base_price && !!names.area, "#pf-price"],
+    ["A speciality", names.specialities.length > 0, "#pf-sp"], ["Three or more skills", (v.skills ?? []).length >= 3, "#pf-sk"], ["Starting price and location", !!v.base_price && !!names.area, "#pf-price"],
     ["Languages", (v.languages ?? []).length > 0, "#pf-lg"], ["One work in your portfolio", (works.data?.length ?? 0) > 0, "#pf-po-s"], ["One client", (clients.data?.length ?? 0) > 0, "#pf-cl-s"],
   ];
   if (isModel) checks.splice(6, 0, ["Height, weight and hair color", !!(body["height_cm"] && body["weight_kg"] && body["hair"]), "#body-height_cm"]);
@@ -56,7 +56,7 @@ export function ProfileSide({ artistId, v, photoPath, names }: { artistId: strin
   const tags = (a: string[]) => a.length ? <div className="dmr-tg">{a.map((x) => <span key={x}>{x}</span>)}</div> : no;
   const rows: [string, React.ReactNode][] = [
     ["Stage name", nameOk ? v.stage_name : no], ["Tagline", (v.tagline ?? "").trim() ? v.tagline : no], ["Photo", photoPath ? <span className="dmr-ok">{t("Uploaded")}</span> : no],
-    ["Categories", names.category ? tags([names.category]) : no], ["Specialities", names.speciality ? tags([names.speciality]) : no], ["Skills", tags(v.skills ?? [])],
+    ["Categories", tags(names.categories)], ["Specialities", tags(names.specialities)], ["Skills", tags(v.skills ?? [])],
     ["Emirate", names.emirate || no], ["Base area", names.area || no], ["Starting price", v.base_price ? `AED ${n0(Number(v.base_price))}` : no], ["Travel radius", v.travel_radius_km != null ? `${v.travel_radius_km} km` : no], ["Languages", tags(v.languages ?? [])],
     ["Height and weight", body["height_cm"] || body["weight_kg"] ? [body["height_cm"] && `${body["height_cm"]} cm`, body["weight_kg"] && `${body["weight_kg"]} kg`].filter(Boolean).join(" · ") : isModel ? no : optional],
     ["Hair and eyes", body["hair"] || body["eyes"] ? [body["hair"], body["eyes"] && `${body["eyes"]} ${t("eyes")}`].filter(Boolean).join(" · ") : isModel ? no : optional],
@@ -101,7 +101,7 @@ export function ProfileSide({ artistId, v, photoPath, names }: { artistId: strin
           <div className="dmr-pf-av">{photoUrl ? <img src={photoUrl} alt={v.stage_name || t("Profile photo")} /> : initials(v.stage_name || "?")}</div>
           <h3>{v.stage_name || t("Your name")}</h3>
           <p>{v.tagline || t("Your tagline")}</p>
-          <div className="dmr-tg">{names.speciality || names.category ? <span>{names.speciality || names.category}</span> : <span style={{ color: "var(--studio-mute-2)" }}>{t("Category")}</span>}</div>
+          <div className="dmr-tg">{names.specialities[0] || names.categories[0] ? <span>{names.specialities[0] || names.categories[0]}</span> : <span style={{ color: "var(--studio-mute-2)" }}>{t("Category")}</span>}</div>
           <div className="dmr-fr">{t("From")} <b>AED {n0(Number(v.base_price ?? 0))}</b> · {[names.area, names.emirate].filter(Boolean).join(", ")}</div>
         </div>
       </section>

@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Profile limits (categories, specialities, portfolio, clients) come from `plan_tiers` through `usePlanLimits`, never constants; the database enforces the same numbers (0091). `plan_tiers` is intentionally public read-only; `client_commission_tiers` is readable only by signed-in users, without `updated_by`.
 - A client chat needs a signed-in client: `submitQuote`/`startChat` reject guests, artist pages keep the typed form across Google sign-in (src/lib/booking-draft.ts), and `/chat` shows the sign-in window first. Opening messages to artist and client use src/lib/new-chat-message.ts (English).
 - After a booking payment the server posts the fixed confirmation (src/lib/payment-confirmation.ts) as the next AI message; the model never writes its own.
 - A verified booking or invoice payment posts one `[[RECEIPT]]` system message (id = order id, no contact details) into its chat and returns the payer there (src/lib/payment-proof.server.ts). Render receipts only from `system` messages. The `/booking` page offers no client cancel or dispute cards.

@@ -133,7 +133,7 @@ export function Browse() {
   const [city, setCity] = useState("");
   const cities = useMemo(() => [...new Map((artists.data ?? []).filter((a) => a.emirate).map((a) => [a.emirate!.slug, a.emirate!.name])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [artists.data]);
   const categories = useMemo(() => [...new Map((artists.data ?? []).filter((a) => a.category).map((a) => [a.category!.slug, a.category!.name])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [artists.data]);
-  const list = (artists.data ?? []).filter((a) => (!cat || a.category?.slug === cat) && (!city || a.emirate?.slug === city) && matchesSearch(a, q));
+  const list = (artists.data ?? []).filter((a) => (!cat || a.category?.slug === cat || a.category_slugs?.includes(cat)) && (!city || a.emirate?.slug === city) && matchesSearch(a, q));
   return (
     <section className="cp-page">
       <PageHead eyebrow="Discover talent" title="BROWSE ARTISTS" text="Discover talent for your next event, campaign or production." />

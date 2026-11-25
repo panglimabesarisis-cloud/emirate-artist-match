@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { StudioEmpty, StudioSection } from "./StudioPage";
 import { ChipInput } from "./ChipInput";
 import { useProfilePhoto } from "@/hooks/use-profile-photo";
+import { usePlanLimits } from "@/hooks/use-plan-limits";
 
 const BUCKET = "artist-media";
 
@@ -107,14 +108,11 @@ export function PhysicalFields({ body, onChange }: { body: Record<string, unknow
 }
 
 const WORK_KINDS = ["Live show", "Corporate event", "Wedding", "Video", "Press", "Other"];
-const WORK_LIMIT: Record<string, number> = { free: 3, basic: 6, medium: 12, pro: 24 };
-const CLIENT_LIMIT = 10;
+/** -1 means unlimited; unknown while loading, when the database still enforces the plan. */
+const reached = (used: number, max: number | undefined) => max !== undefined && max >= 0 && used >= max;
+const limitText = (max: number | undefined) => (max === undefined ? "…" : max < 0 ? "∞" : max);
 const ini = (n: string) => (n || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 const YEARS = Array.from({ length: 12 }, (_, i) => new Date().getFullYear() - i);
-
-function usePlanCode(artistId: string) {
-  return useQuery({ queryKey: ["effective-plan", artistId], queryFn: async () => ((await supabase.rpc("effective_artist_plan", { _artist: artistId })).data as string | null) ?? "free" });
-}
 
 function WorkImage({ path, title }: { path: string | null; title: string }) {
   const { data: url } = useQuery({ queryKey: ["work-img", path], enabled: !!path, staleTime: 50 * 60_000, queryFn: async () => (path ? (await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)).data?.signedUrl ?? null : null) });
@@ -129,9 +127,9 @@ export function PortfolioSection({ artistId }: { artistId: string }) {
   const qc = useQueryClient();
   const key = ["portfolio", artistId];
   const { data = [] } = useQuery({ queryKey: key, queryFn: async () => ((await supabase.from("artist_portfolio").select("*").eq("artist_id", artistId).order("sort").order("created_at")).data ?? []) as Work[] });
-  const plan = usePlanCode(artistId).data ?? "free";
-  const max = WORK_LIMIT[plan] ?? 3;
-  const full = data.length >= max;
+  const limits = usePlanLimits(artistId).data;
+  const max = limits?.max_portfolio;
+  const full = reached(data.length, max);
   const [dlg, setDlg] = useState<{ work: Work | null } | null>(null);
 
   const remove = async (w: Work) => {
@@ -142,11 +140,11 @@ export function PortfolioSection({ artistId }: { artistId: string }) {
     toast.success(`"${w.title}" ${t("removed")}`);
     void qc.invalidateQueries({ queryKey: key });
   };
-  const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
+  const planName = limits?.name ?? "";
   return (
     <section id="pf-po-s" className="dmr-panel dmr-pf-sec" aria-labelledby="pf-po-h">
       <div className="dmr-a-top"><div><h2 className="dmr-serif" id="pf-po-h">{t("Portfolio of")} <span className="it">{t("work")}</span></h2><p>{t("Shows of yours that prove it. A photo makes each one far more convincing.")}</p></div>
-        <div className={`dmr-pf-lim${full ? " full" : ""}`} style={{ margin: 0 }}><span><b>{data.length}</b> {t("of")} <b>{max}</b> {t("on the")} {planName} {t("plan")}</span></div></div>
+        <div className={`dmr-pf-lim${full ? " full" : ""}`} style={{ margin: 0 }}><span><b>{data.length}</b> {t("of")} <b>{limitText(max)}</b> {t("on the")} {planName} {t("plan")}</span></div></div>
       <div className="dmr-pf-works">
         {data.map((w) => (
           <article key={w.id} className="dmr-pf-w">
@@ -165,7 +163,7 @@ export function PortfolioSection({ artistId }: { artistId: string }) {
   );
 }
 
-function WorkDialog({ artistId, work, count, max, onClose, onSaved }: { artistId: string; work: Work | null; count: number; max: number; onClose: () => void; onSaved: () => void }) {
+function WorkDialog({ artistId, work, count, max, onClose, onSaved }: { artistId: string; work: Work | null; count: number; max: number | undefined; onClose: () => void; onSaved: () => void }) {
   const { t } = useI18n();
   const [f, setF] = useState({ title: work?.title ?? "", year: String(work?.year ?? YEARS[0]), kind: work?.kind ?? "Live show", link: work?.link ?? "", description: work?.description ?? "" });
   const [file, setFile] = useState<File | null>(null);
@@ -189,7 +187,7 @@ function WorkDialog({ artistId, work, count, max, onClose, onSaved }: { artistId
     if (link && !/^https:\/\/[^\s.]+\.[^\s]{2,}$/i.test(link)) h.link = t("Use a full link starting with https://");
     setHints(h);
     if (h.title || h.link) return;
-    if (!work && count >= max) return setErr(`${t("Your plan allows")} ${max} ${t("works.")}`);
+    if (!work && reached(count, max)) return setErr(`${t("Your plan allows")} ${max} ${t("works.")}`);
     setBusy(true); setErr("");
     try {
       let image_path = work?.image_path ?? null;
@@ -250,11 +248,12 @@ export function ClientsSection({ artistId }: { artistId: string }) {
   const [name, setName] = useState("");
   const [year, setYear] = useState(String(YEARS[0]));
   const [err, setErr] = useState("");
+  const max = usePlanLimits(artistId).data?.max_clients;
   const add = async () => {
     const nm = name.trim().replace(/\s+/g, " ");
     if (nm.length < 2) return setErr(t("Enter the client name."));
     if (data.some((c) => c.name.toLowerCase() === nm.toLowerCase())) return setErr(t("That client is already in your list."));
-    if (data.length >= CLIENT_LIMIT) return setErr(`${t("You can list up to")} ${CLIENT_LIMIT} ${t("clients.")}`);
+    if (reached(data.length, max)) return setErr(`${t("You can list up to")} ${max} ${t("clients.")}`);
     const { error } = await supabase.from("artist_clients").insert({ artist_id: artistId, name: nm.slice(0, 60), year: Number(year) || null, is_public: true });
     if (error) return setErr(error.message);
     setErr(""); setName(""); void qc.invalidateQueries({ queryKey: key });
@@ -273,7 +272,7 @@ export function ClientsSection({ artistId }: { artistId: string }) {
   return (
     <section id="pf-cl-s" className="dmr-panel dmr-pf-sec" aria-labelledby="pf-cl-h">
       <div className="dmr-a-top"><div><h2 className="dmr-serif" id="pf-cl-h">{t("Clients you have")} <span className="it">{t("worked with")}</span></h2><p>{t("Companies and hosts you have performed for. Untick Public to keep one private.")}</p></div>
-        <div className="dmr-pf-lim" style={{ margin: 0 }}><span><b>{data.length}</b> {t("of")} <b>{CLIENT_LIMIT}</b> {t("clients")}</span></div></div>
+        <div className="dmr-pf-lim" style={{ margin: 0 }}><span><b>{data.length}</b> {t("of")} <b>{limitText(max)}</b> {t("clients")}</span></div></div>
       <div className="dmr-pf-cl">
         {data.length ? data.map((c) => (
           <div key={c.id} className="dmr-pf-cr"><span className="dmr-lg" aria-hidden="true">{ini(c.name)}</span><b>{c.name}</b><small>{c.year ?? ""}</small>
@@ -284,7 +283,7 @@ export function ClientsSection({ artistId }: { artistId: string }) {
       <div className="dmr-pf-cadd">
         <div className="dmr-qe-f"><label htmlFor="pf-cn">{t("Client name")}</label><input id="pf-cn" maxLength={60} autoComplete="off" placeholder="e.g. Grand Hotel Events" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void add(); } }} /></div>
         <div className="dmr-qe-f"><label htmlFor="pf-cy">{t("Year")}</label><select id="pf-cy" value={year} onChange={(e) => setYear(e.target.value)}>{YEARS.map((y) => <option key={y}>{y}</option>)}</select></div>
-        <button type="button" className="dmr-btn dmr-btn-gold" disabled={data.length >= CLIENT_LIMIT} onClick={() => void add()}><Plus width={14} height={14} />{t("Add client")}</button>
+        <button type="button" className="dmr-btn dmr-btn-gold" disabled={reached(data.length, max)} onClick={() => void add()}><Plus width={14} height={14} />{t("Add client")}</button>
       </div>
       <p className="dmr-qe-err" role="alert">{err}</p>
     </section>
