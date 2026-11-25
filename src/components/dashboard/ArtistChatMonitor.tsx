@@ -57,7 +57,7 @@ export function ArtistChatMonitor({ id }: { id: string }) {
   });
   const profile = useQuery({
     queryKey: ["artist-chat-profile", artistId], enabled: !!artistId,
-    queryFn: async () => (await supabase.from("artists").select("stage_name,trn").eq("id", artistId!).maybeSingle()).data,
+    queryFn: async () => (await supabase.rpc("private_artists").select("stage_name,trn").eq("id", artistId!).maybeSingle()).data,
   });
   const canReply = query.data?.chat.mode === "human" && !!query.data.chat.chat_operator_id;
   useEffect(() => { document.documentElement.classList.add("dm-dash"); return () => document.documentElement.classList.remove("dm-dash"); }, []);

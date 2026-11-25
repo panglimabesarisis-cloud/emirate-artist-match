@@ -43,7 +43,7 @@ export function SignupPlanGate({ userId, email, children }: { userId: string; em
       const signup = readSignupPlan(auth.data.user?.user_metadata?.[SIGNUP_PLAN_KEY]);
       const open = { gate: "open" as const, signup, artist: null };
       if (!signup || signup.status === "done") return open;
-      const artist = await supabase.from("artists").select("id,stage_name,intended_plan,registration_paid_at").eq("user_id", userId).maybeSingle();
+      const artist = await supabase.rpc("private_artists").select("id,stage_name,intended_plan,registration_paid_at").eq("user_id", userId).maybeSingle();
       if (artist.error) throw new Error(artist.error.message);
       if (!artist.data) return open;
       const [rates, plan] = await Promise.all([

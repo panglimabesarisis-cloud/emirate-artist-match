@@ -12,7 +12,7 @@ async function chatFor(orderId:string,status:string){if(status!=='paid')return n
 async function receiptFor(orderId:string,status:string,email?:string){if(status!=='paid')return null;try{const {orderReceipt}=await import('./receipt.server');return await orderReceipt(orderId,email);}catch(e){console.error('Receipt unavailable',e);return null;}}
 export const artistCheckout=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((i:{kind:'credits'|'deposit'|ItemKind;packageId?:string;plan?:string;itemId?:string})=>i).handler(async({data,context})=>{
  try {
-  const {data:a}=await context.supabase.from('artists').select('id,plan').eq('user_id',context.userId).single();if(!a)throw new Error('Artist profile required');
+  const {data:a}=await context.supabase.rpc('private_artists').select('id,plan').eq('user_id',context.userId).single();if(!a)throw new Error('Artist profile required');
   const {data:{user}}=await context.supabase.auth.getUser();
   const {openOrder}=await import('./payments.server');
   const returnUrl=new URL(data.kind==='deposit'?'/join/payment':'/dashboard',getRequest().url).href;

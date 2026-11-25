@@ -20,7 +20,7 @@ function PaymentPage(){
  const [issued]=useState(()=>new Date().toISOString());
  useEffect(()=>{setChosen(localStorage.getItem('join_plan'));},[]);
  const account=useQuery({queryKey:['join-invoice',user?.id,chosen],enabled:!!user,queryFn:async()=>{
-  const artist=await supabase.from('artists').select('id,stage_name,intended_plan,registration_paid_at').eq('user_id',user!.id).maybeSingle();
+  const artist=await supabase.rpc('private_artists').select('id,stage_name,intended_plan,registration_paid_at').eq('user_id',user!.id).maybeSingle();
   if(artist.error)throw new Error(artist.error.message);
   const code=chosen??artist.data?.intended_plan??'free';
   const tier=await supabase.from('plan_tiers').select('code,name,price_monthly').eq('code',code).maybeSingle();

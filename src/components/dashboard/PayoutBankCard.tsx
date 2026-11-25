@@ -22,7 +22,7 @@ export function PayoutBankCard({ userId }: { userId: string }) {
   const artist = useQuery({
     queryKey: ["account-artist", userId],
     enabled: !!userId,
-    queryFn: async () => (await supabase.from("artists").select("id").eq("user_id", userId).maybeSingle()).data,
+    queryFn: async () => (await supabase.rpc("private_artists").select("id").eq("user_id", userId).maybeSingle()).data,
   });
   const artistId = artist.data?.id ?? "";
   const bank = useBankDetails(artistId);

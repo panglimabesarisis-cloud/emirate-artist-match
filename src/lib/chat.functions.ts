@@ -199,7 +199,7 @@ export const testAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { text: string }) => ({ text: str(i.text, MAX_CLIENT_MESSAGE_LENGTH, true)! }))
   .handler(async ({ data, context }) => {
-    const { data: artist } = await context.supabase.from("artists").select("id").eq("user_id", context.userId).maybeSingle();
+    const { data: artist } = await context.supabase.rpc("private_artists").select("id").eq("user_id", context.userId).maybeSingle();
     if (!artist) throw new Error("No artist profile");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { addMessage, runAgent } = await import("./agent.server");

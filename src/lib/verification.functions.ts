@@ -6,7 +6,7 @@ import { submissionResult, verificationStoragePath, verificationSubmission } fro
 export const requestVerificationOtp = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .inputValidator((data: { phone: string }) => z.object({ phone: z.string().max(64) }).parse(data))
   .handler(async ({ data, context }) => {
-    const owner = await context.supabase.from('artists').select('id').eq('user_id', context.userId).maybeSingle();
+    const owner = await context.supabase.rpc('private_artists').select('id').eq('user_id', context.userId).maybeSingle();
     if (owner.error || !owner.data) return { ok: false as const, error: 'forbidden' as const };
     const { requestOtpForArtist } = await import('./verification.server');
     return requestOtpForArtist(owner.data.id, data.phone);
@@ -14,7 +14,7 @@ export const requestVerificationOtp = createServerFn({ method: 'POST' }).middlew
 export const confirmVerificationOtp = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .inputValidator((data: { code: string }) => z.object({ code: z.string().max(128) }).parse(data))
   .handler(async ({ data, context }) => {
-    const owner = await context.supabase.from('artists').select('id').eq('user_id', context.userId).maybeSingle();
+    const owner = await context.supabase.rpc('private_artists').select('id').eq('user_id', context.userId).maybeSingle();
     if (owner.error || !owner.data) return { ok: false as const, error: 'forbidden' as const };
     const { confirmOtpForArtist } = await import('./verification.server');
     return confirmOtpForArtist(owner.data.id, data.code);
@@ -31,7 +31,7 @@ export const openVerificationFile = createServerFn({ method: 'POST' }).middlewar
   .handler(async ({ data, context }) => {
     const role = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
     if (role.error || role.data !== true) throw new Error('forbidden');
-    const app = await context.supabase.from('verification_applications').select('doc_path,decided_at,privacy_purged_at,artists(user_id)').eq('id', data.applicationId).maybeSingle();
+    const app = await context.supabase.from('verification_applications').select('doc_path,decided_at,privacy_purged_at,artist_id').eq('id', data.applicationId).maybeSingle();
     if (app.error) throw new Error('Unable to open verification file');
     if (!app.data) throw new Error('file_not_found');
     if (app.data.privacy_purged_at || (app.data.decided_at && Date.parse(app.data.decided_at) <= Date.now() - 30 * 86400000)) throw new Error('documents_deleted');
@@ -44,7 +44,8 @@ export const openVerificationFile = createServerFn({ method: 'POST' }).middlewar
       path = file.data.storage_path;
       fileId = file.data.id;
     }
-    const ownerId = app.data.artists?.user_id;
+    const owner = await context.supabase.rpc('private_artists').select('user_id').eq('id', app.data.artist_id).maybeSingle();
+    const ownerId = owner.data?.user_id;
     if (!path || !ownerId || !verificationStoragePath(ownerId, path)) throw new Error('file_not_found');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const logged = await supabaseAdmin.from('verification_access_log').insert({ application_id: data.applicationId, file_id: fileId, admin_id: context.userId });

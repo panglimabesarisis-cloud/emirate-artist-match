@@ -4703,6 +4703,54 @@ export type Database = {
         Args: { _hash: string; _id: string }
         Returns: Json
       }
+      private_artists: {
+        Args: never
+        Returns: {
+          area_id: string | null
+          base_price: number | null
+          bio: string | null
+          body: Json
+          calendar_token: string
+          category_id: string | null
+          category_ids: string[]
+          contract_accepted_at: string | null
+          created_at: string
+          emirate_id: string | null
+          event_type_slugs: string[] | null
+          featured: boolean
+          hue: number | null
+          id: string
+          intended_plan: string | null
+          is_seed: boolean
+          languages: string[] | null
+          manager_phone: string | null
+          notify_phone: string | null
+          onboarding_complete: boolean | null
+          photo_path: string | null
+          plan: string
+          registration_paid_at: string | null
+          response_rate: number | null
+          skills: string[]
+          slug: string
+          specialty_ids: string[]
+          stage_name: string
+          status: string
+          subcategory_id: string | null
+          tagline: string | null
+          travel_fee_per_step: number
+          travel_radius_km: number | null
+          travel_step_km: number
+          travel_surcharge_enabled: boolean
+          trn: string | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "artists"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       reserve_phone_otp: {
         Args: { _hash: string; _id: string; _phone: string; _requester: string }
         Returns: Json

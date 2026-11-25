@@ -10,7 +10,7 @@ export function useQuoteInvoices(artistId: string) {
     queryKey: ["quote-invoices", artistId],
     queryFn: async () => {
       const [artist, chats, saved, bookings] = await Promise.all([
-        supabase.from("artists").select("stage_name, trn").eq("id", artistId).maybeSingle(),
+        supabase.rpc("private_artists").select("stage_name, trn").eq("id", artistId).maybeSingle(),
         supabase.from("conversations").select("id, quote_request_id").eq("artist_id", artistId).not("quote_request_id", "is", null),
         supabase.from("service_invoices").select("id, status, total, paid_at, created_at, deleted_at, booking_id, conversation_id, document").eq("artist_id", artistId).order("created_at", { ascending: false }),
         supabase.from("bookings").select("id, conversation_id, client_name, package_title, total, amount, vat_amount, invoice_no, invoice_items, created_at, paid_amount, paid_at").eq("artist_id", artistId).is("deleted_at", null).order("created_at", { ascending: false }),

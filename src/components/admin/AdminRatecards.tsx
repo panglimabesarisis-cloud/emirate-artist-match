@@ -125,9 +125,9 @@ function History({ artist, onClose, onEdit }: { artist: AdminArtist; onClose: ()
   const invoices = useQuery({
     queryKey: ["admin-artist-invoices", artist.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, hidden_at, artists(stage_name, trn), bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").eq("artist_id", artist.id).is("deleted_at", null).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, hidden_at, bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").eq("artist_id", artist.id).is("deleted_at", null).order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
-      return toInvoiceRows(data ?? []);
+      return toInvoiceRows((data ?? []).map((row) => ({ ...row, artist_id: artist.id, artists: { stage_name: artist.stage_name, trn: artist.trn } })));
     },
   });
   const all = invoices.data ?? [];

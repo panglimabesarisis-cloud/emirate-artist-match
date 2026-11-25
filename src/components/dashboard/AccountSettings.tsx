@@ -36,7 +36,7 @@ export function AccountSettings() {
     setName(profile.data?.display_name ?? ''); setSavedName(profile.data?.display_name ?? ''); setClosed(!!closure.data);
   }); }, []);
   const verification = useQuery({ queryKey: ['account-verification', userId], enabled: !!userId, queryFn: async () => {
-    const artist = await supabase.from('artists').select('id').eq('user_id', userId).maybeSingle();
+    const artist = await supabase.rpc('private_artists').select('id').eq('user_id', userId).maybeSingle();
     if (artist.error) throw artist.error;
     if (!artist.data) return null;
     const result = await supabase.from('verification_applications').select('status, created_at').eq('artist_id', artist.data.id).eq('badge_type', 'verified_identity').order('created_at', { ascending: false }).limit(1).maybeSingle();

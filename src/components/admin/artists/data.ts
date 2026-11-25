@@ -13,7 +13,7 @@ async function rows<T>(query: PromiseLike<{ data: T[] | null; error: { message: 
 }
 
 export function useArtists() {
-  return useQuery({ queryKey: ["admin-artists"], queryFn: () => rows(supabase.from("artists").select(ARTIST_COLUMNS).order("created_at", { ascending: false })) });
+  return useQuery({ queryKey: ["admin-artists"], queryFn: () => rows(supabase.rpc("private_artists").select(ARTIST_COLUMNS).order("created_at", { ascending: false })) });
 }
 export type AdminArtist = NonNullable<ReturnType<typeof useArtists>["data"]>[number];
 

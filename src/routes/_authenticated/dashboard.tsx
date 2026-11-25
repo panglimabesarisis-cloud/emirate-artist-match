@@ -171,7 +171,7 @@ const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
 function ArtistDash({ userId, email }: { userId: string; email: string }) {
   const { data: artist, refetch, isLoading } = useQuery({
     queryKey: ["my-artist", userId],
-    queryFn: async () => (await supabase.from("artists").select("*").eq("user_id", userId).maybeSingle()).data,
+    queryFn: async () => (await supabase.rpc("private_artists").select("*").eq("user_id", userId).maybeSingle()).data,
   });
   const { t: tr } = useI18n();
   const [section, setSection] = useState<ArtistSection>("overview");

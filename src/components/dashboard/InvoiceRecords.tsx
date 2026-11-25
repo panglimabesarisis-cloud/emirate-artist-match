@@ -26,18 +26,23 @@ export function useInvoiceQuery(artistId?: string) {
   return useQuery({
     queryKey: ["invoice-records", artistId], refetchInterval: 5000,
     queryFn: async () => {
-      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, hidden_at, artists(stage_name, trn), bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
+      let query = supabase.from("service_invoices").select("id, number, document, total, status, paid_at, created_at, conversation_id, hidden_at, artist_id, artists(stage_name), bookings(client_name, client_email, total, paid_amount, deposit_pct), conversations(quote_requests(name))").order("created_at", { ascending: false });
       if (artistId) query = query.eq("artist_id", artistId).is("deleted_at", null);
       const result = await query;
       if (result.error) throw result.error;
+      let numbers = supabase.rpc("private_artists").select("id, trn").not("trn", "is", null);
+      if (artistId) numbers = numbers.eq("id", artistId);
+      const trns = await numbers;
+      if (trns.error) throw trns.error;
+      const rows = result.data.map(row => ({ ...row, artists: { stage_name: row.artists?.stage_name ?? "", trn: trns.data.find(artist => artist.id === row.artist_id)?.trn ?? null } }));
       if (artistId) {
         const context = await supabase.rpc("team_invoice_context", { _artist: artistId });
         if (context.error) throw context.error;
-        type Link = Pick<NonNullable<typeof result.data>[number], "id" | "bookings" | "conversations">;
+        type Link = Pick<(typeof rows)[number], "id" | "bookings" | "conversations">;
         const links = (context.data as unknown as { links: Link[] }).links;
-        return (result.data ?? []).map(row => ({ ...row, ...links.find(link => link.id === row.id) }));
+        return rows.map(row => ({ ...row, ...links.find(link => link.id === row.id) }));
       }
-      return result.data ?? [];
+      return rows;
     },
   });
 }

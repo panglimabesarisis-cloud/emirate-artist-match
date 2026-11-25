@@ -25,7 +25,7 @@ vi.mock("@/integrations/supabase/client", () => {
   };
   return { supabase: {
     from,
-    rpc: async () => ({ data: db.plan, error: null }),
+    rpc: (name: string) => name === "private_artists" ? from(name) : Promise.resolve({ data: db.plan, error: null }),
     auth: {
       getUser: async () => ({ data: { user: { user_metadata: { signup_plan: db.signup } } }, error: null }),
       updateUser: async ({ data }: { data: { signup_plan: unknown } }) => { db.signup = data.signup_plan; db.saved.push(data.signup_plan); return { error: null }; },

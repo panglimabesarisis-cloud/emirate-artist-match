@@ -666,6 +666,20 @@
       "when": 1795572300202,
       "tag": "0094_admin_artist_center",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1795572360202,
+      "tag": "0095_private_artists_reader",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1795572420202,
+      "tag": "0096_private_artist_columns",
+      "breakpoints": true
     }
   ]
 }

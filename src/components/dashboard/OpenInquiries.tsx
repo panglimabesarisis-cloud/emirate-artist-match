@@ -70,7 +70,7 @@ export function ClientOpenInquiries({ uid }: { uid: string }) {
   const [f, setF] = useState({ title: "", brief: "", preferences: "", categoryId: "all", eventDate: "", startTime: "", endTime: "", venue: "", budget: "" });
   const categories = useQuery({ queryKey: ["job-categories"], queryFn: async () => { const { data, error } = await supabase.from("categories").select("id,name").order("sort"); if (error) throw error; return data; } });
   const jobs = useQuery({ queryKey: ["client-open-jobs", uid], refetchInterval: 30000, queryFn: async () => { const { data, error } = await supabase.from("open_jobs").select("*").eq("client_user_id", uid).order("created_at", { ascending: false }); if (error) throw error; return data; } });
-  const applications = useQuery({ queryKey: ["client-job-applications", uid], refetchInterval: 30000, queryFn: async () => { const { data, error } = await supabase.from("job_applications").select("*, artists(stage_name,slug,base_price)").order("created_at", { ascending: false }); if (error) throw error; return data; } });
+  const applications = useQuery({ queryKey: ["client-job-applications", uid], refetchInterval: 30000, queryFn: async () => { const { data, error } = await supabase.from("job_applications").select("*, artists(stage_name,slug)").order("created_at", { ascending: false }); if (error) throw error; return data; } });
   const refresh = async () => { await Promise.all([qc.invalidateQueries({ queryKey: ["client-open-jobs"] }), qc.invalidateQueries({ queryKey: ["client-job-applications"] })]); };
   const create = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true);

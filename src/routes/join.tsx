@@ -66,7 +66,7 @@ function JoinPage() {
         await supabase.rpc("become_artist");
         const m = u.user_metadata ?? {};
         setUser({ id: u.id, email: u.email ?? "", name: m["display_name"] ?? m["full_name"] ?? m["name"] ?? "" });
-        const { data: a } = await supabase.from("artists").select("id,onboarding_complete,registration_paid_at").eq("user_id", u.id).maybeSingle();
+        const { data: a } = await supabase.rpc("private_artists").select("id,onboarding_complete,registration_paid_at").eq("user_id", u.id).maybeSingle();
         if (a?.onboarding_complete) {
           const paid = !!a.registration_paid_at;
           const rates = paid ? await supabase.from("rate_cards").select("id", { count: "exact", head: true }).eq("artist_id", a.id) : null;
@@ -210,7 +210,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
   useEffect(()=>{let alive=true;const restore=async()=>{
    try{const raw=localStorage.getItem(`join_draft:${user.id}`);if(raw){const d=JSON.parse(raw);setName(d.name??user.name);setPhone(d.phone??'');setCategoryId(d.categoryId??'');setSpecs(Array.isArray(d.specs)?d.specs:[]);if(Array.isArray(d.pkgs)&&d.pkgs.length&&!localStorage.getItem(`join_rate_draft:${user.id}`))localStorage.setItem(`join_rate_draft:${user.id}`,JSON.stringify({basePrice:d.basePrice??'',pkgs:d.pkgs}));setStage(d.stage??'');setTagline(d.tagline??'');setBio(d.bio??'');setEmirateId(d.emirateId??'');setAreaId(d.areaId??'');setLanguages(d.languages??'English');setRadius(d.radius??'30');setTrn(d.trn??'');/* Drafts saved before the rate card moved counted it as step 2. */const savedStep=Number.isInteger(d.step)?(d.v===2||d.step<3?d.step:d.step-1):0;setStep(Math.min(3,Math.max(0,savedStep)));}}
    catch{localStorage.removeItem(`join_draft:${user.id}`);}
-   const {data:a}=await supabase.from('artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');const waitingFor=readPending((await supabase.auth.getUser()).data.user?.user_metadata?.['pending_specialties']);setSpecs([...new Set([...(a.specialty_ids??[]),...(waitingFor&&waitingFor.category_id===a.category_id?waitingFor.ids:[])])]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');setStep((count??0)<5?1:3);}}}
+   const {data:a}=await supabase.rpc('private_artists').select('*').eq('user_id',user.id).maybeSingle();if(a){const [{count},{data:p}]=await Promise.all([supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo'),supabase.from('profiles').select('display_name').eq('id',user.id).single()]);if(alive){setSavedPhotos(count??0);if(!localStorage.getItem(`join_draft:${user.id}`)){setName(p?.display_name??user.name);setPhone(a.notify_phone??'');setCategoryId(a.category_id??'');const waitingFor=readPending((await supabase.auth.getUser()).data.user?.user_metadata?.['pending_specialties']);setSpecs([...new Set([...(a.specialty_ids??[]),...(waitingFor&&waitingFor.category_id===a.category_id?waitingFor.ids:[])])]);setStage(a.stage_name);setTagline(a.tagline??'');setBio(a.bio??'');setEmirateId(a.emirate_id??'');setAreaId(a.area_id??'');setLanguages((a.languages??[]).join(', '));setRadius(String(a.travel_radius_km??30));setTrn(a.trn??'');setStep((count??0)<5?1:3);}}}
    if(alive)setRestored(true);
   };void restore();return()=>{alive=false;};},[user.id]);
   useEffect(()=>{if(!restored)return;localStorage.setItem(`join_draft:${user.id}`,JSON.stringify({v:2,name,phone,categoryId,specs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step}));},[restored,user.id,name,phone,categoryId,specs,stage,tagline,bio,emirateId,areaId,languages,radius,trn,step]);
@@ -237,7 +237,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     const e = validate(); if (e) { toast.error(e); return; }
     setBusy(true);
     try {
-      const {data:existing}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();
+      const {data:existing}=await supabase.rpc('private_artists').select('id').eq('user_id',user.id).maybeSingle();
       // The database only accepts what the paid plan allows; the other choices wait on the account until it is paid.
       let allowedNow=specialtyLimit('free');
       if(existing){const current=await supabase.rpc('effective_artist_plan',{_artist:existing.id});const paid=current.data?await supabase.from('plan_tiers').select('max_specialties').eq('code',current.data).maybeSingle():null;allowedNow=paid?.data?.max_specialties??allowedNow;}
@@ -271,7 +271,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
       localStorage.removeItem(`join_draft:${user.id}`);
       toast.success("Profile saved. Next: the registration deposit.");
       navigate({ to: "/join/payment" });
-    } catch (err) {const {data:a}=await supabase.from('artists').select('id').eq('user_id',user.id).maybeSingle();if(a){const {count}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');setSavedPhotos(count??0);setPhotos([]);}toast.error((err as Error).message+' — your progress is saved.');} finally { setBusy(false); }
+    } catch (err) {const {data:a}=await supabase.rpc('private_artists').select('id').eq('user_id',user.id).maybeSingle();if(a){const {count}=await supabase.from('artist_media').select('id',{count:'exact',head:true}).eq('artist_id',a.id).eq('kind','photo');setSavedPhotos(count??0);setPhotos([]);}toast.error((err as Error).message+' — your progress is saved.');} finally { setBusy(false); }
   };
 
   const subs = cat?.subcategories.filter((s) => s.category_id === categoryId) ?? [];

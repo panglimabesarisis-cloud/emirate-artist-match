@@ -136,7 +136,7 @@ const PHONE = /^\+?[0-9 ]{8,16}$/;
 export function TeamPhones({ artistId }: { artistId: string }) {
   const { t } = useI18n();
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ["team-phones", artistId], queryFn: async () => (await supabase.from("artists").select("notify_phone, manager_phone").eq("id", artistId).single()).data });
+  const { data } = useQuery({ queryKey: ["team-phones", artistId], queryFn: async () => (await supabase.rpc("private_artists").select("notify_phone, manager_phone").eq("id", artistId).single()).data });
   const [artist, setArtist] = useState<string | null>(null), [manager, setManager] = useState<string | null>(null);
   const a = artist ?? data?.notify_phone ?? "", m = manager ?? data?.manager_phone ?? "";
   const save = async () => {

@@ -14,7 +14,7 @@ export function RatecardReminder({ artistId }: { artistId: string }) {
     refetchOnMount: "always",
     queryFn: async () => {
       const [artist, rates] = await Promise.all([
-        supabase.from("artists").select("registration_paid_at,onboarding_complete").eq("id", artistId).maybeSingle(),
+        supabase.rpc("private_artists").select("registration_paid_at,onboarding_complete").eq("id", artistId).maybeSingle(),
         supabase.from("rate_cards").select("id", { count: "exact", head: true }).eq("artist_id", artistId),
       ]);
       // A failed check shows nothing rather than asking for a rate card that may already exist.

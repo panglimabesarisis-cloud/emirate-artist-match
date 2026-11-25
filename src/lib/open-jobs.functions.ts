@@ -26,7 +26,7 @@ export const postOpenJob = createServerFn({ method: "POST" }).middleware([requir
 });
 
 export const applyOpenJob = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v: unknown) => applicationSchema.parse(v)).handler(async ({ data, context }) => {
-  const { data: artist } = await context.supabase.from("artists").select("id").eq("id", data.artistId).eq("user_id", context.userId).eq("status", "approved").maybeSingle();
+  const { data: artist } = await context.supabase.rpc("private_artists").select("id").eq("id", data.artistId).eq("user_id", context.userId).eq("status", "approved").maybeSingle();
   if (!artist) throw new Error("Only an approved artist owner can apply");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: id, error } = await supabaseAdmin.rpc("apply_open_job", { _actor: context.userId, _job: data.jobId, _artist: artist.id, _message: maskContacts(data.message), ...(data.proposedAED === null ? {} : { _proposed: data.proposedAED }) });
@@ -52,7 +52,7 @@ export const decideJobApplication = createServerFn({ method: "POST" }).middlewar
 export const withdrawJobApplication = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v: unknown) => z.object({ applicationId: z.string().uuid() }).parse(v)).handler(async ({ data, context }) => {
   const { data: app } = await context.supabase.from("job_applications").select("artist_id").eq("id", data.applicationId).maybeSingle();
   if (!app) throw new Error("Application unavailable");
-  const { data: artist } = await context.supabase.from("artists").select("id").eq("id", app.artist_id).eq("user_id", context.userId).maybeSingle();
+  const { data: artist } = await context.supabase.rpc("private_artists").select("id").eq("id", app.artist_id).eq("user_id", context.userId).maybeSingle();
   if (!artist) throw new Error("Only the artist owner can withdraw");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error } = await supabaseAdmin.rpc("withdraw_job_application", { _actor: context.userId, _application: data.applicationId });

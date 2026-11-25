@@ -45,7 +45,7 @@ export function InvoicesTab({ artistId }: { artistId: string }) {
   const [busy, setBusy] = useState(false);
   const [due, setDue] = useState("");
   const [notes, setNotes] = useState("");
-  const me = useQuery({ queryKey: ["invoice-artist", artistId], queryFn: async () => (await supabase.from("artists").select("stage_name, trn").eq("id", artistId).maybeSingle()).data });
+  const me = useQuery({ queryKey: ["invoice-artist", artistId], queryFn: async () => (await supabase.rpc("private_artists").select("stage_name, trn").eq("id", artistId).maybeSingle()).data });
   const invQ = useInvoiceQuery(artistId);
   const invRows = toInvoiceRows(invQ.data ?? []);
   const outstanding = invRows.reduce((n, r) => n + Math.max(0, Number(r.total) - r.paid), 0);
