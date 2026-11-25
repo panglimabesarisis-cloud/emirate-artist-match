@@ -382,8 +382,9 @@ type Media = { id: string; kind: "photo" | "video" | "youtube"; src: string; cap
 
 function MediaShowcase({ media, name }: { media: Media[]; name: string }) {
   const { t } = useI18n();
-  const photos = media.filter((m) => m.kind === "photo").slice(0, 10);
-  const videos = media.filter((m) => m.kind !== "photo").slice(0, 5);
+  // Everything uploaded is shown: the plan limits new uploads (database), and earlier media stays visible.
+  const photos = media.filter((m) => m.kind === "photo");
+  const videos = media.filter((m) => m.kind !== "photo");
   const [open, setOpen] = useState<{ type: "photo" | "video"; i: number } | null>(null);
   if (photos.length + videos.length === 0) return null;
   const list = open?.type === "photo" ? photos : videos;
