@@ -14,6 +14,7 @@
   const DUST_FROM = TYPE_FROM + TAGLINE.length * PER_LETTER + HOLD;
   const DUST_FOR = 1.6;
   const ENTER_AT = DUST_FROM + 2.6;
+  const QUIET_FROM = 2.4; // the music starts to fade here and is silent just before the website opens
 
   /* The scroll is longer than the original film. Each entry plays [original from, original to] over its own
      length of scroll; the same from and to makes the film rest at that moment. */
@@ -185,6 +186,12 @@
     draw.globalAlpha = 1;
   }
 
+  let faded = false;
+  const loudness = (level) => {
+    const sound = window.__dmSound?.sound;
+    if (sound?.isOn()) sound.level?.(level);
+  };
+
   /* The finale runs on its own clock once the name is on screen, then opens the website. */
   let started = 0, entered = false, typed = null, spans = [], specks = null;
   const ending = (on) => {
@@ -208,11 +215,15 @@
       }
     }
     if (!started) {
+      // Scrolled back out of the finale: the music is as loud as before.
+      if (faded) { faded = false; loudness(1); }
       spans.forEach((span) => { span.className = ""; });
       show(dark, false); show(dust, false);
       return;
     }
     const s = (now - started) / 1000;
+    const quiet = between(s, QUIET_FROM, ENTER_AT - 0.3);
+    if (quiet > 0) { faded = true; loudness(Math.pow(1 - quiet, 1.6)); }
     const count = s < TYPE_FROM ? 0 : reduced ? spans.length : Math.min(spans.length, Math.floor((s - TYPE_FROM) / PER_LETTER) + 1);
     const typing = count < spans.length;
     spans.forEach((span, i) => {
