@@ -19,7 +19,7 @@
       {
         "name": "search_artists",
         "title": "Search artists",
-        "description": "Search approved Dealmaker talent by name, category slug or emirate slug, with starting price in AED.",
+        "description": "Search approved Dealmaker talent by name, category slug or emirate slug, Artist rates are not public; they are given in the booking chat and on invoices.",
         "annotations": {
           "readOnlyHint": true,
           "openWorldHint": false
