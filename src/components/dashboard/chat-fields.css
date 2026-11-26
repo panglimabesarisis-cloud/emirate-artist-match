@@ -43,13 +43,3 @@ html.dm-dash .dmc .dmc-body,
 html.dm-dash .dm-chat-bg {
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cg fill='none' stroke='%23e8b04a' stroke-width='.8' opacity='.05'%3E%3Cpath d='M48 14L82 48L48 82L14 48Z'/%3E%3Cpath d='M24 24H72V72H24Z'/%3E%3Ccircle cx='48' cy='48' r='9'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 0%,rgba(232,176,74,.05),transparent 60%);
 }
-/* Research answers of the agent: a white document with black text, in both themes. */
-html .ai-paper{--background:#fff;--foreground:#111827;--card:#fff;--card-foreground:#111827;--popover:#fff;--popover-foreground:#111827;--muted:#f3f4f6;--muted-foreground:#4b5563;--border:#e5e7eb;--primary:#0b57d0;--gold:#8a5a00;--sidebar:#f9fafb;background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:18px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.25);min-width:0}
-html .ai-paper :is(h1,h2,h3,h4,h5,p,li,td,th,strong,b,figcaption,span,small,code){color:inherit}
-html .ai-paper :is(h1,h2,h3){color:#0f172a}
-html .ai-paper a, html .ai-paper a *{color:#0b57d0;text-decoration:underline;overflow-wrap:anywhere}
-html .ai-paper table{border-collapse:collapse;width:100%}
-html .ai-paper :is(th,td){border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;background:#fff}
-html .ai-paper th{background:#f3f4f6}
-html .ai-paper [data-streamdown="link"]{color:#0b57d0}
-@media(max-width:640px){html .ai-paper{padding:14px}}

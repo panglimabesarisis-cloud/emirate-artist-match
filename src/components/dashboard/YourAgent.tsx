@@ -59,10 +59,13 @@ const MIME_BY_EXT: Record<string, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 const ALLOWED = new Set(Object.values(MIME_BY_EXT));
-const mimeOf = (f: File) =>
-  f.type && ALLOWED.has(f.type)
-    ? f.type
-    : (MIME_BY_EXT[f.name.split(".").pop()?.toLowerCase() ?? ""] ?? "");
+/** The Personal AI Agent also takes video and audio, up to 500 MB a file. */
+const PAGE_MAX_BYTES = 500 * 1024 * 1024;
+const MEDIA_BY_EXT: Record<string, string> = { mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav" };
+const mimeOf = (f: File, media = false) => {
+  const types = media ? { ...MIME_BY_EXT, ...MEDIA_BY_EXT } : MIME_BY_EXT;
+  return f.type && (media ? Object.values(types).includes(f.type) : ALLOWED.has(f.type)) ? f.type : (types[f.name.split(".").pop()?.toLowerCase() ?? ""] ?? "");
+};
 
 type Attached = { id: string; name: string };
 type Msg = { id: string; role: "user" | "assistant"; body: string; created_at: string };
@@ -178,13 +181,13 @@ export function YourAgent({
     setUploading(true);
     try {
       for (const f of incoming) {
-        const mime = mimeOf(f);
+        const mime = mimeOf(f, !!page);
         if (!mime) {
           toast.error(`${f.name}: ${t("file type not supported")}`);
           continue;
         }
-        if (f.size > MAX_BYTES) {
-          toast.error(`${f.name}: ${t("max 10 MB")}`);
+        if (f.size > (page ? PAGE_MAX_BYTES : MAX_BYTES)) {
+          toast.error(`${f.name}: ${t(page ? "max 500 MB" : "max 10 MB")}`);
           continue;
         }
         const path = `${artistId}/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]/g, "_")}`;
@@ -400,7 +403,7 @@ export function YourAgent({
                   dir="auto"
                 >
                   {m.role === "assistant" ? (
-                    <AgentResponse body={m.body} onOpen={onOpen} />
+                    <AgentResponse body={m.body} onOpen={onOpen} messageId={m.id} />
                   ) : (
                     m.body
                   )}
@@ -489,7 +492,7 @@ export function YourAgent({
             type="file"
             multiple
             className="sr-only"
-            accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx"
+            accept={`image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx${page ? ",.mp4,.mov,.webm,.mp3,.m4a,.wav" : ""}`}
             onChange={(e) => {
               void attach(e.target.files);
               e.target.value = "";
@@ -565,7 +568,7 @@ export function YourAgent({
             {t("Attach a")} <span className="it">{t("file")}</span>
           </h3>
           <p className="text-xs text-muted-foreground">
-            {t("Rider, price list, contract or photo. Up to 10 MB, 4 files at once.")}
+            {t(page ? "Rider, price list, contract, photo, video or audio. Up to 500 MB, 4 files at once." : "Rider, price list, contract or photo. Up to 10 MB, 4 files at once.")}
           </p>
           <Button
             type="button"

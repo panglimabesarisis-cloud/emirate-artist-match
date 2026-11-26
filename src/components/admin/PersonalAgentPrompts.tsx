@@ -65,19 +65,20 @@ export function PersonalAgentPrompts() {
         <Button size="sm" disabled={full || query.isPending} onClick={() => setDraft({ id: null, title: "", body: "" })}><Plus />{full ? "Prompt limit reached" : "Add Prompt"}</Button>
       </div>
       <ListState pending={query.isPending} error={query.error} empty={rows.length ? null : "No prompt yet. Add one to give the agent a task or knowledge."}>
-        <div className="admin-table-wrap"><table><thead><tr><th>Title</th><th>Prompt AI</th><th>On</th><th>Action</th></tr></thead><tbody>
-          {rows.map((p) => (
-            <tr key={p.id}>
-              <td className="break-words" dir="auto"><b>{p.title}</b></td>
-              <td className="max-w-[320px]"><span className="line-clamp-2 break-words" dir="auto">{p.body}</span></td>
-              <td><Switch checked={p.enabled} aria-label={`Use ${p.title}`} onCheckedChange={(value) => void toggle(p.id, value)} /></td>
-              <td><div className="flex gap-1">
-                <Button size="icon" variant="ghost" aria-label={`Edit ${p.title}`} onClick={() => setDraft({ id: p.id, title: p.title, body: p.body })}><Pencil /></Button>
-                <Button size="icon" variant="ghost" aria-label={`Delete ${p.title}`} onClick={() => void remove(p.id, p.title)}><Trash2 /></Button>
-              </div></td>
-            </tr>
-          ))}
-        </tbody></table></div>
+        <div className="min-w-0 overflow-x-auto"><table className="w-full table-fixed text-sm">
+          <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="w-1/4 py-2 pe-2 text-start">Title</th><th className="py-2 pe-2 text-start">Prompt AI</th><th className="w-14 py-2 text-center">Edit</th><th className="w-14 py-2 text-center">On</th><th className="w-14 py-2 text-center">Delete</th></tr></thead>
+          <tbody>
+            {rows.map((p) => (
+              <tr key={p.id} className="border-b border-border align-top last:border-0">
+                <td className="break-words py-3 pe-2" dir="auto"><b>{p.title}</b></td>
+                <td className="py-3 pe-2"><span className="line-clamp-2 break-words" dir="auto">{p.body}</span></td>
+                <td className="py-2 text-center"><Button size="icon" variant="outline" aria-label={`Edit ${p.title}`} onClick={() => setDraft({ id: p.id, title: p.title, body: p.body })}><Pencil /></Button></td>
+                <td className="py-3 text-center"><Switch checked={p.enabled} aria-label={`Use ${p.title}`} onCheckedChange={(value) => void toggle(p.id, value)} /></td>
+                <td className="py-2 text-center"><Button size="icon" variant="ghost" aria-label={`Delete ${p.title}`} onClick={() => void remove(p.id, p.title)}><Trash2 /></Button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
       </ListState>
       <Dialog open={!!draft} onOpenChange={(open) => { if (!open && !busy) setDraft(null); }}>
         <DialogContent className="max-h-[calc(100dvh-32px)] max-w-lg overflow-y-auto">

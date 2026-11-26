@@ -27,6 +27,8 @@ import { parseProposal, proposalLines } from "@/lib/my-agent-proposals";
 import { invoiceMoney } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
 import { mapLinks } from "@/lib/map-links";
+import { tidyAnswer } from "@/lib/agent-text";
+import { AgentMedia } from "./AgentMedia";
 import { Button } from "@/components/ui/button";
 import { MessageResponse } from "@/components/ai-elements/message";
 
@@ -230,34 +232,35 @@ function ActionProposal({ id, onOpen }: { id: string; onOpen: (section: string) 
 const TOOL_TITLE: Record<string, string> = {
   build_report: "Report", show_invoice: "Invoice", get_contract_template: "Contract template", prepare_calendar_event: "Calendar event",
   read_inbox: "Inbox", read_quote_requests: "Quote requests", read_bookings: "Bookings", read_calendar: "Calendar", read_wallet: "Wallet (read only)", list_invoices: "Invoices",
-  show_map: "Map", calculate: "Calculation", person_photo: "Photo", web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
+  generate_image: "Picture", generate_video: "Video", show_map: "Map", calculate: "Calculation", person_photo: "Photo", web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
 };
-
-const RESEARCH = new Set(["web_search", "travel_links", "show_map", "person_photo"]);
 
 export function AgentResponse({
   body,
   onOpen,
+  messageId,
 }: {
   body: string;
   onOpen: (section: string) => void;
+  messageId?: string;
 }) {
   const data = decodeAgentBody(body);
   const { t } = useI18n();
-  // Research, people and places are laid out as a document: white page, black text.
-  const paper = !!data.photo || !!data.maps?.length || data.tools.some((tool) => RESEARCH.has(tool.name));
+  // Older answers may hold HTML or a plain list of sources.
+  const text = tidyAnswer(data.text);
   return (
     <div className="min-w-0 max-w-full space-y-2">
-      <div className={paper ? "ai-paper space-y-4" : "contents"}>
+      <div className="space-y-4">
       {data.photo ? (
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <figure className="w-48 shrink-0">
             <img src={data.photo.photo} alt={data.photo.name} loading="lazy" referrerPolicy="no-referrer" className="w-full rounded-2xl border border-border object-cover" />
             <figcaption className="mt-1.5 text-[11px] text-muted-foreground"><a href={data.photo.page} target="_blank" rel="noopener noreferrer" className="underline">{t("Photo")}: Wikipedia</a></figcaption>
           </figure>
-          <div className="min-w-0 flex-1"><MessageResponse>{data.text}</MessageResponse></div>
+          <div className="min-w-0 flex-1"><MessageResponse>{text}</MessageResponse></div>
         </div>
-      ) : <MessageResponse>{data.text}</MessageResponse>}
+      ) : <MessageResponse>{text}</MessageResponse>}
+      {data.media?.map((item) => <AgentMedia key={item.path ?? item.job} item={item} messageId={messageId} />)}
       {data.maps?.map((place) => {
         const links = mapLinks(place);
         return (

@@ -1,4 +1,5 @@
 /** Web search for the Personal AI Agent: Google Search grounding with the admin's Google key. */
+import { sourceTable } from "./agent-text";
 import { personalModels, readGoogleBackup } from "./ai-provider.server";
 import { withinLimits } from "./rate-limit.server";
 
@@ -77,5 +78,5 @@ export function readGrounded(data: unknown): WebResult {
 export function withSources(reply: string, sources: WebSource[]) {
   const rest = sources.filter((s) => !reply.includes(s.url));
   if (!rest.length) return reply;
-  return `${reply}\n\n**Sources**\n${rest.map((s) => `- [${s.title}](${s.url})`).join("\n")}`;
+  return `${reply}\n\n**Sources**\n\n${sourceTable(rest)}`;
 }

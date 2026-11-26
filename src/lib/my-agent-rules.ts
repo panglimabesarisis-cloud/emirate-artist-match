@@ -86,6 +86,8 @@ export const agentBodySchema = z.object({
   photo: z.object({ name: z.string(), photo: z.string().regex(PHOTO_URL), page: z.string().regex(PAGE_URL) }).nullable().optional(),
   /** Places shown as maps; the addresses are built from these names. */
   maps: z.array(z.string().max(200)).max(4).optional(),
+  /** Pictures and videos the agent made: a stored file, or a video still being made. */
+  media: z.array(z.object({ kind: z.enum(["image", "video"]), path: z.string().max(300).optional(), job: z.string().max(200).optional(), failed: z.boolean().optional() })).max(4).optional(),
 });
 export type AgentBody = z.infer<typeof agentBodySchema>;
 const MARK = "[[DM_AGENT_V1]]";
