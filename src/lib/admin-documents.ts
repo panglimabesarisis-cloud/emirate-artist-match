@@ -48,6 +48,9 @@ export const ACCOUNTS: { name: string; type: "Asset" | "Liability" | "Revenue" |
   { name: "Platform commission revenue", type: "Revenue" },
   { name: "Subscription and credit revenue", type: "Revenue" },
   { name: "Client commission expense", type: "Expense" },
+  { name: "Cancellation fee revenue", type: "Revenue" },
+  { name: "Payment processor fees", type: "Expense" },
+  { name: "Adjustments", type: "Expense" },
 ];
 const cents = (value: number | string) => Math.round(Number(value) * 100);
 

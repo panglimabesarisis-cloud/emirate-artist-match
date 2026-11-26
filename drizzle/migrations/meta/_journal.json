@@ -708,6 +708,13 @@
       "when": 1795690000000,
       "tag": "0101_admin_permission_followups",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795700000000,
+      "tag": "0102_cancellations_ledger_security",
+      "breakpoints": true
     }
   ]
 }

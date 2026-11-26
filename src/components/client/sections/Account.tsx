@@ -1,3 +1,4 @@
+import { SupportThread } from "../SupportThreads";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -138,7 +139,7 @@ export function Support() {
             <div className="cp-list-item"><div className="cp-grow"><b>{t("How do I confirm a completed job?")}</b><small>{t("Open Job Confirmations and choose Confirm job completed. Payment then goes to the artist straight away.")}</small></div></div>
             <div className="cp-list-item"><div className="cp-grow"><b>{t("When can I withdraw commission?")}</b><small>{w ? `${t("When your available balance reaches")} ${moneyShort(w.minimum)} ${t("and your payout account is verified.")}` : t("When your available balance reaches the minimum and your payout account is verified.")}</small></div></div>
             <div className="cp-list-item"><div className="cp-grow"><b>{t("How is commission calculated?")}</b><small>{w ? `${w.rate}% ${t("of the booking value before VAT, fixed when you first pay. It becomes available once the artist's payment is released.")}` : t("A percentage of the booking value before VAT, fixed when you first pay.")}</small></div></div>
-            <div className="cp-list-item"><div className="cp-grow"><b>{t("Can I cancel a booking?")}</b><small>{t("Yes, from the booking details: 14+ days before the event refunds 100%, 7 to 13 days 50%, under 7 days nothing.")}</small></div></div>
+            <div className="cp-list-item"><div className="cp-grow"><b>{t("Can I cancel a booking?")}</b><small>{t("Send a cancellation request from the booking details, more than 7 days before the event. Dealmaker reviews it and replies here.")}</small></div></div>
           </div>
         </div>
         <div className="cp-card cp-span-12">
@@ -147,7 +148,7 @@ export function Support() {
             <div className="cp-list">{(support.data ?? []).map((r) => (
               <div key={r.id} className="cp-list-item" style={{ alignItems: "flex-start" }}>
                 <div className="cp-mini-icon" aria-hidden="true"><Bell /></div>
-                <div className="cp-grow"><b>{r.reference} · {t(TOPICS.find(([k]) => k === r.topic)?.[1] ?? r.topic)}</b><small dir="auto">{r.message}</small>{r.admin_reply && <div className="cp-review-card" style={{ marginTop: 8, marginBottom: 0 }}><b className="cp-small">{t("Dealmaker team")}</b><p dir="auto" style={{ margin: "4px 0 0" }}>{r.admin_reply}</p><small>{r.replied_at ? shortDate(r.replied_at) : ""}</small></div>}<small>{shortDate(r.created_at)}</small></div>
+                <div className="cp-grow"><b>{r.reference} · {t(TOPICS.find(([k]) => k === r.topic)?.[1] ?? r.topic)}</b><small dir="auto">{r.message}</small><SupportThread ticketId={r.id} uid={uid} closed={r.status === "closed"} />{r.admin_reply && <div className="cp-review-card" style={{ marginTop: 8, marginBottom: 0 }}><b className="cp-small">{t("Dealmaker team")}</b><p dir="auto" style={{ margin: "4px 0 0" }}>{r.admin_reply}</p><small>{r.replied_at ? shortDate(r.replied_at) : ""}</small></div>}<small>{shortDate(r.created_at)}</small></div>
                 <Status tone={r.status === "answered" ? "green" : r.status === "closed" ? "plain" : "gold"}>{t(r.status === "answered" ? "Answered" : r.status === "closed" ? "Closed" : "Open")}</Status>
               </div>
             ))}</div>

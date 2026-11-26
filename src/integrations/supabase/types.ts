@@ -1568,6 +1568,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          retained_to: string | null
           access_key: string
           amount: number
           artist_id: string
@@ -1628,6 +1629,7 @@ export type Database = {
           work_ready_at: string | null
         }
         Insert: {
+          retained_to?: string | null
           access_key?: string
           amount: number
           artist_id: string
@@ -1688,6 +1690,7 @@ export type Database = {
           work_ready_at?: string | null
         }
         Update: {
+          retained_to?: string | null
           access_key?: string
           amount?: number
           artist_id?: string
@@ -3589,6 +3592,20 @@ export type Database = {
           },
         ]
       }
+      cancellation_requests: {
+        Row: { booking_id: string; client_user_id: string; created_at: string; decided_at: string | null; decided_by: string | null; decision_note: string | null; id: string; paid_amount: number; reason: string; reference: string; refund_amount: number | null; retained_to: string | null; status: string; suggested_refund: number; ticket_id: string | null }
+        Insert: { booking_id: string; client_user_id: string; reason: string }
+        Update: { status?: string }
+        Relationships: [
+          { foreignKeyName: "cancellation_requests_booking_id_fkey"; columns: ["booking_id"]; isOneToOne: false; referencedRelation: "bookings"; referencedColumns: ["id"] },
+        ]
+      }
+      ledger_adjustments: {
+        Row: { amount: number; created_at: string; created_by: string; credit_account: string; debit_account: string; entry_date: string; id: string; reason: string; reference: string; reverses: string | null }
+        Insert: { amount: number; credit_account: string; debit_account: string; entry_date: string; reason: string }
+        Update: { reason?: string }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           at: string
@@ -4973,6 +4990,20 @@ export type Database = {
           tier: number
         }[]
       }
+      claim_cancellation: { Args: { _id: string }; Returns: Json }
+      release_cancellation: { Args: { _id: string }; Returns: undefined }
+      finish_cancellation: {
+        Args: { _id: string; _approve: boolean; _refund: number; _retained_to: string; _note: string; _recorded?: boolean }
+        Returns: undefined
+      }
+      request_cancellation: { Args: { _booking: string; _reason: string }; Returns: string }
+      post_ledger_adjustment: {
+        Args: { _date: string; _debit: string; _credit: string; _amount: number; _reason: string }
+        Returns: string
+      }
+      reverse_ledger_adjustment: { Args: { _id: string; _reason: string }; Returns: string }
+      admin_scheduled_jobs: { Args: never; Returns: Json }
+      admin_security_overview: { Args: never; Returns: Json }
       client_wallet: {
         Args: { _user?: string }
         Returns: {

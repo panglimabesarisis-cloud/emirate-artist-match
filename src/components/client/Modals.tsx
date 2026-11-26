@@ -9,9 +9,10 @@ import { getCatalog, searchArtists } from "@/lib/public.functions";
 import { submitClientQuote } from "@/lib/chat.functions";
 import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
 import { useAccountPhone } from "@/components/shared/AccountWhatsApp";
-import { acceptAndPay, acceptBookingOffer, cancelBookingAsClient, confirmBookingCompletion, getBooking, openDisputeAsClient, submitBookingReview } from "@/lib/bookings.functions";
+import { acceptAndPay, acceptBookingOffer, confirmBookingCompletion, getBooking, openDisputeAsClient, submitBookingReview } from "@/lib/bookings.functions";
 import { bookingPayment } from "@/lib/booking-payment-rules";
-import { CONTRACT_TERMS, ESCROW_HOLD_HOURS, canClientConfirm, canDispute, refundAmount, refundShare } from "@/lib/booking-rules";
+import { CONTRACT_TERMS, ESCROW_HOLD_HOURS, canClientConfirm, canDispute } from "@/lib/booking-rules";
+import { CANCEL_REASON, cancellationBlock, suggestedRefund } from "@/lib/cancellation-rules";
 import { hoursUntilRelease, withdrawalProblem } from "@/lib/client-portal-rules";
 import { validateHostedUrl } from "@/lib/hosted-checkout";
 import { useI18n } from "@/lib/i18n";
@@ -92,7 +93,7 @@ function BookingDetails({ id, onClose }: { id: string; onClose: () => void }) {
       <Actions>
         {row.threadId && <button type="button" className="cp-btn cp-btn-line" onClick={() => { onClose(); go("messages", row.threadId!); }}><MessageSquare aria-hidden="true" />{t("Open chat")}</button>}
         <Link to="/booking/$id" params={{ id: b.id }} search={{ k: b.access_key }} className="cp-btn cp-btn-line"><ExternalLink aria-hidden="true" />{t("Full booking page")}</Link>
-        {cancellable && <button type="button" className="cp-btn cp-btn-danger" onClick={() => openModal({ type: "cancel", id })}>{t("Cancel booking")}</button>}
+        {cancellable && <button type="button" className="cp-btn cp-btn-danger" onClick={() => openModal({ type: "cancel", id })}>{t("Request cancellation")}</button>}
         {canDispute(b.status, b.escrow_status) && !disputes.some((d) => d.status === "open") && <button type="button" className="cp-btn cp-btn-danger" onClick={() => openModal({ type: "dispute", id })}>{t("Report an issue")}</button>}
         {row.state.action === "quotation" && <button type="button" className="cp-btn cp-btn-gold" onClick={() => openModal({ type: "quotation", id })}>{t("Review quotation")}</button>}
         {row.state.action === "pay" && <button type="button" className="cp-btn cp-btn-gold" onClick={() => openModal({ type: "pay", id })}><CreditCard aria-hidden="true" />{t("Pay now")}</button>}
@@ -307,35 +308,40 @@ function Review({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 function Cancel({ id, onClose }: { id: string; onClose: () => void }) {
-  const { uid } = usePortal();
+  const { uid, go } = usePortal();
   const { t } = useI18n();
   const { row, b, isLoading } = useBookingRow(id);
   const refresh = useRefresh(uid);
-  const cancel$ = useServerFn(cancelBookingAsClient);
   const [reason, setReason] = useState("");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
+  const waiting = useQuery({
+    queryKey: ["client-cancellation", id],
+    queryFn: async () => (await supabase.from("cancellation_requests").select("reference, status").eq("booking_id", id).in("status", ["pending", "processing"]).maybeSingle()).data,
+  });
   if (!row || !b) return <Missing onClose={onClose} loading={isLoading} />;
-  const allowed = ["inquiry", "quoted", "confirmed"].includes(b.status);
+  const blocked = waiting.data ? `${t("Your request is waiting for Dealmaker:")} ${waiting.data.reference}` : cancellationBlock(b.status, b.event_date);
   const paid = Number(b.paid_amount);
-  const refund = refundAmount(paid, "client", b.event_date);
-  const share = Math.round(refundShare("client", b.event_date) * 100);
+  const short = reason.trim().length < CANCEL_REASON.min;
+  const toSupport = () => { onClose(); go("support"); };
   const run = async () => {
     setBusy(true);
-    try {
-      const r = await cancel$({ data: { id, key: b.access_key, reason } });
-      toast.success(r.refund > 0 ? `${t("Booking cancelled. Refund:")} ${money(r.refund)}` : t("Booking cancelled."));
-      await refresh();
-      onClose();
-    } catch (e) { toast.error(t(errText(e))); } finally { setBusy(false); }
+    const { error } = await supabase.rpc("request_cancellation", { _booking: id, _reason: reason.trim() });
+    setBusy(false);
+    if (error) { toast.error(t(error.message)); return; }
+    toast.success(t("Request sent. Follow the conversation in the Support Center."));
+    await refresh("support", "bookings");
+    toSupport();
   };
   return (
     <>
       <Summary row={row} />
-      <div className="cp-note" style={{ marginTop: 12 }}>{paid > 0 ? `${t("You paid")} ${money(paid)}. ${t("Cancelling now refunds")} ${share}%: ${money(refund)}.` : t("Nothing has been paid yet, so no refund is needed.")} {t("Policy: 14+ days before the event 100%, 7 to 13 days 50%, under 7 days no refund.")}</div>
-      <Field label="Reason (optional)" htmlFor="cp-c-reason" full><textarea id="cp-c-reason" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-      <label className="cp-check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} disabled={!allowed} />{t("I understand this cancels the booking and cannot be undone.")}</label>
-      <Actions><button type="button" className="cp-btn cp-btn-line" onClick={onClose}>{t("Keep booking")}</button><button type="button" className="cp-btn cp-btn-danger" disabled={!allowed || !agree || busy} onClick={run}>{t(busy ? "Cancelling…" : "Cancel booking")}</button></Actions>
+      <div className="cp-note" style={{ marginTop: 12 }}>{t("A cancellation is a request. Dealmaker reviews it and replies in the Support Center. Bookings cannot be cancelled within 7 days of the event.")}{paid > 0 && !blocked ? ` ${t("Suggested refund under the booking terms:")} ${money(suggestedRefund(paid, b.event_date))}.` : ""}</div>
+      {blocked ? <p role="status" className="cp-note" style={{ marginTop: 12 }}>{t(blocked)}</p> : <>
+        <Field label="Why do you need to cancel?" htmlFor="cp-c-reason" full hint={short ? `Write at least ${CANCEL_REASON.min} characters.` : `${reason.trim().length} / ${CANCEL_REASON.max}`} bad={short && reason.length > 0}><textarea id="cp-c-reason" maxLength={CANCEL_REASON.max} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+        <label className="cp-check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />{t("I understand the booking stays active until Dealmaker approves the request.")}</label>
+      </>}
+      <Actions><button type="button" className="cp-btn cp-btn-line" onClick={onClose}>{t("Keep booking")}</button>{waiting.data ? <button type="button" className="cp-btn cp-btn-gold" onClick={toSupport}>{t("Open Support Center")}</button> : <button type="button" className="cp-btn cp-btn-danger" disabled={!!blocked || short || !agree || busy} onClick={run}>{t(busy ? "Sending…" : "Send cancellation request")}</button>}</Actions>
     </>
   );
 }
@@ -473,7 +479,7 @@ const META: Record<PortalModal["type"], { title: string; text: string; wide?: bo
   "confirm-job": { title: "CONFIRM JOB COMPLETION", text: `Confirm the job or report an issue within ${ESCROW_HOLD_HOURS} hours of completion.` },
   dispute: { title: "REPORT AN ISSUE", text: "Payment stays frozen while Dealmaker reviews your report." },
   review: { title: "REVIEW YOUR ARTIST", text: "Verified reviews help other clients choose." },
-  cancel: { title: "CANCEL BOOKING", text: "Check the refund before you cancel." },
+  cancel: { title: "REQUEST CANCELLATION", text: "Tell Dealmaker why. The booking stays active until the request is approved." },
   withdraw: { title: "REQUEST WITHDRAWAL", text: "Withdraw your available commission to your payout account." },
   "payout-account": { title: "PAYOUT ACCOUNT", text: "The bank account that receives your commission withdrawals." },
 };

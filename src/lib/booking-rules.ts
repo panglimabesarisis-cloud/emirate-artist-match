@@ -34,7 +34,7 @@ export function canComplete(status: string, eventDate: string, now = new Date())
 export const CONTRACT_TERMS = [
   "The artist performs the agreed package on the event date and location stated in this booking.",
   "The client pays the deposit shown in this booking (incl. 5% VAT) into Dealmaker escrow, with any remaining balance due seven days before the event. Funds are released to the artist after the event is marked completed.",
-  "Client cancellation: 14+ days before the event = 100% refund, 7–13 days = 50% refund, under 7 days = no refund.",
+  "Client cancellation is a request that Dealmaker decides. Suggested refund: 14+ days before the event = 100%, 8–13 days = 50%. Bookings cannot be cancelled within 7 days of the event.",
   "If the artist cancels, the client receives a 100% refund.",
   "Both parties follow UAE law and venue rules; content must respect local cultural norms.",
 ];

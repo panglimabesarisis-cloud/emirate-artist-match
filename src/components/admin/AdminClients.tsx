@@ -1,5 +1,7 @@
 import { ClientTierSettings } from "@/components/admin/ClientTierSettings";
 import { ClientCommissionTransactions, TopClientsChart } from "@/components/admin/ClientFinance";
+import { AdminRefunds } from "@/components/admin/AdminRefunds";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SupportWorkspace } from "@/components/support/SupportWorkspace";
 import { useEffect, useState } from "react";
@@ -129,6 +131,10 @@ export function ClientWithdrawals() {
   const badge = (status: string) => <Badge variant={status === "paid" ? "default" : status === "rejected" ? "destructive" : "secondary"}>{status}</Badge>;
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="withdrawals">
+      <TabsList><TabsTrigger value="withdrawals">Commission & withdrawals</TabsTrigger><TabsTrigger value="refunds">Booking refunds</TabsTrigger></TabsList>
+      <TabsContent value="refunds" className="mt-4"><AdminRefunds /></TabsContent>
+      <TabsContent value="withdrawals" className="mt-4 space-y-6">
       <TopClientsChart />
       <ClientTierSettings />
       <StudioSection title="Client" accent="withdrawals" subtitle="Select a request ID for its details. Approve, then mark paid after the transfer. Demo mode: no real money moves.">
@@ -152,6 +158,8 @@ export function ClientWithdrawals() {
         )}
       </StudioSection>
       <ClientCommissionTransactions />
+      </TabsContent>
+      </Tabs>
       <Dialog open={!!open} onOpenChange={(value) => { if (!value) setOpenId(null); }}>
         <DialogContent className="max-h-[calc(100dvh-32px)] max-w-lg overflow-y-auto">
           <DialogHeader><DialogTitle>{open?.reference ?? "Withdrawal request"}</DialogTitle><DialogDescription>Client commission withdrawal request</DialogDescription></DialogHeader>

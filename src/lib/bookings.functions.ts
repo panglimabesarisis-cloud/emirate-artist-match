@@ -155,7 +155,8 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 
-async function doCancel(id: string, by: "client" | "artist", reason: string | null) {
+/** A client cannot cancel directly: their request is decided by an administrator (cancellations.functions.ts). */
+async function doCancel(id: string, by: "artist", reason: string | null) {
   const db = await admin();
   const { data: b } = await db.from("bookings").select("id, status, paid_amount, event_date").eq("id", id).single();
   if (!b || !["inquiry", "quoted", "confirmed"].includes(b.status)) throw new Error("This booking cannot be cancelled");
@@ -168,10 +169,6 @@ async function doCancel(id: string, by: "client" | "artist", reason: string | nu
   }).eq("id", id);
   return { refund };
 }
-
-export const cancelBookingAsClient = createServerFn({ method: "POST" })
-  .inputValidator((i: { id: string; key: string; reason?: string }) => ({ id: uuid(i.id), key: uuid(i.key), reason: String(i.reason ?? "").slice(0, 500) || null }))
-  .handler(async ({ data }) => { await bookingByKey(data.id, data.key); return doCancel(data.id, "client", data.reason); });
 
 export const cancelBookingAsArtist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

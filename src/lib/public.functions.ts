@@ -8,8 +8,8 @@ export const askPublicConcierge = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => conciergeInput.parse(input))
   .handler(async ({ data }) => {
     try {
-      const { clientAddress, conciergeLimits, withinLimits } = await import("./rate-limit.server");
-      if (!(await withinLimits(conciergeLimits(clientAddress())))) return { ok: false as const, error: "Too many questions right now. Please try again later." };
+      const { clientAddress, conciergeLimits, readLimits, withinLimits } = await import("./rate-limit.server");
+      if (!(await withinLimits(conciergeLimits(clientAddress(), await readLimits())))) return { ok: false as const, error: "Too many questions right now. Please try again later." };
       const { answerPublicConcierge } = await import("./public-concierge.server");
       return { ok: true as const, reply: await answerPublicConcierge(data) };
     } catch (error) {

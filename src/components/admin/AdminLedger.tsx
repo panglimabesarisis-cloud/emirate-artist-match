@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { ACCOUNTS, accountStatement, ledgerReport, type LedgerLine } from "@/lib/admin-documents";
 import { A4Dialog } from "./documents/A4Dialog";
+import { LedgerAdjustments } from "./LedgerAdjustments";
 import { ListState } from "./artists/parts";
 
 const money = (n: number | string) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -68,11 +69,11 @@ export function AdminLedger() {
         <Button variant="outline" disabled={!report.accounts.length} onClick={() => setStatement(true)}><Printer />Print statement</Button>
       </div>
       <div className="adm-grid is-kpi">{kpis.map(([label, value, note]) => <section key={label} className="adm-panel !gap-1"><span className="adm-meta">{label}</span><b className="font-display text-4xl font-normal">AED {money(value)}</b><span className="adm-meta">{note}</span></section>)}</div>
-      <ListState pending={query.isPending} error={query.error} empty={!valid ? "The start date must be before the end date." : report.accounts.length ? null : "No money movement is recorded yet."}>
+      <ListState pending={query.isPending} error={query.error} empty={!valid ? "The start date must be before the end date." : null}>
         <p className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground"><span className={`adm-pill is-${report.balanced ? "paid" : "unpaid"}`}>{report.balanced ? "Balanced" : "Out of balance"}</span>{periodLabel} · all amounts in AED · {journals.length} journal entries</p>
         <Tabs defaultValue="trial">
-          <TabsList><TabsTrigger value="trial">Trial balance</TabsTrigger><TabsTrigger value="accounts">By ledger account</TabsTrigger><TabsTrigger value="journal">Journal</TabsTrigger></TabsList>
-          <TabsContent value="trial" className="mt-4"><div className="admin-table-wrap">{trial}</div></TabsContent>
+          <TabsList><TabsTrigger value="trial">Trial balance</TabsTrigger><TabsTrigger value="accounts">By ledger account</TabsTrigger><TabsTrigger value="journal">Journal</TabsTrigger><TabsTrigger value="adjustments">Adjustments</TabsTrigger></TabsList>
+          <TabsContent value="trial" className="mt-4"><div className="admin-table-wrap">{trial}</div>{!report.accounts.length && <p className="adm-meta mt-2">No money movement is recorded yet.</p>}</TabsContent>
           <TabsContent value="accounts" className="mt-4 space-y-4">
             {report.accounts.map((a) => { const entries = accountStatement(report.period, a.name, a.opening); return (
               <details key={a.name} className="adm-panel" open={entries.length > 0 && entries.length <= 12}>
@@ -84,6 +85,7 @@ export function AdminLedger() {
               </details>
             ); })}
           </TabsContent>
+          <TabsContent value="adjustments" className="mt-4"><LedgerAdjustments /></TabsContent>
           <TabsContent value="journal" className="mt-4 space-y-3">
             {journals.length ? <div className="admin-table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Ledger account</th><th>Description</th><th className="text-end">Debit</th><th className="text-end">Credit</th></tr></thead>
               {journals.slice(0, shown).map((entry) => <tbody key={entry[0]!.journal} className="adm-journal">{entry.map((l, i) => <Fragment key={`${l.account}-${i}`}><tr>

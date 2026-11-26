@@ -20,10 +20,14 @@ async function log(bookingId: string, channel: "email" | "whatsapp", audience: "
 
 /**
  * Sends a booking link by email and WhatsApp. Every attempt is logged in `notifications`.
- * Email stays `pending_setup` until a sender domain is configured; WhatsApp until the connector is linked.
+ * Email stays `pending_setup` until Settings → Email has a key and sender; WhatsApp until the connector is linked.
  */
 export async function notifyBooking(bookingId: string, audience: "client" | "artist", kind: string, to: Target, subject: string, details: string, link: string) {
-  if (to.email) await log(bookingId, "email", audience, kind, to.email, "pending_setup");
+  if (to.email) {
+    const { sendEmail } = await import("./email-provider.server");
+    const sent = await sendEmail(to.email, subject, [details, link].filter(Boolean).join("\n\n"));
+    await log(bookingId, "email", audience, kind, to.email, sent.status, sent.error);
+  }
   if (to.phone) {
     try {
       let replyInstructions = '';

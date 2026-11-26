@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppSettings } from "./WhatsAppSettings";
+import { ApiSettings, EmailSettings, SecuritySettings } from "./SystemSettingsTabs";
 import { ARTIST_MENU, DEFAULT_MENU, TALENT_MENU, parseSiteSettings } from "@/lib/site-settings";
 import { InvoicePaper, type PaperData } from "@/components/dashboard/InvoicePaper";
 import { Printer } from "lucide-react";
@@ -59,6 +60,9 @@ export function AdminSettings() {
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="invoice">Invoice</TabsTrigger>
         <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+        <TabsTrigger value="email">Email</TabsTrigger>
+        <TabsTrigger value="api">API & webhooks</TabsTrigger>
+        <TabsTrigger value="security">Security</TabsTrigger>
       </TabsList>
       <div className="mt-4">
         <TabsContent value="general"><General /></TabsContent>
@@ -69,6 +73,9 @@ export function AdminSettings() {
         <TabsContent value="payments"><Payments /></TabsContent>
         <TabsContent value="invoice"><Invoice /></TabsContent>
         <TabsContent value="whatsapp"><WhatsAppSettings /></TabsContent>
+        <TabsContent value="email"><EmailSettings /></TabsContent>
+        <TabsContent value="api"><ApiSettings /></TabsContent>
+        <TabsContent value="security"><SecuritySettings /></TabsContent>
       </div>
     </Tabs>
   );

@@ -36,7 +36,7 @@ export function WalletPage({ artistId }: { artistId: string }) {
       const [w, r, b] = await Promise.all([
         supabase.rpc("artist_wallet", { _artist: artistId }),
         supabase.from("payout_requests").select("id, amount, status, created_at, decided_at, admin_note, bank_snapshot").eq("artist_id", artistId).order("created_at", { ascending: false }),
-        supabase.from("bookings").select("id, client_name, package_title, event_date, amount, vat_amount, total, paid_amount, refund_amount, status, escrow_status, commission_rate").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).neq("status", "cancelled").order("event_date", { ascending: false }).limit(500),
+        supabase.from("bookings").select("id, client_name, package_title, event_date, amount, vat_amount, total, paid_amount, refund_amount, status, escrow_status, retained_to, commission_rate").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).or("status.neq.cancelled,retained_to.eq.artist").order("event_date", { ascending: false }).limit(500),
       ]);
       if (w.error) throw w.error;
       return { w: w.data?.[0], requests: r.data ?? [], bookings: b.data ?? [] };

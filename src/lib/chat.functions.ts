@@ -39,8 +39,8 @@ function validateQuote(i: QuoteInput): QuoteInput {
 /** Each new chat makes the artist's AI work, so one account may open only so many. */
 async function assertMayOpenChat(userId: string | null) {
   if (!userId) return;
-  const { newChatLimits, withinLimits } = await import("./rate-limit.server");
-  if (!(await withinLimits(newChatLimits(userId)))) throw new Error("You have started many chats. Please try again later.");
+  const { newChatLimits, readLimits, withinLimits } = await import("./rate-limit.server");
+  if (!(await withinLimits(newChatLimits(userId, await readLimits())))) throw new Error("You have started many chats. Please try again later.");
 }
 
 /** Stores a quote request, opens its conversation (linked to the verified client account when known) and gets the first AI reply. */
@@ -165,8 +165,8 @@ export const sendClientMessage = createServerFn({ method: "POST" })
     const { count } = await supabaseAdmin.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", data.id).eq("sender", "client").gte("created_at", since);
     if ((count ?? 0) >= 10) return { error: "You're sending messages too fast. Please wait a moment." };
     if (convo.client_user_id) {
-      const { clientMessageLimits, withinLimits } = await import("./rate-limit.server");
-      if (!(await withinLimits(clientMessageLimits(convo.client_user_id)))) return { error: "You're sending messages too fast. Please wait a moment." };
+      const { clientMessageLimits, readLimits, withinLimits } = await import("./rate-limit.server");
+      if (!(await withinLimits(clientMessageLimits(convo.client_user_id, await readLimits())))) return { error: "You're sending messages too fast. Please wait a moment." };
     }
     const { addMessage, runAgent } = await import("./agent.server");
     for (const file of data.attachments) {
