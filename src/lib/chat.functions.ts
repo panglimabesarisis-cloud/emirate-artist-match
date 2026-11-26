@@ -20,6 +20,8 @@ export type QuoteInput = {
   startTime?: string | null; endTime?: string | null; performMinutes?: number | null;
   /** Shows the WhatsApp number was verified with a one-time code. */
   phoneProof?: string | null;
+  /** Sent through the artist's own order form: only its answers (the message) come from the form. */
+  fromOrderForm?: boolean;
 };
 
 function validateQuote(i: QuoteInput): QuoteInput {
@@ -34,6 +36,28 @@ function validateQuote(i: QuoteInput): QuoteInput {
     endTime: typeof i.endTime === "string" && /^\d{2}:\d{2}$/.test(i.endTime) ? i.endTime : null,
     performMinutes: i.performMinutes ? Math.min(Math.max(1, Math.round(Number(i.performMinutes))), 1440) : null,
   };
+}
+
+/** The artist's own form asks no name, email or budget, so those are not required of it. */
+function validateRequest(i: QuoteInput): QuoteInput {
+  if (i.fromOrderForm !== true) return validateQuote(i);
+  const checked = validateQuote({ ...i, name: "Client", email: "client@example.com", budget: 1, message: str(i.message, 2000, true) });
+  return { ...checked, budget: null, fromOrderForm: true };
+}
+
+/** Who is asking, taken from the signed-in account. Only for an artist who shows an order form. */
+async function fromAccount(data: QuoteInput, userId: string): Promise<QuoteInput> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [{ count }, { data: user }, { data: profile }] = await Promise.all([
+    supabaseAdmin.from("artist_order_forms").select("id", { count: "exact", head: true }).eq("artist_id", data.artistId).eq("enabled", true),
+    supabaseAdmin.auth.admin.getUserById(userId),
+    supabaseAdmin.from("profiles").select("display_name, phone").eq("id", userId).maybeSingle(),
+  ]);
+  if (!count) throw new Error("This artist has no order form");
+  const email = user.user?.email;
+  if (!email) throw new Error("Add an email address to your account first");
+  const name = (profile?.display_name ?? "").trim() || email.split("@")[0] || "Client";
+  return { ...data, name: name.slice(0, 120), email, phone: data.phone ?? profile?.phone ?? null };
 }
 
 /** Each new chat makes the artist's AI work, so one account may open only so many. */
@@ -77,13 +101,14 @@ async function createQuote(data: QuoteInput, clientUserId: string | null) {
 
 /** Stores a signed-in visitor's quote request, linked to their account. */
 export const submitQuote = createServerFn({ method: "POST" })
-  .inputValidator(validateQuote)
+  .inputValidator(validateRequest)
   .handler(async ({ data }) => {
     const { optionalUserId } = await import("./request-user.server");
     const { requireVerifiedPhone } = await import("./phone-otp.server");
     const userId = await optionalUserId();
     if (!userId) throw new Error("Sign in to continue");
-    return createQuote({ ...data, phone: await requireVerifiedPhone(data.phone, data.phoneProof, userId) }, userId);
+    const request = data.fromOrderForm ? await fromAccount(data, userId) : data;
+    return createQuote({ ...request, phone: await requireVerifiedPhone(request.phone, request.phoneProof, userId) }, userId);
   });
 
 export type ClientRequestInput = Omit<QuoteInput, "clientUserId" | "name" | "email"> & { eventTitle?: string | null };

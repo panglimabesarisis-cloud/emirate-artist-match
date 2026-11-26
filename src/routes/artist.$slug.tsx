@@ -214,6 +214,10 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
     ?? (orderForms ?? []).find(form => form.subcategory_id === null)
     ?? null;
   const customFields = orderForm?.fields ?? [];
+  // An artist who shows an order form gets that form alone; the built-in questions are for artists without one.
+  const formOnly = (orderForms ?? []).length > 0;
+  const bySpeciality = (orderForms ?? []).some(form => form.subcategory_id !== null);
+  const [verify, setVerify] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -240,7 +244,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
   }, [artistId]);
   useEffect(() => {
     // The artist's own questions must be loaded, or their answers would be left out.
-    if (!resume || !user || !whatsapp.ready || !orderForms) return;
+    if (!resume || !user || !orderForms || (!whatsapp.ready && !(resume === "form" && formOnly))) return;
     setResume(null);
     void (resume === "chat" ? openChat() : sendQuote());
   }, [resume, user, whatsapp.ready, orderForms]);
@@ -249,13 +253,40 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
     e.preventDefault();
     void sendQuote();
   };
+  const answerLines = () => customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
+  const sendOrderForm = async () => {
+    if (!orderForm) { toast.error(t("Choose a speciality first.")); return; }
+    const missing = customFields.find((c) => c.required && !(answers[c.id] ?? "").trim());
+    if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
+    const message = answerLines().join("\n").slice(0, 2000);
+    if (!message) { toast.error(t("Please fill in the form.")); return; }
+    if (!(await signedIn("form"))) return;
+    setSending(true);
+    try {
+      // The number verified on this device, or else the one already verified on the account.
+      const phone = f.phone || whatsapp.saved?.phone || null;
+      const phoneProof = whatsapp.proof ?? (!f.phone ? whatsapp.saved?.proof ?? null : null);
+      const r = await submit$({ data: {
+        artistId, fromOrderForm: true, clientUserId: null, name: "", email: "", phone, phoneProof,
+        eventTypeId: null, eventDate: null, areaId: null, guests: null, budget: null, message,
+      } });
+      await navigate({ to: "/chat/$id", params: { id: r.conversationId }, search: { k: r.key } });
+    } catch (error) {
+      // The server asks for a verified WhatsApp number only when the account has none yet.
+      if (error instanceof Error && error.message.includes("WhatsApp")) setVerify(true);
+      else toast.error(t("Could not send your request. Please try again."));
+    } finally {
+      setSending(false);
+    }
+  };
   const sendQuote = async () => {
+    if (formOnly) { await sendOrderForm(); return; }
     if (!f.name.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) { toast.error(t("Please enter your name and a valid email.")); return; }
     if (!(Number(f.budget) > 0)) { toast.error(t("Please enter your budget.")); return; }
     if (!whatsapp.ready) { toast.error(t("Verify your WhatsApp number first.")); return; }
     const missing = customFields.find((c) => c.required && !(answers[c.id] ?? "").trim());
     if (missing) { toast.error(`${t("Please fill in")}: ${missing.label}`); return; }
-    const extraLines = customFields.filter((c) => (answers[c.id] ?? "").trim()).map((c) => `${c.label}: ${(answers[c.id] ?? "").trim()}`);
+    const extraLines = answerLines();
     const fullMessage = [f.message.trim(), ...extraLines].filter(Boolean).join("\n").slice(0, 2000);
     if (!(await signedIn("form"))) return;
     setSending(true);
@@ -306,58 +337,62 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
-          <div className="font-semibold">{t("Job Categories")}</div>
-          <Select value={jobCategory} onValueChange={(v) => { setJobCategory(v); setSpeciality(""); }}>
-            <SelectTrigger><SelectValue placeholder={t("What do you need?")} /></SelectTrigger>
-            <SelectContent>{categories.map((c) => <SelectItem key={c.slug} value={c.id ?? c.slug}>{t(c.name)}</SelectItem>)}</SelectContent>
-          </Select>
-          {jobCategory && (
-            <Select value={speciality} onValueChange={setSpeciality}>
-              <SelectTrigger><SelectValue placeholder={t("Speciality")} /></SelectTrigger>
-              <SelectContent>{specialties.map((sp) => <SelectItem key={sp.slug} value={sp.id ?? sp.slug}>{t(sp.name)}</SelectItem>)}</SelectContent>
+          {(!formOnly || bySpeciality) && <>
+            <div className="font-semibold">{t("Job Categories")}</div>
+            <Select value={jobCategory} onValueChange={(v) => { setJobCategory(v); setSpeciality(""); }}>
+              <SelectTrigger><SelectValue placeholder={t("What do you need?")} /></SelectTrigger>
+              <SelectContent>{categories.map((c) => <SelectItem key={c.slug} value={c.id ?? c.slug}>{t(c.name)}</SelectItem>)}</SelectContent>
             </Select>
-          )}
-          {speciality && customFields.length > 0 && (
+            {jobCategory && (
+              <Select value={speciality} onValueChange={setSpeciality}>
+                <SelectTrigger><SelectValue placeholder={t("Speciality")} /></SelectTrigger>
+                <SelectContent>{specialties.map((sp) => <SelectItem key={sp.slug} value={sp.id ?? sp.slug}>{t(sp.name)}</SelectItem>)}</SelectContent>
+              </Select>
+            )}
+          </>}
+          {(formOnly || speciality) && customFields.length > 0 && (
             <div className="rounded-xl border-t-4 border-gold bg-background p-3">
               <div className="font-semibold">{orderForm?.title}</div>
               {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
               <div className="mt-3"><OrderFormFields fields={customFields} values={answers} onChange={(id, v) => setAnswers({ ...answers, [id]: v })} /></div>
             </div>
           )}
-          <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
-            <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
-            <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
-          </Select>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">{t(deliverable ? "Deadline" : "Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
-            <div><Label className="text-xs">{t("Guests")}</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
-          </div>
-          {!deliverable && <div className="grid grid-cols-3 gap-2 items-end">
-            <div><Label className="text-xs">{t("Start")}</Label><Input type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value, duration: f.duration || autoDuration(e.target.value, f.end) })} /></div>
-            <div><Label className="text-xs">{t("End")}</Label><Input type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value, duration: f.duration || autoDuration(f.start, e.target.value) })} /></div>
-            <div><Label className="text-xs">{t("Duration")}</Label><Input type="number" placeholder={t("min")} min={1} max={1440} value={f.duration} onChange={up("duration")} /></div>
-          </div>}
-          <Select value={f.area} onValueChange={(v) => setF({ ...f, area: v })}>
-            <SelectTrigger><SelectValue placeholder={t("Venue area")} /></SelectTrigger>
-            <SelectContent>{catalog.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <div><Label className="text-xs">{t("Budget (AED)")} *</Label><Input type="number" min={1} required value={f.budget} onChange={up("budget")} /></div>
-          <Input placeholder={t("Your name")} value={f.name} onChange={up("name")} maxLength={120} />
-          <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
-          <WhatsAppVerify phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} />
-          <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
-          {similar.length > 0 && (
-            <div className="rounded-lg border p-3 space-y-2">
-              <div className="text-xs font-semibold">{t("Also ask up to 2 similar artists")}</div>
-              {similar.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="accent-gold" checked={extra.includes(s.id)} disabled={!extra.includes(s.id) && extra.length >= 2}
-                    onChange={(e) => setExtra(e.target.checked ? [...extra, s.id] : extra.filter((x) => x !== s.id))} />
-                  <span className="flex-1">{s.stage_name}</span>
-                </label>
-              ))}
+          {!formOnly && <>
+            <Select value={f.event} onValueChange={(v) => setF({ ...f, event: v })}>
+              <SelectTrigger><SelectValue placeholder={t("Event type")} /></SelectTrigger>
+              <SelectContent>{catalog.eventTypes.map((e) => <SelectItem key={e.id} value={e.id}>{t(e.name)}</SelectItem>)}</SelectContent>
+            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label className="text-xs">{t(deliverable ? "Deadline" : "Date")}</Label><Input type="date" value={f.date} onChange={up("date")} /></div>
+              <div><Label className="text-xs">{t("Guests")}</Label><Input type="number" min={1} value={f.guests} onChange={up("guests")} /></div>
             </div>
-          )}
+            {!deliverable && <div className="grid grid-cols-3 gap-2 items-end">
+              <div><Label className="text-xs">{t("Start")}</Label><Input type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value, duration: f.duration || autoDuration(e.target.value, f.end) })} /></div>
+              <div><Label className="text-xs">{t("End")}</Label><Input type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value, duration: f.duration || autoDuration(f.start, e.target.value) })} /></div>
+              <div><Label className="text-xs">{t("Duration")}</Label><Input type="number" placeholder={t("min")} min={1} max={1440} value={f.duration} onChange={up("duration")} /></div>
+            </div>}
+            <Select value={f.area} onValueChange={(v) => setF({ ...f, area: v })}>
+              <SelectTrigger><SelectValue placeholder={t("Venue area")} /></SelectTrigger>
+              <SelectContent>{catalog.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <div><Label className="text-xs">{t("Budget (AED)")} *</Label><Input type="number" min={1} required value={f.budget} onChange={up("budget")} /></div>
+            <Input placeholder={t("Your name")} value={f.name} onChange={up("name")} maxLength={120} />
+            <Input placeholder={t("Email")} type="email" value={f.email} onChange={up("email")} maxLength={255} />
+            <WhatsAppVerify phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} />
+            <Textarea placeholder={t("Tell the artist about your event")} value={f.message} onChange={up("message")} maxLength={2000} />
+            {similar.length > 0 && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="text-xs font-semibold">{t("Also ask up to 2 similar artists")}</div>
+                {similar.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="accent-gold" checked={extra.includes(s.id)} disabled={!extra.includes(s.id) && extra.length >= 2}
+                      onChange={(e) => setExtra(e.target.checked ? [...extra, s.id] : extra.filter((x) => x !== s.id))} />
+                    <span className="flex-1">{s.stage_name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </>}
           <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
             {sending ? t("Assistant is replying…") : t("Book Artist")}
           </Button>
@@ -367,6 +402,13 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
         </form>
       )}
       {chatOpen && <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void openChat(); }}><Label htmlFor="artist-chat-message">{t("Your message")}</Label><Textarea id="artist-chat-message" autoFocus value={chatText} onChange={event => setChatText(event.target.value)} placeholder={t("Ask about your event")} maxLength={2000} /><WhatsAppVerify id="chat-whatsapp-number" phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} /><Button variant="gold" type="submit" className="w-full" disabled={chatBusy || !chatText.trim() || !whatsapp.ready}>{t(chatBusy ? "Opening chat…" : "Start chat")}</Button></form>}
+      <Dialog open={verify} onOpenChange={setVerify}>
+        <DialogContent className="max-w-md">
+          <DialogTitle>{t("Verify your WhatsApp number")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t("The artist's reply and your chat link are sent to this number.")}</p>
+          <WhatsAppVerify id="form-whatsapp-number" phone={f.phone} onChange={(phone) => setF((current) => ({ ...current, phone }))} onVerified={() => { setVerify(false); setResume("form"); }} />
+        </DialogContent>
+      </Dialog>
       <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} blocked={blocked} busy={busy} name={artistName} />
       <ClientSignInDialog open={!!signIn} returnTo={signIn?.returnTo ?? "/"}
         onOpenChange={(open) => { if (!open) { takeBookingDraft(artistId); setSignIn(null); } }}

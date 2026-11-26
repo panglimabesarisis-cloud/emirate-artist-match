@@ -89,3 +89,4 @@ use the editor.
 - Inbox delete controls use eligibility RPCs.
 - The home intro (IntroOverlay) frames `public/intro.html`, an exported minified page. Change its controls and scenes in `public/intro-controls.js` and `public/intro-effects.js`; patch the HTML only to expose hooks (`__dmSound`, `__dmFx`).
 - Intro music is `public/intro-music.mp3`, a 2-minute excerpt of WombatNoisesAudio "The Legend of Narmer" (CC BY 3.0); keep the on-screen credit in intro-controls.js while it is used.
+- An artist page with an enabled order form shows that form alone (speciality picker only when forms differ by speciality). `submitQuote` with `fromOrderForm` takes name, email and phone from the account, needs no budget, and still requires a verified WhatsApp number (asked in a dialog when the account has none).

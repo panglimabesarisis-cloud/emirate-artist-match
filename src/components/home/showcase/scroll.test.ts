@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { introProgress, introStages, splitHeading } from "./scroll";
+import { centreShift, introProgress, introStages, splitHeading } from "./scroll";
 
 describe("scroll-driven opening", () => {
   it("assembles the title, then types, then raises the panel", () => {
@@ -27,6 +27,14 @@ describe("scroll-driven opening", () => {
     expect(introProgress({ top: 900, height, header: 60, view })).toBe(0);
     expect(introProgress({ top: 60 - (height - view), height, header: 60, view })).toBe(1);
     expect(introProgress({ top: 60, height, header: 60, view })).toBeGreaterThan(0.2);
+  });
+  it("starts the heading in the middle of the screen and lifts it to the top", () => {
+    const sizes = { view: 800, head: 300, padding: 40 };
+    expect(centreShift(sizes, 0)).toBe(210);
+    expect(centreShift(sizes, 0.5)).toBeLessThan(210);
+    expect(centreShift(sizes, 1)).toBe(0);
+    // A heading taller than the screen stays where it is.
+    expect(centreShift({ view: 400, head: 600, padding: 20 }, 0)).toBe(0);
   });
   it("splits Latin words into letters but keeps Arabic words whole", () => {
     expect(splitHeading("How It")).toEqual([["H", "o", "w"], ["I", "t"]]);

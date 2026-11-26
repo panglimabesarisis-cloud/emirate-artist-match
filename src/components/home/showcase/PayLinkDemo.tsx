@@ -173,8 +173,12 @@ export function PayLinkDemo() {
                       </div>
                     </div>
                   </div>
-                  <div className="sc-curtain is-left" aria-hidden="true"><span>Your invoice</span></div>
-                  <div className="sc-curtain is-right" aria-hidden="true"><span>Job details</span></div>
+                  {/* Two gold doors, each carrying its half of the embossed name. */}
+                  {["is-left", "is-right"].map((side) => (
+                    <div key={side} className={`sc-curtain ${side}`} aria-hidden="true">
+                      <span className="sc-brand"><b>DEALMAKER</b><small>AI AGENT MAKE A DEAL JUST FOR MONEY</small></span>
+                    </div>
+                  ))}
                   {phase === "empty" && <button type="button" data-demo="create" className="sc-btn sc-btn-gold sc-create" onClick={create}><Plus aria-hidden="true" />Create Invoice</button>}
                 </div>
               )}

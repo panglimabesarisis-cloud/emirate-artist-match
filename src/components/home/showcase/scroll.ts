@@ -10,6 +10,12 @@ export function introStages(progress: number, characters: number, teaser = false
   return { title: clamp01(progress / plan.title), typed: Math.round(part(plan.typed) * characters), teaser: teaser ? part(plan.teaser) : 0, rise, ready: rise >= 0.97 };
 }
 
+/** How far down the opening sits so that the heading starts in the middle of the screen; it ends at its usual
+ *  place once `lift` reaches 1. */
+export function centreShift({ view, head, padding }: { view: number; head: number; padding: number }, lift: number) {
+  return Math.max(0, (view - head) / 2 - padding) * (1 - clamp01(lift)) ** 2;
+}
+
 /** 0 while the section is still entering the screen, 1 when its pinned stretch has been scrolled through. */
 export function introProgress({ top, height, header, view }: { top: number; height: number; header: number; view: number }) {
   const lead = view * 0.55;

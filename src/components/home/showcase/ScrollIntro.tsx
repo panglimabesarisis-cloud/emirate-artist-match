@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useReducedMotion } from "./demo";
-import { introProgress, introStages, splitHeading } from "./scroll";
+import { centreShift, introProgress, introStages, splitHeading } from "./scroll";
 import { createDust, touchProgress } from "./dust";
 
 /**
- * A pinned, scroll-driven opening. Scrolling down flies the heading letters in, types the sentence below it,
- * then brings the panel up (tilted into place, or zoomed in). Scrolling back up reverses it.
+ * A pinned, scroll-driven opening. Scrolling down flies the heading letters in at the middle of the screen, types
+ * the sentence below it, then moves them up and brings the panel up (tilted into place, or zoomed in). Scrolling
+ * back up reverses it.
  * `onReady` tells the demo inside the panel when it has fully arrived.
  */
 export function ScrollIntro({ id, title, accent, text, effect, oneLine = false, teaser, onReady, children }: {
@@ -56,7 +57,9 @@ export function ScrollIntro({ id, title, accent, text, effect, oneLine = false, 
       root.style.setProperty("--title", stage.title.toFixed(4));
       root.style.setProperty("--rise", rise.toFixed(4));
       root.style.setProperty("--fit", fit.toFixed(4));
-      body.style.transform = `translateY(${-overflow * rise}px)`;
+      // The heading starts in the middle of the screen and moves up as what follows it arrives.
+      const shift = centreShift({ view, head: top.offsetHeight, padding: parseFloat(getComputedStyle(body).paddingTop) || 0 }, teased ? stage.teaser : rise);
+      body.style.transform = `translateY(${shift - overflow * rise}px)`;
       top.style.opacity = String(1 - rise * Math.min(1, overflow / Math.max(1, top.offsetHeight)) * 0.7);
       setTyped(stage.typed);
       if (dust && line.current) {

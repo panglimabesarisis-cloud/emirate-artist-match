@@ -236,7 +236,12 @@
 /* 4. One link to pay the invoice */
 .dm-home .sc-pay-stage{position:relative;min-height:590px;border-radius:24px;overflow:hidden}
 /* Two grey doors cover the empty invoice until it is created. */
-.dm-home .sc-curtain{position:absolute;top:0;bottom:0;z-index:12;width:50.2%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:32px;background:linear-gradient(160deg,#4a4f5c,#2b2f39);color:rgba(255,255,255,.55);font-size:13px;font-weight:700;transition:transform 2.3s cubic-bezier(.7,0,.2,1)}
+.dm-home .sc-curtain{position:absolute;top:0;bottom:0;z-index:12;width:50.2%;overflow:hidden;background:linear-gradient(160deg,#f6dc92 0,#dcae48 30%,#c08c2c 52%,#e8c469 74%,#a97a22 100%);transition:transform 2.3s cubic-bezier(.7,0,.2,1)}
+.dm-home .sc-brand{position:absolute;top:0;bottom:0;width:199.203%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 20px 90px;text-align:center;pointer-events:none}
+.dm-home .is-left .sc-brand{left:0}.dm-home .is-right .sc-brand{right:0}
+/* Embossed: lit from the top left, shaded to the bottom right. */
+.dm-home .sc-brand b{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:clamp(60px,12vw,168px);line-height:.95;letter-spacing:.06em;color:#d9ab45;text-shadow:-1px -1px 0 rgba(255,248,214,.95),-2px -2px 1px rgba(255,240,190,.55),1px 1px 0 rgba(112,74,10,.85),2px 2px 0 rgba(112,74,10,.6),5px 7px 10px rgba(74,46,0,.4)}
+.dm-home .sc-brand small{font-size:clamp(11px,1.45vw,18px);font-weight:800;letter-spacing:.28em;color:#6d4a0c;text-shadow:0 1px 0 rgba(255,244,205,.75)}
 .dm-home .sc-curtain.is-left{left:0;box-shadow:inset -1px 0 0 rgba(255,255,255,.16),12px 0 30px rgba(0,0,0,.35)}
 .dm-home .sc-curtain.is-right{right:0;box-shadow:inset 1px 0 0 rgba(255,255,255,.16),-12px 0 30px rgba(0,0,0,.35)}
 .dm-home .is-open .sc-curtain.is-left{transform:translateX(-104%)}
@@ -275,7 +280,7 @@
 .dm-home .sc-job-foot p{display:flex;justify-content:space-between;align-items:baseline;margin:0;color:var(--sc-soft)}
 .dm-home .sc-job-foot b{font-family:var(--dm-serif);font-weight:400;font-size:32px;color:var(--dm-cream)}
 .dm-home .sc-btn.sc-pay-button{min-height:48px;font-size:14px;animation:sc-in .45s var(--dm-ease)}
-.dm-home .sc-btn.sc-create{position:absolute;left:50%;top:50%;z-index:18;translate:-50% -50%;min-height:52px;padding:0 28px;font-size:15px;animation:sc-ring 1.8s ease-out infinite}
+.dm-home .sc-btn.sc-create{position:absolute;left:50%;top:70%;z-index:18;translate:-50% -50%;min-height:52px;padding:0 28px;font-size:15px;animation:sc-ring 1.8s ease-out infinite;border:2px solid #f6dc92;background:#171003;color:#f9e4a6}
 .dm-home .sc-redirect{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;border-radius:24px;background:rgba(7,9,15,.9);backdrop-filter:blur(8px);animation:sc-in .35s ease}
 .dm-home .sc-redirect>svg{width:40px;height:40px;color:var(--dm-gold)}
 .dm-home .sc-redirect b{font-size:18px}
@@ -327,7 +332,7 @@
   .dm-home .sc-pay-job{order:1;min-height:340px}
   .dm-home .sc-pay-invoice{order:2;min-height:300px}
   .dm-home .sc-slot{min-height:200px}
-  .dm-home .sc-btn.sc-create{top:300px}
+  .dm-home .sc-btn.sc-create{top:62%}.dm-home .sc-brand{padding-bottom:120px}
   .dm-home .sc-stripe,.dm-home .sc-paid{grid-template-columns:minmax(0,1fr)}
   .dm-home .sc-stripe-sum{padding:26px}.dm-home .sc-stripe-form{padding:26px 22px}
   .dm-home .sc-paid{padding:22px 14px}
