@@ -3377,6 +3377,12 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: { at: string; bucket: string }
+        Insert: { at?: string; bucket: string }
+        Update: { at?: string; bucket?: string }
+        Relationships: []
+      }
       quote_requests: {
         Row: {
           area_id: string | null
@@ -4922,6 +4928,10 @@ export type Database = {
           tier: number
         }[]
       }
+      client_rating_summary: {
+        Args: { _artist: string }
+        Returns: { average: number; client_email: string; ratings: number }[]
+      }
       client_wallet: {
         Args: { _user?: string }
         Returns: {
@@ -4972,6 +4982,10 @@ export type Database = {
         Returns: Json
       }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
+      hit_rate_limit: {
+        Args: { _bucket: string; _max: number; _window: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

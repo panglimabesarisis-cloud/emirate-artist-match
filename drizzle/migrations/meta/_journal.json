@@ -694,6 +694,13 @@
       "when": 1795572540202,
       "tag": "0098_admin_permissions_finance_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1795658400000,
+      "tag": "0099_bug_bounty_fixes",
+      "breakpoints": true
     }
   ]
 }

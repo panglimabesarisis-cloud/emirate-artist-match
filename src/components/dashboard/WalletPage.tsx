@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { holdHoursLeft, maskIban, useBankDetails } from "./useBankDetails";
 import { StudioHeading } from "./StudioPage";
+import { walletShare, type WalletState } from "@/lib/wallet-rules";
 
-type JobState = "awaiting" | "escrow" | "review" | "ready";
+type JobState = WalletState;
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const aed2 = (n: number) => `AED ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const aed0 = (n: number) => `AED ${Math.round(n).toLocaleString("en-US")}`;
@@ -35,7 +36,7 @@ export function WalletPage({ artistId }: { artistId: string }) {
       const [w, r, b] = await Promise.all([
         supabase.rpc("artist_wallet", { _artist: artistId }),
         supabase.from("payout_requests").select("id, amount, status, created_at, decided_at, admin_note, bank_snapshot").eq("artist_id", artistId).order("created_at", { ascending: false }),
-        supabase.from("bookings").select("id, client_name, package_title, event_date, amount, total, paid_amount, status, escrow_status, commission_rate").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).neq("status", "cancelled").order("event_date", { ascending: false }).limit(500),
+        supabase.from("bookings").select("id, client_name, package_title, event_date, amount, vat_amount, total, paid_amount, refund_amount, status, escrow_status, commission_rate").eq("artist_id", artistId).is("deleted_at", null).eq("is_seed", false).neq("status", "cancelled").order("event_date", { ascending: false }).limit(500),
       ]);
       if (w.error) throw w.error;
       return { w: w.data?.[0], requests: r.data ?? [], bookings: b.data ?? [] };
@@ -51,13 +52,8 @@ export function WalletPage({ artistId }: { artistId: string }) {
   const available = Number(w?.available ?? 0);
 
   const jobs = useMemo(() => (data?.bookings ?? []).map((b) => {
-    const total = Number(b.total), paid = Number(b.paid_amount);
-    const share = total > 0 ? Math.min(1, paid / total) : 0;
-    const state: JobState = !share ? "awaiting" : b.escrow_status === "released" ? "ready" : b.escrow_status === "release_pending" ? "review" : "escrow";
-    const gross = r2(Number(b.amount) * (state === "awaiting" ? 1 : share));
     const rate = b.commission_rate != null ? Number(b.commission_rate) : pct;
-    const fee = r2((gross * rate) / 100);
-    return { id: b.id, client: b.client_name, title: b.package_title ?? t("Booking"), date: b.event_date, state, gross, rate, fee, net: r2(gross - fee) };
+    return { id: b.id, client: b.client_name, title: b.package_title ?? t("Booking"), date: b.event_date, rate, ...walletShare(b, rate) };
   }).sort((a, b) => ({ review: 0, escrow: 1, ready: 2, awaiting: 3 })[a.state] - ({ review: 0, escrow: 1, ready: 2, awaiting: 3 })[b.state] || b.date.localeCompare(a.date)), [data?.bookings, pct, t]);
   const sumBy = (state: JobState) => r2(jobs.filter((j) => j.state === state).reduce((n, j) => n + j.net, 0));
   const escrow = r2(sumBy("escrow") + sumBy("review"));

@@ -17,6 +17,8 @@ export function maskContacts(text: string): string {
 
 export const AI_CREDIT_COST = 1;
 export const MAX_AI_REPLIES_PER_CONVERSATION = 25;
+/** Across all of an artist's client chats. Above this the artist answers, so their credits cannot be drained in a day. */
+export const MAX_AI_REPLIES_PER_ARTIST_PER_DAY = 200;
 export const MAX_CLIENT_MESSAGE_LENGTH = 1000;
 
 export const TOPUP_PACKAGES = [

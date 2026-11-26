@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { maskContacts } from "./masking";
 
+/** Earlier turns sent along with a question. Kept short: every character is paid for. */
+export const CONCIERGE_HISTORY = { turns: 6, length: 1000 } as const;
 export const conciergeInput = z.object({
   message: z.string().trim().min(1).max(1000),
-  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) })).max(12),
+  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(CONCIERGE_HISTORY.length) })).max(CONCIERGE_HISTORY.turns),
 });
 
 export const CONCIERGE_PAGES = {

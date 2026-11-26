@@ -6,7 +6,7 @@ import { Conversation, ConversationContent } from "@/components/ai-elements/conv
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput, PromptInputBody, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
 import { askPublicConcierge } from "@/lib/public.functions";
-import { publicConciergeText, type ConciergeReply } from "@/lib/concierge-rules";
+import { CONCIERGE_HISTORY, publicConciergeText, type ConciergeReply } from "@/lib/concierge-rules";
 import { useI18n } from "@/lib/i18n";
 
 type Turn = { id: number; role: "user" | "assistant"; text: string; reply?: ConciergeReply };
@@ -32,7 +32,7 @@ export function PublicConciergeChat() {
     setTurns(previous => [...previous, question]);
     setDraft("");
     try {
-      const result = await ask({ data: { message: text, history: turns.slice(-12).map(turn => ({ role: turn.role, text: turn.text })) } });
+      const result = await ask({ data: { message: text, history: turns.slice(-CONCIERGE_HISTORY.turns).map(turn => ({ role: turn.role, text: turn.text.slice(0, CONCIERGE_HISTORY.length) })) } });
       if (!result.ok) {
         setError(t(result.error));
         setDraft(text);

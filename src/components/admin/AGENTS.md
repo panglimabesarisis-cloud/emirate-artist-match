@@ -12,3 +12,5 @@
 - Every admin "View" of money opens an A4 document through `documents/A4Dialog`; figures come from recorded rows, and screen-only details carry `data-noprint`.
 - The ledger is derived by `admin_ledger` (double entry, every journal balances); show debit and credit in separate columns and group by account. Never type or store ledger entries.
 - `admin_audit_log` is written only by database triggers and server functions (`recordAdminAction`); it records who, where and which record, never saved values.
+- Money is the artist's only after a completed booking's escrow is released (`artist_wallet`, `admin_ledger`, `walletShare` share one rule); what a cancellation keeps stays in escrow until the owner decides who gets it.
+- Work that costs money asks `hit_rate_limit` first (`rate-limit.server.ts`); a new public or AI-spending entry point adds its limit there. `artists.created_at` drives AI credit allocation and is server-owned.

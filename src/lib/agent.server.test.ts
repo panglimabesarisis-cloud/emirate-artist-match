@@ -5,7 +5,7 @@ import { extractForm } from './ai-flow';
 const mocks = vi.hoisted(() => ({
   generate: vi.fn(), calendar: vi.fn(), notify: vi.fn(), contact: vi.fn(),
   writes: [] as { table: string; value: unknown }[],
-  existing: false, deleted: false, sparseQuote: false, formScenario: false,
+  existing: false, deleted: false, sparseQuote: false, formScenario: false, capped: false,
 }));
 
 const flow = {
@@ -44,7 +44,7 @@ function result(table: string, inserting: boolean, visibleOnly = false) {
 
 vi.mock('@/integrations/supabase/client.server', () => ({
   supabaseAdmin: {
-    rpc: async () => ({ data: 'free', error: null }),
+    rpc: async (name: string) => ({ data: name === 'hit_rate_limit' ? !mocks.capped : 'free', error: null }),
     from: (table: string) => {
       let inserting = false;
       let visibleOnly = false;
@@ -70,7 +70,7 @@ import { runAgent } from './agent.server';
 import { AgentPricingUnavailableError, reserveAgentTask } from './agent-task-billing.server';
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.deleted = false; mocks.sparseQuote = false; mocks.formScenario = false;
+  vi.clearAllMocks(); mocks.writes.length = 0; mocks.existing = false; mocks.deleted = false; mocks.sparseQuote = false; mocks.formScenario = false; mocks.capped = false;
   mocks.calendar.mockResolvedValue({ status: 'available', window: calendarWindow({ date: '2026-11-29', startTime: '19:00', endTime: '21:00' }) });
   mocks.contact.mockResolvedValue({ phone: '+971509999999', email: null });
   mocks.notify.mockResolvedValue(undefined);
@@ -79,6 +79,13 @@ beforeEach(() => {
 });
 
 describe('Book Now → artist WhatsApp dispatch', () => {
+  it('hands the chat to the artist, without inference, once the daily reply limit is reached', async () => {
+    mocks.capped = true;
+    await runAgent('conversation-fixture');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(vi.mocked(reserveAgentTask)).not.toHaveBeenCalled();
+    expect(mocks.writes.find(write => write.table === 'conversations')?.value).toMatchObject({ mode: 'human' });
+  });
   it('keeps AI mode and performs no inference or booking when model pricing is missing', async () => {
     vi.mocked(reserveAgentTask).mockRejectedValueOnce(new AgentPricingUnavailableError());
     await runAgent('conversation-fixture');

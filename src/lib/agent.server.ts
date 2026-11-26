@@ -19,7 +19,7 @@ import { eventDetails } from "./payment-confirmation";
 import { notifyBooking, notifyConversation, notifyFlowSteps, artistContact, siteOrigin } from "./notify.server";
 import { formatBookingConfirm, formatEventDate } from "./booking-message";
 import { incomingFlow, verifiedArtistDecision, artistDecisionBranch, invoiceWorkflow, approvalAction, flowToPrompt, flowKnowledgePrompt, DEFAULT_FLOW, type FlowNode, type FlowEdge } from "./ai-flow";
-import { MAX_AI_REPLIES_PER_CONVERSATION, maskContacts } from "./masking";
+import { MAX_AI_REPLIES_PER_CONVERSATION, MAX_AI_REPLIES_PER_ARTIST_PER_DAY, maskContacts } from "./masking";
 
 import { replyLengthRule, languageRule, handoffRule, addUsage, newUsage, type Usage } from "./agent-options";
 import { artistAgentModel } from "./agent-task-routing";
@@ -70,6 +70,11 @@ export async function runAgent(conversationId: string, artistDecisionBookingId?:
   if (settings && !settings.enabled) return handover(`${artist.stage_name} will reply to you personally.`);
   if (Number(wallet?.balance ?? 0) + Number(wallet?.balance_fraction ?? 0) <= 0) return handover(`${artist.stage_name} will reply to you personally shortly.`);
   if (convo.ai_replies >= MAX_AI_REPLIES_PER_CONVERSATION) return handover(`I've passed this conversation to ${artist.stage_name} directly.`);
+  // Replies after the artist's own decision and their test chat are not client traffic.
+  if (!artistDecisionBookingId && convo.entry_source !== "test") {
+    const { data: within } = await supabaseAdmin.rpc("hit_rate_limit", { _bucket: `ai-artist:${convo.artist_id}`, _max: MAX_AI_REPLIES_PER_ARTIST_PER_DAY, _window: "1 day" });
+    if (within === false) return handover(`${artist.stage_name} will reply to you personally shortly.`);
+  }
 
   const { data: flows } = await supabaseAdmin.from("ai_flows").select("artist_id, enabled, nodes, edges").or(`artist_id.is.null,artist_id.eq.${convo.artist_id}`);
   const own = flows?.find((f) => f.artist_id === convo.artist_id && f.enabled && Array.isArray(f.nodes) && f.nodes.length);

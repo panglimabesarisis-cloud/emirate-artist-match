@@ -36,12 +36,20 @@ function validateQuote(i: QuoteInput): QuoteInput {
   };
 }
 
+/** Each new chat makes the artist's AI work, so one account may open only so many. */
+async function assertMayOpenChat(userId: string | null) {
+  if (!userId) return;
+  const { newChatLimits, withinLimits } = await import("./rate-limit.server");
+  if (!(await withinLimits(newChatLimits(userId)))) throw new Error("You have started many chats. Please try again later.");
+}
+
 /** Stores a quote request, opens its conversation (linked to the verified client account when known) and gets the first AI reply. */
 async function createQuote(data: QuoteInput, clientUserId: string | null) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { addMessage, runAgent } = await import("./agent.server");
   const { data: artist } = await supabaseAdmin.from("artists").select("id, status, stage_name").eq("id", data.artistId).single();
   if (!artist || artist.status !== "approved") throw new Error("Artist not available");
+  await assertMayOpenChat(clientUserId);
   const { data: q, error } = await supabaseAdmin.from("quote_requests").insert({
     artist_id: data.artistId, name: data.name, email: data.email, phone: data.phone, event_type_id: data.eventTypeId,
     event_date: data.eventDate, area_id: data.areaId, guests: data.guests, budget: data.budget, message: data.message,
@@ -104,7 +112,7 @@ export const submitClientQuote = createServerFn({ method: "POST" })
 
 async function verifyKey(conversationId: string, key: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, client_name, quote_requests(name, email), artists(stage_name, slug, hue, photo_path, trn)").eq("id", conversationId).single();
+  const { data } = await supabaseAdmin.from("conversations").select("id, mode, artist_id, access_key, client_user_id, client_name, quote_requests(name, email), artists(stage_name, slug, hue, photo_path, trn)").eq("id", conversationId).single();
   if (!data || data.access_key !== key) throw new Error("Conversation not found");
   return { supabaseAdmin, convo: data };
 }
@@ -151,11 +159,15 @@ export const sendClientMessage = createServerFn({ method: "POST" })
     return { id: uuid(i.id), key: uuid(i.key), text, attachments };
   })
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await verifyKey(data.id, data.key);
+    const { supabaseAdmin, convo } = await verifyKey(data.id, data.key);
     // anti-abuse: max 10 client messages per minute per conversation
     const since = new Date(Date.now() - 60_000).toISOString();
     const { count } = await supabaseAdmin.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", data.id).eq("sender", "client").gte("created_at", since);
     if ((count ?? 0) >= 10) return { error: "You're sending messages too fast. Please wait a moment." };
+    if (convo.client_user_id) {
+      const { clientMessageLimits, withinLimits } = await import("./rate-limit.server");
+      if (!(await withinLimits(clientMessageLimits(convo.client_user_id)))) return { error: "You're sending messages too fast. Please wait a moment." };
+    }
     const { addMessage, runAgent } = await import("./agent.server");
     for (const file of data.attachments) {
       const { data: stored, error } = await supabaseAdmin.storage.from(CHAT_BUCKET).info(file.path);
@@ -231,6 +243,7 @@ export const startChat = createServerFn({ method: "POST" })
     const userId = await optionalUserId();
     if (!userId) throw new Error("Sign in to continue");
     const phone = await requireVerifiedPhone(data.phone, data.phoneProof, userId);
+    await assertMayOpenChat(userId);
     const { data: c } = await supabaseAdmin.from("conversations").insert({ entry_source: "incoming_message", artist_id: data.artistId, client_user_id: userId }).select("id, access_key").single();
     if (!c) throw new Error("Could not open conversation");
     await addMessage(c.id, "client", maskContacts(data.text ?? "Hi, I'd like to chat about a booking."));
