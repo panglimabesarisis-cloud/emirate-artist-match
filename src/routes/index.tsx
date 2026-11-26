@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getCatalog, getFeatured, getSiteSettings } from "@/lib/public.functions";
 import { DealmakerHome } from "@/components/home/DealmakerHome";
+import { IntroOverlay } from "@/components/home/IntroOverlay";
 import { parseSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/")({
@@ -27,5 +28,10 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { catalog, featured } = Route.useLoaderData();
-  return <DealmakerHome catalog={catalog} featured={featured} />;
+  return (
+    <>
+      <IntroOverlay />
+      <DealmakerHome catalog={catalog} featured={featured} />
+    </>
+  );
 }

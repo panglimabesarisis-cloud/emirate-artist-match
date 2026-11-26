@@ -87,3 +87,5 @@ use the editor.
 - Prefer self-managed Stripe secrets over gateway keys; reject mode mismatches and use the matching webhook secret to prevent live charges in sandbox flows.
 - Stripe uses hosted checkout with preserved settlement metadata; verify returns through existing authorized checks. Admin diagnostics verify test balance, create then expire an unpaid session, and return URL presence only.
 - Inbox delete controls use eligibility RPCs.
+- The home intro (IntroOverlay) frames `public/intro.html`, an exported minified page. Change its controls and scenes in `public/intro-controls.js` and `public/intro-effects.js`; patch the HTML only to expose hooks (`__dmSound`, `__dmFx`).
+- Intro music is `public/intro-music.mp3`, a 2-minute excerpt of WombatNoisesAudio "The Legend of Narmer" (CC BY 3.0); keep the on-screen credit in intro-controls.js while it is used.
