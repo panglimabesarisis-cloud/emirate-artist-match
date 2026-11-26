@@ -3,6 +3,7 @@ import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { ArtistSupport } from "@/components/dashboard/ArtistSupport";
 import { AddonsPage } from "@/components/dashboard/AddonsPage";
+import { useCatalogRequests } from "@/components/dashboard/CatalogRequests";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -315,7 +316,7 @@ function PlanCreditsNote() {
 
 type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; category_ids?: string[]; subcategory_id: string | null; specialty_ids?: string[]; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
 
-function ArtistFields({ v, set, photo, limits }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode; /** From the paid plan; one of each without it. */ limits?: { max_categories: number; max_specialties: number } | undefined }) {
+function ArtistFields({ v, set, photo, limits, artistId }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode; /** A saved profile may ask for names that are not listed. */ artistId?: string; /** From the paid plan; one of each without it. */ limits?: { max_categories: number; max_specialties: number } | undefined }) {
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   const bio = (v.bio ?? "").trim().length, tag = v.tagline ?? "", name = v.stage_name ?? "";
@@ -323,6 +324,7 @@ function ArtistFields({ v, set, photo, limits }: { v: Partial<ArtistRow>; set: (
   const catNames = categoryIds.flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []);
   const specNames = selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []);
   const specs = (cat?.subcategories ?? []).filter((x) => !categoryIds.length || categoryIds.includes(x.category_id)).map((x) => ({ n: x.name, g: cat?.categories.find((c) => c.id === x.category_id)?.name ?? "" }));
+  const requests = useCatalogRequests(artistId, (cat?.categories ?? []).filter((c) => categoryIds.includes(c.id)));
   return <div className="studio-profile-fields">
     <StudioSection className="dmr-pf-sec" title="About" accent="you" subtitle="Your photo, name and a short line that sells you.">
       <div className="dmr-pf-id">
@@ -339,10 +341,11 @@ function ArtistFields({ v, set, photo, limits }: { v: Partial<ArtistRow>; set: (
     </StudioSection>
     <StudioSection className="dmr-pf-sec" title="What you" accent="do" subtitle="Add your category and speciality, then the skills clients search for. Type, choose from the list, press comma to add another.">
       <div className="dmr-a-grid">
-        <ChipInput id="pf-cat" label={t("Categories")} values={catNames} strict max={limits?.max_categories ?? 1} noun="category" plural="categories" placeholder={t("e.g. Comedians")} source={(cat?.categories ?? []).map((c) => ({ n: c.name }))}
+        <ChipInput id="pf-cat" label={t("Categories")} values={catNames} strict max={limits?.max_categories ?? 1} noun="category" plural="categories" placeholder={t("e.g. Comedians")} source={(cat?.categories ?? []).map((c) => ({ n: c.name }))} {...(requests.askCategory ? { onSuggest: requests.askCategory } : {})}
           onChange={(x) => set(pickCategories(x, cat?.categories ?? [], cat?.subcategories ?? [], v))} />
-        <ChipInput id="pf-sp" label={t("Specialities")} values={specNames} strict max={limits?.max_specialties ?? 1} noun="speciality" plural="specialities" placeholder={t("Start typing, e.g. Stand-up")} source={specs}
+        <ChipInput id="pf-sp" label={t("Specialities")} values={specNames} strict max={limits?.max_specialties ?? 1} noun="speciality" plural="specialities" placeholder={t("Start typing, e.g. Stand-up")} source={specs} {...(requests.askSpeciality ? { onSuggest: requests.askSpeciality } : {})}
           onChange={(x) => set(pickSpecialities(x, cat?.subcategories ?? [], v))} />
+        {requests.panel}
         {limits && <p className="dmr-f-hint dmr-full">{catNames.length} {t("of")} {limits.max_categories} {t("categories")} · {specNames.length} {t("of")} {limits.max_specialties} {t("specialities")}</p>}
         <SkillsField skills={v.skills ?? []} onChange={(x) => set({ skills: x })} />
       </div>
@@ -472,7 +475,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     onSaved();
   };
   const planName = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "";
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} limits={limits} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ categories: selectedIds(v.category_id, v.category_ids).flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []), specialities: selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []), emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} artistId={artist.id} limits={limits} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ categories: selectedIds(v.category_id, v.category_ids).flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []), specialities: selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []), emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {

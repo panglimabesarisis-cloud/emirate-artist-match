@@ -130,6 +130,7 @@ function Admin() {
   }, [isAdmin, menu]);
   useEffect(() => { if (menu) sidebar.current?.querySelector<HTMLElement>('a[href]')?.focus(); }, [menu]);
   const pending = useQuery({ queryKey: ["admin-pending-count"], enabled: isAdmin, queryFn: async () => (await supabase.from("artists").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0 }).data ?? 0;
+  const requested = useQuery({ queryKey: ["admin-catalog-requests", "count"], enabled: isAdmin, queryFn: async () => (await supabase.from("catalog_suggestions").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0 }).data ?? 0;
   // Sections without read permission are hidden. The database refuses their data either way.
   const limits = useQuery({
     queryKey: ["admin-permissions", "mine", user?.id], enabled: isAdmin && !!user,
@@ -184,6 +185,7 @@ function Admin() {
                 <Button type="button" variant="ghost" aria-current={section === n.id ? "page" : undefined} onClick={() => openSection(n.id)} className="studio-nav-item">
                   <Icon aria-hidden="true" />{n.label}
                   {n.id === "requests" && pending > 0 ? <span className="ms-auto text-[11px] font-bold">{pending}</span> : null}
+                  {n.id === "categories" && requested > 0 ? <span className="ms-auto text-[11px] font-bold">{requested}</span> : null}
                 </Button>
               </div>
             );

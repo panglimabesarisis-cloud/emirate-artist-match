@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CategoryEditor, type CategoryDraft } from "./CategoryEditor";
+import { CatalogRequestQueue } from "./CatalogRequestQueue";
 import { ArtistProfileDialog } from "./artists/ArtistProfileDialog";
 import { useArtists, useCategories, useSpecialities, type AdminArtist } from "./artists/data";
 import { ListState, StatusPill } from "./artists/parts";
@@ -53,6 +54,8 @@ export function CategoryManager() {
   };
 
   return (
+    <div className="grid gap-4">
+    <CatalogRequestQueue categories={cats} onDecided={refresh} />
     <div className="adm-split">
       <section className="adm-panel" aria-labelledby="cat-form-title">
         <h2 id="cat-form-title" className="font-display">Add to the catalogue</h2>
@@ -124,6 +127,7 @@ export function CategoryManager() {
       </Dialog>
       {renaming && <RenameSpeciality speciality={renaming} onClose={() => setRenaming(null)} onSaved={refresh} />}
       {listing && <ArtistList title={listing.title} artists={listing.artists} onClose={() => setListing(null)} />}
+    </div>
     </div>
   );
 }

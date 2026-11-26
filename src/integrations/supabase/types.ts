@@ -1797,6 +1797,15 @@ export type Database = {
           },
         ]
       }
+      catalog_suggestions: {
+        Row: { admin_note: string | null; artist_id: string; category_id: string | null; created_at: string; decided_at: string | null; decided_by: string | null; id: string; kind: string; name: string; parent_id: string | null; status: string }
+        Insert: { admin_note?: string | null; artist_id: string; category_id?: string | null; created_at?: string; decided_at?: string | null; decided_by?: string | null; id?: string; kind: string; name: string; parent_id?: string | null; status?: string }
+        Update: { admin_note?: string | null; artist_id?: string; category_id?: string | null; created_at?: string; decided_at?: string | null; decided_by?: string | null; id?: string; kind?: string; name?: string; parent_id?: string | null; status?: string }
+        Relationships: [
+          { foreignKeyName: "catalog_suggestions_artist_id_fkey"; columns: ["artist_id"]; isOneToOne: false; referencedRelation: "artists"; referencedColumns: ["id"] },
+          { foreignKeyName: "catalog_suggestions_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id"] },
+        ]
+      }
       categories: {
         Row: {
           description: string | null
@@ -4788,6 +4797,8 @@ export type Database = {
         Returns: boolean
       }
       artist_has_addon: { Args: { _artist: string; _kind: string }; Returns: boolean }
+      decide_catalog_suggestion: { Args: { _approve: boolean; _id: string; _name?: string; _note?: string }; Returns: boolean }
+      suggest_catalog_entry: { Args: { _artist: string; _category?: string; _kind: string; _name: string; _parent?: string }; Returns: string }
       artist_has_page: { Args: { _page: string }; Returns: boolean }
       artist_plan_internal: { Args: { _artist: string }; Returns: string }
       artist_public_stats: {
