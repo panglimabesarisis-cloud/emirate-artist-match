@@ -229,7 +229,7 @@ function ActionProposal({ id, onOpen }: { id: string; onOpen: (section: string) 
 const TOOL_TITLE: Record<string, string> = {
   build_report: "Report", show_invoice: "Invoice", get_contract_template: "Contract template", prepare_calendar_event: "Calendar event",
   read_inbox: "Inbox", read_quote_requests: "Quote requests", read_bookings: "Bookings", read_calendar: "Calendar", read_wallet: "Wallet (read only)", list_invoices: "Invoices",
-  web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
+  person_photo: "Photo", web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
 };
 
 export function AgentResponse({
@@ -243,7 +243,15 @@ export function AgentResponse({
   const { t } = useI18n();
   return (
     <div className="min-w-0 max-w-full space-y-2">
-      <MessageResponse>{data.text}</MessageResponse>
+      {data.photo ? (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <figure className="w-36 shrink-0">
+            <img src={data.photo.photo} alt={data.photo.name} loading="lazy" referrerPolicy="no-referrer" className="w-full rounded-2xl border border-border object-cover" />
+            <figcaption className="mt-1.5 text-[11px] text-muted-foreground"><a href={data.photo.page} target="_blank" rel="noopener noreferrer" className="underline">{t("Photo")}: Wikipedia</a></figcaption>
+          </figure>
+          <div className="min-w-0 flex-1"><MessageResponse>{data.text}</MessageResponse></div>
+        </div>
+      ) : <MessageResponse>{data.text}</MessageResponse>}
       {/* Only a step that failed is worth showing. */}
       {data.tools.filter((tool) => tool.error).map((tool, index) => (
         <p key={index} role="alert" className="text-xs text-destructive">{t(TOOL_TITLE[tool.name] ?? "Search")}: {tool.error}</p>

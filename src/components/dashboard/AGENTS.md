@@ -20,3 +20,4 @@
 - "Your AI agent" (studio) and the Personal AI Agent (`/ai/<slug>`) share `YourAgent` but never chats: `agent_chats.surface` separates them, both stay owner-only (0106), and only the personal one searches the web (`web-search.server.ts`).
 - Personal agent answers show only addresses returned by search, `travel-links.ts` or the artist (`keepKnownLinks`); booking-style links are built there, never written by the model.
 - The Personal AI Agent takes its tasks and knowledge from the `personal_agent_prompts` that are on (0108): written in Admin → Add-ons, read by the server only (`promptBlock`); separate from `artist_own_prompts` and the prompt library.
+- A person's photo comes only from `person-photo` (a Wikipedia article about a human with that exact name) and is stored as `photo` on the answer; the agent profiles public figures only.

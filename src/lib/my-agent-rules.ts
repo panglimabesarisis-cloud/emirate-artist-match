@@ -1,3 +1,4 @@
+import { PAGE_URL, PHOTO_URL } from "./person-photo";
 import { z } from "zod";
 import { calendarWindow } from "./calendar-rules";
 
@@ -81,6 +82,8 @@ export const agentBodySchema = z.object({
   contracts: z.array(privateContractSchema),
   actionIds: z.array(z.string().uuid()),
   tools: z.array(z.object({ name: z.string(), error: z.string().nullable() })),
+  /** A public figure's Wikipedia photo, shown beside the answer. */
+  photo: z.object({ name: z.string(), photo: z.string().regex(PHOTO_URL), page: z.string().regex(PAGE_URL) }).nullable().optional(),
 });
 export type AgentBody = z.infer<typeof agentBodySchema>;
 const MARK = "[[DM_AGENT_V1]]";

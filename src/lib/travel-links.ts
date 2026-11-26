@@ -99,6 +99,8 @@ export function keepKnownLinks(reply: string, known: Iterable<string>, sources: 
   const allowed = new Set([...known, ...sources.map((s) => s.url)].map((u) => u.replace(/\/$/, "")));
   const ok = (url: string) => allowed.has(url.replace(trailing, "").replace(/\/$/, ""));
   return reply
+    // Pictures are shown by the page itself, never from an address in the text.
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]*)\]\(\s*<?(https?:\/\/(?:[^()\s<>]|\([^()\s]*\))+)>?\s*\)/g, (whole, label: string, url: string) => {
       if (ok(url)) return whole;
       const found = sourceFor(sources, url, label);
