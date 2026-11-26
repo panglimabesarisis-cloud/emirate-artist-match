@@ -26,6 +26,7 @@ import { decodeAgentBody, type AgentReport } from "@/lib/my-agent-rules";
 import { parseProposal, proposalLines } from "@/lib/my-agent-proposals";
 import { invoiceMoney } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
+import { mapLinks } from "@/lib/map-links";
 import { Button } from "@/components/ui/button";
 import { MessageResponse } from "@/components/ai-elements/message";
 
@@ -229,8 +230,10 @@ function ActionProposal({ id, onOpen }: { id: string; onOpen: (section: string) 
 const TOOL_TITLE: Record<string, string> = {
   build_report: "Report", show_invoice: "Invoice", get_contract_template: "Contract template", prepare_calendar_event: "Calendar event",
   read_inbox: "Inbox", read_quote_requests: "Quote requests", read_bookings: "Bookings", read_calendar: "Calendar", read_wallet: "Wallet (read only)", list_invoices: "Invoices",
-  person_photo: "Photo", web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
+  show_map: "Map", calculate: "Calculation", person_photo: "Photo", web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
 };
+
+const RESEARCH = new Set(["web_search", "travel_links", "show_map", "person_photo"]);
 
 export function AgentResponse({
   body,
@@ -241,17 +244,31 @@ export function AgentResponse({
 }) {
   const data = decodeAgentBody(body);
   const { t } = useI18n();
+  // Research, people and places are laid out as a document: white page, black text.
+  const paper = !!data.photo || !!data.maps?.length || data.tools.some((tool) => RESEARCH.has(tool.name));
   return (
     <div className="min-w-0 max-w-full space-y-2">
+      <div className={paper ? "ai-paper space-y-4" : "contents"}>
       {data.photo ? (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <figure className="w-36 shrink-0">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <figure className="w-48 shrink-0">
             <img src={data.photo.photo} alt={data.photo.name} loading="lazy" referrerPolicy="no-referrer" className="w-full rounded-2xl border border-border object-cover" />
             <figcaption className="mt-1.5 text-[11px] text-muted-foreground"><a href={data.photo.page} target="_blank" rel="noopener noreferrer" className="underline">{t("Photo")}: Wikipedia</a></figcaption>
           </figure>
           <div className="min-w-0 flex-1"><MessageResponse>{data.text}</MessageResponse></div>
         </div>
       ) : <MessageResponse>{data.text}</MessageResponse>}
+      {data.maps?.map((place) => {
+        const links = mapLinks(place);
+        return (
+          <figure key={place} className="space-y-2">
+            <figcaption className="font-semibold" dir="auto">{place}</figcaption>
+            <iframe title={`${t("Map of")} ${place}`} src={links.embed} loading="lazy" referrerPolicy="no-referrer" className="h-72 w-full rounded-xl border border-border" />
+            <p className="flex flex-wrap gap-4 text-sm"><a href={links.open} target="_blank" rel="noopener noreferrer" className="underline">{t("Open in Google Maps")}</a><a href={links.directions} target="_blank" rel="noopener noreferrer" className="underline">{t("Directions")}</a></p>
+          </figure>
+        );
+      })}
+      </div>
       {/* Only a step that failed is worth showing. */}
       {data.tools.filter((tool) => tool.error).map((tool, index) => (
         <p key={index} role="alert" className="text-xs text-destructive">{t(TOOL_TITLE[tool.name] ?? "Search")}: {tool.error}</p>

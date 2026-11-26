@@ -49,7 +49,7 @@ function messages(request: Item) {
   return out;
 }
 
-export async function geminiResponse(params: unknown, backup: GoogleBackup): Promise<Result> {
+export async function geminiResponse(params: unknown, backup: GoogleBackup, options: { effort?: "low" | "high"; timeout?: number } = {}): Promise<Result> {
   const request = params as Item;
   const limit = Number(request["max_output_tokens"]) || undefined;
   const tools = ((request["tools"] as Item[] | undefined) ?? []).filter((t) => t["type"] === "function")
@@ -60,11 +60,11 @@ export async function geminiResponse(params: unknown, backup: GoogleBackup): Pro
     headers: { Authorization: `Bearer ${backup.key}`, "Content-Type": "application/json" },
     // The edge runtime has no "error" mode; a redirect is not followed and fails the status check below.
     redirect: "manual",
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(options.timeout ?? 60_000),
     body: JSON.stringify({
       model: backup.model,
       messages: messages(request),
-      reasoning_effort: "low",
+      reasoning_effort: options.effort ?? "low",
       // Gemini counts its thinking inside this limit, so the visible reply needs headroom.
       max_completion_tokens: Math.max(4096, (limit ?? 1000) * 4),
       ...(tools.length ? { tools, ...(request["tool_choice"] === "none" ? { tool_choice: "none" } : {}) } : {}),
@@ -130,4 +130,53 @@ export async function aiResponse(params: Params): Promise<Result> {
       throw error;
     }
   }
+}
+
+type ListedModel = { name: string; supportedGenerationMethods?: string[] };
+/** The newest Gemini Pro model that writes text; a released model comes before a preview of the same version. */
+export function pickBestGemini(models: ListedModel[]): string | null {
+  const ranked = models.flatMap((m) => {
+    const name = m.name.replace(/^models\//, "");
+    const found = /^gemini-(\d+(?:\.\d+)?)-pro(-preview[a-z0-9.-]*)?$/.exec(name);
+    return found && m.supportedGenerationMethods?.includes("generateContent") ? [{ name, version: Number(found[1]), stable: !found[2] }] : [];
+  }).sort((a, b) => b.version - a.version || Number(b.stable) - Number(a.stable) || b.name.localeCompare(a.name));
+  return ranked[0]?.name ?? null;
+}
+
+let strongest: { at: number; model: string | null } | null = null;
+async function strongestModel(key: string) {
+  if (strongest && Date.now() - strongest.at < 3600_000) return strongest.model;
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", { headers: { "x-goog-api-key": key }, redirect: "manual", signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return null;
+    strongest = { at: Date.now(), model: pickBestGemini(((await response.json()) as { models?: ListedModel[] }).models ?? []) };
+    return strongest.model;
+  } catch { return null; }
+}
+
+/**
+ * The model of the Personal AI Agent: the strongest Gemini the admin's key offers, then the admin's chosen
+ * Gemini, then the usual provider. One task keeps the model that answered first, so tool calls stay matched.
+ */
+export async function personalResponder(): Promise<(params: Params) => Promise<Result>> {
+  const google = await readGoogleBackup();
+  if (!google) return aiResponse;
+  const best = await strongestModel(google.key);
+  const choices = [...new Set([best, google.model].filter((m): m is string => !!m))];
+  let chosen: ((params: Params) => Promise<Result>) | null = null;
+  return async (params) => {
+    if (chosen) return chosen(params);
+    for (const model of choices) {
+      const ask = (p: Params) => geminiResponse(p, { key: google.key, model }, { effort: "high", timeout: 150_000 });
+      try {
+        const result = await ask(params);
+        chosen = ask;
+        return result;
+      } catch (error) {
+        console.error("Gemini model unavailable", model, error instanceof Error ? error.message : "unknown");
+      }
+    }
+    chosen = aiResponse;
+    return aiResponse(params);
+  };
 }

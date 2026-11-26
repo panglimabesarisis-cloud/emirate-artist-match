@@ -84,6 +84,8 @@ export const agentBodySchema = z.object({
   tools: z.array(z.object({ name: z.string(), error: z.string().nullable() })),
   /** A public figure's Wikipedia photo, shown beside the answer. */
   photo: z.object({ name: z.string(), photo: z.string().regex(PHOTO_URL), page: z.string().regex(PAGE_URL) }).nullable().optional(),
+  /** Places shown as maps; the addresses are built from these names. */
+  maps: z.array(z.string().max(200)).max(4).optional(),
 });
 export type AgentBody = z.infer<typeof agentBodySchema>;
 const MARK = "[[DM_AGENT_V1]]";

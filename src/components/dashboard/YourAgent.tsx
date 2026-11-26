@@ -414,7 +414,7 @@ export function YourAgent({
                 </MessageContent>
               </Message>
             )}
-            {busy && <Shimmer className="text-sm">{t("Thinking…")}</Shimmer>}
+            {busy && <Shimmer className="text-sm">{t(page ? "Agent Working..." : "Thinking…")}</Shimmer>}
             <div ref={endRef} />
           </ConversationContent>
         </Conversation>
