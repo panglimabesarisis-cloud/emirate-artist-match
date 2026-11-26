@@ -10,7 +10,9 @@ import { saveBookingDraft, takeBookingDraft } from "@/lib/booking-draft";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { OrderFormFields, type OrderField } from "@/components/dashboard/OrderFormBuilder";
+import type { OrderField } from "@/components/dashboard/OrderFormBuilder";
+import { StepFields } from "@/components/site/StepFields";
+import { formComplete } from "@/lib/form-steps";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Star, BadgeCheck, Trophy, MapPin, Languages, Clock, ChevronLeft, ChevronRight, Play, Crown } from "lucide-react";
@@ -219,6 +221,10 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
   const bySpeciality = (orderForms ?? []).some(form => form.subcategory_id !== null);
   const [verify, setVerify] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // How many of the order form's questions have been opened; another speciality starts again.
+  const [opened, setOpened] = useState(1);
+  useEffect(() => { setOpened(1); }, [speciality]);
+  const complete = formComplete(customFields, opened, answers);
   const navigate = useNavigate();
   const { t } = useI18n();
   const up = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
@@ -354,7 +360,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
             <div className="rounded-xl border-t-4 border-gold bg-background p-3">
               <div className="font-semibold">{orderForm?.title}</div>
               {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
-              <div className="mt-3"><OrderFormFields fields={customFields} values={answers} onChange={(id, v) => setAnswers({ ...answers, [id]: v })} /></div>
+              <div className="mt-3"><StepFields fields={customFields} values={answers} opened={opened} onOpen={setOpened} onChange={(id, v) => setAnswers((all) => ({ ...all, [id]: v }))} /></div>
             </div>
           )}
           {!formOnly && <>
@@ -393,9 +399,11 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
               </div>
             )}
           </>}
-          <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
-            {sending ? t("Assistant is replying…") : t("Book Artist")}
-          </Button>
+          {(!formOnly || complete) && (
+            <Button type="submit" disabled={sending} className="w-full bg-gradient-gold text-gold-foreground hover:opacity-90">
+              {sending ? t("Assistant is replying…") : t("Book Artist")}
+            </Button>
+          )}
           <Button type="button" variant="gold" onClick={() => setScheduleOpen(true)} className="w-full">{t("Check Schedule")}</Button>
           <Button type="button" variant="gold" className="w-full" onClick={() => setChatOpen(true)}>{t("Chat With Us")}</Button>
           <p className="text-[11px] text-muted-foreground">{t("An AI assistant replies instantly on behalf of the artist. Contact details stay private until booking.")}</p>

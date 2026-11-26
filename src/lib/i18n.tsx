@@ -49,6 +49,8 @@ const AR: Record<string, string> = {
   "Please fill in the form.": "يرجى تعبئة النموذج.",
   "Verify your WhatsApp number": "تحقق من رقم واتساب",
   "The artist's reply and your chat link are sent to this number.": "يُرسل رد الفنان ورابط المحادثة إلى هذا الرقم.",
+  "Next": "التالي",
+  "Skip": "تخطي",
   "Book Artist": "احجز الفنان", "Photos & videos": "الصور والفيديو", "Estimated total (excl. VAT)": "الإجمالي التقديري (بدون الضريبة)",
   "Job Detail": "تفاصيل العمل", Start: "البداية", End: "النهاية", Duration: "المدة", "Budget (AED)": "الميزانية (درهم)", "Please enter your budget.": "يرجى إدخال ميزانيتك.",
   Performance: "الأداء", Punctuality: "الالتزام بالمواعيد", Communication: "التواصل",
