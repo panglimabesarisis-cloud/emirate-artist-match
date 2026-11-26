@@ -42,7 +42,8 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
 const SCOPE_LABELS: Record<string, string> = { openid: "Confirm who you are", email: "Share your email address", profile: "Share your basic profile" };
 
 function Consent() {
-  const { details, email } = Route.useLoaderData();
+  // Typed here: inference through the route tree is circular and falls back to any.
+  const { details, email }: { details: Details; email: string } = Route.useLoaderData();
   const { authorization_id } = Route.useSearch();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

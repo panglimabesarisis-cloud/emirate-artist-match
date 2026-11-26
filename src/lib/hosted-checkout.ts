@@ -29,7 +29,7 @@ export function paymentReturnPath(value: string) {
   const base = 'https://dealmakertalent.com';
   const url = new URL(value, base);
   if (url.origin !== base || !value.startsWith('/') || value.startsWith('//') ||
-      !/^\/(join\/payment|dashboard|booking\/[a-zA-Z0-9-]+|chat\/[a-zA-Z0-9-]+)$/.test(url.pathname)) {
+      !/^\/(join\/payment|dashboard|booking\/[a-zA-Z0-9-]+|chat\/[a-zA-Z0-9-]+|ai\/[a-zA-Z0-9-]+)$/.test(url.pathname)) {
     throw new Error('Invalid payment return destination.');
   }
   return url.pathname + url.search;

@@ -23,6 +23,8 @@ export async function orderReceipt(orderId: string, email?: string | null): Prom
     billTo = booking?.client_name ?? chat?.quote_requests?.name ?? chat?.client_name ?? "Client";
     billEmail = booking?.client_email ?? chat?.quote_requests?.email ?? null;
     artistName = artist?.stage_name ?? null; title = invoice?.number ?? null;
+  } else if (order.kind === "addon" && order.target_id) {
+    title = (await database.from("addons").select("name").eq("id", order.target_id).maybeSingle()).data?.name ?? null;
   }
   let later: Receipt["later"] = [];
   if (order.kind === "deposit") {

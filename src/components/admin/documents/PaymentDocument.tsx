@@ -28,7 +28,7 @@ export function PaymentDocument({ orderId, onClose }: { orderId: string; onClose
   if (!order) return <A4Dialog title="Payment" onClose={onClose}><p role={query.isPending ? "status" : "alert"} className="p-8 text-center text-muted-foreground">{query.isPending ? "Loading payment…" : "This payment cannot be opened."}</p></A4Dialog>;
   const amount = order.amount_minor / 100;
   const parts = vatParts(amount);
-  const label = order.kind === "credits" ? `${order.credits} AI credits` : order.kind === "deposit" ? "Registration deposit" : order.kind.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const label = order.kind === "credits" ? `${order.credits} AI credits` : order.kind === "deposit" ? "Registration deposit" : order.kind === "addon" ? "Add-on" : order.kind.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   const paid = order.status === "paid";
   return (
     <A4Dialog title="Payment" onClose={onClose}>

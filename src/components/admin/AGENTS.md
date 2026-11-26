@@ -17,3 +17,4 @@
 - A client never cancels directly: `request_cancellation` (not within 7 days of the event) opens a support conversation, and only `finance edit` decides it through `finish_cancellation`, naming who keeps what is not refunded (`retained_to`).
 - Manual ledger entries go through `post_ledger_adjustment` and are undone only by reversal; they never change artist or client balances.
 - Settings secrets are reported as present or not; limits live in `security-limits.ts` and response headers in `security-headers.ts`.
+- Add-ons (0103): prices come from `addons`, purchases are written only by verified payment settlement and refunds; an admin changes `fulfilled_at` only. What an add-on unlocks asks `artist_has_addon`; rules shared by admin, dashboard and the AI page live in `src/lib/addons.ts`.

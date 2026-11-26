@@ -39,6 +39,8 @@ import { Route as ProfessionalSlugRouteImport } from './routes/professional.$slu
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
+import { Route as AuthenticatedAiSlugRouteImport } from './routes/_authenticated/ai.$slug'
 import { Route as AuthenticatedClientDashboardRouteImport } from './routes/_authenticated/client.dashboard'
 import { Route as AuthenticatedDashboardChatIdRouteImport } from './routes/_authenticated/dashboard_.chat.$id'
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
@@ -201,6 +203,16 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
+  id: '/ai/',
+  path: '/ai/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAiSlugRoute = AuthenticatedAiSlugRouteImport.update({
+  id: '/ai/$slug',
+  path: '/ai/$slug',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientDashboardRoute =
   AuthenticatedClientDashboardRouteImport.update({
     id: '/client/dashboard',
@@ -295,8 +307,10 @@ export interface FileRoutesByFullPath {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/ai/': typeof AuthenticatedAiIndexRoute
   '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -337,8 +351,10 @@ export interface FileRoutesByTo {
   '/$category': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
+  '/ai': typeof AuthenticatedAiIndexRoute
   '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -381,8 +397,10 @@ export interface FileRoutesById {
   '/$category/': typeof CategoryIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/_authenticated/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/_authenticated/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
+  '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/dashboard_/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -425,8 +443,10 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/ai/$slug'
     | '/client/dashboard'
     | '/$category/$emirate/'
+    | '/ai/'
     | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -467,8 +487,10 @@ export interface FileRouteTypes {
     | '/$category'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/ai/$slug'
     | '/client/dashboard'
     | '/$category/$emirate'
+    | '/ai'
     | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -510,8 +532,10 @@ export interface FileRouteTypes {
     | '/$category/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
+    | '/_authenticated/ai/$slug'
     | '/_authenticated/client/dashboard'
     | '/$category/$emirate/'
+    | '/_authenticated/ai/'
     | '/_authenticated/dashboard_/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -775,6 +799,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/ai/': {
+      id: '/_authenticated/ai/'
+      path: '/ai'
+      fullPath: '/ai/'
+      preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ai/$slug': {
+      id: '/_authenticated/ai/$slug'
+      path: '/ai/$slug'
+      fullPath: '/ai/$slug'
+      preLoaderRoute: typeof AuthenticatedAiSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/client/dashboard': {
       id: '/_authenticated/client/dashboard'
       path: '/client/dashboard'
@@ -859,7 +897,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedAiSlugRoute: typeof AuthenticatedAiSlugRoute
   AuthenticatedClientDashboardRoute: typeof AuthenticatedClientDashboardRoute
+  AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedDashboardChatIdRoute: typeof AuthenticatedDashboardChatIdRoute
 }
 
@@ -867,7 +907,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedAiSlugRoute: AuthenticatedAiSlugRoute,
   AuthenticatedClientDashboardRoute: AuthenticatedClientDashboardRoute,
+  AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedDashboardChatIdRoute: AuthenticatedDashboardChatIdRoute,
 }
 
@@ -917,13 +959,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

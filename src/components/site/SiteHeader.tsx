@@ -8,7 +8,7 @@ import "@/components/home/home.css";
 
 export function SiteHeader() {
   const { pathname } = useLocation();
-  const isWorkspace = ["/dashboard", "/client", "/admin", "/chat"].some(
+  const isWorkspace = ["/dashboard", "/client", "/admin", "/chat", "/ai"].some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
   return isWorkspace ? <div className="shared-site-header-absent" aria-hidden="true" /> : <PublicSiteHeader />;

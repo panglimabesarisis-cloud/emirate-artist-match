@@ -14,6 +14,22 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_purchases: {
+        Row: { addon_id: string; artist_id: string; expires_at: string | null; fulfilled_at: string | null; id: string; order_id: string; paid_at: string; price_aed: number; refunded_at: string | null }
+        Insert: { addon_id: string; artist_id: string; expires_at?: string | null; fulfilled_at?: string | null; id?: string; order_id: string; paid_at?: string; price_aed: number; refunded_at?: string | null }
+        Update: { addon_id?: string; artist_id?: string; expires_at?: string | null; fulfilled_at?: string | null; id?: string; order_id?: string; paid_at?: string; price_aed?: number; refunded_at?: string | null }
+        Relationships: [
+          { foreignKeyName: "addon_purchases_addon_id_fkey"; columns: ["addon_id"]; isOneToOne: false; referencedRelation: "addons"; referencedColumns: ["id"] },
+          { foreignKeyName: "addon_purchases_artist_id_fkey"; columns: ["artist_id"]; isOneToOne: false; referencedRelation: "artists"; referencedColumns: ["id"] },
+          { foreignKeyName: "addon_purchases_order_id_fkey"; columns: ["order_id"]; isOneToOne: true; referencedRelation: "payment_orders"; referencedColumns: ["id"] },
+        ]
+      }
+      addons: {
+        Row: { active: boolean; created_at: string; description: string; duration_days: number | null; id: string; kind: string; name: string; price_aed: number }
+        Insert: { active?: boolean; created_at?: string; description: string; duration_days?: number | null; id?: string; kind: string; name: string; price_aed: number }
+        Update: { active?: boolean; created_at?: string; description?: string; duration_days?: number | null; id?: string; kind?: string; name?: string; price_aed?: number }
+        Relationships: []
+      }
       account_closure_requests: {
         Row: {
           created_at: string
@@ -4771,6 +4787,7 @@ export type Database = {
         Args: { _artist: string; _client_user: string }
         Returns: boolean
       }
+      artist_has_addon: { Args: { _artist: string; _kind: string }; Returns: boolean }
       artist_has_page: { Args: { _page: string }; Returns: boolean }
       artist_plan_internal: { Args: { _artist: string }; Returns: string }
       artist_public_stats: {

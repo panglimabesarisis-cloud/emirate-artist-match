@@ -715,6 +715,13 @@
       "when": 1795700000000,
       "tag": "0102_cancellations_ledger_security",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1795720000000,
+      "tag": "0103_artist_addons",
+      "breakpoints": true
     }
   ]
 }

@@ -60,6 +60,7 @@ export function orderLabel(kind: string, extra: { credits?: number | null; title
     case "flow_template": return "AI flow template";
     case "order_form_template": return "Order form template";
     case "contract_template": return "Contract template";
+    case "addon": return extra.title ? `Add-on: ${extra.title}` : "Add-on";
     default: return "Dealmaker payment";
   }
 }

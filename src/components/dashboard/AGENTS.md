@@ -16,3 +16,4 @@
 - Ratecard dashboard, signup and admin share item fields and price validation; item prices cover stated scope, base totals exclude add-ons, database triggers retain legacy writes, and public/private agents read the same saved rules.
 - Support tickets reuse the Inbox layout (inbox.css), and Inbox, Support and Your AI Agent share one chat backdrop in chat-fields.css.
 - Team page access uses the shared checklist and database page gates; cross-page labels and document fields use narrow page-authorized RPCs instead of granting booking or quote tables.
+- `YourAgent` serves the dashboard and the `/ai/<slug>` page (`page` prop: take-over lock; while taken over, messages are saved without AI or credit). Change both together.

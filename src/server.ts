@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { withSecurityHeaders } from "./lib/security-headers";
+import { aiHostRedirect } from "./lib/agent-page";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -51,6 +52,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // ai.<domain>/<name> opens that artist's AI agent page.
+      const agentPage = aiHostRedirect(request.url);
+      if (agentPage) return withSecurityHeaders(new Response(null, { status: 302, headers: { location: agentPage } }));
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));

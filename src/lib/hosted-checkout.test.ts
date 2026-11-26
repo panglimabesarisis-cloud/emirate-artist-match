@@ -39,5 +39,7 @@ describe('sandbox hosted checkout',()=>{
   it('blocks external and unsupported return destinations',()=>{
     for(const path of ['//evil.example/','https://evil.example/','/\\evil.example/','/admin','/checkout-return'])expect(()=>paymentReturnPath(path)).toThrow('Invalid payment return destination');
     expect(paymentReturnPath('/chat/chat-1?k=link')).toBe('/chat/chat-1?k=link');
+    expect(paymentReturnPath('/ai/dede-fajar')).toBe('/ai/dede-fajar');
+    for(const path of ['/ai/','/ai/a/b','/ai/../admin'])expect(()=>paymentReturnPath(path)).toThrow('Invalid payment return destination');
   });
 });

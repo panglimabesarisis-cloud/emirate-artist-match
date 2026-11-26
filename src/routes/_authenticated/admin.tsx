@@ -6,7 +6,7 @@ import "@/components/dashboard/active-gold.css";
 import "@/components/dashboard/reference-pages.css";
 import "@/components/dashboard/reference-adapters.css";
 import "@/components/admin/admin-control.css";
-import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, Ban, BookOpen, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, Bell, CalendarRange, ChartNoAxesCombined, ClipboardList, FileSignature, FolderTree, Gauge, History, Ban, BookOpen, Layers, LogOut, Menu as MenuIcon, Package, Receipt, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Star, LifeBuoy, Puzzle, Tag, UserCheck, Users as UsersIcon, Workflow, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,7 @@ import { AdminEscrow } from "@/components/dashboard/AdminEscrow";
 import { AdminPayouts } from "@/components/admin/AdminPayouts";
 import { AdminCredits } from "@/components/admin/AdminCredits";
 import { AdminSubscriptions } from "@/components/admin/AdminSubscriptions";
+import { AdminAddons } from "@/components/admin/AdminAddons";
 import { AdminLedger } from "@/components/admin/AdminLedger";
 import { AdminCancellations } from "@/components/admin/AdminCancellations";
 import { AdminUsers } from "@/components/admin/AdminUsers";
@@ -75,6 +76,7 @@ const NAV = [
   { id: "plans", label: "Artist packages", group: "Subscriptions" },
   { id: "subscriptions", label: "Subscription management", group: "Subscriptions" },
   { id: "credits", label: "Credit ledger", group: "Subscriptions" },
+  { id: "addons", label: "Add-ons", group: "Subscriptions" },
   { id: "flow", label: "AI flow builder", group: "AI & Automation" },
   { id: "model-rates", label: "Model pricing", group: "AI & Automation" },
   { id: "library", label: "Templates & prompts", group: "Master Library" },
@@ -88,14 +90,14 @@ const NAV_ICONS: Record<Section, LucideIcon> = {
   overview: Gauge, performance: ChartNoAxesCombined, artists: UsersIcon, requests: UserCheck, categories: FolderTree, verify: BadgeCheck, ratecards: Tag, invoices: Receipt,
   contracts: FileSignature, plans: Package, escrow: ShieldCheck, payouts: Banknote, reviews: Star, catalog: CalendarRange,
   library: Layers, flow: Workflow, settings: SettingsIcon, clients: UsersIcon, "client-payouts": Banknote, support: LifeBuoy,
-  documents: FileSignature, ledger: BookOpen, cancellations: Ban, subscriptions: Package, bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
+  documents: FileSignature, ledger: BookOpen, cancellations: Ban, subscriptions: Package, bookings: ClipboardList, transactions: Receipt, allocations: Banknote, credits: Sparkles, addons: Puzzle, "model-rates": Tag, roles: ShieldCheck, notifications: Bell, audit: History,
 };
 /** The permission module behind each section, matching what its data asks for in the database. */
 const SECTION_MODULE: Record<Section, string | null> = {
   overview: null, performance: "artists", artists: "artists", requests: "artists", categories: "artists", verify: "artists", ratecards: "artists", documents: "artists",
   bookings: "finance", clients: "operations", reviews: "operations", catalog: "operations", support: "operations", contracts: "operations",
   invoices: "finance", transactions: "finance", allocations: "finance", escrow: "finance", payouts: "finance", "client-payouts": "finance", ledger: "finance", cancellations: "finance",
-  plans: "subscriptions", subscriptions: "subscriptions", credits: "subscriptions", flow: "automation", "model-rates": "automation", notifications: "automation",
+  plans: "subscriptions", subscriptions: "subscriptions", credits: "subscriptions", addons: "subscriptions", flow: "automation", "model-rates": "automation", notifications: "automation",
   library: "library", settings: "settings", roles: "administration", audit: "administration",
 };
 
@@ -209,6 +211,7 @@ function Admin() {
           {(section === "transactions" || section === "notifications") && <AdminRecords key={section} kind={section} />}
           {section === "credits" && <AdminCredits />}
           {section === "subscriptions" && <AdminSubscriptions />}
+          {section === "addons" && <AdminAddons />}
           {section === "ledger" && <AdminLedger />}
           {section === "cancellations" && <AdminCancellations />}
           {section === "roles" && <AdminUsers />}

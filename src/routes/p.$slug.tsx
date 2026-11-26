@@ -18,7 +18,8 @@ export const Route = createFileRoute("/p/$slug")({
 });
 
 function SitePage() {
-  const page = Route.useLoaderData();
+  // Typed here: inference through the route tree is circular and falls back to any.
+  const page: { title: string; body: string } = Route.useLoaderData();
   return (
     <PublicLayout>
       <article className="mx-auto max-w-3xl px-4 py-12">

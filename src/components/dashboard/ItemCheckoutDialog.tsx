@@ -7,15 +7,17 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
-export type ItemKind = "agent_prompt" | "flow_template" | "order_form_template" | "contract_template";
+export type ItemKind = "agent_prompt" | "flow_template" | "order_form_template" | "contract_template" | "addon";
 
 /**
- * One-time purchase of a library item (AI prompt, flow template, order form template).
+ * One-time purchase of a library item (AI prompt, flow template, order form template) or an add-on.
  * The price is read from the database on the server; the browser only names the item.
  * Ownership is recorded by the verified payment settlement, never by this component.
  */
-export function ItemCheckoutDialog({ kind, itemId, title, priceAed, open, onClose, onPaid }: {
+export function ItemCheckoutDialog({ kind, itemId, title, priceAed, open, onClose, onPaid, term, fromAiPage = false }: {
   kind: ItemKind; itemId: string; title: string; priceAed: number; open: boolean; onClose: () => void; onPaid: () => void;
+  /** What the price buys, when it is not a lasting one-time purchase. */
+  term?: string; fromAiPage?: boolean;
 }) {
   const { t } = useI18n();
   const checkout$ = useServerFn(artistCheckout);
@@ -28,17 +30,17 @@ export function ItemCheckoutDialog({ kind, itemId, title, priceAed, open, onClos
     if (started.current === itemId) return;
     started.current = itemId;
     setBusy(true);
-    checkout$({ data: { kind, itemId } })
+    checkout$({ data: { kind, itemId, fromAiPage } })
       .then((r) => { if ("error" in r) throw new Error(r.error); setSession(r); })
       .catch((e: unknown) => { toast.error(e instanceof Error ? e.message : t("Checkout failed")); onClose(); })
       .finally(() => setBusy(false));
-  }, [open, itemId, kind, checkout$, onClose, t]);
+  }, [open, itemId, kind, fromAiPage, checkout$, onClose, t]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto">
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>AED {(priceAed * 1.05).toFixed(2)} {t("incl. VAT 5%")} · {t("one-time purchase")}</DialogDescription>
+        <DialogDescription>AED {(priceAed * 1.05).toFixed(2)} {t("incl. VAT 5%")} · {t(term ?? "one-time purchase")}</DialogDescription>
         <PaymentTestModeBanner />
         {busy && <p className="text-sm text-muted-foreground">{t("Preparing checkout…")}</p>}
         {session && (

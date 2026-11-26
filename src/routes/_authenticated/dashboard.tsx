@@ -2,6 +2,7 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { ArtistSupport } from "@/components/dashboard/ArtistSupport";
+import { AddonsPage } from "@/components/dashboard/AddonsPage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -25,7 +26,7 @@ import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
-import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Rocket, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Rocket, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon, Puzzle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -152,6 +153,7 @@ const ARTIST_NAV = [
   { id: "plans", label: "Plans", group: "Money" },
   { id: "wallet", label: "Wallet", group: "Money" },
   { id: "credits", label: "AI credits", group: "Money" },
+  { id: "addons", label: "Add-ons", group: "Money" },
   { id: "export", label: "Export data", group: "Money" },
   { id: "profile", label: "Profile", group: "Profile" },
   { id: "packages", label: "Ratecard", group: "Profile" },
@@ -166,7 +168,7 @@ const ARTIST_NAV = [
 type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
 const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
   overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, inquiries: ClipboardList, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
-  plans: Rocket, wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
+  plans: Rocket, wallet: Wallet, credits: Sparkles, addons: Puzzle, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
   agent: Bot, flow: Workflow, team: Users, support: LifeBuoy,
 };
 
@@ -286,6 +288,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           {section === "invoices" && <InvoicesTab artistId={artist.id} />}
           {section === "wallet" && <WalletTab artistId={artist.id} />}
           {section === "credits" && <Credits artistId={artist.id} />}
+          {section === "addons" && <AddonsPage artistId={artist.id} slug={artist.slug} />}
           {section === "export" && <ExportTab artistId={artist.id} slug={artist.slug} />}
           {section === "profile" && <ProfileEditor artist={artist} onSaved={refetch} />}
           {section === "packages" && <RateCardTable artistId={artist.id} />}

@@ -25,6 +25,7 @@ describe("checkout invoice", () => {
   });
   it("sends a signed-in payer to the dashboard and a guest back to their link", () => {
     expect(afterPaymentPath("/join/payment", true)).toBe("/join");
+    expect(afterPaymentPath("/ai/dede-fajar", true)).toBe("/ai/dede-fajar");
     expect(afterPaymentPath("/dashboard", true)).toBe("/dashboard");
     expect(afterPaymentPath("/booking/abc?k=1", true)).toBe("/dashboard");
     expect(afterPaymentPath("/booking/abc?k=1", false)).toBe("/booking/abc?k=1");
