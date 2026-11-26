@@ -3,6 +3,8 @@ import { ChipInput } from "@/components/dashboard/ChipInput";
 import { VerificationPage } from "@/components/dashboard/VerificationPage";
 import { ArtistSupport } from "@/components/dashboard/ArtistSupport";
 import { AddonsPage } from "@/components/dashboard/AddonsPage";
+import { ProfileLinks } from "@/components/dashboard/ProfileLinks";
+import { useOtpGate } from "@/components/shared/OtpGate";
 import { useCatalogRequests } from "@/components/dashboard/CatalogRequests";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -262,9 +264,9 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         <header className="studio-top">
           <Button variant="outline" size="icon" className="studio-burger studio-icon-button" onClick={() => setMenu(!menu)} aria-label={tr(menu ? "Close menu" : "Open navigation")} aria-controls="studio-sidebar" aria-expanded={menu}><MenuIcon /></Button>
           <nav className="studio-workspaces" aria-label={tr("Workspaces")}>
-            <Button variant="ghost" aria-current={section !== "team" ? "page" : undefined} onClick={() => setSection("overview")}>{tr("My talent workspace")}</Button>
-            <Button variant="ghost" aria-current={section === "team" ? "page" : undefined} onClick={() => setSection("team")}>{tr("Invite team")}</Button>
-            <Link to="/account">{tr("Account settings")}</Link>
+            <Button variant="ghost" aria-current={section !== "team" ? "page" : undefined} onClick={() => setSection("overview")}>{tr("Workspace")}</Button>
+            <Button variant="ghost" aria-current={section === "team" ? "page" : undefined} onClick={() => setSection("team")}>{tr("Team")}</Button>
+            <Link to="/account">{tr("Setting")}</Link>
           </nav>
           <h1 className="studio-mobile-title">{tr(current.label)}</h1>
           <div className="studio-top-end">
@@ -278,7 +280,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>
           <ProfileReminder artistId={artist.id} onOpenProfile={() => setSection("profile")} />
           {section === "youragent" && <YourAgent artistId={artist.id} stageName={artist.stage_name} onOpen={(id) => setSection(id as ArtistSection)} />}
-          {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} onUpgrade={() => setSection("plans")} />}
+          {section === "overview" && <ArtistOverview artistId={artist.id} slug={artist.slug} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} onUpgrade={() => setSection("plans")} />}
           {section === "plans" && <PlansPage artistId={artist.id} plan={artist.plan} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
@@ -314,9 +316,9 @@ function PlanCreditsNote() {
   return <p>{data.map((p) => `${p.name}: ${p.ai_credits} ${t("AI credits")}`).join(" · ")}</p>;
 }
 
-type ArtistRow = { id: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; category_ids?: string[]; subcategory_id: string | null; specialty_ids?: string[]; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
+type ArtistRow = { id: string; slug?: string; status?: string; stage_name: string; tagline: string | null; bio: string | null; base_price: number | null; languages: string[] | null; travel_radius_km: number | null; travel_surcharge_enabled?: boolean; travel_step_km?: number; travel_fee_per_step?: number; category_id: string | null; category_ids?: string[]; subcategory_id: string | null; specialty_ids?: string[]; emirate_id: string | null; area_id: string | null; skills?: string[] | null; body?: Json | null; photo_path?: string | null };
 
-function ArtistFields({ v, set, photo, limits, artistId }: { v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode; /** A saved profile may ask for names that are not listed. */ artistId?: string; /** From the paid plan; one of each without it. */ limits?: { max_categories: number; max_specialties: number } | undefined }) {
+function ArtistFields({ v, set, photo, limits, artistId, links }: { /** The profile's own addresses, under the tagline. */ links?: ReactNode;  v: Partial<ArtistRow>; set: (p: Partial<ArtistRow>) => void; photo?: ReactNode; /** A saved profile may ask for names that are not listed. */ artistId?: string; /** From the paid plan; one of each without it. */ limits?: { max_categories: number; max_specialties: number } | undefined }) {
   const { t } = useI18n();
   const { data: cat } = useCatalog();
   const bio = (v.bio ?? "").trim().length, tag = v.tagline ?? "", name = v.stage_name ?? "";
@@ -332,6 +334,7 @@ function ArtistFields({ v, set, photo, limits, artistId }: { v: Partial<ArtistRo
         <div className="dmr-pf-fields">
           <div className="dmr-qe-f"><label htmlFor="pf-name">{t("Stage name")}</label><input id="pf-name" maxLength={50} autoComplete="off" value={name} onChange={(e) => set({ stage_name: e.target.value })} aria-invalid={name.trim().length < 2 ? true : undefined} /><span className={`dmr-f-hint${name.trim().length < 2 ? " bad" : ""}`}>{name.trim().length < 2 ? t("Enter your stage name.") : ""}</span></div>
           <div className="dmr-qe-f"><label htmlFor="pf-tagline">{t("Tagline")} <span className={`dmr-cnt${tag.trim().length >= 5 ? " ok" : ""}`}>{tag.length} / 80</span></label><input id="pf-tagline" maxLength={80} autoComplete="off" value={tag} onChange={(e) => set({ tagline: e.target.value })} /><span className="dmr-f-hint">{tag.trim().length && tag.trim().length < 5 ? t("Add a short tagline of at least 5 characters.") : ""}</span></div>
+          {links}
         </div>
       </div>
       <div className="dmr-qe-f" style={{ marginTop: 18 }}><label htmlFor="pf-bio">{t("Bio")} <span className={`dmr-cnt${bio >= 150 ? " ok" : ""}`}>{(v.bio ?? "").length} / 800</span></label>
@@ -413,9 +416,13 @@ function ChangePassword() {
   const score = f.next ? checks.filter(Boolean).length : 0;
   const strong = checks.every(Boolean);
   const error = f.next && !strong ? t("At least 10 characters with upper case, lower case and a number.") : f.again && f.again !== f.next ? t("The two passwords do not match.") : "";
+  const gate = useOtpGate();
   const save = async () => {
     if (!email || !f.cur || !strong || f.again !== f.next) { toast.error(error || t("Fill in every field.")); return; }
     if (f.cur === f.next) { toast.error(t("Choose a new password that is different from the current one.")); return; }
+    await gate.run("talent", () => void change(email));
+  };
+  const change = async (email: string) => {
     setBusy(true);
     const check = await supabase.auth.signInWithPassword({ email, password: f.cur });
     if (check.error) { setBusy(false); toast.error(t("Your current password is not correct.")); return; }
@@ -427,6 +434,7 @@ function ChangePassword() {
   };
   return (
     <StudioSection className="dmr-pf-sec" title="Change" accent="password" subtitle="Saved on its own, apart from your profile.">
+      {gate.dialog}
       {!hasPassword ? <p className="text-sm text-muted-foreground">{t("You sign in with Google, so there is no password to change here.")}</p> : (
         <form noValidate autoComplete="off" onSubmit={(e) => { e.preventDefault(); void save(); }}>
           <div className="dmr-pf-pw">
@@ -475,7 +483,7 @@ function ProfileEditor({ artist, onSaved }: { artist: ArtistRow; onSaved: () => 
     onSaved();
   };
   const planName = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "";
-  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} artistId={artist.id} limits={limits} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ categories: selectedIds(v.category_id, v.category_ids).flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []), specialities: selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []), emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
+  return <div className="dmr-wrap dmr-pfpage"><StudioHeading title="Your" accent="profile">{plan && <span className="dmr-w-plan"><b>{planName}</b> {t("plan")}</span>}</StudioHeading><div className="dmr-w-left"><ArtistFields v={v} artistId={artist.id} links={artist.slug ? <ProfileLinks slug={artist.slug} approved={artist.status === "approved"} /> : undefined} limits={limits} set={p=>setV({...v,...p})} photo={<ProfilePhoto artistId={artist.id} name={v.stage_name ?? artist.stage_name} photoPath={artist.photo_path ?? null} onSaved={onSaved} />} /><PortfolioSection artistId={artist.id} /><ClientsSection artistId={artist.id} /><ChangePassword /><div className="dmr-pf-save"><span aria-live="polite">{dirty ? <><b>{t("Unsaved changes.")}</b> {t("Save to publish them to your profile.")}</> : t("Everything is saved.")}</span><div className="dmr-bt"><button type="button" className="dmr-btn dmr-btn-line" disabled={!dirty} onClick={() => setV(base)}>{t("Discard")}</button><button type="button" className="dmr-btn dmr-btn-gold" disabled={!dirty} onClick={() => void save()}>{t("Save profile")}</button></div></div></div><ProfileSide artistId={artist.id} v={v} photoPath={artist.photo_path ?? null} names={{ categories: selectedIds(v.category_id, v.category_ids).flatMap((id) => cat?.categories.find((c) => c.id === id)?.name ?? []), specialities: selectedIds(v.subcategory_id, v.specialty_ids).flatMap((id) => cat?.subcategories.find((x) => x.id === id)?.name ?? []), emirate: cat?.emirates.find((e) => e.id === v.emirate_id)?.name ?? "", area: cat?.areas.find((x) => x.id === v.area_id)?.name ?? "" }} /></div>;
 }
 
 function Packages({ artistId }: { artistId: string }) {

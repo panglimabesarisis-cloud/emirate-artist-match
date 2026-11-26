@@ -1,3 +1,4 @@
+import { withTalent, type TalentIndex } from "@/lib/catalog-listing";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ArtistCard } from "@/lib/public.functions";
@@ -27,7 +28,8 @@ export type Filters = {
 };
 
 type Catalog = {
-  subcategories: { slug: string; name: string; category_id: string }[];
+  talent?: TalentIndex | null;
+  subcategories: { id: string; slug: string; name: string; category_id: string }[];
   categories: { id: string; slug: string; name: string; name_ar?: string | null; description: string | null }[];
   emirates: { id: string; slug: string; name: string; name_ar?: string | null }[];
   areas: { slug: string; name: string; emirate_id: string }[];
@@ -56,9 +58,11 @@ export function SearchPage(props: {
     }),
   });
   const { t, lang } = useI18n();
-  const categories = [ALL_CATEGORY, ...catalog.categories];
+  // Chips offer only categories and specialities with talent; the page's own category stays.
+  const listed = withTalent(catalog, categorySlug);
+  const categories = [ALL_CATEGORY, ...listed.categories];
   const cat = categories.find((c) => c.slug === categorySlug);
-  const subs = catalog.subcategories.filter((s) => s.category_id === cat?.id);
+  const subs = listed.subcategories.filter((s) => s.category_id === cat?.id);
   const emirate = catalog.emirates.find((e) => e.slug === emirateSlug);
   const areas = emirate ? catalog.areas.filter((a) => a.emirate_id === emirate.id) : [];
 

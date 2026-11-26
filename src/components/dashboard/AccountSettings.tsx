@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PayoutBankCard } from './PayoutBankCard';
+import { useOtpGate } from '@/components/shared/OtpGate';
 import { useI18n } from '@/lib/i18n';
 import { StudioHeading } from './StudioPage';
 import './agent-account.css';
@@ -27,6 +28,7 @@ export function AccountSettings() {
   const [closed, setClosed] = useState(false);
   const [modal, setModal] = useState<AccountModal>(null);
   const [loadError, setLoadError] = useState('');
+  const gate = useOtpGate();
   useEffect(() => { void supabase.auth.getUser().then(async ({ data, error }) => {
     if (error) { setLoadError(error.message); return; }
     if (!data.user) return;
@@ -49,8 +51,10 @@ export function AccountSettings() {
     const { error } = await supabase.auth.signInWithPassword({ email: currentEmail, password: currentPassword }); if (error) throw error;
   };
   const closeModal = () => { setModal(null); setCurrentPassword(''); setPassword(''); };
-  const openModal = (next: AccountModal) => { setName(savedName); setEmail(currentEmail); setCurrentPassword(''); setPassword(''); setModal(next); };
-  const submit = () => run(async () => {
+  // A talent enters a WhatsApp code before any account change.
+  const openModal = (next: AccountModal) => void gate.run('talent', () => { setName(savedName); setEmail(currentEmail); setCurrentPassword(''); setPassword(''); setModal(next); });
+  const submit = () => gate.run('talent', () => void apply());
+  const apply = () => run(async () => {
     if (!userId) return;
     if (modal === 'name') {
       if (!name.trim()) throw new Error(t('Enter your name'));
@@ -83,9 +87,10 @@ export function AccountSettings() {
     </div>
     <aside className="studio-account-stack">
       <section className="studio-account-section"><div className="account-section-head"><h2>{t('Identity')} <span className="it">{t('verification')}</span></h2><ShieldCheck className="size-5 text-gold" /></div>{verification.error ? <p role="alert" className="text-destructive">{verification.error.message}</p> : <span className="account-status">{t(statusLabel)}</span>}<ol className="account-steps"><li><b>{t('WhatsApp OTP')}</b>{t('Confirm your phone number.')}</li><li><b>{t('Your details')}</b>{t('Your identity document and personal details.')}</li><li><b>{t('3 selfies')}</b>{t('Front, right and left.')}</li><li><b>{t('Review')}</b>{t('Your application is reviewed before a decision.')}</li></ol><Button asChild variant="outline"><Link to="/dashboard">{t('Back to dashboard')}</Link></Button></section>
-      <section className="studio-account-section"><div className="account-section-head"><h2>{t('Why it is')} <span className="it">{t('locked')}</span></h2></div><ol className="account-steps"><li><b>{t('One place to edit')}</b>{t('The Wallet shows your bank details read-only.')}</li><li><b>{t('48 hour pause')}</b>{t('Withdrawals open 48 hours after saving bank details.')}</li><li><b>{t('Your name, your account')}</b>{t('These details are locked; contact support to change them.')}</li></ol></section>
+      <section className="studio-account-section"><div className="account-section-head"><h2>{t('Why it is')} <span className="it">{t('locked')}</span></h2></div><ol className="account-steps"><li><b>{t('One place to edit')}</b>{t('The Wallet shows your bank details read-only.')}</li><li><b>{t('3 day pause')}</b>{t('Withdrawals open 3 days after your bank details change.')}</li><li><b>{t('WhatsApp code')}</b>{t('Every change needs a code sent to your number, and you are told when your bank account changes.')}</li></ol></section>
       <section className="studio-account-section"><div className="account-section-head"><h2>{t('Account')} <span className="it">{t('record')}</span></h2></div><dl className="account-record"><div><dt>{t('Current email')}</dt><dd dir="ltr">{currentEmail || '—'}</dd></div><div><dt>{t('Account name')}</dt><dd>{savedName || '—'}</dd></div></dl></section>
     </aside>
+    {gate.dialog}
     <Dialog open={modal !== null} onOpenChange={open => { if (!open && !busy) closeModal(); }}><DialogContent className="account-modal"><DialogHeader><span className="studio-empty-icon"><Lock className="size-6" /></span><DialogTitle>{modal ? t(titles[modal]) : ''}</DialogTitle><DialogDescription>{t(modal === 'closure' ? 'Closure requests are reviewed before any data is removed. Existing bookings and financial records are retained.' : modal === 'name' ? 'Account details' : 'Confirm your current password before changing sign-in details.')}</DialogDescription></DialogHeader><form onSubmit={event => { event.preventDefault(); void submit(); }} className="space-y-4">
       {modal === 'name' && <div><Label htmlFor="account-name">{t('Name')}</Label><Input id="account-name" required value={name} maxLength={100} onChange={event => setName(event.target.value)} /></div>}
       {(modal === 'email' || modal === 'password') && <div><Label htmlFor="current-password">{t('Current password')}</Label><Input id="current-password" required type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} /></div>}

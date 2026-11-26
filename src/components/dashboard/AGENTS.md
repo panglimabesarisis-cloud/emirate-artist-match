@@ -17,3 +17,4 @@
 - Support tickets reuse the Inbox layout (inbox.css), and Inbox, Support and Your AI Agent share one chat backdrop in chat-fields.css.
 - Team page access uses the shared checklist and database page gates; cross-page labels and document fields use narrow page-authorized RPCs instead of granting booking or quote tables.
 - `YourAgent` serves the dashboard and the `/ai/<slug>` page (`page` prop: take-over lock; while taken over, messages are saved without AI or credit). Change both together.
+- A registered talent confirms account and bank changes with a WhatsApp code (`useOtpGate`, 0105). Bank details are written only by `saveBankDetails`, which announces the change; withdrawals pause 3 days. A new account-changing control goes through the gate and a database check.

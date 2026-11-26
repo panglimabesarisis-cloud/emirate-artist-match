@@ -28,6 +28,6 @@ function PublicSiteHeader() {
     return () => { observer.disconnect(); document.documentElement.style.removeProperty("--site-header-height"); };
   }, []);
   return <div ref={ref} className="dm-home shared-site-header" dir={lang === "ar" ? "rtl" : "ltr"}>
-    <HomeHeader catalog={catalog ?? { categories: [], subcategories: [], emirates: [], areas: [], eventTypes: [] }} />
+    <HomeHeader catalog={catalog ?? { categories: [], subcategories: [], emirates: [], areas: [], eventTypes: [], talent: null }} />
   </div>;
 }

@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { readWhatsAppConfig } from "./whatsapp-provider.server";
 import { newVerificationCode } from "./verification.server";
 import { normalizeVerificationPhone, otpResult } from "./verification-rules";
+import { mayAttachPhone, type PhoneState } from "./account-otp-rules";
 
 const PROOF_DAYS = 30;
 
@@ -39,7 +40,26 @@ export async function otpRequired() {
   return (data?.value as { required?: boolean } | null | undefined)?.required !== false;
 }
 
+/** What is known about an account's numbers. A failed read refuses rather than guesses. */
+export async function readPhoneState(userId: string): Promise<PhoneState> {
+  const [profile, artist, talent, grant] = await Promise.all([
+    supabaseAdmin.from("profiles").select("phone,phone_verified_at").eq("id", userId).maybeSingle(),
+    supabaseAdmin.from("artists").select("notify_phone").eq("user_id", userId).maybeSingle(),
+    supabaseAdmin.rpc("talent_needs_otp", { _user: userId }),
+    supabaseAdmin.from("account_otp_grants").select("expires_at").eq("user_id", userId).maybeSingle(),
+  ]);
+  if (profile.error || artist.error || talent.error || grant.error) throw new Error("Unable to read your account");
+  return {
+    talent: talent.data === true,
+    verified: profile.data?.phone_verified_at ? profile.data.phone : null,
+    listed: artist.data?.notify_phone ?? null,
+    granted: !!grant.data && new Date(grant.data.expires_at).getTime() > Date.now(),
+  };
+}
+
+/** Records a proven number on the account, unless that would take a talent's codes to another phone. */
 export async function markAccountPhone(userId: string, phone: string) {
+  if (!mayAttachPhone(phone, await readPhoneState(userId))) return;
   const { error } = await supabaseAdmin.from("profiles").update({ phone, phone_verified_at: new Date().toISOString() }).eq("id", userId);
   if (error) throw new Error("Could not save your verified number");
 }
@@ -101,13 +121,20 @@ export async function requestCode(rawPhone: string) {
   return messageId ? { ...result, id } : { ok: false as const, error: "send_failed" as const };
 }
 
-export async function confirmCode(id: string, code: string, userId: string | null) {
+/** Checks a code and says which number it proves. */
+export async function verifyCode(id: string, code: string) {
   if (!secret()) return { ok: false as const, error: "not_configured" as const };
   const checked = await supabaseAdmin.rpc("check_phone_otp", { _id: id, _hash: await sign(`otp:${id}:${code}`) });
   if (checked.error) throw new Error("Unable to check verification code");
   const result = otpResult.parse(checked.data);
+  if (!result.ok) return { ...result, ok: false as const, error: result.error ?? "wrong_code" };
+  return { ok: true as const, phone: (checked.data as { phone: string }).phone };
+}
+
+export async function confirmCode(id: string, code: string, userId: string | null) {
+  const result = await verifyCode(id, code);
   if (!result.ok) return result;
-  const phone = (checked.data as { phone: string }).phone;
+  const phone = result.phone;
   if (userId) {
     await markAccountPhone(userId, phone);
     // Registration passes through here, so this is where the signup address is captured.

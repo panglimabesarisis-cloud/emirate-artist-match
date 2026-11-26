@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { conciergeInput } from "./concierge-rules";
 import { artistOwnedMediaPath, publicPhysicalDetails } from "./public-profile";
 import { ALL, matchesSearch } from "./artist-search";
+import { talentIndex } from "./catalog-listing";
 
 export const askPublicConcierge = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => conciergeInput.parse(input))
@@ -129,14 +130,17 @@ async function loadCards(filter?: { artistSlug?: string }) {
 export const getCatalog = createServerFn({ method: "GET" }).handler(async () => {
   const { publicClient } = await import("./public-client.server");
   const sb = publicClient();
-  const [c, s, e, a, et] = await Promise.all([
+  const [c, s, e, a, et, talent] = await Promise.all([
     sb.from("categories").select("id, slug, name, name_ar, description, icon, sort").order("sort"),
     sb.from("subcategories").select("id, slug, name, category_id").order("name"),
     sb.from("emirates").select("id, slug, name, name_ar, sort").order("sort"),
     sb.from("areas").select("id, slug, name, emirate_id").order("name"),
     sb.from("event_types").select("id, slug, name, sort").order("sort"),
+    sb.from("artists").select("category_id, category_ids, subcategory_id, specialty_ids").eq("status", "approved"),
   ]);
   return {
+    // Who has talent, for menus and searches. Forms still offer the whole list.
+    talent: talent.error ? null : talentIndex(talent.data ?? []),
     categories: c.data ?? [],
     subcategories: s.data ?? [],
     emirates: e.data ?? [],

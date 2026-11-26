@@ -9,6 +9,7 @@ import { DemoBanner } from "@/components/site/DemoBanner";
 import { useI18n, localName } from "@/lib/i18n";
 import type { HomeCatalog } from "./types";
 import { ALL } from "@/lib/artist-search";
+import { withTalent } from "@/lib/catalog-listing";
 import "./send-job-navigation.css";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { ARTIST_MENU, TALENT_MENU, type MenuItem } from "@/lib/site-settings";
@@ -35,7 +36,9 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
   const openDd = (id: string) => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setDropdown(id); };
   const closeDd = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setDropdown(null), 200); };
-  const musicians = catalog.categories.find((c) => c.slug === "musicians");
+  const listed = withTalent(catalog);
+  const musicians = listed.categories.find((c) => c.slug === "musicians");
+  const musicianKinds = listed.subcategories.filter((s) => s.category_id === musicians?.id);
   const signOut = async () => {
     await qc.cancelQueries(); qc.clear(); await supabase.auth.signOut();
     void navigate({ to: "/auth", replace: true });
@@ -52,7 +55,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
   </>;
   const categories = <>
     <Link to="/$category" params={{ category: ALL }} onClick={close}>{t("All")}</Link>
-    {catalog.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} onClick={close}>{localName(lang, c)}</Link>)}
+    {listed.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} onClick={close}>{localName(lang, c)}</Link>)}
   </>;
   return <header className="home-nav-shell">
     <DemoBanner />
@@ -65,7 +68,7 @@ export function HomeHeader({ catalog }: { catalog: HomeCatalog }) {
             <Button variant="ghost" className="dd-t" aria-expanded={dropdown === "talent"} aria-controls="home-talent-menu" onClick={() => setDropdown(dropdown === "talent" ? null : "talent")}>{t(item.label)}<ChevronDown className="chev h-3 w-3" /></Button>
             <div className="dd-p mega" id="home-talent-menu" inert={dropdown !== "talent"}>
               <div className="dd-col"><span className="dd-h">{t("Categories")}</span>{categories}</div>
-              <div className="dd-col"><span className="dd-h">{t("Musicians")}</span><div className="dd-2">{catalog.subcategories.filter((s) => s.category_id === musicians?.id).map((s) => <Link key={s.slug} to="/$category" params={{ category: musicians?.slug ?? "musicians" }} search={{ sub: s.slug }} onClick={close}>{t(s.name)}</Link>)}</div></div>
+              {musicianKinds.length > 0 && <div className="dd-col"><span className="dd-h">{t("Musicians")}</span><div className="dd-2">{musicianKinds.map((s) => <Link key={s.slug} to="/$category" params={{ category: musicians?.slug ?? "musicians" }} search={{ sub: s.slug }} onClick={close}>{t(s.name)}</Link>)}</div></div>}
               <Link className="dd-card" to="/$category" params={{ category: ALL }} onClick={close}><span className="dd-h">{t("All talent")}</span><b className="serif">{t("Show all")} <span className="it">{t("talent.")}</span></b><span className="arr">↗</span></Link>
             </div>
           </div>

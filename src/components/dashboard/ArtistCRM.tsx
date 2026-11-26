@@ -31,7 +31,7 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
   );
 }
 
-export function ArtistOverview({ artistId, stageName, plan, onOpen, onUpgrade }: { artistId: string; stageName: string; plan: string; onOpen: (section: string) => void; onUpgrade?: (() => void) | undefined }) {
+export function ArtistOverview({ artistId, slug, stageName, plan, onOpen, onUpgrade }: { artistId: string; slug: string; stageName: string; plan: string; onOpen: (section: string) => void; onUpgrade?: (() => void) | undefined }) {
   const { t } = useI18n();
   const [modal, setModal] = useState<PlanModal>(null);
   const { data } = useQuery({
@@ -73,6 +73,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen, onUpgrade }:
           <Button variant="outline" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b>{t(planName)}</b></Button>
           <Button variant="outline" className={`${quick} studio-button-gold`} onClick={() => (onUpgrade ? onUpgrade() : setModal("upgrade"))}>{t("Upgrade plan")}</Button>
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
+          <Button asChild variant="outline" className={quick}><a href={`/ai/${slug}`}><Bot aria-hidden="true" />{t("Your Personal AI Agent")}</a></Button>
         </div>
       </section>
       <ChatsPerformChart artistId={artistId} />

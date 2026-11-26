@@ -1,3 +1,4 @@
+import { useOtpGate } from "@/components/shared/OtpGate";
 import { SupportThread } from "../SupportThreads";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -27,8 +28,15 @@ export function Profile() {
   }, [profile.data]);
   const phoneBad = !!v.phone && !/^\+[1-9]\d{7,14}$/.test(v.phone);
   const nameBad = v.display_name.trim().length < 2;
+  const gate = useOtpGate();
   const save = async () => {
     if (phoneBad || nameBad) { toast.error(t("Check the highlighted fields.")); return; }
+    // A registered talent confirms a new name or number with a WhatsApp code.
+    const p = profile.data;
+    if (v.display_name.trim() !== (p?.display_name ?? "") || v.phone !== (p?.phone ?? "")) await gate.run("talent", () => void write());
+    else await write();
+  };
+  const write = async () => {
     setBusy(true);
     const { error } = await supabase.from("profiles").update({ display_name: v.display_name.trim().slice(0, 80), phone: v.phone || null, company_name: v.company_name.trim().slice(0, 120) || null, country: v.country || null, account_type: v.account_type }).eq("id", uid);
     setBusy(false);
@@ -38,6 +46,7 @@ export function Profile() {
   };
   return (
     <section className="cp-page">
+      {gate.dialog}
       <PageHead eyebrow="Account" title="MY PROFILE" text="Your contact and company details, used when you send booking requests." actions={<button type="button" className="cp-btn cp-btn-gold" disabled={busy || profile.isLoading} onClick={save}>{t(busy ? "Saving…" : "Save changes")}</button>} />
       <div className="cp-card">
         {profile.error ? <LoadError error={profile.error} /> : profile.isLoading ? <Skeleton /> : (

@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n, localName } from "@/lib/i18n";
 import { ALL, searchTarget } from "@/lib/artist-search";
+import { withTalent, type TalentIndex } from "@/lib/catalog-listing";
 import type { Filters } from "./SearchPage";
 
 type Catalog = {
-  categories: { slug: string; name: string; name_ar?: string | null }[];
+  talent?: TalentIndex | null;
+  categories: { id: string; slug: string; name: string; name_ar?: string | null }[];
   emirates: { slug: string; name: string; name_ar?: string | null }[];
 };
 export function ListingSearch({ catalog, categorySlug, emirateSlug, filters }: { catalog: Catalog; categorySlug: string; emirateSlug?: string | undefined; filters: Filters }) {
@@ -28,7 +30,7 @@ export function ListingSearch({ catalog, categorySlug, emirateSlug, filters }: {
   };
   return <form role="search" className="reference-search" onSubmit={e => { e.preventDefault(); submit(); }}>
     <div className="reference-search-text"><Search className="h-5 w-5" /><Input aria-label={t("Search talent")} type="search" maxLength={80} placeholder={t("Name, talent or city")} value={text} onChange={e => setText(e.target.value)} /></div>
-    <Select value={category} onValueChange={setCategory}><SelectTrigger aria-label={t("Talent")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value={ALL}>{t("All")}</SelectItem>{catalog.categories.map(c => <SelectItem key={c.slug} value={c.slug}>{localName(lang, c)}</SelectItem>)}</SelectContent></Select>
+    <Select value={category} onValueChange={setCategory}><SelectTrigger aria-label={t("Talent")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value={ALL}>{t("All")}</SelectItem>{withTalent({ categories: catalog.categories, subcategories: [], talent: catalog.talent }, categorySlug).categories.map(c => <SelectItem key={c.slug} value={c.slug}>{localName(lang, c)}</SelectItem>)}</SelectContent></Select>
     <Select value={city} onValueChange={setCity}><SelectTrigger aria-label={t("City")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value={ALL}>{t("All")}</SelectItem>{catalog.emirates.map(c => <SelectItem key={c.slug} value={c.slug}>{localName(lang, c)}</SelectItem>)}</SelectContent></Select>
     <Button type="submit" className="reference-gold">{t("Search")}<ArrowRight className="h-4 w-4" /></Button>
   </form>;

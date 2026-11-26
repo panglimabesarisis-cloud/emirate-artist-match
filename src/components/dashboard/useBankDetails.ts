@@ -12,7 +12,8 @@ export type BankDetails = {
 };
 
 /** Withdrawals are refused for this long after the bank record last changed (enforced in the database). */
-export const BANK_HOLD_HOURS = 48;
+export const BANK_HOLD_DAYS = 3;
+export const BANK_HOLD_HOURS = BANK_HOLD_DAYS * 24;
 
 /** Reads the artist's saved bank record. Only the artist owner can read it (RLS). */
 export function useBankDetails(artistId: string) {

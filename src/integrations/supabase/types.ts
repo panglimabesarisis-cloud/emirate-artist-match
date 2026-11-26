@@ -30,6 +30,12 @@ export type Database = {
         Update: { active?: boolean; created_at?: string; description?: string; duration_days?: number | null; id?: string; kind?: string; name?: string; price_aed?: number }
         Relationships: []
       }
+      account_otp_grants: {
+        Row: { expires_at: string; user_id: string }
+        Insert: { expires_at: string; user_id: string }
+        Update: { expires_at?: string; user_id?: string }
+        Relationships: []
+      }
       account_closure_requests: {
         Row: {
           created_at: string
@@ -4799,6 +4805,9 @@ export type Database = {
       artist_has_addon: { Args: { _artist: string; _kind: string }; Returns: boolean }
       decide_catalog_suggestion: { Args: { _approve: boolean; _id: string; _name?: string; _note?: string }; Returns: boolean }
       suggest_catalog_entry: { Args: { _artist: string; _category?: string; _kind: string; _name: string; _parent?: string }; Returns: string }
+      has_recent_otp: { Args: never; Returns: boolean }
+      needs_account_otp: { Args: never; Returns: boolean }
+      talent_needs_otp: { Args: { _user: string }; Returns: boolean }
       artist_has_page: { Args: { _page: string }; Returns: boolean }
       artist_plan_internal: { Args: { _artist: string }; Returns: string }
       artist_public_stats: {

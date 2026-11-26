@@ -729,6 +729,13 @@
       "when": 1795740000000,
       "tag": "0104_catalog_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795760000000,
+      "tag": "0105_account_otp_bank_hold",
+      "breakpoints": true
     }
   ]
 }

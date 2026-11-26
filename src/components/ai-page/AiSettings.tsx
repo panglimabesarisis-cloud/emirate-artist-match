@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PaymentTestModeBanner, SandboxCheckout, type CheckoutSession } from "@/components/site/SandboxCheckout";
 import { AddonCards } from "@/components/dashboard/AddonsPage";
+import { useOtpGate } from "@/components/shared/OtpGate";
 
 const TABS = [
   ["usage", "Usage Statistik", BarChart3],
@@ -184,8 +185,14 @@ function AccountTab({ userId, email, artistId, trn }: { userId: string; email: s
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (profile.data !== undefined) setName(profile.data); }, [profile.data]);
   const taxBad = !!tax.trim() && !/^\d{15}$/.test(tax.trim());
+  const gate = useOtpGate();
   const save = async () => {
     if (!name.trim() || taxBad || busy) return;
+    // Changing the account name needs a WhatsApp code.
+    if (name.trim() !== profile.data) await gate.run("talent", () => void write());
+    else await write();
+  };
+  const write = async () => {
     setBusy(true);
     const [p, a] = await Promise.all([
       supabase.from("profiles").update({ display_name: name.trim() }).eq("id", userId),
@@ -199,6 +206,7 @@ function AccountTab({ userId, email, artistId, trn }: { userId: string; email: s
   return (
     <>
       <Head title="Account" accent="setting" text="Your name and tax details. Your sign-in email is set when the account is created." />
+      {gate.dialog}
       {profile.error && <p role="alert" className="text-sm text-destructive">{t("Unable to load your account")}</p>}
       <form className={`${card} grid gap-4 sm:grid-cols-2`} onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <div className="space-y-1"><Label htmlFor="ai-name">{t("Full name")}</Label><Input id="ai-name" maxLength={80} value={name} disabled={profile.data === undefined} onChange={(e) => setName(e.target.value)} /></div>

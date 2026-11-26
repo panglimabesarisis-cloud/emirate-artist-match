@@ -1370,7 +1370,13 @@ html.dm-dash .studio-reference .dmr-pf-ph .dmr-btn{padding:8px 14px;font-size:12
 html.dm-dash .studio-reference .dmr-pf-ph small{font-size:11px;color:var(--studio-mute-2);text-align:center;line-height:1.4}
 html.dm-dash .studio-reference .dmr-pf-rm{font-size:12px;color:var(--muted-foreground);text-decoration:underline;text-underline-offset:3px}
 html.dm-dash .studio-reference .dmr-pf-rm:hover{color:var(--foreground)}
-html.dm-dash .studio-reference .dmr-pf-fields{display:grid;gap:16px;min-width:0}
+html.dm-dash .studio-reference .dmr-pf-fields{display:grid;gap:10px;min-width:0;align-content:start}
+html.dm-dash .studio-reference .dmr-pf-fields .dmr-qe-f{margin:0}
+html.dm-dash .studio-reference .dmr-pf-fields .dmr-f-hint:empty{display:none}
+html.dm-dash .studio-reference .dmr-pf-link{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:9px 14px;border:1px dashed var(--studio-line-2);border-radius:12px;background:var(--studio-reference-tone-4);color:var(--muted-foreground);font-size:14px;min-width:0;transition:border-color .3s,color .3s}
+html.dm-dash .studio-reference .dmr-pf-link span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.dm-dash .studio-reference .dmr-pf-link svg{width:16px;height:16px;flex:0 0 auto;color:var(--gold)}
+html.dm-dash .studio-reference .dmr-pf-link:hover, html.dm-dash .studio-reference .dmr-pf-link:focus-visible{border-color:var(--gold);color:var(--foreground)}
 html.dm-dash .studio-reference .dmr-qe-f .dmr-cnt{float:right;font-size:11.5px;font-weight:700;color:var(--studio-mute-2);font-variant-numeric:tabular-nums}
 html.dm-dash .studio-reference .dmr-qe-f .dmr-cnt.ok{color:var(--studio-reference-tone-101)}
 html.dm-dash .studio-reference .dmr-qe-f .dmr-cnt.bad{color:var(--studio-reference-tone-116)}
