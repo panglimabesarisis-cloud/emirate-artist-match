@@ -59,7 +59,7 @@ export type Database = {
           at?: string
           browser?: string | null
           email?: string | null
-          id?: number
+          id?: never
           ip?: string | null
           module?: string | null
           security?: string
@@ -72,13 +72,25 @@ export type Database = {
           at?: string
           browser?: string | null
           email?: string | null
-          id?: number
+          id?: never
           ip?: string | null
           module?: string | null
           security?: string
           target?: string | null
           url?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_owners: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
         }
         Relationships: []
       }
@@ -978,12 +990,12 @@ export type Database = {
       }
       artist_order_forms: {
         Row: {
-          category_id: string | null
           artist_id: string
+          category_id: string | null
           description: string | null
-          id: string
           enabled: boolean
           fields: Json
+          id: string
           source_template_id: string | null
           source_version: number | null
           subcategory_id: string | null
@@ -991,12 +1003,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category_id?: string | null
           artist_id: string
+          category_id?: string | null
           description?: string | null
-          id?: string
           enabled?: boolean
           fields?: Json
+          id?: string
           source_template_id?: string | null
           source_version?: number | null
           subcategory_id?: string | null
@@ -1004,12 +1016,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category_id?: string | null
           artist_id?: string
+          category_id?: string | null
           description?: string | null
-          id?: string
           enabled?: boolean
           fields?: Json
+          id?: string
           source_template_id?: string | null
           source_version?: number | null
           subcategory_id?: string | null
@@ -1020,8 +1032,22 @@ export type Database = {
           {
             foreignKeyName: "artist_order_forms_artist_id_fkey"
             columns: ["artist_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_order_forms_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_order_forms_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
         ]
@@ -1542,8 +1568,6 @@ export type Database = {
       }
       bookings: {
         Row: {
-          job_kind: string
-          release_rule: string
           access_key: string
           amount: number
           artist_id: string
@@ -1562,6 +1586,7 @@ export type Database = {
           client_phone: string | null
           client_user_id: string | null
           commission_basis: string | null
+          commission_hold_reason: string | null
           commission_rate: number | null
           completed_at: string | null
           contract_accepted_at: string | null
@@ -1585,11 +1610,13 @@ export type Database = {
           invoice_no: string | null
           is_seed: boolean
           job_detail: string | null
+          job_kind: Database["public"]["Enums"]["job_kind"]
           notes: string | null
           package_title: string | null
           paid_amount: number
           paid_at: string | null
           refund_amount: number
+          release_rule: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at: string | null
           reminder_sent_at: string | null
           revision_note: string | null
@@ -1597,12 +1624,10 @@ export type Database = {
           start_time: string | null
           status: string
           total: number
-          work_ready_at: string | null
           vat_amount: number
+          work_ready_at: string | null
         }
         Insert: {
-          job_kind?: string
-          release_rule?: string
           access_key?: string
           amount: number
           artist_id: string
@@ -1621,6 +1646,7 @@ export type Database = {
           client_phone?: string | null
           client_user_id?: string | null
           commission_basis?: string | null
+          commission_hold_reason?: string | null
           commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
@@ -1644,11 +1670,13 @@ export type Database = {
           invoice_no?: string | null
           is_seed?: boolean
           job_detail?: string | null
+          job_kind?: Database["public"]["Enums"]["job_kind"]
           notes?: string | null
           package_title?: string | null
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          release_rule?: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at?: string | null
           reminder_sent_at?: string | null
           revision_note?: string | null
@@ -1656,12 +1684,10 @@ export type Database = {
           start_time?: string | null
           status?: string
           total?: number
-          work_ready_at?: string | null
           vat_amount?: number
+          work_ready_at?: string | null
         }
         Update: {
-          job_kind?: string
-          release_rule?: string
           access_key?: string
           amount?: number
           artist_id?: string
@@ -1680,6 +1706,7 @@ export type Database = {
           client_phone?: string | null
           client_user_id?: string | null
           commission_basis?: string | null
+          commission_hold_reason?: string | null
           commission_rate?: number | null
           completed_at?: string | null
           contract_accepted_at?: string | null
@@ -1703,11 +1730,13 @@ export type Database = {
           invoice_no?: string | null
           is_seed?: boolean
           job_detail?: string | null
+          job_kind?: Database["public"]["Enums"]["job_kind"]
           notes?: string | null
           package_title?: string | null
           paid_amount?: number
           paid_at?: string | null
           refund_amount?: number
+          release_rule?: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at?: string | null
           reminder_sent_at?: string | null
           revision_note?: string | null
@@ -1715,8 +1744,8 @@ export type Database = {
           start_time?: string | null
           status?: string
           total?: number
-          work_ready_at?: string | null
           vat_amount?: number
+          work_ready_at?: string | null
         }
         Relationships: [
           {
@@ -1803,45 +1832,6 @@ export type Database = {
           tier?: number
           updated_at?: string
           updated_by?: string | null
-        }
-        Relationships: []
-      }
-      phone_verifications: {
-        Row: {
-          attempts: number
-          code_hash: string
-          confirmed_at: string | null
-          created_at: string
-          expires_at: string
-          id: string
-          phone: string
-          provider_message_id: string | null
-          requester_hash: string | null
-          send_status: string
-        }
-        Insert: {
-          attempts?: number
-          code_hash: string
-          confirmed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          phone: string
-          provider_message_id?: string | null
-          requester_hash?: string | null
-          send_status?: string
-        }
-        Update: {
-          attempts?: number
-          code_hash?: string
-          confirmed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          phone?: string
-          provider_message_id?: string | null
-          requester_hash?: string | null
-          send_status?: string
         }
         Relationships: []
       }
@@ -3200,6 +3190,45 @@ export type Database = {
           },
         ]
       }
+      phone_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          provider_message_id: string | null
+          requester_hash: string | null
+          send_status: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone: string
+          provider_message_id?: string | null
+          requester_hash?: string | null
+          send_status?: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          provider_message_id?: string | null
+          requester_hash?: string | null
+          send_status?: string
+        }
+        Relationships: []
+      }
       plan_credit_periods: {
         Row: {
           artist_id: string
@@ -3315,8 +3344,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          last_ip: unknown
+          last_ip_at: string | null
           phone: string | null
           phone_verified_at: string | null
+          signup_ip: unknown
+          signup_ip_at: string | null
         }
         Insert: {
           account_type?: string | null
@@ -3325,8 +3358,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          last_ip?: unknown
+          last_ip_at?: string | null
           phone?: string | null
           phone_verified_at?: string | null
+          signup_ip?: unknown
+          signup_ip_at?: string | null
         }
         Update: {
           account_type?: string | null
@@ -3335,8 +3372,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          last_ip?: unknown
+          last_ip_at?: string | null
           phone?: string | null
           phone_verified_at?: string | null
+          signup_ip?: unknown
+          signup_ip_at?: string | null
         }
         Relationships: []
       }
@@ -3357,6 +3398,7 @@ export type Database = {
           artist_id: string
           base?: number | null
           booking_id: string
+          clamped?: boolean | null
           conversation_id?: string | null
           created_at?: string
           final: number
@@ -3368,6 +3410,7 @@ export type Database = {
           artist_id?: string
           base?: number | null
           booking_id?: string
+          clamped?: boolean | null
           conversation_id?: string | null
           created_at?: string
           final?: number
@@ -3375,13 +3418,29 @@ export type Database = {
           id?: string
           quoted?: number
         }
-        Relationships: []
-      }
-      rate_limits: {
-        Row: { at: string; bucket: string }
-        Insert: { at?: string; bucket: string }
-        Update: { at?: string; bucket?: string }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quote_negotiations_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_negotiations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_negotiations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quote_requests: {
         Row: {
@@ -3470,52 +3529,52 @@ export type Database = {
       }
       rate_cards: {
         Row: {
-          deposit_pct: number
-          job_kind: string
           artist_id: string
+          deposit_pct: number
           description: string | null
           duration_minutes: number | null
           id: string
           items: Json
+          job_kind: Database["public"]["Enums"]["job_kind"]
           price: number
           price_high: number | null
           price_low: number | null
-          rush_items: Json
           rules_of_work: string | null
+          rush_items: Json
           sort: number | null
           title: string
           unit_label: string
         }
         Insert: {
-          deposit_pct?: number
-          job_kind?: string
           artist_id: string
+          deposit_pct?: number
           description?: string | null
           duration_minutes?: number | null
           id?: string
           items?: Json
+          job_kind?: Database["public"]["Enums"]["job_kind"]
           price: number
           price_high?: number | null
           price_low?: number | null
-          rush_items?: Json
           rules_of_work?: string | null
+          rush_items?: Json
           sort?: number | null
           title: string
           unit_label?: string
         }
         Update: {
-          deposit_pct?: number
-          job_kind?: string
           artist_id?: string
+          deposit_pct?: number
           description?: string | null
           duration_minutes?: number | null
           id?: string
           items?: Json
+          job_kind?: Database["public"]["Enums"]["job_kind"]
           price?: number
           price_high?: number | null
           price_low?: number | null
-          rush_items?: Json
           rules_of_work?: string | null
+          rush_items?: Json
           sort?: number | null
           title?: string
           unit_label?: string
@@ -3529,6 +3588,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          at: string
+          bucket: string
+        }
+        Insert: {
+          at?: string
+          bucket: string
+        }
+        Update: {
+          at?: string
+          bucket?: string
+        }
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -4422,13 +4496,13 @@ export type Database = {
         Returns: {
           email: string
           full_name: string
+          last_ip: string
+          last_ip_at: string
           phone: string
           phone_verified_at: string
           registered_at: string
-          signup_ip: string | null
-          signup_ip_at: string | null
-          last_ip: string | null
-          last_ip_at: string | null
+          signup_ip: string
+          signup_ip_at: string
         }[]
       }
       admin_artist_stats: {
@@ -4451,6 +4525,32 @@ export type Database = {
         Args: { _action: string; _module: string }
         Returns: boolean
       }
+      admin_client_accounts: {
+        Args: never
+        Returns: {
+          account_type: string
+          booking_count: number
+          commission_available: number
+          commission_pending: number
+          company_name: string
+          country: string
+          display_name: string
+          email: string
+          is_talent: boolean
+          joined_at: string
+          last_ip: string
+          paid_total: number
+          payout_bank: string
+          payout_iban_last4: string
+          payout_updated_at: string
+          payout_verified_at: string
+          phone: string
+          processing: number
+          signup_ip: string
+          user_id: string
+          withdrawn: number
+        }[]
+      }
       admin_client_commissions: {
         Args: never
         Returns: {
@@ -4468,82 +4568,6 @@ export type Database = {
           reference: string
           revenue: number
           total: number
-        }[]
-      }
-      admin_credit_usage: {
-        Args: { _days: number }
-        Returns: Json
-      }
-      admin_ledger: {
-        Args: { _from: string; _to: string }
-        Returns: {
-          account: string
-          credit: number
-          debit: number
-          entry_date: string
-          journal: string
-          memo: string
-          reference: string
-        }[]
-      }
-      admin_subscription_usage: {
-        Args: { _artist: string }
-        Returns: Json
-      }
-      admin_subscriptions: {
-        Args: never
-        Returns: {
-          ai_balance: number
-          ai_used_30d: number
-          artist_id: string
-          artist_name: string
-          artist_status: string
-          billing_interval: string
-          cancels: boolean
-          paid_until: string
-          plan_code: string
-          subscription_status: string
-        }[]
-      }
-      admin_users: {
-        Args: never
-        Returns: {
-          email: string
-          is_owner: boolean
-          joined_at: string
-          name: string
-          roles: string[]
-          user_id: string
-        }[]
-      }
-      log_admin_view: {
-        Args: { _module: string; _url: string }
-        Returns: undefined
-      }
-      admin_client_accounts: {
-        Args: never
-        Returns: {
-          account_type: string
-          booking_count: number
-          commission_available: number
-          commission_pending: number
-          company_name: string
-          country: string
-          display_name: string
-          email: string
-          is_talent: boolean
-          joined_at: string
-          last_ip: string | null
-          paid_total: number
-          payout_bank: string
-          payout_iban_last4: string
-          payout_updated_at: string
-          payout_verified_at: string
-          phone: string
-          processing: number
-          signup_ip: string | null
-          user_id: string
-          withdrawn: number
         }[]
       }
       admin_contract_template_content: {
@@ -4573,8 +4597,14 @@ export type Database = {
         }
       }
       admin_control_snapshot: { Args: never; Returns: Json }
+      admin_credit_usage: { Args: { _days: number }; Returns: Json }
       admin_finance_page: {
-        Args: { _page?: number; _paid_only?: boolean; _search?: string; _status?: string }
+        Args: {
+          _page?: number
+          _paid_only?: boolean
+          _search?: string
+          _status?: string
+        }
         Returns: Json
       }
       admin_flow_template_content: {
@@ -4599,6 +4629,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_is_owner: { Args: { _user: string }; Returns: boolean }
+      admin_ledger: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          account: string
+          credit: number
+          debit: number
+          entry_date: string
+          journal: string
+          memo: string
+          reference: string
+        }[]
+      }
       admin_library_usage: {
         Args: never
         Returns: {
@@ -4615,6 +4658,33 @@ export type Database = {
       admin_performance_analytics: {
         Args: { _artist_id?: string; _days?: number; _page?: number }
         Returns: Json
+      }
+      admin_subscription_usage: { Args: { _artist: string }; Returns: Json }
+      admin_subscriptions: {
+        Args: never
+        Returns: {
+          ai_balance: number
+          ai_used_30d: number
+          artist_id: string
+          artist_name: string
+          artist_status: string
+          billing_interval: string
+          cancels: boolean
+          paid_until: string
+          plan_code: string
+          subscription_status: string
+        }[]
+      }
+      admin_users: {
+        Args: never
+        Returns: {
+          email: string
+          is_owner: boolean
+          joined_at: string
+          name: string
+          roles: string[]
+          user_id: string
+        }[]
       }
       ai_usage: {
         Args: { _artist: string; _from: string; _to: string }
@@ -4680,7 +4750,12 @@ export type Database = {
         Args: { _id: string; _text: string }
         Returns: undefined
       }
+      artist_client_ip_overlap: {
+        Args: { _artist: string; _client_user: string }
+        Returns: boolean
+      }
       artist_has_page: { Args: { _page: string }; Returns: boolean }
+      artist_plan_internal: { Args: { _artist: string }; Returns: string }
       artist_public_stats: {
         Args: never
         Returns: {
@@ -4693,6 +4768,15 @@ export type Database = {
           revenue_label: string
           review_count: number
         }[]
+      }
+      artist_self_booking_reason: {
+        Args: {
+          _artist: string
+          _client_email: string
+          _client_phone: string
+          _client_user: string
+        }
+        Returns: string
       }
       artist_team_can: {
         Args: { _artist: string; _page: string }
@@ -4788,6 +4872,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_phone_otp: { Args: { _hash: string; _id: string }; Returns: Json }
       check_verification_otp: {
         Args: { _artist: string; _hash: string; _id: string }
         Returns: Json
@@ -4849,6 +4934,7 @@ export type Database = {
           status: string
         }[]
       }
+      client_payout_bank_conflict: { Args: { _user: string }; Returns: string }
       client_program: {
         Args: never
         Returns: {
@@ -4857,61 +4943,13 @@ export type Database = {
           min_withdrawal: number
         }[]
       }
-      check_phone_otp: {
-        Args: { _hash: string; _id: string }
-        Returns: Json
-      }
-      private_artists: {
-        Args: never
+      client_rating_summary: {
+        Args: { _artist: string }
         Returns: {
-          area_id: string | null
-          base_price: number | null
-          bio: string | null
-          body: Json
-          calendar_token: string
-          category_id: string | null
-          category_ids: string[]
-          contract_accepted_at: string | null
-          created_at: string
-          emirate_id: string | null
-          event_type_slugs: string[] | null
-          featured: boolean
-          hue: number | null
-          id: string
-          intended_plan: string | null
-          is_seed: boolean
-          languages: string[] | null
-          manager_phone: string | null
-          notify_phone: string | null
-          onboarding_complete: boolean | null
-          photo_path: string | null
-          plan: string
-          registration_paid_at: string | null
-          response_rate: number | null
-          skills: string[]
-          slug: string
-          specialty_ids: string[]
-          stage_name: string
-          status: string
-          subcategory_id: string | null
-          tagline: string | null
-          travel_fee_per_step: number
-          travel_radius_km: number | null
-          travel_step_km: number
-          travel_surcharge_enabled: boolean
-          trn: string | null
-          user_id: string | null
+          average: number
+          client_email: string
+          ratings: number
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "artists"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      reserve_phone_otp: {
-        Args: { _hash: string; _id: string; _phone: string; _requester: string }
-        Returns: Json
       }
       client_tier_of: {
         Args: { _user: string; _without?: string }
@@ -4934,10 +4972,6 @@ export type Database = {
           target_amount: number
           tier: number
         }[]
-      }
-      client_rating_summary: {
-        Args: { _artist: string }
-        Returns: { average: number; client_email: string; ratings: number }[]
       }
       client_wallet: {
         Args: { _user?: string }
@@ -4989,10 +5023,6 @@ export type Database = {
         Returns: Json
       }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
-      hit_rate_limit: {
-        Args: { _bucket: string; _max: number; _window: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5000,12 +5030,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      hit_rate_limit: {
+        Args: { _bucket: string; _max: number; _window: string }
+        Returns: boolean
+      }
       inbox_deletable_conversations: {
         Args: { _artist: string }
         Returns: string[]
       }
+      invoice_prefix: { Args: never; Returns: string }
       is_any_artist_owner: { Args: never; Returns: boolean }
       is_any_artist_team: { Args: never; Returns: boolean }
+      is_artist_account: { Args: { _user: string }; Returns: boolean }
       is_artist_owner: { Args: { _artist: string }; Returns: boolean }
       is_artist_team: { Args: { _artist: string }; Returns: boolean }
       library_updates: {
@@ -5051,19 +5087,69 @@ export type Database = {
           unlocked: boolean
         }[]
       }
+      log_admin_view: {
+        Args: { _module: string; _url: string }
+        Returns: undefined
+      }
       my_verification_rank: { Args: { _artist: string }; Returns: Json }
-      invoice_prefix: { Args: never; Returns: string }
       next_invoice_no: { Args: never; Returns: string }
+      norm_email: { Args: { _v: string }; Returns: string }
+      norm_iban: { Args: { _v: string }; Returns: string }
+      norm_phone: { Args: { _v: string }; Returns: string }
+      private_artists: {
+        Args: never
+        Returns: {
+          area_id: string | null
+          base_price: number | null
+          bio: string | null
+          body: Json
+          calendar_token: string
+          category_id: string | null
+          category_ids: string[]
+          contract_accepted_at: string | null
+          created_at: string
+          emirate_id: string | null
+          event_type_slugs: string[] | null
+          featured: boolean
+          hue: number | null
+          id: string
+          intended_plan: string | null
+          is_seed: boolean
+          languages: string[] | null
+          manager_phone: string | null
+          notify_phone: string | null
+          onboarding_complete: boolean | null
+          photo_path: string | null
+          plan: string
+          registration_paid_at: string | null
+          response_rate: number | null
+          skills: string[]
+          slug: string
+          specialty_ids: string[]
+          stage_name: string
+          status: string
+          subcategory_id: string | null
+          tagline: string | null
+          travel_fee_per_step: number
+          travel_radius_km: number | null
+          travel_step_km: number
+          travel_surcharge_enabled: boolean
+          trn: string | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "artists"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       record_account_ip: {
-        Args: { _user: string; _ip: string }
+        Args: { _ip: unknown; _user: string }
         Returns: undefined
       }
       record_test_refund: {
         Args: { _order: string; _processor: number }
-        Returns: undefined
-      }
-      set_commission_hold: {
-        Args: { _booking: string; _reason: string | null }
         Returns: undefined
       }
       refresh_top_badges: { Args: never; Returns: Json }
@@ -5083,11 +5169,14 @@ export type Database = {
         Args: { _event: string }
         Returns: boolean
       }
+      reserve_phone_otp: {
+        Args: { _hash: string; _id: string; _phone: string; _requester: string }
+        Returns: Json
+      }
       reserve_verification_otp: {
         Args: { _artist: string; _hash: string; _id: string; _phone: string }
         Returns: Json
       }
-      resolve_profile_reminder: { Args: { _id: string }; Returns: boolean }
       resolve_booking_contract: {
         Args: {
           _booking: Database["public"]["Tables"]["bookings"]["Row"]
@@ -5099,7 +5188,12 @@ export type Database = {
         Args: { _text: string; _values: Json }
         Returns: string
       }
+      resolve_profile_reminder: { Args: { _id: string }; Returns: boolean }
       restore_conversations: { Args: { _ids: string[] }; Returns: number }
+      set_commission_hold: {
+        Args: { _booking: string; _reason: string }
+        Returns: undefined
+      }
       set_conversation_label: {
         Args: { _id: string; _label: string }
         Returns: undefined
@@ -5209,13 +5303,26 @@ export type Database = {
         Args: { _application: string; _path: string }
         Returns: boolean
       }
+      whatsapp_otp_required: { Args: never; Returns: boolean }
       withdraw_job_application: {
         Args: { _actor: string; _application: string }
+        Returns: undefined
+      }
+      write_admin_audit: {
+        Args: {
+          _action: string
+          _module: string
+          _security: string
+          _target: string
+          _url: string
+        }
         Returns: undefined
       }
     }
     Enums: {
       app_role: "admin" | "artist" | "client"
+      job_kind: "stage" | "deliverable"
+      release_rule: "on_performance" | "on_delivery"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5344,6 +5451,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "artist", "client"],
+      job_kind: ["stage", "deliverable"],
+      release_rule: ["on_performance", "on_delivery"],
     },
   },
 } as const
