@@ -130,6 +130,22 @@ describe.skipIf(!db)('0098 admin permissions, audit and finance', () => {
     });
   });
 
+  it('asks the module permission in functions recreated by later migrations', async () => {
+    const calls = [`select * from admin_artist_account('${artist}')`, 'select * from admin_client_accounts()', `select set_commission_hold('${booking}',null)`];
+    // Staff may read artists, may not touch finance, and has no saved rule for operations (so keeps it).
+    await as(staff, async tx => { expect([await refused(tx, calls[0]!), await refused(tx, calls[1]!), await refused(tx, calls[2]!)]).toEqual([false, false, true]); });
+    await db!`update admin_permissions set can_read=false where user_id=${staff} and module='artists'`;
+    await db!`insert into admin_permissions(user_id,module,can_read,can_edit,can_delete) values(${staff},'operations',false,false,false)`;
+    try {
+      await as(staff, async tx => { for (const call of calls) expect(await refused(tx, call)).toBe(true); });
+      await as(owner, async tx => { for (const call of calls) expect(await refused(tx, call)).toBe(false); });
+      await as(person, async tx => { for (const call of calls) expect(await refused(tx, call)).toBe(true); });
+    } finally {
+      await db!`delete from admin_permissions where user_id=${staff} and module='operations'`;
+      await db!`update admin_permissions set can_read=true where user_id=${staff} and module='artists'`;
+    }
+  });
+
   it('keeps every journal balanced', async () => {
     await db!`insert into test_refunds(order_id,processor_amount,accounting_amount,status) select id,5250,5250,'succeeded' from payment_orders where kind='credits'`;
     await as(owner, async tx => {
