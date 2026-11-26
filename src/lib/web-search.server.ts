@@ -1,5 +1,5 @@
 /** Web search for the Personal AI Agent: Google Search grounding with the admin's Google key. */
-import { readGoogleBackup } from "./ai-provider.server";
+import { personalModels, readGoogleBackup } from "./ai-provider.server";
 import { withinLimits } from "./rate-limit.server";
 
 export type WebSource = { title: string; url: string };
@@ -28,7 +28,7 @@ export async function webSearch(artistId: string, query: string, sites: string[]
   if (!(await withinLimits([[`websearch:${artistId}`, 30, "1 hour"]]))) throw new Error("The hourly web search limit is reached. Try again later.");
   const google = await readGoogleBackup();
   if (!google) throw new Error("Web search is not set up yet. The administrator adds a Google AI key in Settings.");
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${google.model}:generateContent`, {
+  const ask = (model: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "x-goog-api-key": google.key, "Content-Type": "application/json" },
     redirect: "manual",
@@ -38,6 +38,10 @@ export async function webSearch(artistId: string, query: string, sites: string[]
       tools: [{ google_search: {} }],
     }),
   });
+  // The admin's model answers when the agent's own model is refused.
+  const [first, ...others] = personalModels(google.model);
+  let response = await ask(first!);
+  for (const model of others) if (!response.ok) response = await ask(model);
   // The status is enough; Google's error body can echo request content.
   if (!response.ok) throw new Error(`Web search failed (HTTP ${response.status})`);
   const found = readGrounded(await response.json());

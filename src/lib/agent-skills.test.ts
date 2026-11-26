@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculate } from "./calculate";
 import { mapLinks } from "./map-links";
-import { pickBestGemini } from "./ai-provider.server";
+import { personalModels } from "./ai-provider.server";
 
 describe("agent skills", () => {
   it("calculates exactly and refuses anything that is not arithmetic", () => {
@@ -15,10 +15,8 @@ describe("agent skills", () => {
     expect(mapLinks("Sunter, Jakarta Utara").embed).toBe("https://maps.google.com/maps?q=Sunter%2C%20Jakarta%20Utara&z=14&output=embed");
     expect(mapLinks("a&output=x#y").open).toContain("query=a%26output%3Dx%23y");
   });
-  it("picks the newest Gemini Pro model, a released one before a preview", () => {
-    const model = (name: string) => ({ name: `models/${name}`, supportedGenerationMethods: ["generateContent"] });
-    expect(pickBestGemini([model("gemini-3.6-flash"), model("gemini-2.5-pro"), model("gemini-3.5-pro-preview-05"), model("gemini-3.1-pro"), model("gemini-3.5-pro"), model("gemini-3.5-pro-image")])).toBe("gemini-3.5-pro");
-    expect(pickBestGemini([model("gemini-2.5-pro"), model("gemini-3.5-pro-preview")])).toBe("gemini-3.5-pro-preview");
-    expect(pickBestGemini([model("gemini-3.6-flash")])).toBeNull();
+  it("asks the agent's own Gemini model first, then the admin's", () => {
+    expect(personalModels("gemini-3.6-flash")).toEqual(["gemini-3.8-flash", "gemini-3.6-flash"]);
+    expect(personalModels("gemini-3.8-flash")).toEqual(["gemini-3.8-flash"]);
   });
 });

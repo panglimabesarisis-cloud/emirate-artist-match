@@ -132,37 +132,19 @@ export async function aiResponse(params: Params): Promise<Result> {
   }
 }
 
-type ListedModel = { name: string; supportedGenerationMethods?: string[] };
-/** The newest Gemini Pro model that writes text; a released model comes before a preview of the same version. */
-export function pickBestGemini(models: ListedModel[]): string | null {
-  const ranked = models.flatMap((m) => {
-    const name = m.name.replace(/^models\//, "");
-    const found = /^gemini-(\d+(?:\.\d+)?)-pro(-preview[a-z0-9.-]*)?$/.exec(name);
-    return found && m.supportedGenerationMethods?.includes("generateContent") ? [{ name, version: Number(found[1]), stable: !found[2] }] : [];
-  }).sort((a, b) => b.version - a.version || Number(b.stable) - Number(a.stable) || b.name.localeCompare(a.name));
-  return ranked[0]?.name ?? null;
-}
-
-let strongest: { at: number; model: string | null } | null = null;
-async function strongestModel(key: string) {
-  if (strongest && Date.now() - strongest.at < 3600_000) return strongest.model;
-  try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", { headers: { "x-goog-api-key": key }, redirect: "manual", signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return null;
-    strongest = { at: Date.now(), model: pickBestGemini(((await response.json()) as { models?: ListedModel[] }).models ?? []) };
-    return strongest.model;
-  } catch { return null; }
-}
+/** The model of the Personal AI Agent and its web search. */
+export const PERSONAL_MODEL = "gemini-3.8-flash";
+/** Tried in order: the agent's model, then the admin's own Gemini choice. */
+export const personalModels = (adminModel: string) => [...new Set([PERSONAL_MODEL, adminModel])];
 
 /**
- * The model of the Personal AI Agent: the strongest Gemini the admin's key offers, then the admin's chosen
- * Gemini, then the usual provider. One task keeps the model that answered first, so tool calls stay matched.
+ * Answers for the Personal AI Agent: its Gemini model, then the admin's Gemini model, then the usual
+ * provider. One task keeps the model that answered first, so tool calls stay matched.
  */
 export async function personalResponder(): Promise<(params: Params) => Promise<Result>> {
   const google = await readGoogleBackup();
   if (!google) return aiResponse;
-  const best = await strongestModel(google.key);
-  const choices = [...new Set([best, google.model].filter((m): m is string => !!m))];
+  const choices = personalModels(google.model);
   let chosen: ((params: Params) => Promise<Result>) | null = null;
   return async (params) => {
     if (chosen) return chosen(params);

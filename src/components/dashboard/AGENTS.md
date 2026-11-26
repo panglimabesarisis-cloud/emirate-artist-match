@@ -21,4 +21,4 @@
 - Personal agent answers show only addresses returned by search, `travel-links.ts` or the artist (`keepKnownLinks`); booking-style links are built there, never written by the model.
 - The Personal AI Agent takes its tasks and knowledge from the `personal_agent_prompts` that are on (0108): written in Admin → Add-ons, read by the server only (`promptBlock`); separate from `artist_own_prompts` and the prompt library.
 - A person's photo comes only from `person-photo` (a Wikipedia article about a human with that exact name) and is stored as `photo` on the answer; the agent profiles public figures only.
-- The Personal AI Agent runs on the strongest Gemini Pro the admin's Google key lists (`personalResponder`), calculates with `calculate` (never `eval`), and shows maps from stored place names (`map-links`).
+- The Personal AI Agent and its web search run on `PERSONAL_MODEL` (gemini-3.8-flash) with the admin's Google key, then the admin's model (`personalResponder`), calculates with `calculate` (never `eval`), and shows maps from stored place names (`map-links`).
