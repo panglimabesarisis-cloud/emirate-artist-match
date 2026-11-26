@@ -28,13 +28,6 @@ import { invoiceMoney } from "@/lib/invoice";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { MessageResponse } from "@/components/ai-elements/message";
-import {
-  Tool,
-  ToolHeader,
-  ToolContent,
-  ToolInput,
-  ToolOutput,
-} from "@/components/ai-elements/tool";
 
 const SLICES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
@@ -236,7 +229,7 @@ function ActionProposal({ id, onOpen }: { id: string; onOpen: (section: string) 
 const TOOL_TITLE: Record<string, string> = {
   build_report: "Report", show_invoice: "Invoice", get_contract_template: "Contract template", prepare_calendar_event: "Calendar event",
   read_inbox: "Inbox", read_quote_requests: "Quote requests", read_bookings: "Bookings", read_calendar: "Calendar", read_wallet: "Wallet (read only)", list_invoices: "Invoices",
-  read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
+  web_search: "Web search", travel_links: "Search links", read_rate_cards: "Ratecard", read_media: "Photos & videos", prepare_schedule_item: "Schedule entry", prepare_rate_card: "Rate card", prepare_media: "Photo or video", prepare_send_invoice: "Send invoice",
 };
 
 export function AgentResponse({
@@ -251,23 +244,9 @@ export function AgentResponse({
   return (
     <div className="min-w-0 max-w-full space-y-2">
       <MessageResponse>{data.text}</MessageResponse>
-      {data.tools.map((tool, index) => (
-        <Tool key={index} defaultOpen={false}>
-          <ToolHeader
-            type="dynamic-tool"
-            toolName={tool.name}
-            title={t(
-              TOOL_TITLE[tool.name] ?? "Calendar event",
-            )}
-            state={tool.error ? "output-error" : "output-available"}
-          />
-          <ToolContent>
-            <ToolOutput
-              output={tool.error ? null : t("Completed")}
-              errorText={tool.error ?? undefined}
-            />
-          </ToolContent>
-        </Tool>
+      {/* Only a step that failed is worth showing. */}
+      {data.tools.filter((tool) => tool.error).map((tool, index) => (
+        <p key={index} role="alert" className="text-xs text-destructive">{t(TOOL_TITLE[tool.name] ?? "Search")}: {tool.error}</p>
       ))}
       {data.invoices.map((invoice) => (
         <section

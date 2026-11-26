@@ -743,6 +743,13 @@
       "when": 1795780000000,
       "tag": "0106_personal_agent_chats",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795800000000,
+      "tag": "0107_agent_search_sources",
+      "breakpoints": true
     }
   ]
 }

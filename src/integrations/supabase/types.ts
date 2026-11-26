@@ -302,6 +302,12 @@ export type Database = {
           },
         ]
       }
+      agent_search_sources: {
+        Row: { active: boolean; created_at: string; domain: string; topic: string }
+        Insert: { active?: boolean; created_at?: string; domain: string; topic: string }
+        Update: { active?: boolean; created_at?: string; domain?: string; topic?: string }
+        Relationships: []
+      }
       agent_chats: {
         Row: {
           artist_id: string

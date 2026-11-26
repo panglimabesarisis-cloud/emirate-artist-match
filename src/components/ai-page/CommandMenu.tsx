@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BedDouble, CalendarCheck, ChevronDown, Coins, Crown, Hospital, Inbox, Plane, Receipt, Search, Wallet, type LucideIcon } from "lucide-react";
+import { BedDouble, CalendarCheck, ChevronDown, Coins, Crown, Hospital, Inbox, Plane, Receipt, Search, Telescope, Wallet, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 /** "fill" puts a form in the message box, "ask" sends the request, "open" goes somewhere. */
@@ -11,6 +11,7 @@ const form = (title: string, fields: string[]) => `${title}\nDate: ${today()}\n$
 const report = (what: string, source: string, extra = "") => `${what} Use build_report with source ${source}${extra}.`;
 
 export const COMMANDS: () => Group[] = () => [
+  { label: "Deep Search", icon: Telescope, command: { label: "Deep Search", fill: "/deepsearch " } },
   { label: "Find Flight", icon: Plane, command: { label: "Find Flight", fill: form("Find Flight", ["From", "To", "Departure Date", "Return Date", "Specific Time", "Direct or Non Direct"]) } },
   { label: "Find Hotel", icon: BedDouble, command: { label: "Find Hotel", fill: form("Find Hotel", ["City", "Country", "Check-In Date", "Check-Out Date", "Guest", "Type (Villa / Hotel / Apartment / Guest House)"]) } },
   { label: "Find Hospital", icon: Hospital, command: { label: "Find Hospital", fill: form("Find Hospital", ["City", "Country", "Doctor Speciality", "Doctor Gender", "Date To Visit"]) } },
