@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ADDON_DURATIONS, ADDON_KINDS, EMPTY_ADDON, addonKindLabel, addonProblem, addonTotalAed, durationLabel, purchaseState, type AddonForm, type AddonKind } from "@/lib/addons";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { ListState, usePaged } from "./artists/parts";
+import { PersonalAgentPrompts } from "./PersonalAgentPrompts";
 
 const aed = (n: number | string) => `AED ${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const day = (value: string | null) => (value ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Dubai" }) : "—");
@@ -87,6 +88,19 @@ export function AdminAddons() {
     await refresh();
   };
 
+  const addonCard = (a: (typeof list)[number]) => (
+          <article className="adm-panel" key={a.id}>
+            <div className="flex flex-wrap gap-2"><span className="adm-pill is-badge">{addonKindLabel(a.kind)}</span><span className={`adm-pill is-${a.active ? "approved" : "expired"}`}>{a.active ? "on sale" : "off"}</span></div>
+            <h2 className="break-words" dir="auto">{a.name}</h2>
+            <p className="adm-meta break-words" dir="auto">{a.description}</p>
+            <p><b className="admin-money text-2xl">{aed(a.price_aed)}</b> <span className="adm-meta">· {durationLabel(a.duration_days)}</span><br /><span className="adm-meta">Artist pays {aed(addonTotalAed(Number(a.price_aed)))} with 5% VAT · {bought.filter((p) => p.addon_id === a.id && !p.refunded_at).length} sold</span></p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" aria-label={`Edit ${a.name}`} onClick={() => setEditing({ id: a.id, form: { name: a.name, kind: a.kind as AddonKind, description: a.description, price: String(a.price_aed), duration: a.duration_days, active: a.active } })}><Pencil />Edit</Button>
+              <Button size="sm" variant="ghost" aria-label={`Delete ${a.name}`} onClick={() => void remove(a.id, a.name)}><Trash2 />Delete</Button>
+            </div>
+          </article>
+  );
+
   return (
     <div className="admin-overview">
       <div className="admin-overview-kpis">{kpis.map(({ label, value, sub, icon: Icon }) => <article className="admin-overview-kpi" key={label}><Icon aria-hidden="true" /><small>{label}</small><strong>{purchases.isPending || addons.isPending ? "…" : value}</strong><p>{sub}</p></article>)}</div>
@@ -95,22 +109,17 @@ export function AdminAddons() {
         <h2 className="font-display text-3xl">Add-on types</h2>
         <Button size="sm" onClick={() => setEditing({ id: null, form: EMPTY_ADDON })}><Plus />New add-on</Button>
       </div>
-      <ListState pending={addons.isPending} error={addons.error} empty={list.length ? null : "No add-on yet. Create one to put it on sale in the artist dashboard."}>
-        <div className="adm-grid">
-          {list.map((a) => (
-            <article className="adm-panel" key={a.id}>
-              <div className="flex flex-wrap gap-2"><span className="adm-pill is-badge">{addonKindLabel(a.kind)}</span><span className={`adm-pill is-${a.active ? "approved" : "expired"}`}>{a.active ? "on sale" : "off"}</span></div>
-              <h2 className="break-words" dir="auto">{a.name}</h2>
-              <p className="adm-meta break-words" dir="auto">{a.description}</p>
-              <p><b className="admin-money text-2xl">{aed(a.price_aed)}</b> <span className="adm-meta">· {durationLabel(a.duration_days)}</span><br /><span className="adm-meta">Artist pays {aed(addonTotalAed(Number(a.price_aed)))} with 5% VAT · {bought.filter((p) => p.addon_id === a.id && !p.refunded_at).length} sold</span></p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" aria-label={`Edit ${a.name}`} onClick={() => setEditing({ id: a.id, form: { name: a.name, kind: a.kind as AddonKind, description: a.description, price: String(a.price_aed), duration: a.duration_days, active: a.active } })}><Pencil />Edit</Button>
-                <Button size="sm" variant="ghost" aria-label={`Delete ${a.name}`} onClick={() => void remove(a.id, a.name)}><Trash2 />Delete</Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </ListState>
+      {addons.error || addons.isPending ? <ListState pending={addons.isPending} error={addons.error} empty={null}>{null}</ListState> : (
+        <>
+          {!list.length && <p className="adm-empty">No add-on yet. Create one to put it on sale in the artist dashboard.</p>}
+          {/* The agent's prompts sit right of the Personal AI Agent add-on. */}
+          <div className="adm-grid">
+            {list.filter((a) => a.kind === "ai_page").map(addonCard)}
+            <PersonalAgentPrompts />
+            {list.filter((a) => a.kind !== "ai_page").map(addonCard)}
+          </div>
+        </>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-3xl">Buyers</h2>

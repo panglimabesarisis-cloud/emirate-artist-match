@@ -3307,6 +3307,12 @@ export type Database = {
           },
         ]
       }
+      personal_agent_prompts: {
+        Row: { body: string; created_at: string; enabled: boolean; id: string; title: string }
+        Insert: { body: string; created_at?: string; enabled?: boolean; id?: string; title: string }
+        Update: { body?: string; created_at?: string; enabled?: boolean; id?: string; title?: string }
+        Relationships: []
+      }
       plan_tiers: {
         Row: {
           ai_credits: number
