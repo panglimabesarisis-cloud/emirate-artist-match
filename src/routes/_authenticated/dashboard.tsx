@@ -25,7 +25,7 @@ import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
-import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Rocket, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +48,7 @@ import { ArtistOpenInquiries } from "@/components/dashboard/OpenInquiries";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 import { usePendingSpecialties } from "@/hooks/use-pending-specialties";
 import { SignupPlanGate } from "@/components/dashboard/SignupPlanGate";
+import { PlansPage } from "@/components/dashboard/PlansPage";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Dealmaker" }, { name: "robots", content: "noindex" }, { name: "description", content: "Manage your Dealmaker bookings, service invoices, and AI credit purchases." }, { property: "og:title", content: "Dashboard | Dealmaker" }, { property: "og:description", content: "Your talent workspace for bookings, invoices, and AI credits." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -148,6 +149,7 @@ const ARTIST_NAV = [
   { id: "calendar", label: "Calendar", group: "Sales" },
   { id: "invoices", label: "Invoice", group: "Sales" },
   { id: "contracts", label: "Contract", group: "Sales" },
+  { id: "plans", label: "Plans", group: "Money" },
   { id: "wallet", label: "Wallet", group: "Money" },
   { id: "credits", label: "AI credits", group: "Money" },
   { id: "export", label: "Export data", group: "Money" },
@@ -164,7 +166,7 @@ const ARTIST_NAV = [
 type ArtistSection = (typeof ARTIST_NAV)[number]["id"];
 const NAV_ICONS: Record<ArtistSection, LucideIcon> = {
   overview: Home, youragent: Bot, inbox: InboxIcon, quotes: FileText, inquiries: ClipboardList, bookings: CalendarCheck, calendar: Calendar, invoices: Receipt, contracts: FileSignature,
-  wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
+  plans: Rocket, wallet: Wallet, credits: Sparkles, export: Download, profile: User, packages: Tag, orderform: ClipboardList, media: ImageIcon, verify: BadgeCheck,
   agent: Bot, flow: Workflow, team: Users, support: LifeBuoy,
 };
 
@@ -225,7 +227,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
             <b className="block truncate">{artist.stage_name}</b>
             <div className="studio-tags">
               <span className={`studio-chip ${artist.status === "approved" ? "is-approved" : ""}`}>{tr(artist.status === "pending" ? "Awaiting approval" : artist.status === "approved" ? "Approved" : artist.status)}</span>
-              <Button type="button" variant="ghost" onClick={() => { setSection("overview"); setMenu(false); }} className="studio-chip studio-plan-chip">{tr("Plan:")} {tr(artist.plan)} · {tr("Upgrade")}</Button>
+              <Button type="button" variant="ghost" onClick={() => { setSection("plans"); setMenu(false); }} className="studio-chip studio-plan-chip">{tr("Plan:")} {tr(artist.plan)} · {tr("Upgrade")}</Button>
             </div>
           </div>
         </div>
@@ -250,7 +252,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         <div className="studio-side-foot">
           <b>{tr("More credits,")} <span className="it">{tr("more replies.")}</span></b>
           <PlanCreditsNote />
-          <Button size="sm" className="studio-button studio-button-gold" onClick={() => { setSection("overview"); setMenu(false); }}>{tr("See plans")} <span className="studio-arrow" aria-hidden="true">→</span></Button>
+          <Button size="sm" className="studio-button studio-button-gold" onClick={() => { setSection("plans"); setMenu(false); }}>{tr("See plans")} <span className="studio-arrow" aria-hidden="true">→</span></Button>
         </div>
       </aside>
       <div className="studio-main">
@@ -263,6 +265,7 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
           </nav>
           <h1 className="studio-mobile-title">{tr(current.label)}</h1>
           <div className="studio-top-end">
+            <Button variant="outline" size="sm" className="studio-button studio-button-gold studio-upgrade-link" onClick={() => setSection("plans")} aria-label={tr("Upgrade plan")} title={tr("Upgrade plan")}><Rocket aria-hidden="true" /><span>{tr("Upgrade")}</span></Button>
             <Button variant="outline" size="icon" className="studio-icon-button relative" aria-label={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} title={tr(navCounts?.["inquiries"] ? "Open inquiries" : "Inbox")} onClick={() => setSection(navCounts?.["inquiries"] ? "inquiries" : "inbox")}><Bell aria-hidden="true" />{!!navCounts?.["inquiries"] && <span className="absolute -top-1 -end-1 rounded-full bg-gold px-1 text-[10px] text-gold-foreground">{navCounts["inquiries"]}</span>}</Button>
             {artist.status === "approved" && <Button asChild variant="outline" size="sm" className="studio-button studio-public-link"><Link to="/artist/$slug" params={{ slug: artist.slug }} aria-label={tr("View public profile")}><Eye aria-hidden="true" /><span>{tr("View public profile")}</span></Link></Button>}
             <span className="studio-mail" title={email} dir="ltr">{email}</span>
@@ -272,7 +275,8 @@ function ArtistDash({ userId, email }: { userId: string; email: string }) {
         <main className={`studio-content ${section === "overview" ? "studio-overview-content" : "studio-reference"}`}>
           <ProfileReminder artistId={artist.id} onOpenProfile={() => setSection("profile")} />
           {section === "youragent" && <YourAgent artistId={artist.id} stageName={artist.stage_name} onOpen={(id) => setSection(id as ArtistSection)} />}
-          {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} />}
+          {section === "overview" && <ArtistOverview artistId={artist.id} stageName={artist.stage_name} plan={artist.plan} onOpen={(id) => setSection(id as ArtistSection)} onUpgrade={() => setSection("plans")} />}
+          {section === "plans" && <PlansPage artistId={artist.id} plan={artist.plan} />}
           {section === "inbox" && <Inbox artistId={artist.id} />}
           {section === "quotes" && <QuoteRequests artistId={artist.id} />}
           {section === "inquiries" && <ArtistOpenInquiries artistId={artist.id} onInbox={() => setSection("inbox")} />}

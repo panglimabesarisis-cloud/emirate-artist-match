@@ -272,11 +272,13 @@ export function OverviewPlan({
   stageName,
   plan,
   openModal,
+  onUpgrade,
 }: {
   artistId: string;
   stageName: string;
   plan: string;
   openModal: (m: PlanModal) => void;
+  onUpgrade?: (() => void) | undefined;
 }) {
   const { t } = useI18n();
   const { d, name, bars } = usePlanView(artistId, plan);
@@ -307,7 +309,7 @@ export function OverviewPlan({
         <Button
           variant="outline"
           className="hover:bg-gradient-gold hover:text-gold-foreground"
-          onClick={() => openModal("upgrade")}
+          onClick={() => (onUpgrade ? onUpgrade() : openModal("upgrade"))}
         >
           {t("Upgrade plan")}
         </Button>
