@@ -16,5 +16,5 @@
 - Ratecard dashboard, signup and admin share item fields and price validation; item prices cover stated scope, base totals exclude add-ons, database triggers retain legacy writes, and public/private agents read the same saved rules.
 - Support tickets reuse the Inbox layout (inbox.css), and Inbox, Support and Your AI Agent share one chat backdrop in chat-fields.css.
 - Team page access uses the shared checklist and database page gates; cross-page labels and document fields use narrow page-authorized RPCs instead of granting booking or quote tables.
-- `YourAgent` serves the dashboard and the `/ai/<slug>` page (`page` prop: take-over lock; while taken over, messages are saved without AI or credit). Change both together.
 - A registered talent confirms account and bank changes with a WhatsApp code (`useOtpGate`, 0105). Bank details are written only by `saveBankDetails`, which announces the change; withdrawals pause 3 days. A new account-changing control goes through the gate and a database check.
+- "Your AI agent" (studio) and the Personal AI Agent (`/ai/<slug>`) share `YourAgent` but never chats: `agent_chats.surface` separates them, both stay owner-only (0106), and only the personal one searches the web (`web-search.server.ts`).

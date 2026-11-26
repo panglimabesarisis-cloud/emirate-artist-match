@@ -73,7 +73,7 @@ export function ArtistOverview({ artistId, slug, stageName, plan, onOpen, onUpgr
           <Button variant="outline" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b>{t(planName)}</b></Button>
           <Button variant="outline" className={`${quick} studio-button-gold`} onClick={() => (onUpgrade ? onUpgrade() : setModal("upgrade"))}>{t("Upgrade plan")}</Button>
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
-          <Button asChild variant="outline" className={quick}><a href={`/ai/${slug}`}><Bot aria-hidden="true" />{t("Your Personal AI Agent")}</a></Button>
+          <Button asChild variant="outline" className={quick}><a href={`/ai/${slug}`}><Bot aria-hidden="true" />{t("Personal AI Agent")}</a></Button>
         </div>
       </section>
       <ChatsPerformChart artistId={artistId} />

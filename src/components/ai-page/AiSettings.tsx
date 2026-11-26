@@ -21,7 +21,7 @@ const TABS = [
   ["usage", "Usage Statistik", BarChart3],
   ["topup", "Top Up Kredit", Coins],
   ["account", "Account Setting", User],
-  ["payment", "Payment", CreditCard],
+  ["payment", "Payment Transaction", CreditCard],
   ["billing", "Billing", Receipt],
 ] as const;
 type Tab = (typeof TABS)[number][0];
@@ -38,9 +38,9 @@ function Head({ title, accent, text }: { title: string; accent?: string; text: s
 }
 
 /** Settings of the AI agent page: usage, top up, account, payment and billing. */
-export function AiSettings({ artist, email, userId, onBack }: { artist: { id: string; slug: string; plan: string; trn: string | null }; email: string; userId: string; onBack: () => void }) {
+export function AiSettings({ artist, email, userId, onBack, start = "usage" }: { artist: { id: string; slug: string; plan: string; trn: string | null }; email: string; userId: string; onBack: () => void; start?: Tab }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>("usage");
+  const [tab, setTab] = useState<Tab>(start);
   const credits = useQuery({
     queryKey: ["ai-page-credits", artist.id],
     queryFn: async () => {
@@ -71,7 +71,7 @@ export function AiSettings({ artist, email, userId, onBack }: { artist: { id: st
         {tab === "usage" && <UsageTab balance={balance} usage={credits.data?.usage} />}
         {tab === "topup" && <TopUpTab balance={balance} />}
         {tab === "account" && <AccountTab userId={userId} email={email} artistId={artist.id} trn={artist.trn} />}
-        {tab === "payment" && <PaymentTab />}
+        {tab === "payment" && <TransactionsTab artistId={artist.id} />}
         {tab === "billing" && <BillingTab artist={artist} />}
       </section>
     </div>
@@ -218,13 +218,28 @@ function AccountTab({ userId, email, artistId, trn }: { userId: string; email: s
   );
 }
 
-function PaymentTab() {
+/** Every payment the talent made: credits, add-ons, deposit and library items. */
+function TransactionsTab({ artistId }: { artistId: string }) {
   const { t } = useI18n();
+  const query = useQuery({ queryKey: ["ai-page-transactions", artistId], queryFn: async () => {
+    const r = await supabase.from("payment_orders").select("id, kind, status, credits, amount_minor, paid_at, created_at")
+      .eq("artist_id", artistId).not("kind", "in", "(booking,invoice)").order("created_at", { ascending: false }).limit(200);
+    if (r.error) throw new Error("Unable to load transactions");
+    return r.data ?? [];
+  } });
+  const rows = query.data ?? [];
   return (
     <>
-      <Head title="Payment" accent="methods" text="How top ups, add-ons and plans are paid." />
+      <Head title="Payment" accent="Transaction" text="The payments you made. Cards are entered on Stripe's secure checkout page and are not stored here." />
       <div className={card}>
-        <p className="text-sm">{t("Dealmaker does not store your card. You enter it on Stripe's secure checkout page when you pay.")}</p>
+        {query.error ? <p role="alert" className="text-sm text-destructive">{t("Unable to load transactions")}</p> : query.data && !rows.length ? <p className="text-sm text-muted-foreground">{t("No transaction yet.")}</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="py-2 text-start">{t("Date")}</th><th className="py-2 text-start">{t("Reference")}</th><th className="py-2 text-start">{t("Item")}</th><th className="py-2 text-start">{t("Status")}</th><th className="py-2 text-end">{t("Amount")}</th></tr></thead>
+              <tbody>{rows.map((o) => <tr key={o.id} className="border-b border-border last:border-0"><td className="py-2">{day(o.paid_at ?? o.created_at)}</td><td className="py-2" dir="ltr">{receiptNumber(o.id)}</td><td className="py-2">{t(orderLabel(o.kind, { credits: o.credits }))}</td><td className="py-2 capitalize">{t(o.status)}</td><td className="py-2 text-end font-bold">AED {(Number(o.amount_minor) / 100).toFixed(2)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

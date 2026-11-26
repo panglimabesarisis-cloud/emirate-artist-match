@@ -1,6 +1,6 @@
 /** Add-ons an artist buys on top of a package (0103). The database re-checks every price and entitlement. */
 export const ADDON_KINDS = {
-  ai_page: { label: "AI agent page", note: "Opens the artist's private page at dealmakertalent.com/ai/<name> once payment is confirmed." },
+  ai_page: { label: "Personal AI Agent", note: "Opens the artist's private page at dealmakertalent.com/ai/<name> once payment is confirmed." },
   service: { label: "Team service", note: "The Dealmaker team delivers it, then marks it delivered." },
 } as const;
 export type AddonKind = keyof typeof ADDON_KINDS;

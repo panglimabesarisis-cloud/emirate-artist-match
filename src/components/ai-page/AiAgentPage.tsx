@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
@@ -46,6 +46,7 @@ function Notice({ title, text, children }: { title: string; text: string; childr
 export function AiAgentPage({ slug, userId, email }: { slug: string; userId: string; email: string }) {
   const { t } = useI18n();
   const [view, setView] = useState<"chat" | "settings">("chat");
+  const [tab, setTab] = useState<"usage" | "topup">("usage");
   const artist = useOwnArtist(userId);
   const mine = artist.data && artist.data.slug.toLowerCase() === slug.toLowerCase() ? artist.data : null;
   const access = useQuery({
@@ -57,10 +58,6 @@ export function AiAgentPage({ slug, userId, email }: { slug: string; userId: str
       return r.data === true;
     },
   });
-  useEffect(() => {
-    document.documentElement.classList.add("dm-dash");
-    return () => document.documentElement.classList.remove("dm-dash");
-  }, []);
 
   const frame = (content: ReactNode) => <div className="studio-reference min-h-dvh bg-background text-foreground">{content}</div>;
   const back = <div><Button asChild variant="outline"><Link to="/dashboard">{t("Back to dashboard")}</Link></Button></div>;
@@ -70,7 +67,7 @@ export function AiAgentPage({ slug, userId, email }: { slug: string; userId: str
   if (!artist.data) return frame(<Notice title="Talent accounts only" text="This page belongs to a talent. Sign in with the talent account that owns it.">{back}</Notice>);
   if (!mine) return frame(<Notice title="This page is private" text="Only the talent who owns this page can open it."><div><Button asChild className="bg-gradient-gold font-bold text-gold-foreground"><a href={`/ai/${artist.data.slug}`}>{t("Open my own page")}</a></Button></div></Notice>);
   if (!access.data) return frame(
-    <Notice title="Get your AI agent page" text="Buy the add-on to open your own AI agent here. Your dashboard keeps working as before.">
+    <Notice title="Get your Personal AI Agent" text="Buy the add-on to open your Personal AI Agent here. Your dashboard keeps working as before.">
       <div className="text-start"><AddonCards artistId={mine.id} slug={mine.slug} offers={(a) => a.kind === "ai_page"} onAiPage /></div>
       {back}
     </Notice>,
@@ -79,9 +76,9 @@ export function AiAgentPage({ slug, userId, email }: { slug: string; userId: str
     <>
       {/* The chat stays mounted so the open conversation is still there after Settings. */}
       <div hidden={view !== "chat"}>
-        <YourAgent artistId={mine.id} stageName={mine.stage_name} onOpen={() => window.location.assign("/dashboard")} page={{ onSettings: () => setView("settings") }} />
+        <YourAgent artistId={mine.id} stageName={mine.stage_name} onOpen={() => window.location.assign("/dashboard")} page={{ onSettings: () => { setTab("usage"); setView("settings"); }, onTopUp: () => { setTab("topup"); setView("settings"); } }} />
       </div>
-      {view === "settings" && <AiSettings artist={mine} userId={userId} email={email} onBack={() => setView("chat")} />}
+      {view === "settings" && <AiSettings start={tab} artist={mine} userId={userId} email={email} onBack={() => setView("chat")} />}
       <AddToHomeScreen />
     </>,
   );

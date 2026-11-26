@@ -41,3 +41,16 @@ export function aiHostRedirect(address: string): string | null {
   const name = /^\/([a-z0-9-]+)$/i.exec(path)?.[1]?.toLowerCase();
   return name && !SITE_PATHS.has(name) ? `/ai/${name}${url.search}` : null;
 }
+
+/** Whether this sign-in used a password, which the Personal AI Agent confirms with a code, and which sign-in it is. */
+export function signInNeedsCode(accessToken: string) {
+  try {
+    const part = accessToken.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(part.padEnd(Math.ceil(part.length / 4) * 4, "="))) as { amr?: ({ method?: string } | string)[]; session_id?: string };
+    const methods = (claims.amr ?? []).map((m) => (typeof m === "string" ? m : m.method));
+    return { needsCode: methods.includes("password"), session: String(claims.session_id ?? "") };
+  } catch {
+    // A session that cannot be read is treated as unconfirmed.
+    return { needsCode: true, session: "" };
+  }
+}

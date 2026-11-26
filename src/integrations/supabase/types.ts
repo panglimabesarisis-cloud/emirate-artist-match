@@ -307,18 +307,21 @@ export type Database = {
           artist_id: string
           created_at: string
           id: string
+          surface: string
           title: string
         }
         Insert: {
           artist_id: string
           created_at?: string
           id?: string
+          surface?: string
           title?: string
         }
         Update: {
           artist_id?: string
           created_at?: string
           id?: string
+          surface?: string
           title?: string
         }
         Relationships: [

@@ -736,6 +736,13 @@
       "when": 1795760000000,
       "tag": "0105_account_otp_bank_hold",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795780000000,
+      "tag": "0106_personal_agent_chats",
+      "breakpoints": true
     }
   ]
 }

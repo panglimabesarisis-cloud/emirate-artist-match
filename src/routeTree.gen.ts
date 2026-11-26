@@ -29,6 +29,8 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AiIndexRouteImport } from './routes/ai.index'
+import { Route as AiSlugRouteImport } from './routes/ai.$slug'
 import { Route as ApproveIdRouteImport } from './routes/approve.$id'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
@@ -39,8 +41,6 @@ import { Route as ProfessionalSlugRouteImport } from './routes/professional.$slu
 import { Route as CategoryEmirateIndexRouteImport } from './routes/$category.$emirate.index'
 import { Route as CategoryEmirateAreaRouteImport } from './routes/$category.$emirate.$area'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
-import { Route as AuthenticatedAiSlugRouteImport } from './routes/_authenticated/ai.$slug'
 import { Route as AuthenticatedClientDashboardRouteImport } from './routes/_authenticated/client.dashboard'
 import { Route as AuthenticatedDashboardChatIdRouteImport } from './routes/_authenticated/dashboard_.chat.$id'
 import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
@@ -153,6 +153,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AiIndexRoute = AiIndexRouteImport.update({
+  id: '/ai/',
+  path: '/ai/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiSlugRoute = AiSlugRouteImport.update({
+  id: '/ai/$slug',
+  path: '/ai/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApproveIdRoute = ApproveIdRouteImport.update({
   id: '/approve/$id',
   path: '/approve/$id',
@@ -202,16 +212,6 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
-  id: '/ai/',
-  path: '/ai/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAiSlugRoute = AuthenticatedAiSlugRouteImport.update({
-  id: '/ai/$slug',
-  path: '/ai/$slug',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClientDashboardRoute =
   AuthenticatedClientDashboardRouteImport.update({
@@ -297,6 +297,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/ai/$slug': typeof AiSlugRoute
   '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
@@ -305,12 +306,11 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category/': typeof CategoryIndexRoute
+  '/ai/': typeof AiIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
-  '/ai/': typeof AuthenticatedAiIndexRoute
   '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -341,6 +341,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/ai/$slug': typeof AiSlugRoute
   '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
@@ -349,12 +350,11 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category': typeof CategoryIndexRoute
+  '/ai': typeof AiIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate': typeof CategoryEmirateIndexRoute
-  '/ai': typeof AuthenticatedAiIndexRoute
   '/dashboard/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -387,6 +387,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/ai/$slug': typeof AiSlugRoute
   '/approve/$id': typeof ApproveIdRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/booking/$id': typeof BookingIdRoute
@@ -395,12 +396,11 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/professional/$slug': typeof ProfessionalSlugRoute
   '/$category/': typeof CategoryIndexRoute
+  '/ai/': typeof AiIndexRoute
   '/$category/$emirate/$area': typeof CategoryEmirateAreaRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/_authenticated/ai/$slug': typeof AuthenticatedAiSlugRoute
   '/_authenticated/client/dashboard': typeof AuthenticatedClientDashboardRoute
   '/$category/$emirate/': typeof CategoryEmirateIndexRoute
-  '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/dashboard_/chat/$id': typeof AuthenticatedDashboardChatIdRoute
   '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/calendar/$token': typeof ApiPublicCalendarTokenRoute
@@ -433,6 +433,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/ai/$slug'
     | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
@@ -441,12 +442,11 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/professional/$slug'
     | '/$category/'
+    | '/ai/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
-    | '/ai/$slug'
     | '/client/dashboard'
     | '/$category/$emirate/'
-    | '/ai/'
     | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -477,6 +477,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/ai/$slug'
     | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
@@ -485,12 +486,11 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/professional/$slug'
     | '/$category'
+    | '/ai'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
-    | '/ai/$slug'
     | '/client/dashboard'
     | '/$category/$emirate'
-    | '/ai'
     | '/dashboard/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -522,6 +522,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/ai/$slug'
     | '/approve/$id'
     | '/artist/$slug'
     | '/booking/$id'
@@ -530,12 +531,11 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/professional/$slug'
     | '/$category/'
+    | '/ai/'
     | '/$category/$emirate/$area'
     | '/.lovable/oauth/consent'
-    | '/_authenticated/ai/$slug'
     | '/_authenticated/client/dashboard'
     | '/$category/$emirate/'
-    | '/_authenticated/ai/'
     | '/_authenticated/dashboard_/chat/$id'
     | '/api/oauth/google_calendar/return'
     | '/api/public/calendar/$token'
@@ -565,6 +565,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WhyArtistsJoinRoute: typeof WhyArtistsJoinRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AiSlugRoute: typeof AiSlugRoute
   ApproveIdRoute: typeof ApproveIdRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
   BookingIdRoute: typeof BookingIdRoute
@@ -573,6 +574,7 @@ export interface RootRouteChildren {
   PSlugRoute: typeof PSlugRoute
   ProfessionalSlugRoute: typeof ProfessionalSlugRoute
   CategoryIndexRoute: typeof CategoryIndexRoute
+  AiIndexRoute: typeof AiIndexRoute
   CategoryEmirateAreaRoute: typeof CategoryEmirateAreaRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   CategoryEmirateIndexRoute: typeof CategoryEmirateIndexRoute
@@ -729,6 +731,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/ai/': {
+      id: '/ai/'
+      path: '/ai'
+      fullPath: '/ai/'
+      preLoaderRoute: typeof AiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai/$slug': {
+      id: '/ai/$slug'
+      path: '/ai/$slug'
+      fullPath: '/ai/$slug'
+      preLoaderRoute: typeof AiSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approve/$id': {
       id: '/approve/$id'
       path: '/approve/$id'
@@ -798,20 +814,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/.lovable/oauth/consent'
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/ai/': {
-      id: '/_authenticated/ai/'
-      path: '/ai'
-      fullPath: '/ai/'
-      preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/ai/$slug': {
-      id: '/_authenticated/ai/$slug'
-      path: '/ai/$slug'
-      fullPath: '/ai/$slug'
-      preLoaderRoute: typeof AuthenticatedAiSlugRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/client/dashboard': {
       id: '/_authenticated/client/dashboard'
@@ -897,9 +899,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedAiSlugRoute: typeof AuthenticatedAiSlugRoute
   AuthenticatedClientDashboardRoute: typeof AuthenticatedClientDashboardRoute
-  AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedDashboardChatIdRoute: typeof AuthenticatedDashboardChatIdRoute
 }
 
@@ -907,9 +907,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedAiSlugRoute: AuthenticatedAiSlugRoute,
   AuthenticatedClientDashboardRoute: AuthenticatedClientDashboardRoute,
-  AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedDashboardChatIdRoute: AuthenticatedDashboardChatIdRoute,
 }
 
@@ -934,6 +932,7 @@ const rootRouteChildren: RootRouteChildren = {
   WhyArtistsJoinRoute: WhyArtistsJoinRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AiSlugRoute: AiSlugRoute,
   ApproveIdRoute: ApproveIdRoute,
   ArtistSlugRoute: ArtistSlugRoute,
   BookingIdRoute: BookingIdRoute,
@@ -942,6 +941,7 @@ const rootRouteChildren: RootRouteChildren = {
   PSlugRoute: PSlugRoute,
   ProfessionalSlugRoute: ProfessionalSlugRoute,
   CategoryIndexRoute: CategoryIndexRoute,
+  AiIndexRoute: AiIndexRoute,
   CategoryEmirateAreaRoute: CategoryEmirateAreaRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   CategoryEmirateIndexRoute: CategoryEmirateIndexRoute,

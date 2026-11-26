@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AiAgentPage } from "@/components/ai-page/AiAgentPage";
+import { AiLock } from "@/components/ai-page/AiLock";
 import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/_authenticated/ai/$slug")({
+export const Route = createFileRoute("/ai/$slug")({
+  ssr: false,
   head: () => ({
     meta: [
-      { title: "Your AI agent | Dealmaker" },
-      { name: "description", content: "Your private Dealmaker AI agent." },
+      { title: "Personal AI Agent | Dealmaker" },
+      { name: "description", content: "Your private Dealmaker Personal AI Agent." },
       { name: "robots", content: "noindex, nofollow" },
       { name: "theme-color", content: "#07090f" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -25,6 +27,9 @@ export const Route = createFileRoute("/_authenticated/ai/$slug")({
 function Page() {
   const { slug } = Route.useParams();
   const { user, loading } = useAuth();
-  if (loading || !user) return null;
-  return <AiAgentPage slug={slug} userId={user.id} email={user.email ?? ""} />;
+  return (
+    <AiLock path={`/ai/${encodeURIComponent(slug)}`} signedIn={!!user} loading={loading}>
+      {user && <AiAgentPage slug={slug} userId={user.id} email={user.email ?? ""} />}
+    </AiLock>
+  );
 }

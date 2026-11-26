@@ -26,12 +26,12 @@ export type CalendarDraft = z.infer<typeof calendarDraftSchema>;
 export const invoiceDraftSchema = z.object({ invoiceId: z.string().uuid() }).strict();
 export const reportRequestSchema = z
   .object({
-    source: z.enum(["bookings", "invoices"]),
+    source: z.enum(["bookings", "invoices", "chats", "forms", "credits", "payments"]),
     metric: z.enum(["count", "total", "paid", "outstanding"]),
     groupBy: z.enum(["month", "status", "client", "records"]),
     from: date.nullable(),
     to: date.nullable(),
-    chart: z.enum(["none", "bar", "line", "pie"]),
+    chart: z.enum(["none", "bar", "line", "pie", "doughnut", "area", "hbar"]),
   })
   .strict()
   .refine((v) => !v.from || !v.to || v.from <= v.to, "Invalid report date range");
@@ -49,7 +49,7 @@ export const reportSchema = z.object({
   rows: z.array(z.array(z.union([z.string(), z.number().finite()]))),
   chart: z
     .object({
-      type: z.enum(["bar", "line", "pie"]),
+      type: z.enum(["bar", "line", "pie", "doughnut", "area", "hbar"]),
       metric: z.string(),
       points: z.array(z.object({ label: z.string(), value: z.number().finite() })),
     })
@@ -150,13 +150,16 @@ export function buildAgentReport(request: ReportRequest, records: ReportRecord[]
   const points = [...groups]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([label, value]) => ({ label, value: Math.round(value * 100) / 100 }));
-  const metricLabel = r.metric === "count" ? "Count" : `${r.metric} (AED)`;
+  const money = r.source === "bookings" || r.source === "invoices" || r.source === "payments";
+  const metricLabel = r.metric === "count" ? "Count" : money ? `${r.metric} (AED)` : r.source === "credits" ? "Credits" : r.metric;
+  // Records of the other sources have no paid or outstanding amount.
+  const plain = r.source === "chats" || r.source === "forms" ? ["Client", "Date", "Status"] : r.source === "credits" ? ["Activity", "Date", "Type", "Credits"] : r.source === "payments" ? ["Item", "Date", "Status", "Amount (AED)"] : null;
   return {
     title: `${r.source} · ${r.metric}${r.from || r.to ? ` · ${r.from ?? "start"} – ${r.to ?? "today"}` : " · all dates"}`,
     count: filtered.length,
     columns:
       r.groupBy === "records"
-        ? ["Client", "Date", "Status", "Total (AED)", "Paid (AED)", "Outstanding (AED)"]
+        ? plain ?? ["Client", "Date", "Status", "Total (AED)", "Paid (AED)", "Outstanding (AED)"]
         : [r.groupBy, metricLabel],
     rows:
       r.groupBy === "records"
@@ -167,7 +170,7 @@ export function buildAgentReport(request: ReportRequest, records: ReportRecord[]
             v.total,
             v.paid,
             Math.round(Math.max(0, v.total - v.paid) * 100) / 100,
-          ])
+          ].slice(0, plain?.length ?? 6))
         : points.map((p) => [p.label, p.value]),
     chart: r.chart === "none" ? null : { type: r.chart, metric: metricLabel, points },
   };

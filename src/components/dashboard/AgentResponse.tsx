@@ -10,6 +10,10 @@ import {
   Line,
   PieChart,
   Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -32,6 +36,8 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 
+const SLICES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
 function Report({ report }: { report: AgentReport }) {
   const { t } = useI18n();
   const [page, setPage] = useState(0);
@@ -47,16 +53,13 @@ function Report({ report }: { report: AgentReport }) {
           aria-label={`${chart.type} ${chart.metric}`}
         >
           <ResponsiveContainer width="100%" height="100%">
-            {chart.type === "pie" ? (
+            {chart.type === "pie" || chart.type === "doughnut" ? (
               <PieChart>
-                <Pie
-                  data={chart.points}
-                  nameKey="label"
-                  dataKey="value"
-                  fill="var(--chart-1)"
-                  label
-                />
+                <Pie data={chart.points} nameKey="label" dataKey="value" innerRadius={chart.type === "doughnut" ? "55%" : 0} outerRadius="80%" label isAnimationActive={false}>
+                  {chart.points.map((point, i) => <Cell key={point.label} fill={SLICES[i % SLICES.length]!} />)}
+                </Pie>
                 <Tooltip />
+                <Legend />
               </PieChart>
             ) : chart.type === "line" ? (
               <LineChart data={chart.points}>
@@ -64,25 +67,31 @@ function Report({ report }: { report: AgentReport }) {
                 <XAxis dataKey="label" stroke="var(--muted-foreground)" />
                 <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip />
-                <Line
-                  dataKey="value"
-                  name={chart.metric}
-                  stroke="var(--chart-1)"
-                  isAnimationActive={false}
-                />
+                <Line dataKey="value" name={chart.metric} stroke="var(--chart-1)" isAnimationActive={false} />
               </LineChart>
+            ) : chart.type === "area" ? (
+              <AreaChart data={chart.points}>
+                <CartesianGrid stroke="var(--border)" />
+                <XAxis dataKey="label" stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
+                <Tooltip />
+                <Area type="monotone" dataKey="value" name={chart.metric} stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.25} isAnimationActive={false} />
+              </AreaChart>
+            ) : chart.type === "hbar" ? (
+              <BarChart data={chart.points} layout="vertical">
+                <CartesianGrid stroke="var(--border)" />
+                <XAxis type="number" stroke="var(--muted-foreground)" />
+                <YAxis type="category" dataKey="label" width={110} stroke="var(--muted-foreground)" />
+                <Tooltip />
+                <Bar dataKey="value" name={chart.metric} fill="var(--chart-1)" isAnimationActive={false} />
+              </BarChart>
             ) : (
               <BarChart data={chart.points}>
                 <CartesianGrid stroke="var(--border)" />
                 <XAxis dataKey="label" stroke="var(--muted-foreground)" />
                 <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip />
-                <Bar
-                  dataKey="value"
-                  name={chart.metric}
-                  fill="var(--chart-1)"
-                  isAnimationActive={false}
-                />
+                <Bar dataKey="value" name={chart.metric} fill="var(--chart-1)" isAnimationActive={false} />
               </BarChart>
             )}
           </ResponsiveContainer>

@@ -7,7 +7,7 @@ export function ProfileLinks({ slug, approved }: { slug: string; approved: boole
   const host = typeof window === "undefined" ? "" : window.location.host.replace(/^www\./, "");
   const rows = [
     { id: "pf-url", label: "URL Profile", path: `/artist/${slug}`, note: approved ? "" : "Clients can open it after your profile is approved." },
-    { id: "pf-ai-url", label: "Your Personal AI Agent", path: `/ai/${slug}`, note: "" },
+    { id: "pf-ai-url", label: "Personal AI Agent", path: `/ai/${slug}`, note: "" },
   ];
   return (
     <>

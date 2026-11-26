@@ -55,7 +55,7 @@ export function AddonCards({ artistId, slug, offers, onAiPage = false }: { artis
                 {held && <p className="mt-1 text-xs text-muted-foreground">{held.expires_at ? `${t("Active until")} ${day(held.expires_at)}` : t("Yours with no expiry")}{a.kind === "service" && ` · ${t(held.fulfilled_at ? "Delivered" : "Our team will deliver it")}`}</p>}
               </div>
               <div className="flex flex-wrap gap-2">
-                {held && a.kind === "ai_page" && !onAiPage && <Button asChild variant="outline"><a href={`/ai/${slug}`}>{t("Open your AI page")} <ExternalLink aria-hidden="true" /></a></Button>}
+                {held && a.kind === "ai_page" && !onAiPage && <Button asChild variant="outline"><a href={`/ai/${slug}`}>{t("Open Personal AI Agent")} <ExternalLink aria-hidden="true" /></a></Button>}
                 {a.active && !lasting && <Button className="bg-gradient-gold font-bold text-gold-foreground" onClick={() => setBuying(a)}>{t(held ? "Renew" : "Buy")}</Button>}
               </div>
             </article>

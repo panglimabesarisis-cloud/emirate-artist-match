@@ -20,10 +20,7 @@ import {
   CalendarPlus,
   Image as ImageIcon,
   Tag,
-  Lock,
-  MessagesSquare,
   Settings,
-  UserRound,
   Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +39,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import "./chat-fields.css";
+import { CommandMenu, type Command } from "@/components/ai-page/CommandMenu";
 
 const BUCKET = "agent-chat";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -95,17 +93,6 @@ const SUGGEST = [
   "How many credits are left?",
   "Draft a reply to a new enquiry",
 ];
-/** The quick questions of the AI agent page. */
-const PAGE_QUICK: Array<[string, string, typeof CalendarCheck]> = [
-  ["My bookings", "How many bookings do I have?", CalendarCheck],
-  ["Unpaid invoices", "Summarize my unpaid invoices", Receipt],
-  ["Earnings and wallet", "How much can I withdraw?", Wallet],
-  ["AI credits", "How many credits are left?", Coins],
-  ["Inbox and quotes", "Do I have new chats or quote requests?", InboxIcon],
-  ["Draft a reply", "Draft a reply to a new enquiry", FileText],
-];
-/** A line about who is answering. Shown in the chat, never saved. */
-type Notice = { at: string; chat: string; text: string };
 const GO: Array<[string, string, string]> = [
   ["Bookings", "bookings", "Bookings"],
   ["Invoice", "invoices", "Invoice"],
@@ -124,11 +111,8 @@ export function YourAgent({
   artistId: string;
   stageName: string;
   onOpen: (section: string) => void;
-  /**
-   * The standalone AI agent page. There the agent holds the chat until the artist takes over; while taken over,
-   * messages are the artist's own notes: no AI answer and no credit.
-   */
-  page?: { onSettings: () => void };
+  /** The Personal AI Agent page: its own chats, separate from "Your AI agent", and a command menu. */
+  page?: { onSettings: () => void; onTopUp: () => void };
 }) {
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -140,23 +124,21 @@ export function YourAgent({
   const [uploading, setUploading] = useState(false);
   const [showHist, setShowHist] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
-  const [taken, setTaken] = useState<string[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const chatKey = chatId ?? "new";
-  const takenOver = !!page && taken.includes(chatKey);
-  const locked = !!page && !takenOver;
+  // The two agents never share a chat.
+  const surface = page ? "personal" : "studio";
   const [pending, setPending] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const chats = useQuery({
-    queryKey: ["agent-chats", artistId],
+    queryKey: ["agent-chats", artistId, surface],
     queryFn: async () =>
       (
         await supabase
           .from("agent_chats")
           .select("id, title, created_at")
           .eq("artist_id", artistId)
+          .eq("surface", surface)
           .order("created_at", { ascending: false })
           .limit(40)
       ).data ?? [],
@@ -234,16 +216,9 @@ export function YourAgent({
     }
   };
 
-  const takeOver = (on: boolean) => {
-    setTaken((current) => (on ? [...current.filter((k) => k !== chatKey), chatKey] : current.filter((k) => k !== chatKey)));
-    setNotices((current) => [...current, { at: new Date().toISOString(), chat: chatKey, text: on ? "You took over. Your AI agent is paused for this chat." : "AI took over again. This chat is locked." }]);
-    setShowQuick(false);
-    if (on) window.setTimeout(() => document.querySelector<HTMLTextAreaElement>(".ya-composer textarea")?.focus(), 0);
-  };
-
   const send = async (override?: string) => {
     const question = (override ?? text).trim();
-    if (!question || busy || (takenOver && override) || (locked && !override)) return;
+    if (!question || busy) return;
     setBusy(true);
     setPending(question);
     setText("");
@@ -252,28 +227,14 @@ export function YourAgent({
       if (!id) {
         const created = await supabase
           .from("agent_chats")
-          .insert({ artist_id: artistId, title: question.slice(0, 48) })
+          .insert({ artist_id: artistId, title: question.split("\n")[0]!.slice(0, 48), surface })
           .select("id")
           .single();
         if (created.error || !created.data)
           throw new Error(created.error?.message ?? t("Could not start the chat"));
         id = created.data.id;
         setChatId(id);
-        const created_id = id;
-        setTaken((current) => current.map((k) => (k === "new" ? created_id : k)));
-        setNotices((current) => current.map((n) => (n.chat === "new" ? { ...n, chat: created_id } : n)));
         qc.invalidateQueries({ queryKey: ["agent-chats", artistId] });
-      }
-      if (takenOver) {
-        const note = await supabase.from("agent_chat_messages").insert({ chat_id: id, role: "user", body: question }).select("id").single();
-        if (note.error || !note.data) throw new Error(t("Could not save your message"));
-        if (files.length) {
-          const linked = await supabase.from("agent_chat_files").update({ message_id: note.data.id }).in("id", files.map((f) => f.id));
-          if (linked.error) toast.error(t("Could not attach the files"));
-        }
-        setFiles([]);
-        await qc.invalidateQueries({ queryKey: ["agent-chat-msgs", id] });
-        return;
       }
       const res = await ask$({
         data: { chatId: id, text: question, fileIds: files.map((f) => f.id) },
@@ -303,11 +264,13 @@ export function YourAgent({
   };
 
   const credits = wallet.data ?? 0;
-  // Saved messages and take-over notices in the order they happened.
-  const timeline = [...list.map((m) => ({ at: m.created_at, message: m as Msg | null, notice: "" })), ...notices.filter((n) => n.chat === chatKey).map((n) => ({ at: n.at, message: null as Msg | null, notice: n.text }))]
-    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
-  const empty = timeline.length === 0 && !pending;
-  const quick = page ? PAGE_QUICK : QUICK;
+  const empty = list.length === 0 && !pending;
+  const run = (command: Command) => {
+    setShowQuick(false);
+    if ("ask" in command) void send(command.ask);
+    else if ("open" in command) { if (command.open === "topup") page?.onTopUp(); else window.location.assign("/dashboard"); }
+    else { setText(command.fill); window.setTimeout(() => { const box = document.querySelector<HTMLTextAreaElement>(".ya-composer textarea"); box?.focus(); box?.setSelectionRange(box.value.length, box.value.length); }, 0); }
+  };
 
   return (
     <div
@@ -315,7 +278,7 @@ export function YourAgent({
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
-        if (!locked) void attach(e.dataTransfer.files);
+        void attach(e.dataTransfer.files);
       }}
     >
       {page && (showHist || showQuick) && <button type="button" className={`absolute inset-0 z-10 bg-black/60 ${showHist ? "lg:hidden" : "xl:hidden"}`} aria-label={t("Close")} onClick={() => { setShowHist(false); setShowQuick(false); }} />}
@@ -398,11 +361,11 @@ export function YourAgent({
           </span>
           <div className={`flex-1 ${page ? "min-w-[130px]" : "min-w-0"}`}>
             <h2 id="ya-h" className="font-display text-2xl leading-none">
-              {t("Your")} <span className="it">{t("AI agent")}</span>
+              {t(page ? "Personal" : "Your")} <span className="it">{t("AI agent")}</span>
             </h2>
             <small className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <i className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-              {t(takenOver ? "You are handling this chat. Your AI agent is paused." : "Online. Credits are charged per task.")}
+              {t("Online. Credits are charged per task.")}
             </small>
           </div>
           <span
@@ -411,8 +374,7 @@ export function YourAgent({
           >
             {credits} {t("credits")}
           </span>
-          {takenOver && <Button type="button" size="sm" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" disabled={busy} onClick={() => takeOver(false)}><Bot className="h-4 w-4" aria-hidden />{t("AI TAKE OVER")}</Button>}
-          {page && <Button type="button" size="icon" variant="outline" className="rounded-xl xl:hidden" aria-label={t("Quick questions")} aria-expanded={showQuick} onClick={() => { setShowHist(false); setShowQuick((v) => !v); }}><Zap className="h-[18px] w-[18px]" /></Button>}
+          {page && <Button type="button" size="icon" variant="outline" className="rounded-xl xl:hidden" aria-label={t("Wait Your Command")} aria-expanded={showQuick} onClick={() => { setShowHist(false); setShowQuick((v) => !v); }}><Zap className="h-[18px] w-[18px]" /></Button>}
         </header>
 
         <Conversation className="dm-chat-bg min-h-0 flex-1" aria-label={t("Chat with your AI agent")}>
@@ -424,18 +386,17 @@ export function YourAgent({
                 </span>
                 <p className="max-w-[80%] text-sm leading-relaxed">
                   {t("Hi")} {stageName.split(" ")[0]}!{" "}
-                  {t(
-                    "I am your AI agent. Ask me about your bookings, invoices, earnings or credits, or attach a file such as a rider, a price list or a contract and I will keep it with this chat.",
+                  {t(page
+                    ? "I am your Personal AI Agent. Ask me anything, let me search the web and research for you, or pick a command."
+                    : "I am your AI agent. Ask me about your bookings, invoices, earnings or credits, or attach a file such as a rider, a price list or a contract and I will keep it with this chat.",
                   )}
                 </p>
               </div>
             )}
-            {timeline.map(({ message: m, notice, at }) => !m ? (
-              <p key={`notice-${at}`} role="status" className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground"><UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />{t(notice)}</p>
-            ) : (
+            {list.map((m) => (
               <Message key={m.id} from={m.role} className="max-w-full">
                 <MessageContent
-                  className={m.role === "user" ? "rounded-[18px_18px_4px_18px] bg-[rgba(246,239,226,.09)] text-foreground" : "w-full"}
+                  className={m.role === "user" ? "whitespace-pre-wrap rounded-[18px_18px_4px_18px] bg-[rgba(246,239,226,.09)] text-foreground" : "w-full"}
                   dir="auto"
                 >
                   {m.role === "assistant" ? (
@@ -453,12 +414,12 @@ export function YourAgent({
                 </MessageContent>
               </Message>
             )}
-            {busy && !takenOver && <Shimmer className="text-sm">{t("Thinking…")}</Shimmer>}
+            {busy && <Shimmer className="text-sm">{t("Thinking…")}</Shimmer>}
             <div ref={endRef} />
           </ConversationContent>
         </Conversation>
 
-        {empty && !takenOver && (
+        {empty && !page && (
           <div className="flex flex-wrap justify-center gap-2 px-5 pb-3">
             {SUGGEST.map((q) => (
               <button
@@ -475,13 +436,6 @@ export function YourAgent({
         )}
 
         <div className="border-t border-border p-3">
-          {locked && (
-            <div className="mb-2 flex flex-wrap items-center gap-3 rounded-2xl border border-gold/40 bg-gold/[.07] px-4 py-3">
-              <Lock className="h-4 w-4 shrink-0 text-gold" aria-hidden />
-              <p className="min-w-[180px] flex-1 text-sm"><b>{t("Your AI agent is handling this chat.")}</b> {t("Take over to type your own message.")}</p>
-              <Button type="button" className="rounded-full bg-gradient-gold font-bold text-gold-foreground" disabled={busy} onClick={() => takeOver(true)}><MessagesSquare className="h-4 w-4" aria-hidden />{t("TAKE OVER")}</Button>
-            </div>
-          )}
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5" aria-label={t("Attached files")}>
               {files.map((f) => (
@@ -508,10 +462,9 @@ export function YourAgent({
               maxLength={4000}
               value={text}
               aria-label={t("Message to your AI agent")}
-              placeholder={t(takenOver ? "Write your message" : "Message your AI agent")}
-              disabled={locked}
+              placeholder={t(page ? "Write your message" : "Message your AI agent")}
               onChange={(e) => setText(e.target.value)}
-              className="max-h-32 min-h-12 bg-transparent"
+              className={`min-h-12 bg-transparent ${page ? "max-h-64" : "max-h-32"}`}
             />
             <PromptInputFooter className="justify-between">
               <Button
@@ -519,7 +472,7 @@ export function YourAgent({
                 size="icon"
                 variant="ghost"
                 aria-label={t("Attach files")}
-                disabled={uploading || busy || locked}
+                disabled={uploading || busy}
                 onClick={() => fileInput.current?.click()}
               >
                 <Paperclip className="h-[18px] w-[18px]" />
@@ -527,7 +480,7 @@ export function YourAgent({
               <PromptInputSubmit
                 status={busy ? "submitted" : "ready"}
                 aria-label={t("Send message")}
-                disabled={busy || uploading || locked || !text.trim()}
+                disabled={busy || uploading || !text.trim()}
               />
             </PromptInputFooter>
           </PromptInput>
@@ -552,17 +505,17 @@ export function YourAgent({
 
       <aside
         className={`${showQuick ? "absolute inset-y-3 end-3 z-20 block w-[min(320px,86vw)] xl:static xl:w-auto" : "hidden"} min-h-0 overflow-y-auto rounded-[22px] border border-border bg-[linear-gradient(180deg,#0f1426,#0a0e1b)] p-5 xl:block`}
-        aria-label={t(page ? "Quick questions" : "Quick actions")}
+        aria-label={t(page ? "Wait Your Command" : "Quick actions")}
       >
         <div className={page ? "" : "border-b border-dashed border-border pb-5"}>
           <h3 className="font-display text-2xl">
-            {t("Quick")} <span className="it">{t(page ? "questions" : "actions")}</span>
+            {t(page ? "Wait Your" : "Quick")} <span className="it">{t(page ? "Command" : "actions")}</span>
           </h3>
           <p className="mb-3 text-xs text-muted-foreground">
             {t("One click and your agent answers.")}
           </p>
-          <div className="space-y-1.5">
-            {!page && FILL_FORMAT.map(([label, format, Icon]) => (
+          {page ? <CommandMenu busy={busy} onRun={run} /> : <div className="space-y-1.5">
+            {FILL_FORMAT.map(([label, format, Icon]) => (
               <button
                 key={label}
                 type="button"
@@ -574,12 +527,12 @@ export function YourAgent({
                 {t(label)}
               </button>
             ))}
-            {quick.map(([label, q, Icon]) => (
+            {QUICK.map(([label, q, Icon]) => (
               <button
                 key={label}
                 type="button"
-                disabled={busy || takenOver}
-                onClick={() => { setShowQuick(false); void send(q); }}
+                disabled={busy}
+                onClick={() => void send(q)}
                 className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2 text-start text-sm transition-colors hover:border-gold/50 hover:bg-gold/10 disabled:pointer-events-none disabled:opacity-40"
               >
                 <span className="grid h-7 w-7 place-items-center rounded-lg bg-gold/15 text-gold">
@@ -588,7 +541,7 @@ export function YourAgent({
                 {t(label)}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
         {!page && <><div className="border-b border-dashed border-border py-5">
           <h3 className="font-display text-2xl">

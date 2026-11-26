@@ -130,16 +130,16 @@ export const AGENT_TOOLS = [
   {
     name: "build_report",
     description:
-      "Build a factual report table and requested bar/line/pie chart from ALL stored artist bookings or invoices. Use null date filters for all dates; no chart unless requested. records gives a detailed table, other groups aggregate.",
+      "Build a factual report table and requested chart (bar, line, pie, doughnut, area line, horizontal bar) from ALL stored records: bookings, invoices, chats (incoming messages handled by AI), forms (incoming quote forms), credits (AI credit usage), payments (the artist's own payments, deposits and top ups). Use null date filters for all dates; no chart unless requested. records gives a detailed table, other groups aggregate. Call twice to show both a chart and a detailed table.",
     parameters: {
       type: "object",
       properties: {
-        source: { type: "string", enum: ["bookings", "invoices"] },
+        source: { type: "string", enum: ["bookings", "invoices", "chats", "forms", "credits", "payments"] },
         metric: { type: "string", enum: ["count", "total", "paid", "outstanding"] },
         groupBy: { type: "string", enum: ["month", "status", "client", "records"] },
         from: { type: ["string", "null"] },
         to: { type: ["string", "null"] },
-        chart: { type: "string", enum: ["none", "bar", "line", "pie"] },
+        chart: { type: "string", enum: ["none", "bar", "line", "pie", "doughnut", "area", "hbar"] },
       },
       required: ["source", "metric", "groupBy", "from", "to", "chart"],
       additionalProperties: false,
@@ -156,6 +156,31 @@ export type AgentToolContext = {
   proposals: AgentProposal[];
   attachedFiles: { id: string; name: string; mime: string }[];
 };
+/** One page of the report sources that are not bookings or invoices, read with the artist's own rights. */
+async function otherRecords(ctx: AgentToolContext, source: "chats" | "forms" | "credits" | "payments", offset: number): Promise<{ size: number; records: ReportRecord[] }> {
+  const range = [offset, offset + 999] as const;
+  const result =
+    source === "chats" ? await ctx.db.from("conversations").select("client_name,created_at,ai_replies").eq("artist_id", ctx.artistId).order("id").range(...range)
+    : source === "forms" ? await ctx.db.from("quote_requests").select("name,created_at,status").eq("artist_id", ctx.artistId).order("id").range(...range)
+    : source === "credits" ? await ctx.db.from("credit_ledger").select("reason,model,created_at,delta,delta_fraction,final_charge_credits").eq("artist_id", ctx.artistId).order("id").range(...range)
+    : await ctx.db.from("payment_orders").select("kind,created_at,status,amount_minor").eq("artist_id", ctx.artistId).not("kind", "in", "(booking,invoice)").order("id").range(...range);
+  if (result.error) throw result.error;
+  const rows = (result.data ?? []) as Record<string, unknown>[];
+  const records = rows.flatMap((row): ReportRecord[] => {
+    const date = String(row["created_at"]).slice(0, 10);
+    if (source === "chats") return [{ client: String(row["client_name"] ?? "Client"), date, status: Number(row["ai_replies"]) > 0 ? "AI replied" : "No AI reply", total: 0, paid: 0 }];
+    if (source === "forms") return [{ client: String(row["name"] ?? "Client"), date, status: String(row["status"]), total: 0, paid: 0 }];
+    if (source === "payments") { const total = Number(row["amount_minor"]) / 100; return [{ client: String(row["kind"]).replace(/_/g, " "), date, status: String(row["status"]), total, paid: row["status"] === "paid" ? total : 0 }]; }
+    // A reservation is not a charge; only what was spent counts as usage.
+    if (row["reason"] === "ai_task_reserve") return [];
+    const change = row["reason"] === "ai_task_settlement" ? -Number(row["final_charge_credits"] ?? 0) : Number(row["delta"]) + Number(row["delta_fraction"]);
+    if (!(change < 0) || String(row["reason"]).startsWith("topup")) return [];
+    const used = Math.round(-change * 1000) / 1000;
+    return [{ client: String(row["model"] ?? row["reason"]), date, status: "AI usage", total: used, paid: 0 }];
+  });
+  return { size: rows.length, records };
+}
+
 export async function executeAgentTool(
   name: string,
   input: unknown,
@@ -217,7 +242,11 @@ export async function executeAgentTool(
     const records: ReportRecord[] = [];
     // Pagination avoids presenting a latest-60 snapshot as an all-time report.
     for (let offset = 0; ; offset += 1000) {
-      if (request.source === "bookings") {
+      if (request.source !== "bookings" && request.source !== "invoices") {
+        const page = await otherRecords(ctx, request.source, offset);
+        records.push(...page.records);
+        if (page.size < 1000) break;
+      } else if (request.source === "bookings") {
         const result = await ctx.db
           .from("bookings")
           .select("id,client_name,event_date,status,total,paid_amount,escrow_status")
