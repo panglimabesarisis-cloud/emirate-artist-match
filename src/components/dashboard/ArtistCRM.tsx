@@ -31,7 +31,7 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
   );
 }
 
-export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId: string; stageName: string; plan: string; onOpen: (section: string) => void }) {
+export function ArtistOverview({ artistId, stageName, plan, onOpen, onUpgrade }: { artistId: string; stageName: string; plan: string; onOpen: (section: string) => void; onUpgrade?: (() => void) | undefined }) {
   const { t } = useI18n();
   const [modal, setModal] = useState<PlanModal>(null);
   const { data } = useQuery({
@@ -71,7 +71,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
         </div>
         <div className="studio-quick">
           <Button variant="outline" className={quick} onClick={() => setModal("plan")}>{t("Your plan is")} <b>{t(planName)}</b></Button>
-          <Button variant="outline" className={`${quick} studio-button-gold`} onClick={() => setModal("upgrade")}>{t("Upgrade plan")}</Button>
+          <Button variant="outline" className={`${quick} studio-button-gold`} onClick={() => (onUpgrade ? onUpgrade() : setModal("upgrade"))}>{t("Upgrade plan")}</Button>
           <Button variant="outline" className={quick} onClick={() => setModal("topup")}>{t("Top up credits")}</Button>
         </div>
       </section>
@@ -110,7 +110,7 @@ export function ArtistOverview({ artistId, stageName, plan, onOpen }: { artistId
         </div>
         <Button variant="link" className="studio-text-link studio-wallet-link" onClick={() => onOpen("wallet")}>{t("Open Wallet")}</Button>
       </section>
-      <OverviewPlan artistId={artistId} stageName={stageName} plan={plan} openModal={setModal} />
+      <OverviewPlan artistId={artistId} stageName={stageName} plan={plan} openModal={setModal} onUpgrade={onUpgrade} />
       <section className="studio-panel studio-span-4">
         <div className="studio-panel-heading"><h2>{t("Upcoming")}</h2><Button variant="link" className="studio-text-link" onClick={() => onOpen("calendar")}>{t("Calendar")} <span aria-hidden="true">→</span></Button></div>
         <div className="studio-zero"><span className="studio-orb"><Calendar aria-hidden="true" /></span><b>{upcoming > 0 ? `${upcoming} ${t("Upcoming bookings")}` : t("Nothing booked yet")}</b><p>{t("Confirmed bookings show here with date, venue and deposit status.")}</p></div>

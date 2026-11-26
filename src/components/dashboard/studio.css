@@ -157,8 +157,8 @@ html.dm-dash[dir="rtl"] .studio-text-link span,html.dm-dash[dir="rtl"] .studio-a
  html.dm-dash .studio-greeting p{font-size:13px}
  html.dm-dash .studio-kpi{min-height:168px}
  html.dm-dash .studio-kpi-value{font-size:48px}
- html.dm-dash .studio-public-link span{display:none}
- html.dm-dash .studio-public-link{width:40px;height:40px;padding:0;border-radius:12px}
+ html.dm-dash .studio-public-link span,html.dm-dash .studio-upgrade-link span{display:none}
+ html.dm-dash .studio-public-link,html.dm-dash .studio-upgrade-link{width:40px;height:40px;padding:0;border-radius:12px}
  html.dm-dash .studio-top-end{gap:8px}
  html.dm-dash .studio-quick .studio-button{font-size:12px;padding:10px 13px}
  html.dm-dash .studio-chart{min-height:270px}

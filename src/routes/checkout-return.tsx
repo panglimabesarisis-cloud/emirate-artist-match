@@ -55,9 +55,15 @@ function CheckoutReturn(){
       if(attempts>=20){clearInterval(timer);return;}
       running=true;attempts++;
       try{
-        if(subscription&&!user)throw new Error('Sign in to verify your subscription.');
-        if(!subscription&&!orderId)throw new Error('Missing payment reference.');
-        const response=subscription?await subscriptionCheck({data:{sessionId}})
+        // A subscription return can arrive from an older or cached checkout whose success_url carried only
+        // session_id, with no subscription flag. Treat a bare Stripe session id as a subscription to verify:
+        // the server re-validates the session mode and artist ownership before it confirms anything, so this
+        // self-heals the "Missing payment reference" dead end without trusting the client.
+        const sessionLike=/^cs_test_[a-zA-Z0-9]+$/.test(sessionId);
+        const asSubscription=subscription||(!orderId&&sessionLike);
+        if(asSubscription&&!user)throw new Error('Sign in to verify your subscription.');
+        if(!asSubscription&&!orderId)throw new Error('Missing payment reference.');
+        const response=asSubscription?await subscriptionCheck({data:{sessionId}})
           :key?await linkCheck({data:{orderId,key}}):await artistCheck({data:{orderId}});
         if(!active)return;
         if('error' in response){setError(response.error);clearInterval(timer);}
