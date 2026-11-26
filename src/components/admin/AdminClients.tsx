@@ -71,7 +71,7 @@ export function ClientAccounts() {
               <tbody className="divide-y">
                 {rows.map((r) => (
                   <tr key={r.user_id}>
-                    <td className="p-3"><div className="font-medium">{r.display_name || "Client"}{r.company_name ? ` · ${r.company_name}` : ""}</div><div className="text-xs text-muted-foreground" dir="ltr">{r.email}{r.phone ? ` · ${r.phone}` : ""}</div><div className="text-xs text-muted-foreground">Joined {when(r.joined_at)}</div></td>
+                    <td className="p-3"><div className="font-medium">{r.display_name || "Client"}{r.company_name ? ` · ${r.company_name}` : ""}</div><div className="text-xs text-muted-foreground" dir="ltr">{r.email}{r.phone ? ` · ${r.phone}` : ""}</div><div className="text-xs text-muted-foreground">Joined {when(r.joined_at)}</div>{r.is_talent && <div className="text-xs text-gold">Also talent · cashback does not apply</div>}<div className="text-xs text-muted-foreground" dir="ltr">IP {r.signup_ip ?? "not recorded"}{r.last_ip && r.last_ip !== r.signup_ip ? ` · last ${r.last_ip}` : ""}</div></td>
                     <td className="p-3">{Number(r.booking_count)}</td>
                     <td className="p-3">{aed(r.paid_total)}</td>
                     <td className="p-3"><div>{aed(r.commission_available)} available</div><div className="text-xs text-muted-foreground">{aed(r.commission_pending)} pending</div></td>
