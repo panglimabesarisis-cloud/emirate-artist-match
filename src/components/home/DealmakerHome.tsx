@@ -16,17 +16,25 @@ import { useHomeAnimations } from "./useHomeAnimations";
 import type { HomeData } from "./types";
 import "./home.css";
 import "./showcase/showcase.css";
+import { withTalent } from "@/lib/catalog-listing";
 import { HideForArtist } from "@/components/shared/HideForArtist";
 
 export function DealmakerHome({ catalog, featured }: HomeData) {
   const ref = useRef<HTMLDivElement>(null);
   const { t, lang } = useI18n();
   useHomeAnimations(ref);
+  // The running strip offers only categories with talent; a short list repeats so the strip stays full.
+  const listed = withTalent(catalog).categories;
+  const strip = listed.length ? Array.from({ length: Math.ceil(8 / listed.length) }, () => listed).flat() : [];
   return <div ref={ref} className="dm-home" dir={lang === "ar" ? "rtl" : "ltr"}>
     <a className="skip" href="#home-main">{t("Skip to content")}</a>
     <main id="home-main">
       <HomeHero catalog={catalog} />
-      <div className="marquee"><div className="mq-track">{[0, 1].map((copy) => <div key={copy} className="mq-copy" aria-hidden={copy === 1}>{catalog.categories.map((c) => <Link key={c.slug} to="/$category" params={{ category: c.slug }} tabIndex={copy === 1 ? -1 : undefined}>{localName(lang, c)}</Link>)}</div>)}</div></div>
+      {strip.length > 0 && <div className="marquee"><div className="mq-track">{[0, 1].map((copy) => <div key={copy} className="mq-copy" aria-hidden={copy === 1}>{strip.map((c, i) => {
+        // Only the first mention of each category is read out or reached by keyboard.
+        const repeat = copy === 1 || i >= listed.length;
+        return <Link key={`${c.slug}-${i}`} to="/$category" params={{ category: c.slug }} tabIndex={repeat ? -1 : undefined} aria-hidden={repeat || undefined}>{localName(lang, c)}</Link>;
+      })}</div>)}</div></div>}
       <AgentShowcase />
       <WorkflowShowcase />
       <InvoiceJourney />
