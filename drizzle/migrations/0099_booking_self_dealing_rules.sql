@@ -158,7 +158,14 @@ BEGIN
 
   reason := public.artist_self_booking_reason(NEW.artist_id, NEW.client_user_id, NEW.client_email, NEW.client_phone);
   IF reason IS NOT NULL THEN
-    RAISE EXCEPTION 'An artist cannot book themselves (matched %). A client account needs its own email, WhatsApp number and bank account.', reason;
+    -- A rule added today must not freeze a booking made before it. On UPDATE the refusal only
+    -- fires when this row was not already self-dealing, so an existing self-booked event can
+    -- still be completed, refunded or cancelled, while turning a clean booking into a
+    -- self-booking is refused like any new one. Its cashback is a separate decision: the rate
+    -- is already snapshotted on the row, and only an admin can change it.
+    IF TG_OP = 'INSERT' OR public.artist_self_booking_reason(OLD.artist_id, OLD.client_user_id, OLD.client_email, OLD.client_phone) IS NULL THEN
+      RAISE EXCEPTION 'An artist cannot book themselves (matched %). A client account needs its own email, WhatsApp number and bank account.', reason;
+    END IF;
   END IF;
 
   IF TG_OP = 'INSERT' THEN
