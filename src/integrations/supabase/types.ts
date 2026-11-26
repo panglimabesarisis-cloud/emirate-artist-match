@@ -4425,6 +4425,10 @@ export type Database = {
           phone: string
           phone_verified_at: string
           registered_at: string
+          signup_ip: string | null
+          signup_ip_at: string | null
+          last_ip: string | null
+          last_ip_at: string | null
         }[]
       }
       admin_artist_stats: {
@@ -4527,7 +4531,9 @@ export type Database = {
           country: string
           display_name: string
           email: string
+          is_talent: boolean
           joined_at: string
+          last_ip: string | null
           paid_total: number
           payout_bank: string
           payout_iban_last4: string
@@ -4535,6 +4541,7 @@ export type Database = {
           payout_verified_at: string
           phone: string
           processing: number
+          signup_ip: string | null
           user_id: string
           withdrawn: number
         }[]
@@ -5047,8 +5054,16 @@ export type Database = {
       my_verification_rank: { Args: { _artist: string }; Returns: Json }
       invoice_prefix: { Args: never; Returns: string }
       next_invoice_no: { Args: never; Returns: string }
+      record_account_ip: {
+        Args: { _user: string; _ip: string }
+        Returns: undefined
+      }
       record_test_refund: {
         Args: { _order: string; _processor: number }
+        Returns: undefined
+      }
+      set_commission_hold: {
+        Args: { _booking: string; _reason: string | null }
         Returns: undefined
       }
       refresh_top_badges: { Args: never; Returns: Json }

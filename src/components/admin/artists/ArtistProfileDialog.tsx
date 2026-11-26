@@ -111,6 +111,8 @@ export function ArtistProfileDialog({ artist, onClose, extra, actions }: { artis
                 <Field label="Email">{d.account?.email}</Field>
                 <Field label="Account phone">{d.account?.phone ? `${d.account.phone}${d.account.phone_verified_at ? " (verified)" : " (not verified)"}` : null}</Field>
                 <Field label="Account created">{d.account ? dateLabel(d.account.registered_at) : null}</Field>
+                <Field label="Registration IP">{d.account?.signup_ip ? `${d.account.signup_ip}${d.account.signup_ip_at ? ` · ${dateLabel(d.account.signup_ip_at)}` : ""}` : "Not recorded"}</Field>
+                <Field label="Last seen IP">{d.account?.last_ip ? `${d.account.last_ip}${d.account.last_ip_at ? ` · ${dateLabel(d.account.last_ip_at)}` : ""}` : "Not recorded"}</Field>
                 <Field label="Registration form">{artist.onboarding_complete ? "Finished" : "Not finished"}</Field>
                 <Field label="Registration deposit">{artist.registration_paid_at ? `Paid ${dateLabel(artist.registration_paid_at)}` : "Not paid"}</Field>
                 <Field label="Contract accepted">{artist.contract_accepted_at ? dateLabel(artist.contract_accepted_at) : null}</Field>

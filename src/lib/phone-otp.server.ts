@@ -108,6 +108,11 @@ export async function confirmCode(id: string, code: string, userId: string | nul
   const result = otpResult.parse(checked.data);
   if (!result.ok) return result;
   const phone = (checked.data as { phone: string }).phone;
-  if (userId) await markAccountPhone(userId, phone);
+  if (userId) {
+    await markAccountPhone(userId, phone);
+    // Registration passes through here, so this is where the signup address is captured.
+    const { recordAccountIp } = await import("./account-ip.server");
+    await recordAccountIp(userId);
+  }
   return { ok: true as const, phone, proof: await phoneProof(phone) };
 }
