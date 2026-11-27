@@ -18,6 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export type OrderFieldType = "short" | "paragraph" | "choice" | "checkbox" | "dropdown" | "date" | "time" | "number";
 export type OrderField = { id: string; label: string; type: OrderFieldType; required: boolean; options: string[] };
 
+/** Forms copied from the admin's templates call a paragraph "long". */
+export const asOrderField = (field: OrderField): OrderField => ((field.type as string) === "long" ? { ...field, type: "paragraph" } : field);
+
 const TYPES: { v: OrderFieldType; l: string }[] = [
   { v: "short", l: "Short answer" }, { v: "paragraph", l: "Paragraph" }, { v: "choice", l: "Multiple choice" },
   { v: "checkbox", l: "Checkboxes" }, { v: "dropdown", l: "Dropdown" }, { v: "date", l: "Date" }, { v: "time", l: "Time" }, { v: "number", l: "Number" },
@@ -74,7 +77,7 @@ export function OrderFormFields({ fields, values, onChange }: { fields: OrderFie
   const { t } = useI18n();
   return (
     <div className="space-y-3">
-      {fields.map((f) => {
+      {fields.map(asOrderField).map((f) => {
         const v = values[f.id] ?? "";
         const label = <Label className="text-xs">{f.label || t("Untitled question")}{f.required && <span className="text-destructive"> *</span>}</Label>;
         if (f.type === "paragraph") return <div key={f.id}>{label}<Textarea value={v} onChange={(e) => onChange(f.id, e.target.value)} maxLength={500} /></div>;
@@ -139,7 +142,7 @@ export function OrderFormBuilder({ artistId }: { artistId: string }) {
 
   useEffect(() => {
     if (isLoading) return;
-    const f = current?.fields ?? [];
+    const f = (current?.fields ?? []).map(asOrderField);
     setTitle(current?.title ?? "Booking details"); setDesc(current?.description ?? ""); setEnabled(current?.enabled ?? false); setFields(f);
     setBase(JSON.stringify({ title: (current?.title ?? "Booking details").trim(), desc: (current?.description ?? "").trim(), enabled: current?.enabled ?? false, fields: f }));
     setErrors({});
