@@ -192,7 +192,18 @@ export const completeBooking = createServerFn({ method: "POST" })
     const due = b.job_kind === "deliverable" ? b.status === "confirmed" : canComplete(b.status, b.event_date);
     if (Number(b.paid_amount)<Number(b.total) || !due) throw new Error("Only paid bookings on or after the event date can be completed");
     const db = await admin();
-    await db.from("bookings").update({ status: "completed", completed_at: new Date().toISOString(), escrow_status: "release_pending" }).eq("id", data.id);
+    const { data: done } = await db.from("bookings").update({ status: "completed", completed_at: new Date().toISOString(), escrow_status: "release_pending" })
+      .eq("id", data.id).in("status", ["confirmed", "pending"]).select("id, access_key, conversation_id, package_title, client_phone, client_email").maybeSingle();
+    if (!done) throw new Error("This booking cannot be completed");
+    // The client is told at once, so the 48-hour window to confirm or dispute never passes unseen.
+    const title = done.package_title ?? "your booking";
+    const text = `The artist marked ${title} as completed. Payment is released to the artist in 48 hours unless you open a dispute from the booking page.`;
+    if (done.conversation_id) {
+      await db.from("messages").insert({ conversation_id: done.conversation_id, sender: "system", body: text });
+      await db.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", done.conversation_id);
+    }
+    const { notifyBooking, siteOrigin } = await import("./notify.server");
+    await notifyBooking(done.id, "client", "completed", { phone: done.client_phone, email: done.client_email }, "Please confirm your booking", text, `${siteOrigin(getRequest())}/booking/${done.id}?k=${done.access_key}`);
     return { ok: true };
   });
 
