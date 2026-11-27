@@ -9,6 +9,7 @@ export function validateAttachment(file: { name: string; type: string; size: num
   return { name: maskContacts(String(file.name).slice(0, 300)).replace(/[\r\n]/g, " ").slice(0, 120), type: file.type, size: file.size };
 }
 export function attachmentInConversation(path: string, id: string) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || path.length > 200) return false;
   return new RegExp(`^chat/${id}/[0-9a-f-]{36}\\.(jpg|png|webp|pdf|mp4|mov)$`, "i").test(path);
 }
 export function encodeChatMessage(text: string, attachments: ChatAttachment[]) {

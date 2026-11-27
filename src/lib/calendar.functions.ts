@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { trustedOrigin } from "./trusted-origin";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -18,9 +19,7 @@ export const startCalendarConnect = createServerFn({ method: "POST" })
     const { authorizeAppUserOAuth } = await import("@/integrations/lovable/appUserConnector");
     const request = getRequest();
     if (!request) throw new Error("OAuth must start from an app request.");
-    const url = new URL(request.url);
-    const sandboxHost = url.hostname === "localhost" ? request.headers.get("x-forwarded-host") : null;
-    const returnUrl = new URL("/api/oauth/google_calendar/return", sandboxHost ? `https://${sandboxHost}` : url.origin).toString();
+    const returnUrl = new URL("/api/oauth/google_calendar/return", trustedOrigin(request)).toString();
     const { authorizationUrl } = await authorizeAppUserOAuth({
       gatewayBaseUrl: GATEWAY, connectorId: CONNECTOR, appUserId: context.userId, clientAPIKey: clientKey, returnUrl,
       credentialsConfiguration: { scopes: SCOPES },

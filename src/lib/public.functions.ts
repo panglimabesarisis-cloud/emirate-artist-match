@@ -84,7 +84,7 @@ async function loadCards(filter?: { artistSlug?: string }) {
     return path ? [path] : [];
   });
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const signedPhotos = photoPaths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(photoPaths, 6 * 3600)).data ?? [] : [];
+  const signedPhotos = photoPaths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(photoPaths, 900)).data ?? [] : [];
   const statMap = new Map((stats ?? []).map((s) => [s.artist_id, s]));
   const subscribers = await paidSubscriberIds(supabaseAdmin, (artists ?? []).map((a) => a.id));
   const {data:specialties}=await sb.from('subcategories').select('id,slug,name');
@@ -235,7 +235,7 @@ export const getArtist = createServerFn({ method: "GET" })
     ].filter((path): path is string => !!path))];
     // Bucket is private with no public read; sign server-side only for this approved artist's listed files.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const signed = paths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(paths, 60 * 60 * 6)).data ?? [] : [];
+    const signed = paths.length ? (await supabaseAdmin.storage.from("artist-media").createSignedUrls(paths, 900)).data ?? [] : [];
     const imageUrl = (path: string | null | undefined) => {
       const owned = artistOwnedMediaPath(card.id, path);
       return owned ? signed.find(image => image.path === owned)?.signedUrl ?? null : null;

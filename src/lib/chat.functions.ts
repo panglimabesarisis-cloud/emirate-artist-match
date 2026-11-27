@@ -167,7 +167,7 @@ export const getChat = createServerFn({ method: "GET" })
     return { mode: convo.mode, artist: convo.artists ? { stage_name: convo.artists.stage_name, slug: convo.artists.slug, hue: convo.artists.hue, trn: convo.artists.trn, profilePhotoUrl: photoUrl } : null, messages: await Promise.all((msgs ?? []).map(async message => {
       const parsed = decodeChatMessage(message.body);
       const attachments = await Promise.all(parsed.attachments.filter(file => attachmentInConversation(file.path, data.id)).map(async file => {
-        const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 3600);
+        const { data: signed } = await supabaseAdmin.storage.from(CHAT_BUCKET).createSignedUrl(file.path, 120);
         return { ...file, ...(signed?.signedUrl ? { url: signed.signedUrl } : {}) };
       }));
       return { ...message, body: parsed.text, attachments };
