@@ -27,3 +27,4 @@
 - Private artist agent tools query through caller RLS and effective-plan eligibility; Calendar writes require owner-confirmed server-authored actions with atomic claims, and saved invoices render privately without client delivery or financial mutation.
 - Verification codes use keyed server-side hashes and service-only atomic limits; identity submissions use the owner-checked transaction RPC, and document signing requires an admin check plus an access-log write.
 - Verification retention removes bytes through Storage before transactional redaction; category ranking uses recorded escrow-release timestamps, never inferred historical release dates or client-supplied earnings.
+- Stripe and OAuth return URLs use `trustedOrigin` (trusted-origin.ts) so a forged Host header cannot redirect payers or OAuth codes.

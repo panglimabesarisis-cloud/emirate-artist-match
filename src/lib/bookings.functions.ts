@@ -3,6 +3,7 @@ import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { maskContacts } from "./masking";
 import { getRequest } from "@tanstack/react-start/server";
+import { trustedOrigin } from "./trusted-origin";
 import { rushItems } from "./ratecard";
 import { bookingPayment, canCheckoutBooking } from "./booking-payment-rules";
 import { buildInvoice, type InvoiceItem } from "./invoice";
@@ -151,7 +152,7 @@ export const acceptAndPay = createServerFn({ method: "POST" })
     const { error } = await db.from("bookings").update({ contract_accepted_at: now, ...(data.phone?{client_phone:data.phone}:{}) }).eq("id", b.id).in("status", ["quoted","confirmed"]);
     if (error) throw new Error(error.message);
     const { openOrder } = await import("./payments.server");
-    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: payment.dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, getRequest().url).href);
+    return await openOrder({ artist_id: b.artist_id, kind: "booking", target_id: b.id, amount_minor: payment.dueMinor }, `Dealmaker booking: ${b.package_title ?? "Performance"}`, { email: b.client_email ?? undefined }, new URL(`/booking/${b.id}?k=${data.key}`, trustedOrigin(getRequest())).href);
     } catch (e) { const { getStripeErrorMessage } = await import("./stripe.server"); return { error: getStripeErrorMessage(e) }; }
   });
 

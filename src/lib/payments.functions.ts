@@ -1,5 +1,6 @@
 import {createServerFn} from '@tanstack/react-start';
 import {getRequest} from '@tanstack/react-start/server';
+import {trustedOrigin} from './trusted-origin';
 import {requireSupabaseAuth} from '@/integrations/supabase/auth-middleware';
 import {TOPUP_PACKAGES} from './masking';
 import {joinPaymentTotal} from './join-rules';
@@ -16,7 +17,7 @@ export const artistCheckout=createServerFn({method:'POST'}).middleware([requireS
   const {data:{user}}=await context.supabase.auth.getUser();
   const {openOrder}=await import('./payments.server');
   // The browser only asks to come back to the AI page; the address is built from the artist's own record.
-  const returnUrl=new URL(data.kind==='deposit'?'/join/payment':data.fromAiPage?`/ai/${a.slug}`:'/dashboard',getRequest().url).href;
+  const returnUrl=new URL(data.kind==='deposit'?'/join/payment':data.fromAiPage?`/ai/${a.slug}`:'/dashboard',trustedOrigin(getRequest())).href;
   if(data.kind==='credits'){const p=TOPUP_PACKAGES.find(p=>p.id===data.packageId);if(!p)throw new Error('Unknown credit package'); return await openOrder({artist_id:a.id,kind:'credits',package_id:p.id,credits:p.credits,amount_minor:Math.round(p.priceAed*1.05*100)},`Dealmaker ${p.credits} AI credits (incl. VAT 5%)`,{userId:context.userId,email:user?.email},returnUrl);}
   if(data.kind==='addon'){
    const itemId=id(data.itemId??'');
@@ -53,7 +54,7 @@ export const invoiceCheckout=createServerFn({method:'POST'}).inputValidator((i:{
  const {invoiceExpired}=await import('./unpaid-expiry');const linked=inv.booking_id?(await db.from('bookings').select('paid_amount').eq('id',inv.booking_id).maybeSingle()).data:null;
  if(invoiceExpired({status:inv.status,due:(inv.document as {due?:string|null}|null)?.due,deletedAt:inv.deleted_at,bookingPaid:linked?.paid_amount}))throw new Error('This invoice has expired');
  if(inv.booking_id){const {data:b}=await db.from('bookings').select('id,access_key,status').eq('id',inv.booking_id).eq('conversation_id',c.id).single();if(!b||!['quoted','confirmed'].includes(b.status))throw new Error('Booking is not available for payment');return {bookingUrl:`/booking/${b.id}?k=${b.access_key}`};}
- const {openOrder}=await import('./payments.server');return await openOrder({artist_id:inv.artist_id,kind:'invoice',target_id:inv.id,amount_minor:Math.round(Number(inv.total)*100)},`Dealmaker invoice ${inv.number}`,{email:c.quote_requests?.email??undefined},new URL(`/chat/${c.id}?k=${data.key}`,getRequest().url).href);
+ const {openOrder}=await import('./payments.server');return await openOrder({artist_id:inv.artist_id,kind:'invoice',target_id:inv.id,amount_minor:Math.round(Number(inv.total)*100)},`Dealmaker invoice ${inv.number}`,{email:c.quote_requests?.email??undefined},new URL(`/chat/${c.id}?k=${data.key}`,trustedOrigin(getRequest())).href);
  }catch(e){return {error:getStripeErrorMessage(e)};}
 });
 export const checkArtistPayment=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((i:{orderId:string})=>({orderId:id(i.orderId)})).handler(async({data,context})=>{try{const {data:o}=await context.supabase.from('payment_orders').select('id').eq('id',data.orderId).single();if(!o)throw new Error('Payment not found');const {reconcileOrder}=await import('./payments.server');const result=await reconcileOrder(o.id);const {data:{user}}=await context.supabase.auth.getUser();return {...result,receipt:await receiptFor(o.id,result.status,user?.email)};}catch(e){return {error:getStripeErrorMessage(e)};}});

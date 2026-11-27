@@ -1,3 +1,4 @@
+import { trustedOrigin } from "./trusted-origin";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { readWhatsAppConfig, sendWhatsApp } from "./whatsapp-provider.server";
 import { internationalPhone } from "./whatsapp-provider";
@@ -55,7 +56,7 @@ export async function artistContact(artistId: string) {
 }
 
 export function siteOrigin(req: Request | undefined) {
-  try { return req ? new URL(req.url).origin : ""; } catch { return ""; }
+  return trustedOrigin(req);
 }
 
 /**
