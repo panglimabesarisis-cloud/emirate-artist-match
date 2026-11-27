@@ -218,8 +218,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
   const customFields = orderForm?.fields ?? [];
   // An artist who shows an order form gets that form alone; the built-in questions are for artists without one.
   const formOnly = (orderForms ?? []).length > 0;
-  const bySpeciality = (orderForms ?? []).some(form => form.subcategory_id !== null);
-  const [verify, setVerify] = useState(false);
+    const [verify, setVerify] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   // How many of the order form's questions have been opened; another speciality starts again.
   const [opened, setOpened] = useState(1);
@@ -343,7 +342,7 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
         </div>
       ) : (
         <form onSubmit={submit} className="mt-5 space-y-3">
-          {(!formOnly || bySpeciality) && <>
+          {<>
             <div className="font-semibold">{t("Job Categories")}</div>
             <Select value={jobCategory} onValueChange={(v) => { setJobCategory(v); setSpeciality(""); }}>
               <SelectTrigger><SelectValue placeholder={t("What do you need?")} /></SelectTrigger>
@@ -352,11 +351,11 @@ function QuoteForm({ artistId, artistName, catalog, blocked, busy, similar, pack
             {jobCategory && (
               <Select value={speciality} onValueChange={setSpeciality}>
                 <SelectTrigger><SelectValue placeholder={t("Speciality")} /></SelectTrigger>
-                <SelectContent>{specialties.map((sp) => <SelectItem key={sp.slug} value={sp.id ?? sp.slug}>{t(sp.name)}</SelectItem>)}</SelectContent>
+                <SelectContent>{specialties.filter((sp) => { const row = (catalog as { subcategories?: { id: string; category_id: string | null }[] }).subcategories?.find((x) => x.id === sp.id); return !row || !row.category_id || row.category_id === jobCategory; }).map((sp) => <SelectItem key={sp.slug} value={sp.id ?? sp.slug}>{t(sp.name)}</SelectItem>)}</SelectContent>
               </Select>
             )}
           </>}
-          {(formOnly || speciality) && customFields.length > 0 && (
+          {speciality && customFields.length > 0 && (
             <div className="rounded-xl border-t-4 border-gold bg-background p-3">
               <div className="font-semibold">{orderForm?.title}</div>
               {orderForm?.description && <p className="text-xs text-muted-foreground">{orderForm.description}</p>}
