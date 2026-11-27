@@ -14,28 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      addon_purchases: {
-        Row: { addon_id: string; artist_id: string; expires_at: string | null; fulfilled_at: string | null; id: string; order_id: string; paid_at: string; price_aed: number; refunded_at: string | null }
-        Insert: { addon_id: string; artist_id: string; expires_at?: string | null; fulfilled_at?: string | null; id?: string; order_id: string; paid_at?: string; price_aed: number; refunded_at?: string | null }
-        Update: { addon_id?: string; artist_id?: string; expires_at?: string | null; fulfilled_at?: string | null; id?: string; order_id?: string; paid_at?: string; price_aed?: number; refunded_at?: string | null }
-        Relationships: [
-          { foreignKeyName: "addon_purchases_addon_id_fkey"; columns: ["addon_id"]; isOneToOne: false; referencedRelation: "addons"; referencedColumns: ["id"] },
-          { foreignKeyName: "addon_purchases_artist_id_fkey"; columns: ["artist_id"]; isOneToOne: false; referencedRelation: "artists"; referencedColumns: ["id"] },
-          { foreignKeyName: "addon_purchases_order_id_fkey"; columns: ["order_id"]; isOneToOne: true; referencedRelation: "payment_orders"; referencedColumns: ["id"] },
-        ]
-      }
-      addons: {
-        Row: { active: boolean; created_at: string; description: string; duration_days: number | null; id: string; kind: string; name: string; price_aed: number }
-        Insert: { active?: boolean; created_at?: string; description: string; duration_days?: number | null; id?: string; kind: string; name: string; price_aed: number }
-        Update: { active?: boolean; created_at?: string; description?: string; duration_days?: number | null; id?: string; kind?: string; name?: string; price_aed?: number }
-        Relationships: []
-      }
-      account_otp_grants: {
-        Row: { expires_at: string; user_id: string }
-        Insert: { expires_at: string; user_id: string }
-        Update: { expires_at?: string; user_id?: string }
-        Relationships: []
-      }
       account_closure_requests: {
         Row: {
           created_at: string
@@ -61,6 +39,112 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      account_otp_grants: {
+        Row: {
+          expires_at: string
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      addon_purchases: {
+        Row: {
+          addon_id: string
+          artist_id: string
+          expires_at: string | null
+          fulfilled_at: string | null
+          id: string
+          order_id: string
+          paid_at: string
+          price_aed: number
+          refunded_at: string | null
+        }
+        Insert: {
+          addon_id: string
+          artist_id: string
+          expires_at?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          order_id: string
+          paid_at?: string
+          price_aed: number
+          refunded_at?: string | null
+        }
+        Update: {
+          addon_id?: string
+          artist_id?: string
+          expires_at?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          order_id?: string
+          paid_at?: string
+          price_aed?: number
+          refunded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_purchases_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_purchases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_purchases_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      addons: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          duration_days: number | null
+          id: string
+          kind: string
+          name: string
+          price_aed: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description: string
+          duration_days?: number | null
+          id?: string
+          kind: string
+          name: string
+          price_aed: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          duration_days?: number | null
+          id?: string
+          kind?: string
+          name?: string
+          price_aed?: number
+        }
+        Relationships: []
       }
       admin_audit_log: {
         Row: {
@@ -302,12 +386,6 @@ export type Database = {
           },
         ]
       }
-      agent_search_sources: {
-        Row: { active: boolean; created_at: string; domain: string; topic: string }
-        Insert: { active?: boolean; created_at?: string; domain: string; topic: string }
-        Update: { active?: boolean; created_at?: string; domain?: string; topic?: string }
-        Relationships: []
-      }
       agent_chats: {
         Row: {
           artist_id: string
@@ -528,6 +606,27 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      agent_search_sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          domain: string
+          topic: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          domain: string
+          topic: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          domain?: string
+          topic?: string
+        }
+        Relationships: []
       }
       agent_settings: {
         Row: {
@@ -1599,7 +1698,6 @@ export type Database = {
       }
       bookings: {
         Row: {
-          retained_to: string | null
           access_key: string
           amount: number
           artist_id: string
@@ -1651,6 +1749,7 @@ export type Database = {
           release_rule: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at: string | null
           reminder_sent_at: string | null
+          retained_to: string | null
           revision_note: string | null
           send_invoice_after_approval: boolean
           start_time: string | null
@@ -1660,7 +1759,6 @@ export type Database = {
           work_ready_at: string | null
         }
         Insert: {
-          retained_to?: string | null
           access_key?: string
           amount: number
           artist_id: string
@@ -1712,6 +1810,7 @@ export type Database = {
           release_rule?: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at?: string | null
           reminder_sent_at?: string | null
+          retained_to?: string | null
           revision_note?: string | null
           send_invoice_after_approval?: boolean
           start_time?: string | null
@@ -1721,7 +1820,6 @@ export type Database = {
           work_ready_at?: string | null
         }
         Update: {
-          retained_to?: string | null
           access_key?: string
           amount?: number
           artist_id?: string
@@ -1773,6 +1871,7 @@ export type Database = {
           release_rule?: Database["public"]["Enums"]["release_rule"]
           reminder_claimed_at?: string | null
           reminder_sent_at?: string | null
+          retained_to?: string | null
           revision_note?: string | null
           send_invoice_after_approval?: boolean
           start_time?: string | null
@@ -1812,13 +1911,137 @@ export type Database = {
           },
         ]
       }
-      catalog_suggestions: {
-        Row: { admin_note: string | null; artist_id: string; category_id: string | null; created_at: string; decided_at: string | null; decided_by: string | null; id: string; kind: string; name: string; parent_id: string | null; status: string }
-        Insert: { admin_note?: string | null; artist_id: string; category_id?: string | null; created_at?: string; decided_at?: string | null; decided_by?: string | null; id?: string; kind: string; name: string; parent_id?: string | null; status?: string }
-        Update: { admin_note?: string | null; artist_id?: string; category_id?: string | null; created_at?: string; decided_at?: string | null; decided_by?: string | null; id?: string; kind?: string; name?: string; parent_id?: string | null; status?: string }
+      cancellation_requests: {
+        Row: {
+          booking_id: string
+          client_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          paid_amount: number
+          reason: string
+          reference: string
+          refund_amount: number | null
+          retained_to: string | null
+          status: string
+          suggested_refund: number
+          ticket_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          client_user_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          paid_amount?: number
+          reason: string
+          reference?: string
+          refund_amount?: number | null
+          retained_to?: string | null
+          status?: string
+          suggested_refund?: number
+          ticket_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          client_user_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          paid_amount?: number
+          reason?: string
+          reference?: string
+          refund_amount?: number | null
+          retained_to?: string | null
+          status?: string
+          suggested_refund?: number
+          ticket_id?: string | null
+        }
         Relationships: [
-          { foreignKeyName: "catalog_suggestions_artist_id_fkey"; columns: ["artist_id"]; isOneToOne: false; referencedRelation: "artists"; referencedColumns: ["id"] },
-          { foreignKeyName: "catalog_suggestions_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id"] },
+          {
+            foreignKeyName: "cancellation_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_requests_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_suggestions: {
+        Row: {
+          admin_note: string | null
+          artist_id: string
+          category_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          kind: string
+          name: string
+          parent_id: string | null
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          artist_id: string
+          category_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind: string
+          name: string
+          parent_id?: string | null
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          artist_id?: string
+          category_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          parent_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_suggestions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_suggestions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_suggestions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_suggestions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       categories: {
@@ -2742,6 +2965,53 @@ export type Database = {
           },
         ]
       }
+      ledger_adjustments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          credit_account: string
+          debit_account: string
+          entry_date: string
+          id: string
+          reason: string
+          reference: string
+          reverses: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string
+          credit_account: string
+          debit_account: string
+          entry_date: string
+          id?: string
+          reason: string
+          reference?: string
+          reverses?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          credit_account?: string
+          debit_account?: string
+          entry_date?: string
+          id?: string
+          reason?: string
+          reference?: string
+          reverses?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_adjustments_reverses_fkey"
+            columns: ["reverses"]
+            isOneToOne: true
+            referencedRelation: "ledger_adjustments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       library_audit: {
         Row: {
           action: string
@@ -3233,6 +3503,30 @@ export type Database = {
           },
         ]
       }
+      personal_agent_prompts: {
+        Row: {
+          body: string
+          created_at: string
+          enabled: boolean
+          id: string
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       phone_verifications: {
         Row: {
           attempts: number
@@ -3306,12 +3600,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      personal_agent_prompts: {
-        Row: { body: string; created_at: string; enabled: boolean; id: string; title: string }
-        Insert: { body: string; created_at?: string; enabled?: boolean; id?: string; title: string }
-        Update: { body?: string; created_at?: string; enabled?: boolean; id?: string; title?: string }
-        Relationships: []
       }
       plan_tiers: {
         Row: {
@@ -3637,20 +3925,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      cancellation_requests: {
-        Row: { booking_id: string; client_user_id: string; created_at: string; decided_at: string | null; decided_by: string | null; decision_note: string | null; id: string; paid_amount: number; reason: string; reference: string; refund_amount: number | null; retained_to: string | null; status: string; suggested_refund: number; ticket_id: string | null }
-        Insert: { booking_id: string; client_user_id: string; reason: string }
-        Update: { status?: string }
-        Relationships: [
-          { foreignKeyName: "cancellation_requests_booking_id_fkey"; columns: ["booking_id"]; isOneToOne: false; referencedRelation: "bookings"; referencedColumns: ["id"] },
-        ]
-      }
-      ledger_adjustments: {
-        Row: { amount: number; created_at: string; created_by: string; credit_account: string; debit_account: string; entry_date: string; id: string; reason: string; reference: string; reverses: string | null }
-        Insert: { amount: number; credit_account: string; debit_account: string; entry_date: string; reason: string }
-        Update: { reason?: string }
-        Relationships: []
       }
       rate_limits: {
         Row: {
@@ -4722,6 +4996,8 @@ export type Database = {
         Args: { _artist_id?: string; _days?: number; _page?: number }
         Returns: Json
       }
+      admin_scheduled_jobs: { Args: never; Returns: Json }
+      admin_security_overview: { Args: never; Returns: Json }
       admin_subscription_usage: { Args: { _artist: string }; Returns: Json }
       admin_subscriptions: {
         Args: never
@@ -4817,12 +5093,10 @@ export type Database = {
         Args: { _artist: string; _client_user: string }
         Returns: boolean
       }
-      artist_has_addon: { Args: { _artist: string; _kind: string }; Returns: boolean }
-      decide_catalog_suggestion: { Args: { _approve: boolean; _id: string; _name?: string; _note?: string }; Returns: boolean }
-      suggest_catalog_entry: { Args: { _artist: string; _category?: string; _kind: string; _name: string; _parent?: string }; Returns: string }
-      has_recent_otp: { Args: never; Returns: boolean }
-      needs_account_otp: { Args: never; Returns: boolean }
-      talent_needs_otp: { Args: { _user: string }; Returns: boolean }
+      artist_has_addon: {
+        Args: { _artist: string; _kind: string }
+        Returns: boolean
+      }
       artist_has_page: { Args: { _page: string }; Returns: boolean }
       artist_plan_internal: { Args: { _artist: string }; Returns: string }
       artist_public_stats: {
@@ -4946,6 +5220,7 @@ export type Database = {
         Args: { _artist: string; _hash: string; _id: string }
         Returns: Json
       }
+      claim_cancellation: { Args: { _id: string }; Returns: Json }
       claim_client_records: { Args: never; Returns: Json }
       claim_fonnte_revision: { Args: { _event: string }; Returns: Json }
       claim_invoice_archive_jobs: {
@@ -5042,20 +5317,6 @@ export type Database = {
           tier: number
         }[]
       }
-      claim_cancellation: { Args: { _id: string }; Returns: Json }
-      release_cancellation: { Args: { _id: string }; Returns: undefined }
-      finish_cancellation: {
-        Args: { _id: string; _approve: boolean; _refund: number; _retained_to: string; _note: string; _recorded?: boolean }
-        Returns: undefined
-      }
-      request_cancellation: { Args: { _booking: string; _reason: string }; Returns: string }
-      post_ledger_adjustment: {
-        Args: { _date: string; _debit: string; _credit: string; _amount: number; _reason: string }
-        Returns: string
-      }
-      reverse_ledger_adjustment: { Args: { _id: string; _reason: string }; Returns: string }
-      admin_scheduled_jobs: { Args: never; Returns: Json }
-      admin_security_overview: { Args: never; Returns: Json }
       client_wallet: {
         Args: { _user?: string }
         Returns: {
@@ -5084,6 +5345,10 @@ export type Database = {
           withdrawn: number
         }[]
       }
+      decide_catalog_suggestion: {
+        Args: { _approve: boolean; _id: string; _name?: string; _note?: string }
+        Returns: boolean
+      }
       decide_job_application: {
         Args: {
           _actor: string
@@ -5105,7 +5370,19 @@ export type Database = {
         Args: { _applications: string[] }
         Returns: Json
       }
+      finish_cancellation: {
+        Args: {
+          _approve: boolean
+          _id: string
+          _note: string
+          _recorded?: boolean
+          _refund: number
+          _retained_to: string
+        }
+        Returns: undefined
+      }
       fonnte_phone: { Args: { _phone: string }; Returns: string }
+      has_recent_otp: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5175,10 +5452,21 @@ export type Database = {
         Returns: undefined
       }
       my_verification_rank: { Args: { _artist: string }; Returns: Json }
+      needs_account_otp: { Args: never; Returns: boolean }
       next_invoice_no: { Args: never; Returns: string }
       norm_email: { Args: { _v: string }; Returns: string }
       norm_iban: { Args: { _v: string }; Returns: string }
       norm_phone: { Args: { _v: string }; Returns: string }
+      post_ledger_adjustment: {
+        Args: {
+          _amount: number
+          _credit: string
+          _date: string
+          _debit: string
+          _reason: string
+        }
+        Returns: string
+      }
       private_artists: {
         Args: never
         Returns: {
@@ -5237,7 +5525,12 @@ export type Database = {
       }
       refresh_top_badges: { Args: never; Returns: Json }
       refresh_top_performer: { Args: { _artist: string }; Returns: undefined }
+      release_cancellation: { Args: { _id: string }; Returns: undefined }
       release_due_escrow: { Args: never; Returns: number }
+      request_cancellation: {
+        Args: { _booking: string; _reason: string }
+        Returns: string
+      }
       reserve_agent_task: {
         Args: {
           _artist: string
@@ -5273,6 +5566,10 @@ export type Database = {
       }
       resolve_profile_reminder: { Args: { _id: string }; Returns: boolean }
       restore_conversations: { Args: { _ids: string[] }; Returns: number }
+      reverse_ledger_adjustment: {
+        Args: { _id: string; _reason: string }
+        Returns: string
+      }
       set_commission_hold: {
         Args: { _booking: string; _reason: string }
         Returns: undefined
@@ -5322,6 +5619,17 @@ export type Database = {
         Args: { _artist: string; _details: Json; _files: Json }
         Returns: Json
       }
+      suggest_catalog_entry: {
+        Args: {
+          _artist: string
+          _category?: string
+          _kind: string
+          _name: string
+          _parent?: string
+        }
+        Returns: string
+      }
+      talent_needs_otp: { Args: { _user: string }; Returns: boolean }
       team_booking_detail: {
         Args: { _artist: string; _booking: string }
         Returns: Json
