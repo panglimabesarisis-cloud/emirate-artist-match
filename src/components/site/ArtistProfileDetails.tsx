@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import type { JobScore } from "@/lib/job-score";
 
 type ProfileDetails = {
   categories: { name: string }[];
@@ -13,7 +14,20 @@ type ProfileDetails = {
   travel_radius_km: number | null;
   portfolio: { id: string; title: string; year: number | null; kind: string | null; description: string | null; link: string | null; imageUrl: string | null }[];
   clients: { id: string; name: string; year: number | null }[];
+  jobScores?: { categories: JobScore[]; specialties: JobScore[] };
 };
+
+function ScoreBars({ title, rows }: { title: string; rows: JobScore[] }) {
+  const { t } = useI18n();
+  return <div className="mt-4"><h3>{t(title)}</h3><div className="mt-3 space-y-3">{rows.map((r) => {
+    const tip = `${r.incoming} ${t("Incoming Job")}\n${r.done} ${t("Job Done")}\n${r.waiting} ${t("Job Waiting")}`;
+    return <div key={r.name} title={tip} aria-label={`${r.name}: ${r.pct}%. ${tip}`} className="group relative cursor-default">
+      <div className="flex justify-between text-sm"><span>{t(r.name)}</span><b dir="ltr">{r.pct}%</b></div>
+      <div className="mt-1 h-3 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-gold" style={{ width: `${r.pct}%` }} /></div>
+      <div role="tooltip" className="pointer-events-none absolute end-0 top-full z-10 mt-1 hidden whitespace-pre rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md group-hover:block">{tip}</div>
+    </div>;
+  })}</div></div>;
+}
 
 export function ArtistProfileDetails({ artist: a }: { artist: ProfileDetails }) {
   const { t } = useI18n();
@@ -27,9 +41,9 @@ export function ArtistProfileDetails({ artist: a }: { artist: ProfileDetails }) 
     <section className="artist-profile-section" aria-labelledby="artist-specialties">
       <h2 id="artist-specialties">{t("What I do")}</h2>
       <div className="artist-profile-capabilities">
-        {a.categories.length > 0 && <div><h3>{t("Categories")}</h3><p>{a.categories.map(c => c.name).join(", ")}</p></div>}
-        {a.specialties.length > 0 && <div><h3>{t("Specialities")}</h3><p>{a.specialties.map(c => c.name).join(", ")}</p></div>}
       </div>
+      {(a.jobScores?.categories.length ?? 0) > 0 && <ScoreBars title="Categories" rows={a.jobScores!.categories} />}
+      {(a.jobScores?.specialties.length ?? 0) > 0 && <ScoreBars title="Specialities" rows={a.jobScores!.specialties} />}
       {a.skills.length > 0 && <><h3 className="mt-6">{t("Skills")}</h3><ul className="artist-profile-skills">{a.skills.map(skill => <li key={skill}>{skill}</li>)}</ul></>}
     </section>
     {details.length > 0 && <section className="artist-profile-section" aria-labelledby="artist-professional-details">

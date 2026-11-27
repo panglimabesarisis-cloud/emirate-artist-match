@@ -1,3 +1,4 @@
+import { jobScores } from "@/lib/job-score";
 import { parseSiteSettings } from "./site-settings";
 import { createServerFn } from "@tanstack/react-start";
 import { conciergeInput } from "./concierge-rules";
@@ -242,11 +243,12 @@ export const getArtist = createServerFn({ method: "GET" })
     };
     const [{ data: categories }, { data: specialties }] = await Promise.all([
       full?.category_ids?.length ? sb.from("categories").select("id,name,slug").in("id", full.category_ids) : Promise.resolve({ data: [] }),
-      full?.specialty_ids?.length ? sb.from("subcategories").select("id,name,slug").in("id", full.specialty_ids) : Promise.resolve({ data: [] }),
+      full?.specialty_ids?.length ? sb.from("subcategories").select("id,name,slug,category_id").in("id", full.specialty_ids) : Promise.resolve({ data: [] }),
     ]);
     // The cover photo goes first; everything else keeps the order the artist chose.
     // Anonymous busy slots for the public schedule: only dates and times, never client or event details.
     const { data: busyRows } = await supabaseAdmin.from("bookings").select("event_date, start_time, end_time").eq("artist_id", card.id).is("deleted_at", null).neq("status", "cancelled").gte("event_date", new Date().toISOString().slice(0, 10)).limit(1000);
+    const { data: jobRows } = await supabaseAdmin.from("bookings").select("status, completed_at, package_title, job_detail").eq("artist_id", card.id).is("deleted_at", null).limit(5000);
     const busy = (busyRows ?? []).map((b) => ({ date: b.event_date as string, start: (b.start_time as string | null)?.slice(0, 5) ?? null, end: (b.end_time as string | null)?.slice(0, 5) ?? null }));
     const media = [...(mediaRows ?? [])].sort((a, b) => Number(b.is_cover) - Number(a.is_cover)).map((m) => ({
       id: m.id, kind: m.kind as "photo" | "video" | "youtube", caption: m.caption,
@@ -261,6 +263,11 @@ export const getArtist = createServerFn({ method: "GET" })
       physicalDetails: publicPhysicalDetails(full?.body),
       categories: [...(card.category ? [card.category] : []), ...(categories ?? []).filter(category => category.slug !== card.category?.slug)],
       specialties: [...(card.subcategory ? [card.subcategory] : []), ...(specialties ?? []).filter(specialty => specialty.slug !== card.subcategory?.slug)],
+      jobScores: jobScores(
+        (jobRows ?? []).map((b) => ({ status: b.status as string, completed_at: b.completed_at as string | null, text: `${b.package_title ?? ""} ${b.job_detail ?? ""}` })),
+        [...(card.category ? [card.category] : []), ...(categories ?? []).filter(category => category.slug !== card.category?.slug)] as { id?: string; name: string }[],
+        [...(card.subcategory ? [card.subcategory] : []), ...(specialties ?? []).filter(specialty => specialty.slug !== card.subcategory?.slug)] as { id?: string; name: string; category_id?: string | null }[],
+      ),
       portfolio: (portfolioRows ?? []).map(work => ({ id: work.id, title: work.title, year: work.year, kind: work.kind, description: work.description, link: work.link?.startsWith("https://") ? work.link : null, imageUrl: imageUrl(work.image_path) })),
       clients: clientRows ?? [],
       rateCards: rates ?? [],

@@ -29,6 +29,7 @@ import { FlowBuilder } from "@/components/flow/FlowBuilder";
 import { TeamTab } from "@/components/dashboard/TeamTabs";
 import { ArtistOverview, CalendarTab, TeamPhones, WalletTab } from "@/components/dashboard/ArtistCRM";
 import { aed, BADGE_LABELS, initials, slugify } from "@/lib/format";
+import { registrationCode } from "@/lib/job-score";
 import { BadgeCheck, Bell, LifeBuoy, Bot, Calendar, CalendarCheck, ClipboardList, Download, Eye, FileSignature, FileText, Home, Image as ImageIcon, Inbox as InboxIcon, Menu as MenuIcon, Receipt, Rocket, Sparkles, Tag, User, Users, Wallet, Workflow, type LucideIcon, Puzzle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,7 +382,7 @@ function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) 
     if (!v.stage_name || !v.category_id || !v.emirate_id) { toast.error("Stage name, category and emirate are required."); return; }
     const { error } = await supabase.from("artists").insert({
       ...v, skills: v.skills ?? [], body: v.body ?? {}, stage_name: v.stage_name, user_id: userId,
-      slug: `${slugify(v.stage_name)}-${Math.random().toString(36).slice(2, 6)}`,
+      slug: `${slugify(v.stage_name)}-${registrationCode()}`,
       hue: Math.floor(Math.random() * 360),
     });
     if (error) { toast.error(error.message); return; }

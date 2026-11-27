@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { slugify } from "@/lib/format";
+import { registrationCode } from "@/lib/job-score";
 import { specialtyLimit } from "@/lib/join-rules";
 import { SIGNUP_PLAN_KEY } from "@/lib/signup-plan";
 import { useWhatsAppProof, WhatsAppVerify } from "@/components/shared/WhatsAppVerify";
@@ -237,7 +238,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
     const e = validate(); if (e) { toast.error(e); return; }
     setBusy(true);
     try {
-      const {data:existing}=await supabase.rpc('private_artists').select('id').eq('user_id',user.id).maybeSingle();
+      const {data:existing}=await supabase.rpc('private_artists').select('id, created_at').eq('user_id',user.id).maybeSingle();
       // The database only accepts what the paid plan allows; the other choices wait on the account until it is paid.
       let allowedNow=specialtyLimit('free');
       if(existing){const current=await supabase.rpc('effective_artist_plan',{_artist:existing.id});const paid=current.data?await supabase.from('plan_tiers').select('max_specialties').eq('code',current.data).maybeSingle():null;allowedNow=paid?.data?.max_specialties??allowedNow;}
@@ -251,7 +252,7 @@ function Wizard({ user, plan, step, setStep, onChangePlan }: { user: { id: strin
         travel_radius_km: Number(radius) || null, notify_phone: normalizeVerificationPhone(phone) ?? phone.replace(/\s/g, ""), trn: trn || null,
         contract_accepted_at: new Date().toISOString(),
         intended_plan:plan,onboarding_complete:false,
-        slug: `${slugify(stage)}-${Math.random().toString(36).slice(2, 6)}`, hue: Math.floor(Math.random() * 360),
+        slug: `${slugify(stage)}-${registrationCode(existing?.created_at ? new Date(existing.created_at) : new Date())}`, hue: Math.floor(Math.random() * 360),
       };
       const { data: a, error } = existing?await supabase.from('artists').update(profile).eq('id',existing.id).select('id').single():await supabase.from('artists').insert(profile).select('id').single();
       if (error || !a) throw new Error(error?.message ?? "Could not save profile");
